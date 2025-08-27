@@ -88,12 +88,25 @@
         </div>
       </div>
       
-      <!-- Дополнительные настройки -->
+      <!-- Кнопка дополнительных настроек -->
       <div class="row mt-3">
+        <div class="col-12">
+          <button 
+            @click="toggleSettings" 
+            class="btn btn-outline-secondary"
+            type="button"
+          >
+            <i class="bi" :class="showSettings ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+            Дополнительные настройки
+          </button>
+        </div>
+      </div>
+      
+      <!-- Дополнительные настройки -->
+      <div class="row mt-3" v-show="showSettings">
         <div class="col-12">
           <div class="card">
             <div class="card-body">
-              <h6 class="card-title mb-3">Дополнительные настройки</h6>
               
               <div class="row g-3">
                 <!-- Внешний отступ -->
@@ -214,7 +227,8 @@ export default {
       shadowBlur: 0,
       shadowOffsetX: 0,
       shadowOffsetY: 0,
-      shadowOpacity: 50
+      shadowOpacity: 50,
+      showSettings: false
     }
   },
   
@@ -320,6 +334,10 @@ export default {
       }
       
       paper.view.draw()
+    },
+    
+    toggleSettings() {
+      this.showSettings = !this.showSettings
     },
     
     applyMaskStyles(mask) {

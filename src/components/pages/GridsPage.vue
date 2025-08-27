@@ -501,8 +501,11 @@ export default {
     }
     
     // Вычисляем индекс изображения для позиции (row, col)
-    // Используем шахматный паттерн для равномерного распределения
-    const imageIndex = (row * this.gridCols + col) % gridImages.length
+    // Смещаем начало каждой строки для равномерного распределения
+    // Используем большее смещение для лучшего распределения
+    const baseIndex = row * this.gridCols + col
+    const offset = row * 2 // Увеличиваем смещение
+    const imageIndex = (baseIndex + offset) % gridImages.length
     
     return gridImages[imageIndex]
   },

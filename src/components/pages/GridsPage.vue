@@ -695,10 +695,8 @@ export default {
             // Устанавливаем позицию точно в центр маски
             maskedRaster.position = maskBounds.center
             
-            // Копируем данные и стили
+            // Копируем данные (но не стили обводки)
             maskedRaster.data = mask.data
-            maskedRaster.strokeColor = this.strokeColor
-            maskedRaster.strokeWidth = this.strokeWidth
             
             // Применяем тень
             this.applyShadowToRaster(maskedRaster)
@@ -724,13 +722,19 @@ export default {
             // Показываем обрезанный растр
             maskedRaster.visible = true
             
+            // Создаем обводку поверх изображения
+            if (this.strokeWidth && this.strokeWidth > 0 && this.strokeColor) {
+              this.createStrokeOverImage(maskedRaster, mask, parentGroup)
+            }
+            
             // Обновляем view
             paper.view.update()
             
             console.log('✅ Обрезанное изображение создано и добавлено:', {
               maskedRasterVisible: maskedRaster.visible,
               maskedRasterBounds: maskedRaster.bounds,
-              parentGroupChildren: parentGroup ? parentGroup.children.length : 'no parent'
+              parentGroupChildren: parentGroup ? parentGroup.children.length : 'no parent',
+              hasStroke: !!(this.strokeWidth && this.strokeWidth > 0 && this.strokeColor)
             })
           }
         }
@@ -784,6 +788,83 @@ export default {
         raster.shadowColor = null
         raster.shadowBlur = 0
         raster.shadowOffset = null
+      }
+    },
+    
+    createStrokeOverImage(raster, originalMask, parentGroup) {
+      // Создаем обводку поверх изображения, используя реальные сегменты маски
+      let strokePath = null
+      
+      if (originalMask.data && originalMask.data.type === 'rectangle') {
+        strokePath = new paper.Path.Rectangle(raster.bounds)
+      } else if (originalMask.data && originalMask.data.type === 'triangle') {
+        // Создаем треугольную обводку с учетом ориентации
+        const bounds = raster.bounds
+        const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
+        
+        if (isInverted) {
+          // Перевернутый треугольник
+          strokePath = new paper.Path([
+            new paper.Point(bounds.center.x, bounds.bottom),
+            new paper.Point(bounds.left, bounds.top),
+            new paper.Point(bounds.right, bounds.top),
+            new paper.Point(bounds.center.x, bounds.bottom)
+          ])
+        } else {
+          // Обычный треугольник
+          strokePath = new paper.Path([
+            new paper.Point(bounds.center.x, bounds.top),
+            new paper.Point(bounds.left, bounds.bottom),
+            new paper.Point(bounds.right, bounds.bottom),
+            new paper.Point(bounds.center.x, bounds.top)
+          ])
+        }
+      } else if (originalMask.data && originalMask.data.type === 'diamond') {
+        // Создаем ромбовидную обводку
+        const bounds = raster.bounds
+        strokePath = new paper.Path([
+          new paper.Point(bounds.center.x, bounds.top),
+          new paper.Point(bounds.left, bounds.center.y),
+          new paper.Point(bounds.center.x, bounds.bottom),
+          new paper.Point(bounds.right, bounds.center.y),
+          new paper.Point(bounds.center.x, bounds.top)
+        ])
+      } else if (originalMask.data && originalMask.data.type === 'hexagon') {
+        // Создаем шестиугольную обводку, используя реальные сегменты маски
+        if (originalMask.segments && originalMask.segments.length > 0) {
+          // Используем реальные сегменты маски
+          const points = originalMask.segments.map(segment => segment.point)
+          strokePath = new paper.Path(points)
+          strokePath.closePath()
+        } else {
+          // Fallback - создаем идеальный шестиугольник
+          const bounds = raster.bounds
+          const hexPoints = this.getHexagonPoints(bounds.width, bounds.height)
+          const points = hexPoints.map(p => new paper.Point(bounds.left + p.x, bounds.top + p.y))
+          strokePath = new paper.Path(points)
+          strokePath.closePath()
+        }
+      }
+      
+      if (strokePath) {
+        // Настраиваем обводку
+        strokePath.fillColor = null
+        strokePath.strokeColor = this.strokeColor
+        strokePath.strokeWidth = this.strokeWidth
+        
+        // Добавляем обводку в ту же группу поверх изображения
+        if (parentGroup) {
+          parentGroup.addChild(strokePath)
+        }
+        
+        console.log('🎨 Создана обводка поверх изображения:', {
+          strokeType: originalMask.data ? originalMask.data.type : 'unknown',
+          strokeColor: this.strokeColor,
+          strokeWidth: this.strokeWidth,
+          isInverted: originalMask.data && originalMask.data.type === 'triangle' ? 
+            (originalMask.data.row + originalMask.data.col) % 2 === 1 : false,
+          segmentsCount: originalMask.segments ? originalMask.segments.length : 0
+        })
       }
     },
     

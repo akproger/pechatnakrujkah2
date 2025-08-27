@@ -329,7 +329,20 @@ export default {
       
       // Расчет размеров с учетом количества строк и столбцов
       const hexWidth = (totalWidth * 1.5) / adjustedCols
-      const hexHeight = (totalHeight * 1.5) / adjustedRows
+      
+      // Расчет высоты с учетом выхода за нижнюю границу на 50% от размера шестиугольника
+      let hexHeight
+      if (this.gridRows > 1) {
+        // Для более чем 1 строки: последняя строка должна уходить за границу на 50% от размера
+        // Учитываем, что шестиугольники начинаются с startY = -hexHeight * 0.5
+        // Формула: totalHeight + hexHeight * 0.5 = this.gridRows * hexHeight
+        // Отсюда: hexHeight = totalHeight / (this.gridRows - 0.5)
+        // Увеличиваем коэффициент для точного выхода на 50%
+        hexHeight = totalHeight / (this.gridRows - 0.97405)
+      } else {
+        // Для 1 строки: стандартный расчет
+        hexHeight = (totalHeight * 1.5) / adjustedRows
+      }
       
       // Расчет размеров для неравносторонних шестиугольников
       // Расстояние между центрами остается постоянным, изменяется только форма

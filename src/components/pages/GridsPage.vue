@@ -318,10 +318,21 @@ export default {
     },
     
     createHexagonMasks(group, cellWidth, cellHeight) {
-      // Создаем шестиугольники с правильным стартовым позиционированием
-      const hexRadius = Math.min(cellWidth, cellHeight) / 2 * 0.9
-      const hexWidth = hexRadius * 2
-      const hexHeight = hexRadius * Math.sqrt(3)
+      // Создаем шестиугольники с динамическим размером для правильного покрытия
+      const totalWidth = paper.view.viewSize.width
+      const totalHeight = paper.view.viewSize.height
+      
+      // Вычисляем оптимальный размер шестиугольника для покрытия canvas + 50% за границами
+      // Учитываем смещение в шахматном порядке (чередующиеся ряды)
+      const adjustedCols = this.gridCols + 1 // +1 для учета смещения
+      const adjustedRows = this.gridRows + 1 // +1 для покрытия краев
+      
+      // Расчет размеров с учетом количества строк и столбцов
+      const hexWidth = (totalWidth * 1.5) / adjustedCols
+      const hexHeight = (totalHeight * 1.5) / adjustedRows
+      
+      // Расчет размеров для неравносторонних шестиугольников
+      // Расстояние между центрами остается постоянным, изменяется только форма
       
       // Начинаем с отрицательных координат для правильного заполнения
       const startX = -hexWidth * 0.5
@@ -332,13 +343,26 @@ export default {
           const centerX = startX + col * hexWidth + hexWidth / 2
           const centerY = startY + row * hexHeight + hexHeight / 2
           
-          // Смещение для плотного расположения
-          const offsetX = row % 2 === 0 ? 0 : hexRadius * 0.866
+          // Смещение для плотного расположения (постоянное расстояние)
+          const offsetX = row % 2 === 0 ? 0 : hexWidth * 0.5
           
-          const hexagon = new paper.Path.RegularPolygon({
-            center: [centerX + offsetX, centerY],
-            radius: hexRadius,
-            sides: 6
+          // Создаем неравносторонний шестиугольник через Path
+          const hexagon = new paper.Path({
+            segments: [
+              // Верхняя вершина
+              [centerX + offsetX, centerY - hexHeight / 2],
+              // Верхний правый угол
+              [centerX + offsetX + hexWidth / 2, centerY - hexHeight / 4],
+              // Нижний правый угол
+              [centerX + offsetX + hexWidth / 2, centerY + hexHeight / 4],
+              // Нижняя вершина
+              [centerX + offsetX, centerY + hexHeight / 2],
+              // Нижний левый угол
+              [centerX + offsetX - hexWidth / 2, centerY + hexHeight / 4],
+              // Верхний левый угол
+              [centerX + offsetX - hexWidth / 2, centerY - hexHeight / 4]
+            ],
+            closed: true
           })
           
           hexagon.strokeColor = '#dee2e6'

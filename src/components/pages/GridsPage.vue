@@ -68,11 +68,10 @@
         </div>
       </div>
       
-      <!-- Canvas область -->
+            <!-- Canvas область -->
       <div class="row">
         <div class="col">
           <div class="card">
-
             <div class="card-body p-0">
               <canvas 
                 ref="paperCanvas"
@@ -84,6 +83,95 @@
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
               ></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Дополнительные настройки -->
+      <div class="row mt-3">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <h6 class="card-title mb-3">Дополнительные настройки</h6>
+              
+              <div class="row g-3">
+                <!-- Внешний отступ -->
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="externalMargin"
+                      min="0" 
+                      max="50" 
+                      step="1"
+                    >
+                  </div>
+                </div>
+                
+                <!-- Обводка -->
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="form-label">Цвет обводки</label>
+                    <input 
+                      type="color" 
+                      class="form-control form-control-color" 
+                      v-model="strokeColor"
+                      title="Выберите цвет обводки"
+                    >
+                  </div>
+                  <div class="form-group mt-2">
+                    <label class="form-label">Толщина обводки: {{ strokeWidth }}px</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="strokeWidth"
+                      min="0" 
+                      max="10" 
+                      step="0.5"
+                    >
+                  </div>
+                </div>
+                
+                <!-- Тень -->
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="shadowBlur"
+                      min="0" 
+                      max="50" 
+                      step="1"
+                    >
+                  </div>
+                  <div class="form-group mt-2">
+                    <label class="form-label">Размер тени: {{ shadowSize }}px</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="shadowSize"
+                      min="0" 
+                      max="50" 
+                      step="1"
+                    >
+                  </div>
+                  <div class="form-group mt-2">
+                    <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="shadowOpacity"
+                      min="0" 
+                      max="100" 
+                      step="1"
+                    >
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -104,7 +192,14 @@ export default {
       maskType: 'rectangle',
       paperScope: null,
       selectedCell: null,
-      touchStartPos: null
+      touchStartPos: null,
+      // Дополнительные настройки
+      externalMargin: 0,
+      strokeColor: '#000000',
+      strokeWidth: 1,
+      shadowBlur: 0,
+      shadowSize: 10,
+      shadowOpacity: 50
     }
   },
   
@@ -117,6 +212,25 @@ export default {
       this.generateGrid()
     },
     maskType() {
+      this.generateGrid()
+    },
+    // Дополнительные настройки
+    externalMargin() {
+      this.generateGrid()
+    },
+    strokeColor() {
+      this.generateGrid()
+    },
+    strokeWidth() {
+      this.generateGrid()
+    },
+    shadowBlur() {
+      this.generateGrid()
+    },
+    shadowSize() {
+      this.generateGrid()
+    },
+    shadowOpacity() {
       this.generateGrid()
     }
   },
@@ -190,21 +304,47 @@ export default {
       paper.view.draw()
     },
     
+    applyMaskStyles(mask) {
+      // Применяем настройки обводки
+      mask.strokeColor = this.strokeColor
+      mask.strokeWidth = this.strokeWidth
+      mask.fillColor = '#016527'
+      mask.fillOpacity = 0.3
+      
+      // Применяем настройки тени
+      if (this.shadowBlur > 0 || this.shadowSize > 0) {
+        const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
+        mask.shadowColor = shadowColor
+        mask.shadowBlur = this.shadowBlur
+        mask.shadowOffset = new paper.Point(this.shadowSize, this.shadowSize)
+        
+        // Принудительно обновляем отображение
+        mask.shadowColor = shadowColor
+      } else {
+        mask.shadowColor = null
+        mask.shadowBlur = 0
+        mask.shadowOffset = null
+      }
+    },
+    
     createRectangleMasks(group, cellWidth, cellHeight) {
-      // Создаем параллелепипеды
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      const adjustedWidth = cellWidth - margin * 2
+      const adjustedHeight = cellHeight - margin * 2
+      
       for (let row = 0; row < this.gridRows; row++) {
         for (let col = 0; col < this.gridCols; col++) {
-          const x = col * cellWidth
-          const y = row * cellHeight
+          const x = col * cellWidth + margin
+          const y = row * cellHeight + margin
           
           const rect = new paper.Path.Rectangle({
             point: [x, y],
-            size: [cellWidth, cellHeight],
-            strokeColor: '#dee2e6',
-            strokeWidth: 1,
-            fillColor: '#016527',
-            fillOpacity: 0.3
+            size: [adjustedWidth, adjustedHeight]
           })
+          
+          // Применяем настройки обводки и тени
+          this.applyMaskStyles(rect)
           
           rect.data = { row, col, type: 'rectangle' }
           this.addMaskInteractivity(rect)
@@ -218,6 +358,9 @@ export default {
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
       
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      
       // Вычисляем количество полных треугольников, которые поместятся
       const triangleBaseWidth = cellWidth * 2 // Основание треугольника теперь равно 2 ячейкам
       const numTriangles = Math.ceil(viewWidth / triangleBaseWidth)
@@ -227,8 +370,8 @@ export default {
       
       for (let row = 0; row < this.gridRows; row++) {
         for (let col = 0; col <= numTriangles; col++) {
-          const x = startX + col * triangleBaseWidth
-          const y = row * cellHeight
+          const x = startX + col * triangleBaseWidth + margin
+          const y = row * cellHeight + margin
           const isEven = (row + col) % 2 === 0
           
           let triangle
@@ -236,9 +379,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new paper.Path({
               segments: [
-                [x + cellWidth / 2, y], // вершина
-                [x - cellWidth * 1.5125, y + cellHeight], // левый угол основания (на 151.25% левее)
-                [x + cellWidth * 2.5125, y + cellHeight] // правый угол основания (на 151.25% правее)
+                [x + (cellWidth - margin * 2) / 2, y], // вершина
+                [x - (cellWidth - margin * 2) * 1.5125, y + (cellHeight - margin * 2)], // левый угол основания
+                [x + (cellWidth - margin * 2) * 2.5125, y + (cellHeight - margin * 2)] // правый угол основания
               ],
               closed: true
             })
@@ -246,18 +389,16 @@ export default {
             // Треугольник основанием вверх
             triangle = new paper.Path({
               segments: [
-                [x - cellWidth * 1.5125, y], // левый угол основания (на 151.25% левее)
-                [x + cellWidth * 2.5125, y], // правый угол основания (на 151.25% правее)
-                [x + cellWidth / 2, y + cellHeight] // вершина
+                [x - (cellWidth - margin * 2) * 1.5125, y], // левый угол основания
+                [x + (cellWidth - margin * 2) * 2.5125, y], // правый угол основания
+                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2)] // вершина
               ],
               closed: true
             })
           }
           
-          triangle.strokeColor = '#dee2e6'
-          triangle.strokeWidth = 1
-          triangle.fillColor = '#016527'
-          triangle.fillOpacity = 0.3
+          // Применяем настройки обводки и тени
+          this.applyMaskStyles(triangle)
           
           triangle.data = { row, col: Math.floor(col), type: 'triangle', isEven }
           this.addMaskInteractivity(triangle)
@@ -270,6 +411,9 @@ export default {
       // Создаем ромбы в шахматном порядке, начинающиеся и заканчивающиеся вершинами
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       
       // Вычисляем количество ромбов, которые поместятся
       // Ромб по ширине занимает 2 ячейки (как основание треугольника)
@@ -289,23 +433,21 @@ export default {
           
           if (isEven) {
             // Ромб - по сути два треугольника, соединенные основаниями
-            const x = startX + col * diamondWidth
-            const y = startY + row * diamondHeight
+            const x = startX + col * diamondWidth + margin
+            const y = startY + row * diamondHeight + margin
             
             const diamond = new paper.Path({
               segments: [
-                [x + cellWidth / 2, y - cellHeight * 1.49592857723], // верхняя вершина (на 149.592857723% выше)
-                [x + cellWidth * 2.487375, y + cellHeight / 2], // правая середина
-                [x + cellWidth / 2, y + cellHeight * 2.49592857723], // нижняя вершина (на 149.592857723% ниже)
-                [x - cellWidth * 1.487375, y + cellHeight / 2] // левая середина
+                [x + (cellWidth - margin * 2) / 2, y - (cellHeight - margin * 2) * 1.49592857723], // верхняя вершина
+                [x + (cellWidth - margin * 2) * 2.487375, y + (cellHeight - margin * 2) / 2], // правая середина
+                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2) * 2.49592857723], // нижняя вершина
+                [x - (cellWidth - margin * 2) * 1.487375, y + (cellHeight - margin * 2) / 2] // левая середина
               ],
               closed: true
             })
             
-            diamond.strokeColor = '#dee2e6'
-            diamond.strokeWidth = 1
-            diamond.fillColor = '#016527'
-            diamond.fillOpacity = 0.3
+            // Применяем настройки обводки и тени
+            this.applyMaskStyles(diamond)
             
             diamond.data = { row, col: Math.floor(col), type: 'diamond', isEven }
             this.addMaskInteractivity(diamond)
@@ -319,6 +461,9 @@ export default {
       // Создаем шестиугольники с динамическим размером для правильного покрытия
       const totalWidth = paper.view.viewSize.width
       const totalHeight = paper.view.viewSize.height
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       
       // Вычисляем оптимальный размер шестиугольника для покрытия canvas + 50% за границами
       // Учитываем смещение в шахматном порядке (чередующиеся ряды)
@@ -349,10 +494,10 @@ export default {
       const startX = -hexWidth * 0.5
       const startY = -hexHeight * 0.5
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
-          const centerX = startX + col * hexWidth + hexWidth / 2
-          const centerY = startY + row * hexHeight + hexHeight / 2
+              for (let row = 0; row < this.gridRows; row++) {
+          for (let col = 0; col < this.gridCols; col++) {
+            const centerX = startX + col * hexWidth + hexWidth / 2 + margin
+            const centerY = startY + row * hexHeight + hexHeight / 2 + margin
           
           // Смещение для плотного расположения (постоянное расстояние)
           const offsetX = row % 2 === 0 ? 0 : hexWidth * 0.5
@@ -361,25 +506,23 @@ export default {
           const hexagon = new paper.Path({
             segments: [
               // Верхняя вершина
-              [centerX + offsetX, centerY - hexHeight * 0.663065],
+              [centerX + offsetX, centerY - (hexHeight - margin * 2) * 0.663065],
               // Верхний правый угол
-              [centerX + offsetX + hexWidth / 2, centerY - hexHeight * 0.3315325],
+              [centerX + offsetX + (hexWidth - margin * 2) / 2, centerY - (hexHeight - margin * 2) * 0.3315325],
               // Нижний правый угол
-              [centerX + offsetX + hexWidth / 2, centerY + hexHeight * 0.3315325],
+              [centerX + offsetX + (hexWidth - margin * 2) / 2, centerY + (hexHeight - margin * 2) * 0.3315325],
               // Нижняя вершина
-              [centerX + offsetX, centerY + hexHeight * 0.663065],
+              [centerX + offsetX, centerY + (hexHeight - margin * 2) * 0.663065],
               // Нижний левый угол
-              [centerX + offsetX - hexWidth / 2, centerY + hexHeight * 0.3315325],
+              [centerX + offsetX - (hexWidth - margin * 2) / 2, centerY + (hexHeight - margin * 2) * 0.3315325],
               // Верхний левый угол
-              [centerX + offsetX - hexWidth / 2, centerY - hexHeight * 0.3315325]
+              [centerX + offsetX - (hexWidth - margin * 2) / 2, centerY - (hexHeight - margin * 2) * 0.3315325]
             ],
             closed: true
           })
           
-          hexagon.strokeColor = '#dee2e6'
-          hexagon.strokeWidth = 1
-          hexagon.fillColor = '#016527'
-          hexagon.fillOpacity = 0.3
+          // Применяем настройки обводки и тени
+          this.applyMaskStyles(hexagon)
           
           hexagon.data = { row, col, type: 'hexagon' }
           this.addMaskInteractivity(hexagon)

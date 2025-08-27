@@ -109,6 +109,16 @@
               <i class="bi" :class="showImages ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
               Изображения
             </button>
+            
+            <button 
+              @click="resetGridSettings" 
+              class="btn btn-outline-warning"
+              type="button"
+              title="Сбросить настройки текущего типа сетки к значениям по умолчанию"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+              Сбросить настройки
+            </button>
           </div>
         </div>
       </div>
@@ -305,8 +315,13 @@ export default {
   name: 'GridsPage',
   data() {
     return {
-      gridRows: 5,
-      gridCols: 5,
+      // Настройки для каждого типа сетки
+      gridSettings: {
+        rectangle: { rows: 3, cols: 5 },
+        triangle: { rows: 2, cols: 20 },
+        hexagon: { rows: 4, cols: 8 },
+        diamond: { rows: 4, cols: 16 }
+      },
       maskType: 'rectangle',
       paperScope: null,
       selectedCell: null,
@@ -325,13 +340,33 @@ export default {
     }
   },
   
+  computed: {
+    // Получаем текущие настройки строк и столбцов для выбранного типа сетки
+    gridRows: {
+      get() {
+        return this.gridSettings[this.maskType].rows
+      },
+      set(value) {
+        this.gridSettings[this.maskType].rows = value
+      }
+    },
+    gridCols: {
+      get() {
+        return this.gridSettings[this.maskType].cols
+      },
+      set(value) {
+        this.gridSettings[this.maskType].cols = value
+      }
+    }
+  },
+  
   watch: {
     // Автоматическое применение изменений ползунков
-    gridRows() {
-      this.generateGrid()
-    },
-    gridCols() {
-      this.generateGrid()
+    'gridSettings': {
+      handler() {
+        this.generateGrid()
+      },
+      deep: true
     },
     maskType() {
       this.generateGrid()
@@ -395,8 +430,9 @@ export default {
       const container = canvas.parentElement
       const rect = container.getBoundingClientRect()
       
+      // Устанавливаем соотношение сторон 19:9
       canvas.width = rect.width
-      canvas.height = 400
+      canvas.height = (rect.width * 9) / 19
       
       if (this.paperScope) {
         paper.view.viewSize = new paper.Size(canvas.width, canvas.height)
@@ -563,6 +599,14 @@ export default {
           
           // Получаем размеры маски
           const maskBounds = mask.bounds
+          
+          // Уменьшаем размер маски для обрезки на величину обводки
+          const strokeInset = this.strokeWidth || 0
+          const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
+          const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
+          const clipOffsetX = strokeInset
+          const clipOffsetY = strokeInset
+          
           tempCanvas.width = maskBounds.width
           tempCanvas.height = maskBounds.height
           
@@ -575,7 +619,7 @@ export default {
           
           // Для прямоугольников создаем прямоугольный путь
           if (mask.data && mask.data.type === 'rectangle') {
-            tempCtx.rect(0, 0, maskBounds.width, maskBounds.height)
+            tempCtx.rect(clipOffsetX, clipOffsetY, clipWidth, clipHeight)
           } else if (mask.data && mask.data.type === 'triangle') {
             // Для треугольников учитываем ориентацию
             console.log('🔺 Данные треугольника:', {
@@ -590,35 +634,39 @@ export default {
             
             if (isInverted) {
               // Перевернутый треугольник - нижняя точка, затем левый и правый верхние углы
-              tempCtx.moveTo(maskBounds.width / 2, maskBounds.height) // Нижняя точка
-              tempCtx.lineTo(0, 0) // Левый верхний угол
-              tempCtx.lineTo(maskBounds.width, 0) // Правый верхний угол
+              tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY + clipHeight) // Нижняя точка
+              tempCtx.lineTo(clipOffsetX, clipOffsetY) // Левый верхний угол
+              tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY) // Правый верхний угол
             } else {
               // Обычный треугольник - верхний угол, затем левый и правый нижние углы
-              tempCtx.moveTo(maskBounds.width / 2, 0) // Верхняя точка
-              tempCtx.lineTo(0, maskBounds.height) // Левый нижний угол
-              tempCtx.lineTo(maskBounds.width, maskBounds.height) // Правый нижний угол
+              tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY) // Верхняя точка
+              tempCtx.lineTo(clipOffsetX, clipOffsetY + clipHeight) // Левый нижний угол
+              tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY + clipHeight) // Правый нижний угол
             }
             tempCtx.closePath()
           } else if (mask.data && mask.data.type === 'diamond') {
             // Для ромбов создаем ромбовидный путь
-            tempCtx.moveTo(maskBounds.width / 2, 0)
-            tempCtx.lineTo(0, maskBounds.height / 2)
-            tempCtx.lineTo(maskBounds.width / 2, maskBounds.height)
-            tempCtx.lineTo(maskBounds.width, maskBounds.height / 2)
+            tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY)
+            tempCtx.lineTo(clipOffsetX, clipOffsetY + clipHeight / 2)
+            tempCtx.lineTo(clipOffsetX + clipWidth / 2, clipOffsetY + clipHeight)
+            tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY + clipHeight / 2)
             tempCtx.closePath()
           } else if (mask.data && mask.data.type === 'hexagon') {
             // Для шестиугольников копируем реальные сегменты маски
             tempCtx.beginPath()
             
             if (mask.segments && mask.segments.length > 0) {
-              // Используем реальные сегменты маски
+              // Используем реальные сегменты маски с масштабированием
               const firstPoint = mask.segments[0].point
               const relativeFirstPoint = new paper.Point(
                 firstPoint.x - maskBounds.x,
                 firstPoint.y - maskBounds.y
               )
-              tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+              
+              // Масштабируем и смещаем точку
+              const scaledX = clipOffsetX + (relativeFirstPoint.x - strokeInset) * (clipWidth / (maskBounds.width - strokeInset * 2))
+              const scaledY = clipOffsetY + (relativeFirstPoint.y - strokeInset) * (clipHeight / (maskBounds.height - strokeInset * 2))
+              tempCtx.moveTo(scaledX, scaledY)
               
               for (let i = 1; i < mask.segments.length; i++) {
                 const segment = mask.segments[i]
@@ -626,14 +674,18 @@ export default {
                   segment.point.x - maskBounds.x,
                   segment.point.y - maskBounds.y
                 )
-                tempCtx.lineTo(relativePoint.x, relativePoint.y)
+                
+                // Масштабируем и смещаем точку
+                const scaledPointX = clipOffsetX + (relativePoint.x - strokeInset) * (clipWidth / (maskBounds.width - strokeInset * 2))
+                const scaledPointY = clipOffsetY + (relativePoint.y - strokeInset) * (clipHeight / (maskBounds.height - strokeInset * 2))
+                tempCtx.lineTo(scaledPointX, scaledPointY)
               }
             } else {
-              // Fallback - создаем шестиугольник
-              const hexPoints = this.getHexagonPoints(maskBounds.width, maskBounds.height)
-              tempCtx.moveTo(hexPoints[0].x, hexPoints[0].y)
+              // Fallback - создаем шестиугольник с уменьшенным размером
+              const hexPoints = this.getHexagonPoints(clipWidth, clipHeight)
+              tempCtx.moveTo(hexPoints[0].x + clipOffsetX, hexPoints[0].y + clipOffsetY)
               for (let i = 1; i < hexPoints.length; i++) {
-                tempCtx.lineTo(hexPoints[i].x, hexPoints[i].y)
+                tempCtx.lineTo(hexPoints[i].x + clipOffsetX, hexPoints[i].y + clipOffsetY)
               }
             }
             
@@ -645,7 +697,7 @@ export default {
             })
           } else {
             // Fallback для прямоугольников
-            tempCtx.rect(0, 0, maskBounds.width, maskBounds.height)
+            tempCtx.rect(clipOffsetX, clipOffsetY, clipWidth, clipHeight)
           }
           
           // Применяем обрезание
@@ -654,8 +706,8 @@ export default {
           // Рисуем изображение на canvas с сохранением пропорций
           const imgWidth = raster.image.width
           const imgHeight = raster.image.height
-          const canvasWidth = tempCanvas.width
-          const canvasHeight = tempCanvas.height
+          const canvasWidth = clipWidth
+          const canvasHeight = clipHeight
           
           // Вычисляем масштаб для сохранения пропорций
           const scaleX = canvasWidth / imgWidth
@@ -666,9 +718,9 @@ export default {
           const scaledWidth = imgWidth * scale
           const scaledHeight = imgHeight * scale
           
-          // Центрируем изображение
-          const offsetX = (canvasWidth - scaledWidth) / 2
-          const offsetY = (canvasHeight - scaledHeight) / 2
+          // Центрируем изображение в уменьшенной области
+          const offsetX = clipOffsetX + (canvasWidth - scaledWidth) / 2
+          const offsetY = clipOffsetY + (canvasHeight - scaledHeight) / 2
           
           console.log('📐 Масштабирование изображения:', {
             originalSize: { width: imgWidth, height: imgHeight },
@@ -1207,6 +1259,21 @@ export default {
     
     handleMouseUp(e) {
       // Paper.js обрабатывает события автоматически
+    },
+    
+    resetGridSettings() {
+      // Сброс настроек текущего типа сетки к значениям по умолчанию
+      const defaultSettings = {
+        rectangle: { rows: 3, cols: 5 },
+        triangle: { rows: 2, cols: 20 },
+        hexagon: { rows: 4, cols: 8 },
+        diamond: { rows: 4, cols: 16 }
+      }
+      
+      this.gridSettings[this.maskType] = { ...defaultSettings[this.maskType] }
+      
+      // Показываем уведомление
+      console.log(`🔄 Настройки для ${this.maskType} сброшены к значениям по умолчанию`)
     },
     
     cleanup() {

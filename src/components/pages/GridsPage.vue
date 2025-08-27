@@ -208,10 +208,10 @@
                             >
                             <button 
                               @click="removeImage(index)"
-                              class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                              style="width: 20px; height: 20px; padding: 0; border-radius: 50%;"
+                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
                             >
-                              <i class="bi bi-x" style="font-size: 10px;"></i>
+                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
                             </button>
                           </div>
                           <small class="text-muted d-block mt-1">{{ image.name }}</small>
@@ -1105,6 +1105,7 @@ export default {
             point: [x, y],
             size: [adjustedWidth, adjustedHeight]
           })
+          rect.strokeJoin = 'miter' // Убираем скругление углов
           
           // Получаем изображение для данной позиции
           const image = this.getImageForPosition(row, col, gridImages.length)
@@ -1160,6 +1161,7 @@ export default {
               ],
               closed: true
             })
+            triangle.strokeJoin = 'miter' // Убираем скругление углов
           } else {
             // Треугольник основанием вверх
             triangle = new paper.Path({
@@ -1170,6 +1172,7 @@ export default {
               ],
               closed: true
             })
+            triangle.strokeJoin = 'miter' // Убираем скругление углов
           }
           
           // Получаем изображение для данной позиции
@@ -1229,6 +1232,7 @@ export default {
               ],
               closed: true
             })
+            diamond.strokeJoin = 'miter' // Убираем скругление углов
             
             // Получаем изображение для данной позиции
             const gridImages = this.getImagesForGrid()
@@ -1321,6 +1325,7 @@ export default {
             ],
             closed: true
           })
+          hexagon.strokeJoin = 'miter' // Убираем скругление углов
           
           // Получаем изображение для данной позиции
           const gridImages = this.getImagesForGrid()
@@ -1463,6 +1468,10 @@ export default {
         preserveDrawingBuffer: true
       })
       
+      // Настраиваем рендерер для лучшего отображения цветов
+      this.threeInstance.renderer.toneMapping = THREE.NoToneMapping
+      this.threeInstance.renderer.outputColorSpace = THREE.SRGBColorSpace
+      
       // Устанавливаем размеры с учетом device pixel ratio
       const devicePixelRatio = window.devicePixelRatio || 1
       const targetWidth = rect.width * devicePixelRatio
@@ -1548,9 +1557,9 @@ export default {
           
           vertices.push(xPos, yPos, zPos)
           
-          // UV координаты
-          const u = x / segmentsX
-          const v = y / segmentsY
+          // UV координаты (исправляем разворот на 180 градусов)
+          const u = 1 - (x / segmentsX) // Инвертируем по горизонтали
+          const v = 1 - (y / segmentsY) // Инвертируем по вертикали
           uvs.push(u, v)
         }
       }
@@ -1639,17 +1648,21 @@ export default {
           console.log('✅ Текстура загружена успешно')
         })
         
-        // Настраиваем параметры текстуры для высокого качества
+        // Настраиваем параметры текстуры для высокого качества и насыщенных цветов
         texture.generateMipmaps = false
         texture.minFilter = THREE.LinearFilter
         texture.magFilter = THREE.LinearFilter
         texture.format = THREE.RGBAFormat
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.flipY = false // Предотвращаем переворот текстуры
         
-        // Создаем материал с текстурой
+        // Создаем материал с текстурой для насыщенных цветов
         const material = new THREE.MeshBasicMaterial({ 
           map: texture,
           transparent: true,
-          opacity: 0.9
+          opacity: 1.0,
+          color: 0xffffff, // Белый цвет для сохранения оригинальных цветов
+          toneMapped: false // Отключаем tone mapping для сохранения яркости
         })
         
         // Обновляем материал поверхности печати

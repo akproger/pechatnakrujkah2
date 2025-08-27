@@ -75,9 +75,9 @@
         </div>
       </div>
       
-            <!-- Canvas область -->
+            <!-- Canvas область и 3D превью -->
       <div class="row">
-        <div class="col">
+        <div class="col-md-8">
           <div class="card">
             <div class="card-body p-0">
               <div class="canvas-container">
@@ -90,6 +90,20 @@
                   @touchstart="handleTouchStart"
                   @touchmove="handleTouchMove"
                   @touchend="handleTouchEnd"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 3D превью кружки -->
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="preview-container">
+                <canvas 
+                  ref="threeCanvas"
+                  class="three-canvas"
                 ></canvas>
               </div>
             </div>
@@ -334,6 +348,8 @@
 
 <script>
 import paper from 'paper'
+import * as THREE from 'three'
+import { markRaw } from 'vue'
 
 export default {
   name: 'GridsPage',
@@ -359,7 +375,18 @@ export default {
       shadowOffsetY: 0,
       shadowOpacity: 50,
       activeTab: 'images', // По умолчанию открыт таб "Изображения"
-      uploadedImages: []
+      uploadedImages: [],
+      // Three.js данные
+      threeInstance: markRaw({
+        scene: null,
+        camera: null,
+        renderer: null,
+        cylinder: null,
+        printSurface: null,
+        mugGroup: null,
+        texture: null,
+        animationId: null
+      })
     }
   },
   
@@ -420,12 +447,25 @@ export default {
     uploadedImages: {
       handler() {
         this.generateGrid()
+        // Также обновляем Three.js текстуру с увеличенной задержкой
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.updateThreeTexture()
+          }, 300)
+        })
       },
       deep: true
     }
   },
   mounted() {
     this.initPaper()
+    
+    // Инициализируем Three.js с небольшой задержкой
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.initThreeJS()
+      }, 200)
+    })
   },
   beforeUnmount() {
     this.cleanup()
@@ -446,6 +486,9 @@ export default {
       
       // Обработчик изменения размера окна
       window.addEventListener('resize', this.resizeCanvas)
+      
+      // Обработчик изменения размера Three.js canvas
+      window.addEventListener('resize', this.resizeThreeCanvas)
     },
     
     getPastelColor(index) {
@@ -504,9 +547,18 @@ export default {
       const container = canvas.parentElement.parentElement // Получаем canvas-container
       const rect = container.getBoundingClientRect()
       
-      // Устанавливаем соотношение сторон 19:9
-      canvas.width = rect.width
-      canvas.height = (rect.width * 9) / 19
+      // Увеличиваем разрешение canvas для высокого качества текстуры
+      const devicePixelRatio = window.devicePixelRatio || 1
+      const targetWidth = rect.width * devicePixelRatio * 2 // Увеличиваем в 2 раза для высокого качества
+      const targetHeight = (targetWidth * 9) / 19
+      
+      // Устанавливаем соотношение сторон 19:9 с высоким разрешением
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+      
+      // Устанавливаем CSS размер для отображения
+      canvas.style.width = rect.width + 'px'
+      canvas.style.height = (rect.width * 9) / 19 + 'px'
       
       if (this.paperScope) {
         paper.view.viewSize = new paper.Size(canvas.width, canvas.height)
@@ -544,6 +596,14 @@ export default {
       }
       
       paper.view.draw()
+      
+      // Обновляем текстуру Three.js после отрисовки сетки с увеличенной задержкой
+      this.$nextTick(() => {
+        // Увеличиваем задержку для гарантии полной отрисовки canvas
+        setTimeout(() => {
+          this.updateThreeTexture()
+        }, 300)
+      })
     },
     
 
@@ -1368,12 +1428,298 @@ export default {
     
     cleanup() {
       window.removeEventListener('resize', this.resizeCanvas)
+      window.removeEventListener('resize', this.resizeThreeCanvas)
       
       if (this.paperScope) {
         // В Paper.js v0.12 нет метода remove для глобального объекта
         paper.project.clear()
         this.paperScope = null
       }
+      
+      // Очистка Three.js
+      this.cleanupThreeJS()
+    },
+    
+    initThreeJS() {
+      const canvas = this.$refs.threeCanvas
+      if (!canvas) return
+      
+      // Создаем сцену
+      this.threeInstance.scene = new THREE.Scene()
+      
+      // Создаем камеру
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      const aspect = rect.width / rect.height
+      
+      this.threeInstance.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000)
+      this.threeInstance.camera.position.set(0, 0, 15)
+      
+      // Создаем рендерер с высоким качеством
+      this.threeInstance.renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        alpha: true, 
+        antialias: true,
+        preserveDrawingBuffer: true
+      })
+      
+      // Устанавливаем размеры с учетом device pixel ratio
+      const devicePixelRatio = window.devicePixelRatio || 1
+      const targetWidth = rect.width * devicePixelRatio
+      const targetHeight = rect.height * devicePixelRatio
+      
+      this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
+      canvas.style.width = rect.width + 'px'
+      canvas.style.height = rect.height + 'px'
+      
+      this.threeInstance.renderer.setClearColor(0xf8f9fa, 0)
+      this.threeInstance.renderer.setPixelRatio(devicePixelRatio)
+      
+      // Создаем цилиндр (кружка)
+      const radius = 4 // Диаметр 8, радиус 4
+      const height = 9.5
+      const radialSegments = 64 // Увеличили количество радиальных сегментов для сглаживания
+      const heightSegments = 16 // Увеличили количество сегментов по высоте
+      
+      const geometry = new THREE.CylinderGeometry(radius, radius, height, radialSegments, heightSegments, true)
+      
+      // Создаем белый материал для кружки
+      const cylinderMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff,
+        transparent: false, // Убираем прозрачность
+        opacity: 1.0,
+        depthWrite: true,
+        depthTest: true
+      })
+      
+      // Создаем группу для объединения кружки и поверхности печати
+      this.threeInstance.mugGroup = new THREE.Group()
+      this.threeInstance.scene.add(this.threeInstance.mugGroup)
+      
+      // Добавляем кружку в группу
+      this.threeInstance.cylinder = new THREE.Mesh(geometry, cylinderMaterial)
+      this.threeInstance.mugGroup.add(this.threeInstance.cylinder)
+      
+      // Создаем кастомную геометрию для области печати (прямоугольник, обернутый вокруг кружки)
+      const printSurfaceRadius = radius + 0.02 // Увеличили радиус для предотвращения просвечивания
+      const printSurfaceHeight = height
+      
+      // Вычисляем размеры области печати с учетом соотношения 19:9
+      const cylinderCircumference = 2 * Math.PI * printSurfaceRadius
+      const targetRatio = 19 / 9
+      const maxPrintWidth = printSurfaceHeight * targetRatio
+      
+      // Определяем размеры области печати
+      let printWidth, printHeight
+      if (maxPrintWidth > cylinderCircumference) {
+        printWidth = cylinderCircumference
+        printHeight = cylinderCircumference / targetRatio
+      } else {
+        printWidth = maxPrintWidth
+        printHeight = printSurfaceHeight
+      }
+      
+      // Вычисляем углы для области печати
+      const angleWidth = (printWidth / cylinderCircumference) * Math.PI * 2
+      const angleStart = -angleWidth / 2 // Центрируем область печати
+      const angleEnd = angleWidth / 2
+      
+      // Создаем кастомную геометрию
+      const printSurfaceGeometry = new THREE.BufferGeometry()
+      
+      // Создаем вершины для прямоугольной области печати
+      const vertices = []
+      const uvs = []
+      const indices = []
+      
+      // Количество сегментов для создания плавной поверхности
+      const segmentsX = 32 // Увеличили для более плавной поверхности
+      const segmentsY = 16 // Увеличили для более плавной поверхности
+      
+      for (let y = 0; y <= segmentsY; y++) {
+        for (let x = 0; x <= segmentsX; x++) {
+          const angle = angleStart + (x / segmentsX) * (angleEnd - angleStart)
+          const heightPos = (y / segmentsY - 0.5) * printSurfaceHeight
+          
+          // Позиция вершины
+          const xPos = printSurfaceRadius * Math.cos(angle)
+          const zPos = printSurfaceRadius * Math.sin(angle)
+          const yPos = heightPos
+          
+          vertices.push(xPos, yPos, zPos)
+          
+          // UV координаты
+          const u = x / segmentsX
+          const v = y / segmentsY
+          uvs.push(u, v)
+        }
+      }
+      
+      // Создаем индексы для треугольников (правильный порядок для внешней стороны)
+      for (let y = 0; y < segmentsY; y++) {
+        for (let x = 0; x < segmentsX; x++) {
+          const a = y * (segmentsX + 1) + x
+          const b = y * (segmentsX + 1) + x + 1
+          const c = (y + 1) * (segmentsX + 1) + x
+          const d = (y + 1) * (segmentsX + 1) + x + 1
+          
+          // Изменяем порядок для правильной ориентации
+          indices.push(a, c, b)
+          indices.push(b, c, d)
+        }
+      }
+      
+      // Устанавливаем атрибуты геометрии
+      printSurfaceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+      printSurfaceGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+      printSurfaceGeometry.setIndex(indices)
+      printSurfaceGeometry.computeVertexNormals()
+      
+      // UV координаты уже настроены правильно в кастомной геометрии
+      
+      // Создаем материал для поверхности печати
+      const printSurfaceMaterial = new THREE.MeshBasicMaterial({ 
+        map: null, // Будем устанавливать текстуру позже
+        transparent: true,
+        opacity: 1.0,
+        side: THREE.FrontSide
+      })
+      
+      this.threeInstance.printSurface = new THREE.Mesh(printSurfaceGeometry, printSurfaceMaterial)
+      this.threeInstance.mugGroup.add(this.threeInstance.printSurface)
+      
+      // Запускаем анимацию вращения
+      this.animate()
+      
+      // Обновляем текстуру при изменении сетки
+      this.updateThreeTexture()
+    },
+    
+    animate() {
+      if (!this.threeInstance.renderer || !this.threeInstance.scene || !this.threeInstance.camera) return
+      
+      this.threeInstance.animationId = requestAnimationFrame(() => this.animate())
+      
+      if (this.threeInstance.mugGroup) {
+        this.threeInstance.mugGroup.rotation.y += 0.01 // Медленное вращение группы
+      }
+      
+      this.threeInstance.renderer.render(this.threeInstance.scene, this.threeInstance.camera)
+    },
+    
+    updateThreeTexture() {
+      if (!this.threeInstance.printSurface) {
+        console.log('🔸 Поверхность печати не найдена')
+        return
+      }
+      
+      // Получаем canvas с сеткой
+      const paperCanvas = this.$refs.paperCanvas
+      if (!paperCanvas) {
+        console.log('🔸 Paper canvas не найден')
+        return
+      }
+      
+      // Проверяем, что canvas имеет размеры и готов к рендерингу
+      if (paperCanvas.width === 0 || paperCanvas.height === 0) {
+        console.log('🔸 Canvas еще не готов, откладываем обновление')
+        setTimeout(() => {
+          this.updateThreeTexture()
+        }, 100)
+        return
+      }
+      
+      try {
+        // Создаем текстуру из canvas с высоким качеством
+        const texture = new THREE.CanvasTexture(paperCanvas)
+        texture.needsUpdate = true
+        
+        // Ждем, пока текстура загрузится
+        texture.addEventListener('load', () => {
+          console.log('✅ Текстура загружена успешно')
+        })
+        
+        // Настраиваем параметры текстуры для высокого качества
+        texture.generateMipmaps = false
+        texture.minFilter = THREE.LinearFilter
+        texture.magFilter = THREE.LinearFilter
+        texture.format = THREE.RGBAFormat
+        
+        // Создаем материал с текстурой
+        const material = new THREE.MeshBasicMaterial({ 
+          map: texture,
+          transparent: true,
+          opacity: 0.9
+        })
+        
+        // Обновляем материал поверхности печати
+        if (this.threeInstance.printSurface.material) {
+          this.threeInstance.printSurface.material.dispose()
+        }
+        this.threeInstance.printSurface.material = material
+        
+        console.log('✅ Текстура обновлена успешно')
+      } catch (error) {
+        console.error('❌ Ошибка при обновлении текстуры:', error)
+      }
+    },
+    
+    cleanupThreeJS() {
+      if (this.threeInstance.animationId) {
+        cancelAnimationFrame(this.threeInstance.animationId)
+        this.threeInstance.animationId = null
+      }
+      
+      if (this.threeInstance.renderer) {
+        this.threeInstance.renderer.dispose()
+        this.threeInstance.renderer = null
+      }
+      
+      if (this.threeInstance.cylinder) {
+        this.threeInstance.cylinder.geometry.dispose()
+        if (this.threeInstance.cylinder.material) {
+          this.threeInstance.cylinder.material.dispose()
+        }
+        this.threeInstance.cylinder = null
+      }
+      
+
+      
+      if (this.threeInstance.printSurface) {
+        this.threeInstance.printSurface.geometry.dispose()
+        if (this.threeInstance.printSurface.material) {
+          this.threeInstance.printSurface.material.dispose()
+        }
+        this.threeInstance.printSurface = null
+      }
+      
+      if (this.threeInstance.mugGroup) {
+        this.threeInstance.mugGroup.clear()
+        this.threeInstance.mugGroup = null
+      }
+      
+      this.threeInstance.scene = null
+      this.threeInstance.camera = null
+    },
+    
+    resizeThreeCanvas() {
+      if (!this.threeInstance.renderer || !this.threeInstance.camera) return
+      
+      const canvas = this.$refs.threeCanvas
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      
+      // Увеличиваем разрешение Three.js canvas для высокого качества
+      const devicePixelRatio = window.devicePixelRatio || 1
+      const targetWidth = rect.width * devicePixelRatio
+      const targetHeight = rect.height * devicePixelRatio
+      
+      this.threeInstance.camera.aspect = rect.width / rect.height
+      this.threeInstance.camera.updateProjectionMatrix()
+      
+      this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
+      canvas.style.width = rect.width + 'px'
+      canvas.style.height = rect.height + 'px'
     }
   }
 }
@@ -1420,6 +1766,23 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
+  }
+}
+
+.preview-container {
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%; // Квадратное соотношение для 3D превью
+  position: relative;
+  
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    border-radius: 8px;
   }
 }
 

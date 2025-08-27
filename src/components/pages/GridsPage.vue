@@ -98,6 +98,7 @@
               <div class="row g-3">
                 <!-- Внешний отступ -->
                 <div class="col-md-4">
+                  <h6 class="text-muted mb-3">Отступ</h6>
                   <div class="form-group">
                     <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
                     <input 
@@ -113,6 +114,7 @@
                 
                 <!-- Обводка -->
                 <div class="col-md-4">
+                  <h6 class="text-muted mb-3">Обводка</h6>
                   <div class="form-group">
                     <label class="form-label">Цвет обводки</label>
                     <input 
@@ -137,6 +139,7 @@
                 
                 <!-- Тень -->
                 <div class="col-md-4">
+                  <h6 class="text-muted mb-3">Тень</h6>
                   <div class="form-group">
                     <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
                     <input 
@@ -149,12 +152,23 @@
                     >
                   </div>
                   <div class="form-group mt-2">
-                    <label class="form-label">Размер тени: {{ shadowSize }}px</label>
+                    <label class="form-label">Позиция X: {{ shadowOffsetX }}px</label>
                     <input 
                       type="range" 
                       class="form-range" 
-                      v-model.number="shadowSize"
-                      min="0" 
+                      v-model.number="shadowOffsetX"
+                      min="-50" 
+                      max="50" 
+                      step="1"
+                    >
+                  </div>
+                  <div class="form-group mt-2">
+                    <label class="form-label">Позиция Y: {{ shadowOffsetY }}px</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      v-model.number="shadowOffsetY"
+                      min="-50" 
                       max="50" 
                       step="1"
                     >
@@ -198,7 +212,8 @@ export default {
       strokeColor: '#000000',
       strokeWidth: 1,
       shadowBlur: 0,
-      shadowSize: 10,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
       shadowOpacity: 50
     }
   },
@@ -227,7 +242,10 @@ export default {
     shadowBlur() {
       this.generateGrid()
     },
-    shadowSize() {
+    shadowOffsetX() {
+      this.generateGrid()
+    },
+    shadowOffsetY() {
       this.generateGrid()
     },
     shadowOpacity() {
@@ -312,11 +330,11 @@ export default {
       mask.fillOpacity = 0.3
       
       // Применяем настройки тени
-      if (this.shadowBlur > 0 || this.shadowSize > 0) {
+      if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
         const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
         mask.shadowColor = shadowColor
         mask.shadowBlur = this.shadowBlur
-        mask.shadowOffset = new paper.Point(this.shadowSize, this.shadowSize)
+        mask.shadowOffset = new paper.Point(this.shadowOffsetX, this.shadowOffsetY)
         
         // Принудительно обновляем отображение
         mask.shadowColor = shadowColor

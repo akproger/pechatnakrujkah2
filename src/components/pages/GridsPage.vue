@@ -9,70 +9,60 @@
         </div>
       </div>
       
-      <!-- Управление -->
+      <!-- Вкладки и ползунки управления -->
       <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-12">
           <div class="card">
             <div class="card-body">
-              <h5 class="card-title">Параметры сетки</h5>
-              <div class="row g-3">
-                <div class="col-6">
-                  <label class="form-label">Количество строк</label>
-                  <input 
-                    v-model.number="gridRows" 
-                    type="number" 
-                    class="form-control"
-                    min="1"
-                    max="20"
-                  />
+              <div class="d-flex justify-content-between align-items-center">
+                <!-- Вкладки по типам масок -->
+                <div class="btn-group" role="group" aria-label="Типы масок">
+                  <input type="radio" class="btn-check" name="maskType" id="rectangle" value="rectangle" v-model="maskType">
+                  <label class="btn btn-outline-primary" for="rectangle">Параллелепипед</label>
+                  
+                  <input type="radio" class="btn-check" name="maskType" id="triangle" value="triangle" v-model="maskType">
+                  <label class="btn btn-outline-primary" for="triangle">Треугольники</label>
+                  
+                  <input type="radio" class="btn-check" name="maskType" id="hexagon" value="hexagon" v-model="maskType">
+                  <label class="btn btn-outline-primary" for="hexagon">Шестиугольники</label>
+                  
+                  <input type="radio" class="btn-check" name="maskType" id="diamond" value="diamond" v-model="maskType">
+                  <label class="btn btn-outline-primary" for="diamond">Ромбы</label>
                 </div>
-                <div class="col-6">
-                  <label class="form-label">Количество столбцов</label>
-                  <input 
-                    v-model.number="gridCols" 
-                    type="number" 
-                    class="form-control"
-                    min="1"
-                    max="20"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Тип маски</h5>
-              <div class="row g-3">
-                <div class="col-12">
-                  <select v-model="maskType" class="form-select">
-                    <option value="rectangle">Параллелепипед</option>
-                    <option value="triangle">Треугольники (шахматный порядок)</option>
-                    <option value="diamond">Ромбы</option>
-                    <option value="hexagon">Шестиугольники</option>
-                    <option value="pentagon">Пятиугольники (шахматный порядок)</option>
-                  </select>
-                </div>
-                <div class="col-12">
-                  <div class="d-grid gap-2">
-                    <button 
-                      @click="generateGrid" 
-                      class="btn btn-primary"
+                
+                <!-- Ползунки управления -->
+                <div class="d-flex align-items-center gap-4">
+                  <div class="form-group mb-0" style="display: flex;">
+                    <label for="gridRowsSlider" class="form-label me-2">Строки: {{ gridRows }}</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      id="gridRowsSlider"
+                      v-model.number="gridRows"
+                      min="1" 
+                      max="10" 
+                      step="1"
+                      style="width: 150px;"
                     >
-                      <i class="bi bi-grid-3x3-gap me-2"></i>
-                      Создать сетку
-                    </button>
-                    <button 
-                      @click="clearCanvas" 
-                      class="btn btn-outline-secondary"
+                  </div>
+                  
+                  <div class="form-group mb-0" style="display: flex;">
+                    <label for="gridColsSlider" class="form-label me-2">Столбцы: {{ gridCols }}</label>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      id="gridColsSlider"
+                      v-model.number="gridCols"
+                      min="1" 
+                      max="20" 
+                      step="1"
+                      style="width: 150px;"
                     >
-                      <i class="bi bi-trash me-2"></i>
-                      Очистить
-                    </button>
                   </div>
                 </div>
               </div>
+              
+
             </div>
           </div>
         </div>
@@ -82,9 +72,7 @@
       <div class="row">
         <div class="col">
           <div class="card">
-            <div class="card-header">
-              <h5 class="card-title mb-0">Paper.js Canvas - Маски</h5>
-            </div>
+
             <div class="card-body p-0">
               <canvas 
                 ref="paperCanvas"
@@ -117,6 +105,19 @@ export default {
       paperScope: null,
       selectedCell: null,
       touchStartPos: null
+    }
+  },
+  
+  watch: {
+    // Автоматическое применение изменений ползунков
+    gridRows() {
+      this.generateGrid()
+    },
+    gridCols() {
+      this.generateGrid()
+    },
+    maskType() {
+      this.generateGrid()
     }
   },
   mounted() {
@@ -183,9 +184,6 @@ export default {
           break
         case 'hexagon':
           this.createHexagonMasks(maskGroup, cellWidth, cellHeight)
-          break
-        case 'pentagon':
-          this.createPentagonMasks(maskGroup, cellWidth, cellHeight)
           break
       }
       
@@ -390,36 +388,7 @@ export default {
       }
     },
     
-    createPentagonMasks(group, cellWidth, cellHeight) {
-      // Создаем пятиугольники в шахматном порядке
-      const pentagonRadius = Math.min(cellWidth, cellHeight) / 2 * 0.8
-      
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
-          const isEven = (row + col) % 2 === 0
-          
-          if (isEven) {
-            const centerX = col * cellWidth + cellWidth / 2
-            const centerY = row * cellHeight + cellHeight / 2
-            
-            const pentagon = new paper.Path.RegularPolygon({
-              center: [centerX, centerY],
-              radius: pentagonRadius,
-              sides: 5
-            })
-            
-            pentagon.strokeColor = '#dee2e6'
-            pentagon.strokeWidth = 1
-            pentagon.fillColor = '#016527'
-            pentagon.fillOpacity = 0.3
-            
-            pentagon.data = { row, col, type: 'pentagon', isEven }
-            this.addMaskInteractivity(pentagon)
-            group.addChild(pentagon)
-          }
-        }
-      }
-    },
+
     
     addMaskInteractivity(mask) {
       // События мыши для интерактивности
@@ -551,10 +520,19 @@ export default {
   font-weight: 600;
 }
 
+.card {
+  border: none;
+  background: transparent;
+}
+
+.card-body {
+  padding: 0;
+}
+
 .form-label {
   font-weight: 500;
   color: #495057;
-  margin-bottom: 0.5rem;
+  margin: 0;
 }
 
 .form-control, .form-select {

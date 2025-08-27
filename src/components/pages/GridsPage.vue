@@ -350,17 +350,17 @@ export default {
           const hexagon = new paper.Path({
             segments: [
               // Верхняя вершина
-              [centerX + offsetX, centerY - hexHeight / 2],
+              [centerX + offsetX, centerY - hexHeight * 0.663065],
               // Верхний правый угол
-              [centerX + offsetX + hexWidth / 2, centerY - hexHeight / 4],
+              [centerX + offsetX + hexWidth / 2, centerY - hexHeight * 0.3315325],
               // Нижний правый угол
-              [centerX + offsetX + hexWidth / 2, centerY + hexHeight / 4],
+              [centerX + offsetX + hexWidth / 2, centerY + hexHeight * 0.3315325],
               // Нижняя вершина
-              [centerX + offsetX, centerY + hexHeight / 2],
+              [centerX + offsetX, centerY + hexHeight * 0.663065],
               // Нижний левый угол
-              [centerX + offsetX - hexWidth / 2, centerY + hexHeight / 4],
+              [centerX + offsetX - hexWidth / 2, centerY + hexHeight * 0.3315325],
               // Верхний левый угол
-              [centerX + offsetX - hexWidth / 2, centerY - hexHeight / 4]
+              [centerX + offsetX - hexWidth / 2, centerY - hexHeight * 0.3315325]
             ],
             closed: true
           })

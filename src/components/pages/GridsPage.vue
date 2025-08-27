@@ -2,7 +2,7 @@
   <div class="grids-page">
     <div class="container">
       <!-- Заголовок страницы -->
-      <div class="row mb-4">
+      <div class="row">
         <div class="col">
           <h2 class="page-title">Сетки</h2>
           <p class="text-muted">Инструмент для создания массива масок</p>
@@ -10,7 +10,7 @@
       </div>
       
       <!-- Вкладки и ползунки управления -->
-      <div class="row mb-4">
+      <div class="row mb-2">
         <div class="col-12">
           <div class="card">
             <div class="card-body">
@@ -31,33 +31,40 @@
                 </div>
                 
                 <!-- Ползунки управления -->
-                <div class="d-flex align-items-center gap-4">
-                  <div class="form-group mb-0" style="display: flex;">
-                    <label for="gridRowsSlider" class="form-label me-2">Строки: {{ gridRows }}</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      id="gridRowsSlider"
-                      v-model.number="gridRows"
-                      min="1" 
-                      max="10" 
-                      step="1"
-                      style="width: 150px;"
-                    >
+                <div class="d-flex flex-column gap-3">
+                  <!-- Лейблы -->
+                  <div class="d-flex gap-4">
+                    <div class="form-label mb-0" style="min-width: 80px;">Строки: {{ gridRows }}</div>
+                    <div class="form-label mb-0" style="min-width: 80px; margin-left: 4px;">Столбцы: {{ gridCols }}</div>
                   </div>
                   
-                  <div class="form-group mb-0" style="display: flex;">
-                    <label for="gridColsSlider" class="form-label me-2">Столбцы: {{ gridCols }}</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      id="gridColsSlider"
-                      v-model.number="gridCols"
-                      min="1" 
-                      max="20" 
-                      step="1"
-                      style="width: 150px;"
-                    >
+                  <!-- Ползунки -->
+                  <div class="d-flex gap-4">
+                    <div class="form-group mb-0">
+                      <input 
+                        type="range" 
+                        class="form-range" 
+                        id="gridRowsSlider"
+                        v-model.number="gridRows"
+                        min="1" 
+                        max="10" 
+                        step="1"
+                        style="width: 150px;"
+                      >
+                    </div>
+                    
+                    <div class="form-group mb-0">
+                      <input 
+                        type="range" 
+                        class="form-range" 
+                        id="gridColsSlider"
+                        v-model.number="gridCols"
+                        min="1" 
+                        max="20" 
+                        step="1"
+                        style="width: 150px;"
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
@@ -73,228 +80,243 @@
         <div class="col">
           <div class="card">
             <div class="card-body p-0">
-              <canvas 
-                ref="paperCanvas"
-                class="paper-canvas"
-                @mousedown="handleMouseDown"
-                @mousemove="handleMouseMove"
-                @mouseup="handleMouseUp"
-                @touchstart="handleTouchStart"
-                @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd"
-              ></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Кнопки управления -->
-      <div class="row mt-3">
-        <div class="col-12">
-          <div class="d-flex gap-2">
-            <button 
-              @click="toggleSettings" 
-              class="btn btn-outline-secondary"
-              type="button"
-            >
-              <i class="bi" :class="showSettings ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-              Дополнительные настройки
-            </button>
-            
-            <button 
-              @click="toggleImages" 
-              class="btn btn-outline-primary"
-              type="button"
-            >
-              <i class="bi" :class="showImages ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-              Изображения
-            </button>
-            
-            <button 
-              @click="resetGridSettings" 
-              class="btn btn-outline-warning"
-              type="button"
-              title="Сбросить настройки текущего типа сетки к значениям по умолчанию"
-            >
-              <i class="bi bi-arrow-clockwise"></i>
-              Сбросить настройки
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Дополнительные настройки -->
-      <div class="row mt-3" v-show="showSettings">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              
-              <div class="row g-3">
-                <!-- Внешний отступ -->
-                <div class="col-md-4">
-                  <h6 class="text-muted mb-3">Отступ</h6>
-                  <div class="form-group">
-                    <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="externalMargin"
-                      min="0" 
-                      max="50" 
-                      step="1"
-                    >
-                  </div>
-                </div>
-                
-                <!-- Обводка -->
-                <div class="col-md-4">
-                  <h6 class="text-muted mb-3">Обводка</h6>
-                  <div class="form-group">
-                    <label class="form-label">Цвет обводки</label>
-                    <input 
-                      type="color" 
-                      class="form-control form-control-color" 
-                      v-model="strokeColor"
-                      title="Выберите цвет обводки"
-                    >
-                  </div>
-                  <div class="form-group mt-2">
-                    <label class="form-label">Толщина обводки: {{ strokeWidth }}px</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="strokeWidth"
-                      min="0" 
-                      max="10" 
-                      step="0.5"
-                    >
-                  </div>
-                </div>
-                
-                <!-- Тень -->
-                <div class="col-md-4">
-                  <h6 class="text-muted mb-3">Тень</h6>
-                  <div class="form-group">
-                    <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="shadowBlur"
-                      min="0" 
-                      max="50" 
-                      step="1"
-                    >
-                  </div>
-                  <div class="form-group mt-2">
-                    <label class="form-label">Позиция X: {{ shadowOffsetX }}px</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="shadowOffsetX"
-                      min="-50" 
-                      max="50" 
-                      step="1"
-                    >
-                  </div>
-                  <div class="form-group mt-2">
-                    <label class="form-label">Позиция Y: {{ shadowOffsetY }}px</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="shadowOffsetY"
-                      min="-50" 
-                      max="50" 
-                      step="1"
-                    >
-                  </div>
-                  <div class="form-group mt-2">
-                    <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="shadowOpacity"
-                      min="0" 
-                      max="100" 
-                      step="1"
-                    >
-                  </div>
-                </div>
+              <div class="canvas-container">
+                <canvas 
+                  ref="paperCanvas"
+                  class="paper-canvas"
+                  @mousedown="handleMouseDown"
+                  @mousemove="handleMouseMove"
+                  @mouseup="handleMouseUp"
+                  @touchstart="handleTouchStart"
+                  @touchmove="handleTouchMove"
+                  @touchend="handleTouchEnd"
+                ></canvas>
               </div>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Панель изображений -->
-      <div class="row mt-3" v-show="showImages">
+      <!-- Табы управления -->
+      <div class="row mt-4">
         <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <div class="row g-3">
-                <!-- Загрузка изображений -->
-                <div class="col-12">
-                  <input 
-                    type="file" 
-                    ref="imageInput"
-                    @change="handleImageUpload" 
-                    multiple
-                    accept="image/*"
-                    class="d-none"
-                  >
-                  <button 
-                    @click="$refs.imageInput.click()" 
-                    class="btn btn-primary"
-                    :disabled="uploadedImages.length >= 5"
-                  >
-                    <i class="bi bi-cloud-upload me-2"></i>
-                    <span v-if="uploadedImages.length >= 5">
-                      Максимальное количество изображений загружено
-                    </span>
-                    <span v-else-if="uploadedImages.length === 0">
-                      Загрузить изображения (до 5)
-                    </span>
-                    <span v-else>
-                      Добавить изображения (осталось {{ 5 - uploadedImages.length }})
-                    </span>
-                  </button>
-                </div>
-                
-                <!-- Список загруженных изображений -->
-                <div class="col-12" v-if="uploadedImages.length > 0">
-                  <h6 class="text-muted mb-3">Загруженные изображения</h6>
-                  <div class="row g-2">
-                    <div 
-                      v-for="(image, index) in uploadedImages" 
-                      :key="index"
-                      class="col-md-4 col-lg-3 col-xl-2"
-                    >
-                      <div class="position-relative">
-                        <img 
-                          :src="image.url" 
-                          :alt="image.name"
-                          class="img-fluid rounded border"
-                          style="max-height: 100px; width: 100%; object-fit: cover;"
+          <ul class="nav nav-tabs" id="gridsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'images' }"
+                id="images-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#images" 
+                type="button" 
+                role="tab" 
+                aria-controls="images" 
+                aria-selected="activeTab === 'images'"
+                @click="activeTab = 'images'"
+              >
+                <i class="bi bi-images me-2"></i>
+                Изображения
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'settings' }"
+                id="settings-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#settings" 
+                type="button" 
+                role="tab" 
+                aria-controls="settings" 
+                aria-selected="activeTab === 'settings'"
+                @click="activeTab = 'settings'"
+              >
+                <i class="bi bi-gear me-2"></i>
+                Дополнительные настройки
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Контент табов -->
+      <div class="tab-content" id="gridsTabContent">
+        <!-- Таб "Изображения" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Загрузка изображений -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="imageInput"
+                        @change="handleImageUpload" 
+                        multiple
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.imageInput.click()" 
+                        class="btn btn-primary"
+                        :disabled="uploadedImages.length >= 5"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="uploadedImages.length >= 5">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 5)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Список загруженных изображений -->
+                    <div class="col-12" v-if="uploadedImages.length > 0">
+                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                      <div class="row g-2">
+                        <div 
+                          v-for="(image, index) in uploadedImages" 
+                          :key="index"
+                          class="col-md-4 col-lg-3 col-xl-2"
                         >
-                        <button 
-                          @click="removeImage(index)"
-                          class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                          style="width: 20px; height: 20px; padding: 0; border-radius: 50%;"
-                        >
-                          <i class="bi bi-x" style="font-size: 10px;"></i>
-                        </button>
+                          <div class="position-relative">
+                            <img 
+                              :src="image.url" 
+                              :alt="image.name"
+                              class="img-fluid rounded border"
+                              style="max-height: 100px; width: 100%; object-fit: cover;"
+                            >
+                            <button 
+                              @click="removeImage(index)"
+                              class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                              style="width: 20px; height: 20px; padding: 0; border-radius: 50%;"
+                            >
+                              <i class="bi bi-x" style="font-size: 10px;"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                          <div class="form-check mt-2">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              :id="'image-' + index"
+                              v-model="image.useInGrid"
+                              @change="handleImageGridChange(index, $event)"
+                            >
+                            <label class="form-check-label" :for="'image-' + index">
+                              В сетке
+                            </label>
+                          </div>
+                        </div>
                       </div>
-                      <small class="text-muted d-block mt-1">{{ image.name }}</small>
-                      <div class="form-check mt-2">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Таб "Дополнительные настройки" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Внешний отступ -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Отступ</h6>
+                      <div class="form-group">
+                        <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
                         <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          :id="'image-' + index"
-                          v-model="image.useInGrid"
-                          @change="handleImageGridChange(index, $event)"
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="externalMargin"
+                          min="0" 
+                          max="50" 
+                          step="1"
                         >
-                        <label class="form-check-label" :for="'image-' + index">
-                          В сетке
-                        </label>
+                      </div>
+                    </div>
+                    
+                    <!-- Обводка -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Обводка</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет обводки</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="strokeColor"
+                          title="Выберите цвет обводки"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}px</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="strokeWidth"
+                          min="0" 
+                          max="10" 
+                          step="0.5"
+                        >
+                      </div>
+                    </div>
+                    
+                    <!-- Тень -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Тень</h6>
+                      <div class="form-group">
+                        <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowBlur"
+                          min="0" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Позиция X: {{ shadowOffsetX }}px</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetX"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}px</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetY"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOpacity"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                        >
                       </div>
                     </div>
                   </div>
@@ -304,6 +326,8 @@
           </div>
         </div>
       </div>
+      
+
     </div>
   </div>
 </template>
@@ -329,13 +353,12 @@ export default {
       // Дополнительные настройки
       externalMargin: 0,
       strokeColor: '#000000',
-      strokeWidth: 1,
+      strokeWidth: 0,
       shadowBlur: 0,
       shadowOffsetX: 0,
       shadowOffsetY: 0,
       shadowOpacity: 50,
-      showSettings: false,
-      showImages: false,
+      activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: []
     }
   },
@@ -425,9 +448,60 @@ export default {
       window.addEventListener('resize', this.resizeCanvas)
     },
     
+    getPastelColor(index) {
+      // Расширенный массив пастельных цветов
+      const pastelColors = [
+        // Розовые оттенки
+        '#FFB3BA', '#FFC3CA', '#FFD3DA', '#FFB5C2', '#FFC5D2',
+        // Зеленые оттенки
+        '#BAFFC9', '#CAFFD9', '#DAFFE9', '#B5FFC5', '#C5FFD5',
+        // Голубые оттенки
+        '#BAE1FF', '#CAF1FF', '#DAF9FF', '#B5E1FF', '#C5F1FF',
+        // Желтые оттенки
+        '#FFFFBA', '#FFFFCA', '#FFFFDA', '#FFF5B5', '#FFF5C5',
+        // Фиолетовые оттенки
+        '#DCB5FF', '#ECC5FF', '#FCD5FF', '#D5B5FF', '#E5C5FF',
+        // Оранжевые оттенки
+        '#FFDFBA', '#FFEFCA', '#FFFFDA', '#FFD5B5', '#FFE5C5',
+        // Мятные оттенки
+        '#B5FFDC', '#C5FFEC', '#D5FFFC', '#B5F5DC', '#C5F5EC',
+        // Розовые оттенки (дополнительные)
+        '#FFB5E6', '#FFC5F6', '#FFD5FF', '#FFB5DC', '#FFC5EC',
+        // Синие оттенки
+        '#B5E6FF', '#C5F6FF', '#D5FFFF', '#B5E1FF', '#C5F1FF',
+        // Лаймовые оттенки
+        '#E6FFB5', '#F6FFC5', '#FFFFD5', '#E1FFB5', '#F1FFC5',
+        // Персиковые оттенки
+        '#FFE6B5', '#FFF6C5', '#FFFFD5', '#FFE1B5', '#FFF1C5',
+        // Аквамариновые оттенки
+        '#B5FFE6', '#C5FFF6', '#D5FFFF', '#B5F5E6', '#C5F5F6',
+        // Лавандовые оттенки
+        '#E6B5FF', '#F6C5FF', '#FFD5FF', '#E1B5FF', '#F1C5FF',
+        // Малиновые оттенки
+        '#FFB5DC', '#FFC5EC', '#FFD5FC', '#FFB5E1', '#FFC5F1',
+        // Небесные оттенки
+        '#B5D4FF', '#C5E4FF', '#D5F4FF', '#B5E1FF', '#C5F1FF',
+        // Салатовые оттенки
+        '#D4FFB5', '#E4FFC5', '#F4FFD5', '#E1FFB5', '#F1FFC5',
+        // Бежевые оттенки
+        '#FFD4B5', '#FFE4C5', '#FFF4D5', '#FFE1B5', '#FFF1C5',
+        // Изумрудные оттенки
+        '#B5FFD4', '#C5FFE4', '#D5FFF4', '#B5F5E1', '#C5F5F1',
+        // Аметистовые оттенки
+        '#D4B5FF', '#E4C5FF', '#F4D5FF', '#E1B5FF', '#F1C5FF',
+        // Коралловые оттенки
+        '#FFB5B5', '#FFC5C5', '#FFD5D5', '#FFB5E1', '#FFC5F1',
+        // Дополнительные пастельные
+        '#E8D5FF', '#D5E8FF', '#FFE8D5', '#D5FFE8', '#E8FFD5',
+        '#F8E5FF', '#E5F8FF', '#FFF8E5', '#E5FFF8', '#F8FFE5'
+      ]
+      
+      return pastelColors[index % pastelColors.length]
+    },
+    
     resizeCanvas() {
       const canvas = this.$refs.paperCanvas
-      const container = canvas.parentElement
+      const container = canvas.parentElement.parentElement // Получаем canvas-container
       const rect = container.getBoundingClientRect()
       
       // Устанавливаем соотношение сторон 19:9
@@ -472,13 +546,7 @@ export default {
       paper.view.draw()
     },
     
-    toggleSettings() {
-      this.showSettings = !this.showSettings
-    },
-    
-    toggleImages() {
-      this.showImages = !this.showImages
-    },
+
     
     handleImageUpload(event) {
       const files = Array.from(event.target.files)
@@ -602,6 +670,8 @@ export default {
           
           // Уменьшаем размер маски для обрезки на величину обводки
           const strokeInset = this.strokeWidth || 0
+          
+          // Стандартное уменьшение маски для обрезки на величину обводки
           const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
           const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
           const clipOffsetX = strokeInset
@@ -652,22 +722,27 @@ export default {
             tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY + clipHeight / 2)
             tempCtx.closePath()
           } else if (mask.data && mask.data.type === 'hexagon') {
-            // Для шестиугольников копируем реальные сегменты маски
+            // Для шестигранников используем реальную геометрию маски, но уменьшенную на половину обводки
             tempCtx.beginPath()
             
             if (mask.segments && mask.segments.length > 0) {
-              // Используем реальные сегменты маски с масштабированием
+              // Создаем уменьшенную копию реальной геометрии шестигранника
+              const strokeHalf = strokeInset / 2
+              
+              // Первая точка
               const firstPoint = mask.segments[0].point
               const relativeFirstPoint = new paper.Point(
                 firstPoint.x - maskBounds.x,
                 firstPoint.y - maskBounds.y
               )
               
-              // Масштабируем и смещаем точку
-              const scaledX = clipOffsetX + (relativeFirstPoint.x - strokeInset) * (clipWidth / (maskBounds.width - strokeInset * 2))
-              const scaledY = clipOffsetY + (relativeFirstPoint.y - strokeInset) * (clipHeight / (maskBounds.height - strokeInset * 2))
+              // Уменьшаем размер на половину обводки
+              const scaledX = relativeFirstPoint.x * ((maskBounds.width - strokeInset) / maskBounds.width) + strokeHalf
+              const scaledY = relativeFirstPoint.y * ((maskBounds.height - strokeInset) / maskBounds.height) + strokeHalf
+              
               tempCtx.moveTo(scaledX, scaledY)
               
+              // Остальные точки
               for (let i = 1; i < mask.segments.length; i++) {
                 const segment = mask.segments[i]
                 const relativePoint = new paper.Point(
@@ -675,13 +750,14 @@ export default {
                   segment.point.y - maskBounds.y
                 )
                 
-                // Масштабируем и смещаем точку
-                const scaledPointX = clipOffsetX + (relativePoint.x - strokeInset) * (clipWidth / (maskBounds.width - strokeInset * 2))
-                const scaledPointY = clipOffsetY + (relativePoint.y - strokeInset) * (clipHeight / (maskBounds.height - strokeInset * 2))
+                // Уменьшаем размер на половину обводки
+                const scaledPointX = relativePoint.x * ((maskBounds.width - strokeInset) / maskBounds.width) + strokeHalf
+                const scaledPointY = relativePoint.y * ((maskBounds.height - strokeInset) / maskBounds.height) + strokeHalf
+                
                 tempCtx.lineTo(scaledPointX, scaledPointY)
               }
             } else {
-              // Fallback - создаем шестиугольник с уменьшенным размером
+              // Fallback - создаем шестигранник с уменьшенным размером
               const hexPoints = this.getHexagonPoints(clipWidth, clipHeight)
               tempCtx.moveTo(hexPoints[0].x + clipOffsetX, hexPoints[0].y + clipOffsetY)
               for (let i = 1; i < hexPoints.length; i++) {
@@ -691,9 +767,9 @@ export default {
             
             tempCtx.closePath()
             
-            console.log('🔷 Копируем реальные сегменты шестиугольника:', {
+            console.log('🔷 Использована реальная геометрия шестигранника:', {
               segmentsCount: mask.segments ? mask.segments.length : 0,
-              maskBounds: { width: maskBounds.width, height: maskBounds.y }
+              strokeHalf: strokeInset / 2
             })
           } else {
             // Fallback для прямоугольников
@@ -794,14 +870,16 @@ export default {
         raster.onError = () => {
           // Если изображение не загрузилось, показываем маску с обычной заливкой
           mask.visible = true
-          mask.fillColor = '#016527'
+          const colorIndex = Math.floor(Math.random() * 80)
+          mask.fillColor = this.getPastelColor(colorIndex)
           mask.fillOpacity = 0.3
           this.applyShadowToPath(mask)
         }
         
       } else {
         // Обычная заливка без изображения
-        mask.fillColor = '#016527'
+        const colorIndex = Math.floor(Math.random() * 80)
+        mask.fillColor = this.getPastelColor(colorIndex)
         mask.fillOpacity = 0.3
         
         // Применяем настройки тени
@@ -1114,8 +1192,10 @@ export default {
       const totalWidth = paper.view.viewSize.width
       const totalHeight = paper.view.viewSize.height
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем внешний отступ - используем одинаковый отступ по обеим осям
+      // Для шестигранников отступ должен быть одинаковым по вертикали и горизонтали
+      const baseMargin = Math.min(cellWidth, cellHeight)
+      const margin = (this.externalMargin / 100) * baseMargin
       
       // Вычисляем оптимальный размер шестиугольника для покрытия canvas + 50% за границами
       // Учитываем смещение в шахматном порядке (чередующиеся ряды)
@@ -1159,20 +1239,25 @@ export default {
           // Создаем неравносторонний шестиугольник через Path
           // Увеличиваем всю маску шестигранника на 0.5% для устранения просветов
           const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
+          
+          // Применяем отступ к размерам шестигранника
+          const adjustedHexWidth = hexWidth - margin * 2
+          const adjustedHexHeight = hexHeight - margin * 2
+          
           const hexagon = new paper.Path({
             segments: [
               // Верхняя вершина
-              [centerX + offsetX, centerY - hexHeight * 0.663065 * sizeMultiplier],
+              [centerX + offsetX, centerY - adjustedHexHeight * 0.663065 * sizeMultiplier],
               // Верхний правый угол
-              [centerX + offsetX + (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY - hexHeight * 0.3315325 * sizeMultiplier],
+              [centerX + offsetX + adjustedHexWidth / 2 * sizeMultiplier, centerY - adjustedHexHeight * 0.3315325 * sizeMultiplier],
               // Нижний правый угол
-              [centerX + offsetX + (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY + hexHeight * 0.3315325 * sizeMultiplier],
+              [centerX + offsetX + adjustedHexWidth / 2 * sizeMultiplier, centerY + adjustedHexHeight * 0.3315325 * sizeMultiplier],
               // Нижняя вершина
-              [centerX + offsetX, centerY + hexHeight * 0.663065 * sizeMultiplier],
+              [centerX + offsetX, centerY + adjustedHexHeight * 0.663065 * sizeMultiplier],
               // Нижний левый угол
-              [centerX + offsetX - (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY + hexHeight * 0.3315325 * sizeMultiplier],
+              [centerX + offsetX - adjustedHexWidth / 2 * sizeMultiplier, centerY + adjustedHexHeight * 0.3315325 * sizeMultiplier],
               // Верхний левый угол
-              [centerX + offsetX - (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY - hexHeight * 0.3315325 * sizeMultiplier]
+              [centerX + offsetX - adjustedHexWidth / 2 * sizeMultiplier, centerY - adjustedHexHeight * 0.3315325 * sizeMultiplier]
             ],
             closed: true
           })
@@ -1218,7 +1303,7 @@ export default {
         }
         this.selectedCell = null
         mask.strokeColor = '#dee2e6'
-        mask.strokeWidth = 1
+        mask.strokeWidth = 0
       }
     },
     
@@ -1279,20 +1364,7 @@ export default {
       // Paper.js обрабатывает события автоматически
     },
     
-    resetGridSettings() {
-      // Сброс настроек текущего типа сетки к значениям по умолчанию
-      const defaultSettings = {
-        rectangle: { rows: 3, cols: 5 },
-        triangle: { rows: 2, cols: 20 },
-        hexagon: { rows: 4, cols: 8 },
-        diamond: { rows: 4, cols: 16 }
-      }
-      
-      this.gridSettings[this.maskType] = { ...defaultSettings[this.maskType] }
-      
-      // Показываем уведомление
-      console.log(`🔄 Настройки для ${this.maskType} сброшены к значениям по умолчанию`)
-    },
+
     
     cleanup() {
       window.removeEventListener('resize', this.resizeCanvas)
@@ -1314,17 +1386,40 @@ export default {
     font-weight: 600;
     margin-bottom: 0.5rem;
   }
+  
+  .container {
+    > div {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .paper-canvas {
   width: 100%;
-  height: 400px;
-  border: 1px solid #dee2e6;
+  height: 100%;
+  border: none;
   cursor: crosshair;
   touch-action: none; // Отключаем стандартные touch события браузера
+  box-shadow: 4px 4px 12px 0 rgba(0, 0, 0, .15);
+  background: #fff;
   
   &:focus {
     outline: none;
+  }
+}
+
+.canvas-container {
+  width: 100%;
+  height: 0;
+  padding-bottom: 47.37%; // Соотношение сторон 19:9 (9/19 * 100%)
+  position: relative;
+  
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 }
 
@@ -1389,10 +1484,6 @@ export default {
     .card-body {
       padding: 1rem;
     }
-    
-    .paper-canvas {
-      height: 300px;
-    }
   }
   
   .row.g-3 > .col-6 {
@@ -1401,10 +1492,6 @@ export default {
 }
 
 @media (max-width: 575.98px) {
-  .paper-canvas {
-    height: 250px;
-  }
-  
   .btn {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;

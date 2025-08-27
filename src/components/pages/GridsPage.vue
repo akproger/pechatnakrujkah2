@@ -361,17 +361,21 @@ export default {
       // Применяем внешний отступ
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       
-      // Вычисляем количество полных треугольников, которые поместятся
-      const triangleBaseWidth = cellWidth * 2 // Основание треугольника теперь равно 2 ячейкам
+      // Вычисляем размеры треугольника
+      const triangleHeight = cellHeight // Высота треугольника равна высоте ячейки
+      const triangleBaseWidth = cellWidth * 2 // Основание треугольника равно 2 ячейкам
+      
+      // Вычисляем количество треугольников, которые поместятся
       const numTriangles = Math.ceil(viewWidth / triangleBaseWidth)
+      const numRows = Math.ceil(viewHeight / triangleHeight)
       
       // Начинаем от левого края с половины основания первого треугольника
       const startX = -cellWidth * 0.5
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col <= numTriangles; col++) {
-          const x = startX + col * triangleBaseWidth + margin
-          const y = row * cellHeight + margin
+              for (let row = 0; row <= numRows; row++) {
+          for (let col = 0; col <= numTriangles; col++) {
+            const x = startX + col * triangleBaseWidth + margin
+            const y = row * triangleHeight + margin
           const isEven = (row + col) % 2 === 0
           
           let triangle

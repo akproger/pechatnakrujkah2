@@ -49,6 +49,7 @@
                   <select v-model="maskType" class="form-select">
                     <option value="rectangle">Параллелепипед</option>
                     <option value="triangle">Треугольники (шахматный порядок)</option>
+                    <option value="diamond">Ромбы</option>
                     <option value="hexagon">Шестиугольники</option>
                     <option value="pentagon">Пятиугольники (шахматный порядок)</option>
                   </select>
@@ -177,6 +178,9 @@ export default {
         case 'triangle':
           this.createTriangleMasks(maskGroup, cellWidth, cellHeight)
           break
+        case 'diamond':
+          this.createDiamondMasks(maskGroup, cellWidth, cellHeight)
+          break
         case 'hexagon':
           this.createHexagonMasks(maskGroup, cellWidth, cellHeight)
           break
@@ -260,6 +264,55 @@ export default {
           triangle.data = { row, col: Math.floor(col), type: 'triangle', isEven }
           this.addMaskInteractivity(triangle)
           group.addChild(triangle)
+        }
+      }
+    },
+    
+    createDiamondMasks(group, cellWidth, cellHeight) {
+      // Создаем ромбы в шахматном порядке, начинающиеся и заканчивающиеся вершинами
+      const viewWidth = paper.view.viewSize.width
+      const viewHeight = paper.view.viewSize.height
+      
+      // Вычисляем количество ромбов, которые поместятся
+      // Ромб по ширине занимает 2 ячейки (как основание треугольника)
+      const diamondWidth = cellWidth * 2
+      const diamondHeight = cellHeight * 2 // Высота ромба теперь в 2 раза больше
+      const numDiamonds = Math.ceil(viewWidth / diamondWidth)
+      const numRows = Math.ceil(viewHeight / diamondHeight)
+      
+      // Начинаем от левого края с половины ширины первого ромба
+      const startX = -cellWidth * 0.5
+      // Начинаем сверху с половины высоты ромба за верхней границей
+      const startY = -cellHeight * 0.5
+      
+      for (let row = 0; row <= numRows; row++) {
+        for (let col = 0; col <= numDiamonds; col++) {
+          const isEven = (row + col) % 2 === 0
+          
+          if (isEven) {
+            // Ромб - по сути два треугольника, соединенные основаниями
+            const x = startX + col * diamondWidth
+            const y = startY + row * diamondHeight
+            
+            const diamond = new paper.Path({
+              segments: [
+                [x + cellWidth / 2, y - cellHeight * 1.49592857723], // верхняя вершина (на 149.592857723% выше)
+                [x + cellWidth * 2.487375, y + cellHeight / 2], // правая середина
+                [x + cellWidth / 2, y + cellHeight * 2.49592857723], // нижняя вершина (на 149.592857723% ниже)
+                [x - cellWidth * 1.487375, y + cellHeight / 2] // левая середина
+              ],
+              closed: true
+            })
+            
+            diamond.strokeColor = '#dee2e6'
+            diamond.strokeWidth = 1
+            diamond.fillColor = '#016527'
+            diamond.fillOpacity = 0.3
+            
+            diamond.data = { row, col: Math.floor(col), type: 'diamond', isEven }
+            this.addMaskInteractivity(diamond)
+            group.addChild(diamond)
+          }
         }
       }
     },

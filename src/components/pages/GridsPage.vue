@@ -494,22 +494,17 @@ export default {
     },
     
       getImageForPosition(row, col, totalImages) {
-    // Отображаем изображение в первых трех масках (0, 0), (0, 1) и (0, 2)
-    if ((row === 0 && col === 0) || (row === 0 && col === 1) || (row === 0 && col === 2)) {
-      const gridImages = this.getImagesForGrid()
-      if (gridImages.length === 0) {
-        return null
-      }
-      
-      // Распределяем изображения по маскам
-      let imageIndex = 0
-      if (row === 0 && col === 0) imageIndex = 0
-      else if (row === 0 && col === 1) imageIndex = 1
-      else if (row === 0 && col === 2) imageIndex = 2
-      
-      return gridImages[imageIndex % gridImages.length] || gridImages[0]
+    // Отображаем изображение во всех масках
+    const gridImages = this.getImagesForGrid()
+    if (gridImages.length === 0) {
+      return null
     }
-    return null // Для всех остальных позиций - без изображения
+    
+    // Вычисляем индекс изображения для позиции (row, col)
+    // Используем шахматный паттерн для равномерного распределения
+    const imageIndex = (row * this.gridCols + col) % gridImages.length
+    
+    return gridImages[imageIndex]
   },
     
     getHexagonPoints(width, height) {

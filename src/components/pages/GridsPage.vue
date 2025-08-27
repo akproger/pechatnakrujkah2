@@ -1,0 +1,533 @@
+<template>
+  <div class="grids-page">
+    <div class="container">
+      <!-- Заголовок страницы -->
+      <div class="row mb-4">
+        <div class="col">
+          <h2 class="page-title">Сетки</h2>
+          <p class="text-muted">Инструмент для создания массива масок</p>
+        </div>
+      </div>
+      
+      <!-- Управление -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Параметры сетки</h5>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Количество строк</label>
+                  <input 
+                    v-model.number="gridRows" 
+                    type="number" 
+                    class="form-control"
+                    min="1"
+                    max="20"
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Количество столбцов</label>
+                  <input 
+                    v-model.number="gridCols" 
+                    type="number" 
+                    class="form-control"
+                    min="1"
+                    max="20"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Тип маски</h5>
+              <div class="row g-3">
+                <div class="col-12">
+                  <select v-model="maskType" class="form-select">
+                    <option value="rectangle">Параллелепипед</option>
+                    <option value="triangle">Треугольники (шахматный порядок)</option>
+                    <option value="hexagon">Шестиугольники</option>
+                    <option value="pentagon">Пятиугольники (шахматный порядок)</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <div class="d-grid gap-2">
+                    <button 
+                      @click="generateGrid" 
+                      class="btn btn-primary"
+                    >
+                      <i class="bi bi-grid-3x3-gap me-2"></i>
+                      Создать сетку
+                    </button>
+                    <button 
+                      @click="clearCanvas" 
+                      class="btn btn-outline-secondary"
+                    >
+                      <i class="bi bi-trash me-2"></i>
+                      Очистить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Canvas область -->
+      <div class="row">
+        <div class="col">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Paper.js Canvas - Маски</h5>
+            </div>
+            <div class="card-body p-0">
+              <canvas 
+                ref="paperCanvas"
+                class="paper-canvas"
+                @mousedown="handleMouseDown"
+                @mousemove="handleMouseMove"
+                @mouseup="handleMouseUp"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
+              ></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import paper from 'paper'
+
+export default {
+  name: 'GridsPage',
+  data() {
+    return {
+      gridRows: 5,
+      gridCols: 5,
+      maskType: 'rectangle',
+      paperScope: null,
+      selectedCell: null,
+      touchStartPos: null
+    }
+  },
+  mounted() {
+    this.initPaper()
+  },
+  beforeUnmount() {
+    this.cleanup()
+  },
+  methods: {
+    initPaper() {
+      const canvas = this.$refs.paperCanvas
+      
+      // Устанавливаем размеры canvas сначала
+      this.resizeCanvas()
+      
+      // Инициализируем Paper.js с canvas
+      paper.setup(canvas)
+      this.paperScope = paper
+      
+      // Создаем базовую сетку
+      this.generateGrid()
+      
+      // Обработчик изменения размера окна
+      window.addEventListener('resize', this.resizeCanvas)
+    },
+    
+    resizeCanvas() {
+      const canvas = this.$refs.paperCanvas
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      
+      canvas.width = rect.width
+      canvas.height = 400
+      
+      if (this.paperScope) {
+        paper.view.viewSize = new paper.Size(canvas.width, canvas.height)
+        this.generateGrid()
+      }
+    },
+    
+    generateGrid() {
+      if (!this.paperScope) return
+      
+      paper.project.clear()
+      
+      const viewWidth = paper.view.viewSize.width
+      const viewHeight = paper.view.viewSize.height
+      
+      const cellWidth = viewWidth / this.gridCols
+      const cellHeight = viewHeight / this.gridRows
+      
+             // Создаем группу для масок
+       const maskGroup = new paper.Group()
+      
+      switch (this.maskType) {
+        case 'rectangle':
+          this.createRectangleMasks(maskGroup, cellWidth, cellHeight)
+          break
+        case 'triangle':
+          this.createTriangleMasks(maskGroup, cellWidth, cellHeight)
+          break
+        case 'hexagon':
+          this.createHexagonMasks(maskGroup, cellWidth, cellHeight)
+          break
+        case 'pentagon':
+          this.createPentagonMasks(maskGroup, cellWidth, cellHeight)
+          break
+      }
+      
+      paper.view.draw()
+    },
+    
+    createRectangleMasks(group, cellWidth, cellHeight) {
+      // Создаем параллелепипеды
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const x = col * cellWidth
+          const y = row * cellHeight
+          
+          const rect = new paper.Path.Rectangle({
+            point: [x, y],
+            size: [cellWidth, cellHeight],
+            strokeColor: '#dee2e6',
+            strokeWidth: 1,
+            fillColor: '#016527',
+            fillOpacity: 0.3
+          })
+          
+          rect.data = { row, col, type: 'rectangle' }
+          this.addMaskInteractivity(rect)
+          group.addChild(rect)
+        }
+      }
+    },
+    
+    createTriangleMasks(group, cellWidth, cellHeight) {
+      // Создаем треугольники в шахматном порядке, начинающиеся и заканчивающиеся вершинами
+      const viewWidth = paper.view.viewSize.width
+      const viewHeight = paper.view.viewSize.height
+      
+      // Вычисляем количество полных треугольников, которые поместятся
+      const triangleBaseWidth = cellWidth * 2 // Основание треугольника теперь равно 2 ячейкам
+      const numTriangles = Math.ceil(viewWidth / triangleBaseWidth)
+      
+      // Начинаем от левого края с половины основания первого треугольника
+      const startX = -cellWidth * 0.5
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col <= numTriangles; col++) {
+          const x = startX + col * triangleBaseWidth
+          const y = row * cellHeight
+          const isEven = (row + col) % 2 === 0
+          
+          let triangle
+          if (isEven) {
+            // Треугольник вершиной вверх
+            triangle = new paper.Path({
+              segments: [
+                [x + cellWidth / 2, y], // вершина
+                [x - cellWidth * 1.5125, y + cellHeight], // левый угол основания (на 151.25% левее)
+                [x + cellWidth * 2.5125, y + cellHeight] // правый угол основания (на 151.25% правее)
+              ],
+              closed: true
+            })
+          } else {
+            // Треугольник основанием вверх
+            triangle = new paper.Path({
+              segments: [
+                [x - cellWidth * 1.5125, y], // левый угол основания (на 151.25% левее)
+                [x + cellWidth * 2.5125, y], // правый угол основания (на 151.25% правее)
+                [x + cellWidth / 2, y + cellHeight] // вершина
+              ],
+              closed: true
+            })
+          }
+          
+          triangle.strokeColor = '#dee2e6'
+          triangle.strokeWidth = 1
+          triangle.fillColor = '#016527'
+          triangle.fillOpacity = 0.3
+          
+          triangle.data = { row, col: Math.floor(col), type: 'triangle', isEven }
+          this.addMaskInteractivity(triangle)
+          group.addChild(triangle)
+        }
+      }
+    },
+    
+    createHexagonMasks(group, cellWidth, cellHeight) {
+      // Создаем шестиугольники
+      const hexRadius = Math.min(cellWidth, cellHeight) / 2 * 0.9
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const centerX = col * cellWidth + cellWidth / 2
+          const centerY = row * cellHeight + cellHeight / 2
+          
+          // Смещение для плотного расположения
+          const offsetX = row % 2 === 0 ? 0 : hexRadius * 0.866
+          
+          const hexagon = new paper.Path.RegularPolygon({
+            center: [centerX + offsetX, centerY],
+            radius: hexRadius,
+            sides: 6
+          })
+          
+          hexagon.strokeColor = '#dee2e6'
+          hexagon.strokeWidth = 1
+          hexagon.fillColor = '#016527'
+          hexagon.fillOpacity = 0.3
+          
+          hexagon.data = { row, col, type: 'hexagon' }
+          this.addMaskInteractivity(hexagon)
+          group.addChild(hexagon)
+        }
+      }
+    },
+    
+    createPentagonMasks(group, cellWidth, cellHeight) {
+      // Создаем пятиугольники в шахматном порядке
+      const pentagonRadius = Math.min(cellWidth, cellHeight) / 2 * 0.8
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const isEven = (row + col) % 2 === 0
+          
+          if (isEven) {
+            const centerX = col * cellWidth + cellWidth / 2
+            const centerY = row * cellHeight + cellHeight / 2
+            
+            const pentagon = new paper.Path.RegularPolygon({
+              center: [centerX, centerY],
+              radius: pentagonRadius,
+              sides: 5
+            })
+            
+            pentagon.strokeColor = '#dee2e6'
+            pentagon.strokeWidth = 1
+            pentagon.fillColor = '#016527'
+            pentagon.fillOpacity = 0.3
+            
+            pentagon.data = { row, col, type: 'pentagon', isEven }
+            this.addMaskInteractivity(pentagon)
+            group.addChild(pentagon)
+          }
+        }
+      }
+    },
+    
+    addMaskInteractivity(mask) {
+      // События мыши для интерактивности
+      mask.onMouseEnter = () => {
+        mask.fillOpacity = 0.6
+      }
+      
+      mask.onMouseLeave = () => {
+        mask.fillOpacity = 0.3
+      }
+      
+      mask.onMouseDown = () => {
+        this.selectedCell = mask
+        mask.fillOpacity = 0.8
+        mask.strokeColor = '#016527'
+        mask.strokeWidth = 2
+      }
+      
+      mask.onMouseUp = () => {
+        if (this.selectedCell === mask) {
+          mask.fillOpacity = 0.6
+        }
+        this.selectedCell = null
+        mask.strokeColor = '#dee2e6'
+        mask.strokeWidth = 1
+      }
+    },
+    
+    clearCanvas() {
+      if (this.paperScope) {
+        paper.project.clear()
+        paper.view.draw()
+      }
+    },
+    
+    // Touch события для мобильных устройств
+    handleTouchStart(e) {
+      e.preventDefault()
+      const touch = e.touches[0]
+      this.touchStartPos = {
+        x: touch.clientX,
+        y: touch.clientY
+      }
+    },
+    
+    handleTouchMove(e) {
+      e.preventDefault()
+    },
+    
+    handleTouchEnd(e) {
+      e.preventDefault()
+      if (this.touchStartPos) {
+        // Симуляция клика для touch устройств
+        const touch = e.changedTouches[0]
+        const canvas = this.$refs.paperCanvas
+        const rect = canvas.getBoundingClientRect()
+        
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        // Конвертируем в координаты Paper.js
+        const point = new paper.Point(x, y)
+        const hit = paper.project.hitTest(point)
+        
+        if (hit && hit.item) {
+          hit.item.onMouseDown()
+        }
+        
+        this.touchStartPos = null
+      }
+    },
+    
+    // Mouse события для десктопа
+    handleMouseDown(e) {
+      // Paper.js обрабатывает события автоматически
+    },
+    
+    handleMouseMove(e) {
+      // Paper.js обрабатывает события автоматически
+    },
+    
+    handleMouseUp(e) {
+      // Paper.js обрабатывает события автоматически
+    },
+    
+    cleanup() {
+      window.removeEventListener('resize', this.resizeCanvas)
+      
+      if (this.paperScope) {
+        // В Paper.js v0.12 нет метода remove для глобального объекта
+        paper.project.clear()
+        this.paperScope = null
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.grids-page {
+  .page-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.paper-canvas {
+  width: 100%;
+  height: 400px;
+  border: 1px solid #dee2e6;
+  cursor: crosshair;
+  touch-action: none; // Отключаем стандартные touch события браузера
+  
+  &:focus {
+    outline: none;
+  }
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+.card-title {
+  margin-bottom: 0;
+  color: #495057;
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+  &:focus {
+    border-color: #016527;
+    box-shadow: 0 0 0 0.2rem rgba(1, 101, 39, 0.25);
+  }
+}
+
+.btn-primary {
+  background-color: #016527;
+  border-color: #016527;
+  
+  &:hover {
+    background-color: #015a23;
+    border-color: #015a23;
+  }
+}
+
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+  
+  &:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+  }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 767.98px) {
+  .grids-page {
+    .card-body {
+      padding: 1rem;
+    }
+    
+    .paper-canvas {
+      height: 300px;
+    }
+  }
+  
+  .row.g-3 > .col-6 {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .paper-canvas {
+    height: 250px;
+  }
+  
+  .btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Стили для touch устройств */
+@media (hover: none) and (pointer: coarse) {
+  .paper-canvas {
+    cursor: pointer;
+  }
+  
+  .btn, .form-control, .form-select {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>

@@ -943,16 +943,25 @@ export default {
     createRectangleMasks(group, cellWidth, cellHeight) {
       // Применяем внешний отступ
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
-      const adjustedWidth = cellWidth - margin * 2
-      const adjustedHeight = cellHeight - margin * 2
+      let adjustedWidth = cellWidth - margin * 2
+      let adjustedHeight = cellHeight - margin * 2
+      
+      // Увеличиваем размер на 0.5% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.005 // 0.5%
+      adjustedWidth += adjustedWidth * sizeIncrease
+      adjustedHeight += adjustedHeight * sizeIncrease
+      
+      // Корректируем позицию для центрирования увеличенного прямоугольника
+      const xOffset = (adjustedWidth - (cellWidth - margin * 2)) / 2
+      const yOffset = (adjustedHeight - (cellHeight - margin * 2)) / 2
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
       for (let row = 0; row < this.gridRows; row++) {
         for (let col = 0; col < this.gridCols; col++) {
-          const x = col * cellWidth + margin
-          const y = row * cellHeight + margin
+          const x = col * cellWidth + margin - xOffset
+          const y = row * cellHeight + margin - yOffset
           
           const rect = new paper.Path.Rectangle({
             point: [x, y],
@@ -986,6 +995,9 @@ export default {
       const triangleHeight = cellHeight // Высота треугольника равна высоте ячейки
       const triangleBaseWidth = cellWidth * 2 // Основание треугольника равно 2 ячейкам
       
+      // Увеличиваем треугольники по вертикали на 0.5% для устранения просветов
+      const verticalMultiplier = 1.005 // Увеличиваем на 0.5%
+      
       // Используем gridRows и gridCols для определения количества
       const numRows = this.gridRows
       const numTriangles = this.gridCols
@@ -1005,8 +1017,8 @@ export default {
             triangle = new paper.Path({
               segments: [
                 [x + (cellWidth - margin * 2) / 2, y], // вершина
-                [x - (cellWidth - margin * 2) * 1.5125, y + (cellHeight - margin * 2)], // левый угол основания
-                [x + (cellWidth - margin * 2) * 2.5125, y + (cellHeight - margin * 2)] // правый угол основания
+                [x - (cellWidth - margin * 2) * 1.5125, y + (cellHeight - margin * 2) * verticalMultiplier], // левый угол основания
+                [x + (cellWidth - margin * 2) * 2.5125, y + (cellHeight - margin * 2) * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -1016,7 +1028,7 @@ export default {
               segments: [
                 [x - (cellWidth - margin * 2) * 1.5125, y], // левый угол основания
                 [x + (cellWidth - margin * 2) * 2.5125, y], // правый угол основания
-                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2)] // вершина
+                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2) * verticalMultiplier] // вершина
               ],
               closed: true
             })
@@ -1068,12 +1080,14 @@ export default {
             const x = startX + col * diamondWidth + margin
             const y = startY + row * diamondHeight + margin
             
+            // Увеличиваем ромб на 0.5% для устранения просветов
+            const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
             const diamond = new paper.Path({
               segments: [
-                [x + (cellWidth - margin * 2) / 2, y - (cellHeight - margin * 2) * 1.49592857723], // верхняя вершина
-                [x + (cellWidth - margin * 2) * 2.487375, y + (cellHeight - margin * 2) / 2], // правая середина
-                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2) * 2.49592857723], // нижняя вершина
-                [x - (cellWidth - margin * 2) * 1.487375, y + (cellHeight - margin * 2) / 2] // левая середина
+                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y - (cellHeight - margin * 2) * 1.49592857723 * sizeMultiplier], // верхняя вершина
+                [x + (cellWidth - margin * 2) * 2.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier], // правая середина
+                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y + (cellHeight - margin * 2) * 2.49592857723 * sizeMultiplier], // нижняя вершина
+                [x - (cellWidth - margin * 2) * 1.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier] // левая середина
               ],
               closed: true
             })
@@ -1125,6 +1139,8 @@ export default {
         hexHeight = (totalHeight * 1.5) / adjustedRows
       }
       
+      // Примечание: увеличение высоты не помогает, поэтому используем уменьшение отступа в сегментах
+      
       // Расчет размеров для неравносторонних шестиугольников
       // Расстояние между центрами остается постоянным, изменяется только форма
       
@@ -1141,20 +1157,22 @@ export default {
           const offsetX = row % 2 === 0 ? 0 : hexWidth * 0.5
           
           // Создаем неравносторонний шестиугольник через Path
+          // Увеличиваем всю маску шестигранника на 0.5% для устранения просветов
+          const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
           const hexagon = new paper.Path({
             segments: [
               // Верхняя вершина
-              [centerX + offsetX, centerY - (hexHeight - margin * 2) * 0.663065],
+              [centerX + offsetX, centerY - hexHeight * 0.663065 * sizeMultiplier],
               // Верхний правый угол
-              [centerX + offsetX + (hexWidth - margin * 2) / 2, centerY - (hexHeight - margin * 2) * 0.3315325],
+              [centerX + offsetX + (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY - hexHeight * 0.3315325 * sizeMultiplier],
               // Нижний правый угол
-              [centerX + offsetX + (hexWidth - margin * 2) / 2, centerY + (hexHeight - margin * 2) * 0.3315325],
+              [centerX + offsetX + (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY + hexHeight * 0.3315325 * sizeMultiplier],
               // Нижняя вершина
-              [centerX + offsetX, centerY + (hexHeight - margin * 2) * 0.663065],
+              [centerX + offsetX, centerY + hexHeight * 0.663065 * sizeMultiplier],
               // Нижний левый угол
-              [centerX + offsetX - (hexWidth - margin * 2) / 2, centerY + (hexHeight - margin * 2) * 0.3315325],
+              [centerX + offsetX - (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY + hexHeight * 0.3315325 * sizeMultiplier],
               // Верхний левый угол
-              [centerX + offsetX - (hexWidth - margin * 2) / 2, centerY - (hexHeight - margin * 2) * 0.3315325]
+              [centerX + offsetX - (hexWidth - margin * 2) / 2 * sizeMultiplier, centerY - hexHeight * 0.3315325 * sizeMultiplier]
             ],
             closed: true
           })

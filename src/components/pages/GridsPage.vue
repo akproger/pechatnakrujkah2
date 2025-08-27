@@ -796,51 +796,65 @@ export default {
       let strokePath = null
       
       if (originalMask.data && originalMask.data.type === 'rectangle') {
-        strokePath = new paper.Path.Rectangle(raster.bounds)
-      } else if (originalMask.data && originalMask.data.type === 'triangle') {
-        // Создаем треугольную обводку с учетом ориентации
+        // Создаем прямоугольную обводку внутри маски
         const bounds = raster.bounds
+        const inset = this.strokeWidth / 2
+        strokePath = new paper.Path.Rectangle({
+          point: [bounds.left + inset, bounds.top + inset],
+          size: [bounds.width - this.strokeWidth, bounds.height - this.strokeWidth]
+        })
+      } else if (originalMask.data && originalMask.data.type === 'triangle') {
+        // Создаем треугольную обводку внутри маски
+        const bounds = raster.bounds
+        const inset = this.strokeWidth / 2
         const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
         
         if (isInverted) {
           // Перевернутый треугольник
           strokePath = new paper.Path([
-            new paper.Point(bounds.center.x, bounds.bottom),
-            new paper.Point(bounds.left, bounds.top),
-            new paper.Point(bounds.right, bounds.top),
-            new paper.Point(bounds.center.x, bounds.bottom)
+            new paper.Point(bounds.center.x, bounds.bottom - inset),
+            new paper.Point(bounds.left + inset, bounds.top + inset),
+            new paper.Point(bounds.right - inset, bounds.top + inset)
           ])
         } else {
           // Обычный треугольник
           strokePath = new paper.Path([
-            new paper.Point(bounds.center.x, bounds.top),
-            new paper.Point(bounds.left, bounds.bottom),
-            new paper.Point(bounds.right, bounds.bottom),
-            new paper.Point(bounds.center.x, bounds.top)
+            new paper.Point(bounds.center.x, bounds.top + inset),
+            new paper.Point(bounds.left + inset, bounds.bottom - inset),
+            new paper.Point(bounds.right - inset, bounds.bottom - inset)
           ])
         }
+        strokePath.closePath()
       } else if (originalMask.data && originalMask.data.type === 'diamond') {
-        // Создаем ромбовидную обводку
+        // Создаем ромбовидную обводку внутри маски
         const bounds = raster.bounds
+        const inset = this.strokeWidth / 2
         strokePath = new paper.Path([
-          new paper.Point(bounds.center.x, bounds.top),
-          new paper.Point(bounds.left, bounds.center.y),
-          new paper.Point(bounds.center.x, bounds.bottom),
-          new paper.Point(bounds.right, bounds.center.y),
-          new paper.Point(bounds.center.x, bounds.top)
+          new paper.Point(bounds.center.x, bounds.top + inset),
+          new paper.Point(bounds.left + inset, bounds.center.y),
+          new paper.Point(bounds.center.x, bounds.bottom - inset),
+          new paper.Point(bounds.right - inset, bounds.center.y)
         ])
+        strokePath.closePath()
       } else if (originalMask.data && originalMask.data.type === 'hexagon') {
-        // Создаем шестиугольную обводку, используя реальные сегменты маски
+        // Создаем шестиугольную обводку внутри маски
         if (originalMask.segments && originalMask.segments.length > 0) {
-          // Используем реальные сегменты маски
-          const points = originalMask.segments.map(segment => segment.point)
+          // Используем реальные сегменты маски с отступом внутрь
+          const inset = this.strokeWidth / 2
+          const points = originalMask.segments.map(segment => {
+            const point = segment.point
+            const center = raster.bounds.center
+            const direction = point.subtract(center).normalize()
+            return point.subtract(direction.multiply(inset))
+          })
           strokePath = new paper.Path(points)
           strokePath.closePath()
         } else {
-          // Fallback - создаем идеальный шестиугольник
+          // Fallback - создаем идеальный шестиугольник с отступом
           const bounds = raster.bounds
-          const hexPoints = this.getHexagonPoints(bounds.width, bounds.height)
-          const points = hexPoints.map(p => new paper.Point(bounds.left + p.x, bounds.top + p.y))
+          const inset = this.strokeWidth / 2
+          const hexPoints = this.getHexagonPoints(bounds.width - this.strokeWidth, bounds.height - this.strokeWidth)
+          const points = hexPoints.map(p => new paper.Point(bounds.left + inset + p.x, bounds.top + inset + p.y))
           strokePath = new paper.Path(points)
           strokePath.closePath()
         }
@@ -852,6 +866,10 @@ export default {
         strokePath.strokeColor = this.strokeColor
         strokePath.strokeWidth = this.strokeWidth
         
+        // Настраиваем соединение линий для четких углов
+        strokePath.strokeJoin = 'miter' // Острые углы
+        strokePath.strokeCap = 'butt'   // Прямые концы
+        
         // Добавляем обводку в ту же группу поверх изображения
         if (parentGroup) {
           parentGroup.addChild(strokePath)
@@ -861,6 +879,8 @@ export default {
           strokeType: originalMask.data ? originalMask.data.type : 'unknown',
           strokeColor: this.strokeColor,
           strokeWidth: this.strokeWidth,
+          strokeJoin: strokePath.strokeJoin,
+          strokeCap: strokePath.strokeCap,
           isInverted: originalMask.data && originalMask.data.type === 'triangle' ? 
             (originalMask.data.row + originalMask.data.col) % 2 === 1 : false,
           segmentsCount: originalMask.segments ? originalMask.segments.length : 0

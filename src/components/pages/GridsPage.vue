@@ -318,13 +318,19 @@ export default {
     },
     
     createHexagonMasks(group, cellWidth, cellHeight) {
-      // Создаем шестиугольники
+      // Создаем шестиугольники с правильным стартовым позиционированием
       const hexRadius = Math.min(cellWidth, cellHeight) / 2 * 0.9
+      const hexWidth = hexRadius * 2
+      const hexHeight = hexRadius * Math.sqrt(3)
+      
+      // Начинаем с отрицательных координат для правильного заполнения
+      const startX = -hexWidth * 0.5
+      const startY = -hexHeight * 0.5
       
       for (let row = 0; row < this.gridRows; row++) {
         for (let col = 0; col < this.gridCols; col++) {
-          const centerX = col * cellWidth + cellWidth / 2
-          const centerY = row * cellHeight + cellHeight / 2
+          const centerX = startX + col * hexWidth + hexWidth / 2
+          const centerY = startY + row * hexHeight + hexHeight / 2
           
           // Смещение для плотного расположения
           const offsetX = row % 2 === 0 ? 0 : hexRadius * 0.866

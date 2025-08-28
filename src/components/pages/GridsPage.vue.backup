@@ -180,6 +180,104 @@
       
       <!-- Контент табов -->
       <div class="tab-content" id="gridsTabContent">
+        <!-- Таб "Изображения" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Загрузка изображений -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="imageInput"
+                        @change="handleImageUpload" 
+                        multiple
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.imageInput.click()" 
+                        class="btn"
+                        :disabled="uploadedImages.length >= 5"
+                        style="background-color: #0d6efd; border: none; color: white;"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="uploadedImages.length >= 5">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 5)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Список загруженных изображений -->
+                    <div class="col-12" v-if="uploadedImages.length > 0">
+                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                      <div class="row g-2">
+                        <div 
+                          v-for="(image, index) in uploadedImages" 
+                          :key="index"
+                          class="col-md-4 col-lg-3 col-xl-2"
+                        >
+                          <div class="position-relative">
+                            <img 
+                              :src="image.url" 
+                              :alt="image.name"
+                              class="img-fluid rounded border"
+                              style="max-height: 100px; width: 100%; object-fit: cover;"
+                            >
+                            <button 
+                              @click="removeImage(index)"
+                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
+                            >
+                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                          <div class="d-flex gap-3 mt-2">
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'image-' + index"
+                                v-model="image.useInGrid"
+                                @change="handleUseInGridChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
+                                <i class="bi bi-grid-3x3-gap me-1"></i>
+                              </label>
+                            </div>
+                            
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'disable-stroke-' + index"
+                                v-model="image.disableStroke"
+                                @change="handleDisableStrokeChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
+                                <i class="bi bi-border me-1"></i>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Таб "Фон" -->
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
           <div class="row mt-3">
@@ -280,9 +378,13 @@
                         >
                       </div>
                     </div>
-                    
-                    <!-- Градиентная заливка -->
-                    <div class="col-12">
+                  </div>
+                  
+                  </div>
+                  
+                  <!-- Градиентная заливка -->
+                  <div class="row g-3 mt-3">
+                    <div class="col-md-6">
                       <h6 class="text-muted mb-3">Градиентная заливка</h6>
                       
                       <!-- Чекбокс для включения градиентной заливки -->
@@ -298,172 +400,66 @@
                         </label>
                       </div>
                       
-                      <div class="row g-3">
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 1</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor1"
-                              title="Выберите первый цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 1: {{ gradientOpacity1 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity1"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 2</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor2"
-                              title="Выберите второй цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 2: {{ gradientOpacity2 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity2"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Угол: {{ gradientAngle }}°</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientAngle"
-                              min="0" 
-                              max="360" 
-                              step="1"
-                            >
-                          </div>
-                          
-                          <div class="form-group mt-3">
-                            <label class="form-label">Превью градиента</label>
-                            <div 
-                              class="gradient-preview"
-                              style="width: 100%; height: 80px; border-radius: 8px;"
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Таб "Изображения" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Загрузка изображений -->
-                    <div class="col-12">
-                      <input 
-                        type="file" 
-                        ref="imageInput"
-                        @change="handleImageUpload" 
-                        multiple
-                        accept="image/*"
-                        class="d-none"
-                      >
-                      <button 
-                        @click="$refs.imageInput.click()" 
-                        class="btn"
-                        :disabled="uploadedImages.length >= 5"
-                        style="background-color: #0d6efd; border: none; color: white;"
-                      >
-                        <i class="bi bi-cloud-upload me-2"></i>
-                        <span v-if="uploadedImages.length >= 5">
-                          Максимальное количество изображений загружено
-                        </span>
-                        <span v-else-if="uploadedImages.length === 0">
-                          Загрузить изображения (до 5)
-                        </span>
-                        <span v-else>
-                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
-                        </span>
-                      </button>
-                    </div>
-                    
-                    <!-- Список загруженных изображений -->
-                    <div class="col-12" v-if="uploadedImages.length > 0">
-                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
-                      <div class="row g-2">
-                        <div 
-                          v-for="(image, index) in uploadedImages" 
-                          :key="index"
-                          class="col-md-4 col-lg-3 col-xl-2"
+                      <div class="form-group">
+                        <label class="form-label">Цвет 1</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="gradientColor1"
+                          title="Выберите первый цвет градиента"
                         >
-                          <div class="position-relative">
-                            <img 
-                              :src="image.url" 
-                              :alt="image.name"
-                              class="img-fluid rounded border"
-                              style="max-height: 100px; width: 100%; object-fit: cover;"
-                            >
-                            <button 
-                              @click="removeImage(index)"
-                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
-                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
-                            >
-                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
-                            </button>
-                          </div>
-                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
-                          <div class="d-flex gap-3 mt-2">
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'image-' + index"
-                                v-model="image.useInGrid"
-                                @change="handleUseInGridChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
-                                <i class="bi bi-grid-3x3-gap me-1"></i>
-                              </label>
-                            </div>
-                            
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'disable-stroke-' + index"
-                                v-model="image.disableStroke"
-                                @change="handleDisableStrokeChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
-                                <i class="bi bi-border me-1"></i>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность 1: {{ gradientOpacity1 }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="gradientOpacity1"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <div class="form-group mt-3">
+                        <label class="form-label">Цвет 2</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="gradientColor2"
+                          title="Выберите второй цвет градиента"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность 2: {{ gradientOpacity2 }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="gradientOpacity2"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <div class="form-group mt-3">
+                        <label class="form-label">Угол наклона: {{ gradientAngle }}°</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="gradientAngle"
+                          min="0" 
+                          max="360" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <div class="form-group mt-3">
+                        <label class="form-label">Превью градиента</label>
+                        <div 
+                          class="gradient-preview"
+                          style="width: 100%; height: 80px; border-radius: 8px;"
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -576,8 +572,6 @@
           </div>
         </div>
       </div>
-      
-
     </div>
   </div>
 </template>
@@ -793,6 +787,11 @@ export default {
         this.initThreeJS()
       }, 200)
     })
+    
+    // Инициализируем превью градиента
+    this.$nextTick(() => {
+      this.updateGradientPreview()
+    })
   },
   beforeUnmount() {
     this.cleanup()
@@ -816,78 +815,6 @@ export default {
       
       // Обработчик изменения размера Three.js canvas
       window.addEventListener('resize', this.resizeThreeCanvas)
-    },
-    
-    createBackgroundLayer() {
-      const viewWidth = paper.view.viewSize.width
-      const viewHeight = paper.view.viewSize.height
-      
-      // Создаем группу для фоновых слоев
-      const backgroundGroup = new paper.Group()
-      backgroundGroup.name = 'background'
-      
-      // Слой 1: Фоновое изображение (самый нижний)
-      if (this.enableBackgroundImage && this.backgroundImage) {
-        try {
-          const backgroundRaster = new paper.Raster(this.backgroundImage)
-          backgroundRaster.onLoad = () => {
-            // Масштабируем изображение под размер canvas
-            const scale = Math.max(viewWidth / backgroundRaster.width, viewHeight / backgroundRaster.height)
-            backgroundRaster.scale(scale)
-            
-            // Центрируем изображение
-            backgroundRaster.position = new paper.Point(viewWidth / 2, viewHeight / 2)
-            
-            // Устанавливаем прозрачность
-            backgroundRaster.opacity = 1
-            
-            // Помещаем в группу
-            backgroundGroup.addChild(backgroundRaster)
-            paper.view.draw()
-          }
-        } catch (error) {
-          console.error('Ошибка загрузки фонового изображения:', error)
-        }
-      }
-      
-      // Слой 2: Солидная заливка
-      if (this.enableSolidBackground) {
-        const solidBackground = new paper.Path.Rectangle(0, 0, viewWidth, viewHeight)
-        solidBackground.fillColor = this.hexToRgba(this.solidBackgroundColor, this.solidBackgroundOpacity / 100)
-        backgroundGroup.addChild(solidBackground)
-      }
-      
-      // Слой 3: Градиентная заливка (самый верхний из фоновых)
-      if (this.enableGradientBackground) {
-        const gradientBackground = new paper.Path.Rectangle(0, 0, viewWidth, viewHeight)
-        
-        // Создаем градиент
-        const gradient = new paper.Gradient()
-        const color1 = new paper.Color(this.gradientColor1)
-        color1.alpha = this.gradientOpacity1 / 100
-        const color2 = new paper.Color(this.gradientColor2)
-        color2.alpha = this.gradientOpacity2 / 100
-        
-        gradient.add(0, color1)
-        gradient.add(1, color2)
-        
-        // Создаем паттерн с градиентом
-        const linearGradient = new paper.GradientColor(gradient, {
-          origin: new paper.Point(0, 0),
-          destination: new paper.Point(
-            Math.cos(this.gradientAngle * Math.PI / 180) * viewWidth,
-            Math.sin(this.gradientAngle * Math.PI / 180) * viewHeight
-          )
-        })
-        
-        gradientBackground.fillColor = linearGradient
-        backgroundGroup.addChild(gradientBackground)
-      }
-      
-      // Добавляем группу в проект, если есть фоновые слои
-      if (backgroundGroup.children.length > 0) {
-        paper.project.addChild(backgroundGroup)
-      }
     },
     
     getPastelColor(index) {
@@ -979,10 +906,10 @@ export default {
       const cellWidth = viewWidth / this.gridCols
       const cellHeight = viewHeight / this.gridRows
       
-      // Создаем фоновые слои
-      this.createBackgroundLayer()
+      // Создаем слой фона (самый нижний)
+      const backgroundGroup = this.createBackgroundLayer()
       
-      // Создаем группу для масок
+      // Создаем группу для масок (поверх фона)
       const maskGroup = new paper.Group()
       
       switch (this.maskType) {
@@ -1072,49 +999,6 @@ export default {
     // Методы для работы с фоном
     handleBackgroundImageUpload(event) {
       const file = event.target.files[0]
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.backgroundImage = e.target.result
-          this.enableBackgroundImage = true
-        }
-        reader.readAsDataURL(file)
-      }
-      
-      // Очищаем input для возможности повторной загрузки того же файла
-      event.target.value = ''
-    },
-    
-    removeBackgroundImage() {
-      this.backgroundImage = null
-      this.enableBackgroundImage = false
-    },
-    
-    hexToRgba(hex, alpha) {
-      // Убираем # если есть
-      hex = hex.replace('#', '')
-      
-      // Парсим RGB значения
-      const r = parseInt(hex.substr(0, 2), 16)
-      const g = parseInt(hex.substr(2, 2), 16)
-      const b = parseInt(hex.substr(4, 2), 16)
-      
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`
-    },
-    
-    updateGradientPreview() {
-      // Обновляем превью градиента
-      this.$nextTick(() => {
-        const preview = document.querySelector('.gradient-preview')
-        if (preview) {
-          preview.style.background = this.gradientBackground
-        }
-      })
-    },
-    
-    // Методы для работы с фоном
-    handleBackgroundImageUpload(event) {
-      const file = event.target.files[0]
       if (file) {
         const reader = new FileReader()
         reader.onload = (e) => {
@@ -1138,15 +1022,6 @@ export default {
       const g = parseInt(hex.slice(3, 5), 16)
       const b = parseInt(hex.slice(5, 7), 16)
       return `rgba(${r}, ${g}, ${b}, ${alpha})`
-    },
-    
-    updateGradientPreview() {
-      this.$nextTick(() => {
-        const previewElement = document.querySelector('.gradient-preview')
-        if (previewElement) {
-          previewElement.style.background = this.gradientBackground
-        }
-      })
     },
     
     createBackgroundLayer() {
@@ -1223,6 +1098,16 @@ export default {
       }
       
       return backgroundGroup
+    },
+    
+    updateGradientPreview() {
+      // Обновляем превью градиента в UI
+      this.$nextTick(() => {
+        const previewElement = document.querySelector('.gradient-preview')
+        if (previewElement) {
+          previewElement.style.background = this.gradientBackground
+        }
+      })
     },
     
     getImagesForGrid() {
@@ -2503,6 +2388,12 @@ export default {
   border-radius: 8px;
 }
 
+/* Стили для превью градиента */
+.gradient-preview {
+  background: linear-gradient(to right, #ffffff, #cccccc);
+  border: 1px solid #dee2e6;
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 767.98px) {
   .grids-page {
@@ -2535,13 +2426,6 @@ export default {
     align-items: center;
     justify-content: center;
   }
-}
-
-/* Стили для градиентного превью */
-.gradient-preview {
-  background: linear-gradient(to right, #ffffff, #cccccc);
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
 }
 </style>
 

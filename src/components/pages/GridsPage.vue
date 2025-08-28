@@ -231,7 +231,7 @@
                                 type="checkbox" 
                                 :id="'image-' + index"
                                 v-model="image.useInGrid"
-                                @change="handleImageGridChange(index, $event)"
+                                @change="handleUseInGridChange(index, $event)"
                               >
                               <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
                                 <i class="bi bi-grid-3x3-gap me-1"></i>
@@ -244,7 +244,7 @@
                                 type="checkbox" 
                                 :id="'disable-stroke-' + index"
                                 v-model="image.disableStroke"
-                                @change="handleImageGridChange(index, $event)"
+                                @change="handleDisableStrokeChange(index, $event)"
                               >
                               <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
                                 <i class="bi bi-border me-1"></i>
@@ -297,14 +297,14 @@
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Толщина обводки: {{ strokeWidth }}px</label>
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
                           v-model.number="strokeWidth"
                           min="0" 
-                          max="10" 
-                          step="0.5"
+                          max="20" 
+                          step="1"
                         >
                       </div>
                     </div>
@@ -313,7 +313,7 @@
                     <div class="col-md-4">
                       <h6 class="text-muted mb-3">Тень</h6>
                       <div class="form-group">
-                        <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
+                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
@@ -324,7 +324,7 @@
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Позиция X: {{ shadowOffsetX }}px</label>
+                        <label class="form-label">Позиция X: {{ shadowOffsetX }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
@@ -335,7 +335,7 @@
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}px</label>
+                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
@@ -391,13 +391,13 @@ export default {
       selectedCell: null,
       touchStartPos: null,
       // Дополнительные настройки
-      externalMargin: 0,
+      externalMargin: 0, // Проценты (0-50)
       strokeColor: '#000000',
-      strokeWidth: 0,
-      shadowBlur: 0,
-      shadowOffsetX: 0,
-      shadowOffsetY: 0,
-      shadowOpacity: 50,
+      strokeWidth: 0, // Проценты (0-20)
+      shadowBlur: 0, // Проценты (0-50)
+      shadowOffsetX: 0, // Проценты (-50 до +50)
+      shadowOffsetY: 0, // Проценты (-50 до +50)
+      shadowOpacity: 50, // Проценты (0-100)
       activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: [],
       isLoading: false, // Состояние загрузки для прелоадера
@@ -432,6 +432,28 @@ export default {
       set(value) {
         this.gridSettings[this.maskType].cols = value
       }
+    },
+    
+    // Конвертируем проценты в пиксели для различных настроек
+    strokeWidthPx() {
+      // Базовый размер для расчета процентов (средний размер маски)
+      const baseSize = 80 // базовый размер в пикселях для обводки
+      return (this.strokeWidth / 100) * baseSize
+    },
+    
+    shadowBlurPx() {
+      const baseSize = 60 // базовый размер для размытия тени
+      return (this.shadowBlur / 100) * baseSize
+    },
+    
+    shadowOffsetXPx() {
+      const baseSize = 40 // базовый размер для смещения тени по X
+      return (this.shadowOffsetX / 100) * baseSize
+    },
+    
+    shadowOffsetYPx() {
+      const baseSize = 40 // базовый размер для смещения тени по Y
+      return (this.shadowOffsetY / 100) * baseSize
     }
   },
   
@@ -680,9 +702,17 @@ export default {
       this.uploadedImages.splice(index, 1)
     },
     
-    handleImageGridChange(index, event) {
-      // Обновляем состояние
+    handleUseInGridChange(index, event) {
+      // Обновляем состояние использования в сетке
       this.uploadedImages[index].useInGrid = event.target.checked
+      
+      // Перегенерируем сетку
+      this.generateGrid()
+    },
+    
+    handleDisableStrokeChange(index, event) {
+      // Обновляем состояние отключения обводки и тени
+      this.uploadedImages[index].disableStroke = event.target.checked
       
       // Перегенерируем сетку
       this.generateGrid()
@@ -738,7 +768,7 @@ export default {
         mask.strokeWidth = 0
       } else {
         mask.strokeColor = this.strokeColor
-        mask.strokeWidth = this.strokeWidth
+        mask.strokeWidth = this.strokeWidthPx
       }
       
       if (image) {
@@ -772,7 +802,7 @@ export default {
           const maskBounds = mask.bounds
           
           // Уменьшаем размер маски для обрезки на величину обводки
-          const strokeInset = this.strokeWidth || 0
+          const strokeInset = this.strokeWidthPx || 0
           
           // Стандартное уменьшение маски для обрезки на величину обводки
           const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
@@ -998,8 +1028,8 @@ export default {
       if (!shouldDisableShadow && (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0)) {
         const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
         path.shadowColor = shadowColor
-        path.shadowBlur = this.shadowBlur
-        path.shadowOffset = new paper.Point(this.shadowOffsetX, this.shadowOffsetY)
+        path.shadowBlur = this.shadowBlurPx
+        path.shadowOffset = new paper.Point(this.shadowOffsetXPx, this.shadowOffsetYPx)
         
         // Принудительно обновляем отображение
         path.shadowColor = shadowColor
@@ -1018,8 +1048,8 @@ export default {
       if (!shouldDisableShadow && (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0)) {
         const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
         raster.shadowColor = shadowColor
-        raster.shadowBlur = this.shadowBlur
-        raster.shadowOffset = new paper.Point(this.shadowOffsetX, this.shadowOffsetY)
+        raster.shadowBlur = this.shadowBlurPx
+        raster.shadowOffset = new paper.Point(this.shadowOffsetXPx, this.shadowOffsetYPx)
         
         // Принудительно обновляем отображение
         raster.shadowColor = shadowColor
@@ -1037,15 +1067,15 @@ export default {
       if (originalMask.data && originalMask.data.type === 'rectangle') {
         // Создаем прямоугольную обводку внутри маски
         const bounds = raster.bounds
-        const inset = this.strokeWidth / 2
+        const inset = this.strokeWidthPx / 2
         strokePath = new paper.Path.Rectangle({
           point: [bounds.left + inset, bounds.top + inset],
-          size: [bounds.width - this.strokeWidth, bounds.height - this.strokeWidth]
+          size: [bounds.width - this.strokeWidthPx, bounds.height - this.strokeWidthPx]
         })
       } else if (originalMask.data && originalMask.data.type === 'triangle') {
         // Создаем треугольную обводку внутри маски
         const bounds = raster.bounds
-        const inset = this.strokeWidth / 2
+        const inset = this.strokeWidthPx / 2
         const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
         
         if (isInverted) {
@@ -1067,7 +1097,7 @@ export default {
       } else if (originalMask.data && originalMask.data.type === 'diamond') {
         // Создаем ромбовидную обводку внутри маски
         const bounds = raster.bounds
-        const inset = this.strokeWidth / 2
+        const inset = this.strokeWidthPx / 2
         strokePath = new paper.Path([
           new paper.Point(bounds.center.x, bounds.top + inset),
           new paper.Point(bounds.left + inset, bounds.center.y),
@@ -1079,7 +1109,7 @@ export default {
         // Создаем шестиугольную обводку внутри маски
         if (originalMask.segments && originalMask.segments.length > 0) {
           // Используем реальные сегменты маски с отступом внутрь
-          const inset = this.strokeWidth / 2
+          const inset = this.strokeWidthPx / 2
           const points = originalMask.segments.map(segment => {
             const point = segment.point
             const center = raster.bounds.center
@@ -1091,8 +1121,8 @@ export default {
         } else {
           // Fallback - создаем идеальный шестиугольник с отступом
           const bounds = raster.bounds
-          const inset = this.strokeWidth / 2
-          const hexPoints = this.getHexagonPoints(bounds.width - this.strokeWidth, bounds.height - this.strokeWidth)
+          const inset = this.strokeWidthPx / 2
+          const hexPoints = this.getHexagonPoints(bounds.width - this.strokeWidthPx, bounds.height - this.strokeWidthPx)
           const points = hexPoints.map(p => new paper.Point(bounds.left + inset + p.x, bounds.top + inset + p.y))
           strokePath = new paper.Path(points)
           strokePath.closePath()
@@ -1103,7 +1133,7 @@ export default {
         // Настраиваем обводку
         strokePath.fillColor = null
         strokePath.strokeColor = this.strokeColor
-        strokePath.strokeWidth = this.strokeWidth
+        strokePath.strokeWidth = this.strokeWidthPx
         
         // Настраиваем соединение линий для четких углов
         strokePath.strokeJoin = 'miter' // Острые углы

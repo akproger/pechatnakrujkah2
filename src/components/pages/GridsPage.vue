@@ -126,18 +126,18 @@
             <li class="nav-item" role="presentation">
               <button 
                 class="nav-link" 
-                :class="{ 'active': activeTab === 'background' }"
-                id="background-tab" 
+                :class="{ 'active': activeTab === 'settings' }"
+                id="settings-tab" 
                 data-bs-toggle="tab" 
-                data-bs-target="#background" 
+                data-bs-target="#settings" 
                 type="button" 
                 role="tab" 
-                aria-controls="background" 
-                aria-selected="activeTab === 'background'"
-                @click="activeTab = 'background'"
+                aria-controls="settings" 
+                aria-selected="activeTab === 'settings'"
+                @click="activeTab = 'settings'"
               >
-                <i class="bi bi-palette me-2"></i>
-                Фон
+                <i class="bi bi-gear me-2"></i>
+                Настройки
               </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -160,18 +160,18 @@
             <li class="nav-item" role="presentation">
               <button 
                 class="nav-link" 
-                :class="{ 'active': activeTab === 'settings' }"
-                id="settings-tab" 
+                :class="{ 'active': activeTab === 'background' }"
+                id="background-tab" 
                 data-bs-toggle="tab" 
-                data-bs-target="#settings" 
+                data-bs-target="#background" 
                 type="button" 
                 role="tab" 
-                aria-controls="settings" 
-                aria-selected="activeTab === 'settings'"
-                @click="activeTab = 'settings'"
+                aria-controls="background" 
+                aria-selected="activeTab === 'background'"
+                @click="activeTab = 'background'"
               >
-                <i class="bi bi-gear me-2"></i>
-                Дополнительные настройки
+                <i class="bi bi-palette me-2"></i>
+                Фон
               </button>
             </li>
           </ul>
@@ -180,192 +180,100 @@
       
       <!-- Контент табов -->
       <div class="tab-content" id="gridsTabContent">
-        <!-- Таб "Фон" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
+        <!-- Таб "Настройки" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
           <div class="row mt-3">
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
                   <div class="row g-3">
-                    <!-- Загрузка изображения фона -->
-                    <div class="col-md-6">
-                      <h6 class="text-muted mb-3">Изображение фона</h6>
+                    <!-- Внешний отступ -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Отступ</h6>
                       <div class="form-group">
-                        <input 
-                          type="file" 
-                          ref="backgroundImageInput"
-                          @change="handleBackgroundImageUpload" 
-                          accept="image/*"
-                          class="d-none"
-                        >
-                        <button 
-                          @click="$refs.backgroundImageInput.click()" 
-                          class="btn btn-outline-primary"
-                          style="background-color: #6f42c1; border: none; color: white;"
-                        >
-                          <i class="bi bi-image me-2"></i>
-                          {{ backgroundImage ? 'Заменить фон' : 'Загрузить фоновое изображение' }}
-                        </button>
-                        <button 
-                          v-if="backgroundImage"
-                          @click="removeBackgroundImage" 
-                          class="btn btn-outline-danger ms-2"
-                          style="background-color: #dc3545; border: none; color: white;"
-                        >
-                          <i class="bi bi-trash me-2"></i>
-                          Удалить фон
-                        </button>
-                      </div>
-                      
-                      <!-- Чекбокс для включения изображения фона -->
-                      <div class="form-check mt-3">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="enableBackgroundImage"
-                          v-model="enableBackgroundImage"
-                          :disabled="!backgroundImage"
-                        >
-                        <label class="form-check-label" for="enableBackgroundImage">
-                          Включить фоновое изображение
-                        </label>
-                      </div>
-                      
-                      <!-- Превью фонового изображения -->
-                      <div v-if="backgroundImage" class="mt-3">
-                        <img 
-                          :src="backgroundImage" 
-                          alt="Фоновое изображение" 
-                          class="img-fluid rounded"
-                          style="max-height: 150px; object-fit: contain;"
-                        >
-                      </div>
-                    </div>
-                    
-                    <!-- Солидная заливка -->
-                    <div class="col-md-6">
-                      <h6 class="text-muted mb-3">Солидная заливка</h6>
-                      
-                      <!-- Чекбокс для включения солидной заливки -->
-                      <div class="form-check mb-3">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="enableSolidBackground"
-                          v-model="enableSolidBackground"
-                        >
-                        <label class="form-check-label" for="enableSolidBackground">
-                          Включить солидную заливку
-                        </label>
-                      </div>
-                      
-                      <div class="form-group">
-                        <label class="form-label">Цвет заливки</label>
-                        <input 
-                          type="color" 
-                          class="form-control form-control-color" 
-                          v-model="solidBackgroundColor"
-                          title="Выберите цвет заливки"
-                        >
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label">Прозрачность: {{ solidBackgroundOpacity }}%</label>
+                        <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
-                          v-model.number="solidBackgroundOpacity"
+                          v-model.number="externalMargin"
                           min="0" 
-                          max="100" 
+                          max="50" 
                           step="1"
                         >
                       </div>
                     </div>
                     
-                    <!-- Градиентная заливка -->
-                    <div class="col-12">
-                      <h6 class="text-muted mb-3">Градиентная заливка</h6>
-                      
-                      <!-- Чекбокс для включения градиентной заливки -->
-                      <div class="form-check mb-3">
+                    <!-- Обводка -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Обводка</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет обводки</label>
                         <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="enableGradientBackground"
-                          v-model="enableGradientBackground"
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="strokeColor"
+                          title="Выберите цвет обводки"
                         >
-                        <label class="form-check-label" for="enableGradientBackground">
-                          Включить градиентную заливку
-                        </label>
                       </div>
-                      
-                      <div class="row g-3">
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 1</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor1"
-                              title="Выберите первый цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 1: {{ gradientOpacity1 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity1"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 2</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor2"
-                              title="Выберите второй цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 2: {{ gradientOpacity2 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity2"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label class="form-label">Угол: {{ gradientAngle }}°</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientAngle"
-                              min="0" 
-                              max="360" 
-                              step="1"
-                            >
-                          </div>
-                          
-                          <div class="form-group mt-3">
-                            <label class="form-label">Превью градиента</label>
-                            <div 
-                              class="gradient-preview"
-                              style="width: 100%; height: 80px; border-radius: 8px;"
-                            ></div>
-                          </div>
-                        </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="strokeWidth"
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
+                    
+                    <!-- Тень -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Тень</h6>
+                      <div class="form-group">
+                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowBlur"
+                          min="0" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Позиция X: {{ shadowOffsetX }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetX"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetY"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOpacity"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                        >
                       </div>
                     </div>
                   </div>
@@ -473,100 +381,191 @@
           </div>
         </div>
         
-        <!-- Таб "Дополнительные настройки" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+        <!-- Таб "Фон" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
           <div class="row mt-3">
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
                   <div class="row g-3">
-                    <!-- Внешний отступ -->
-                    <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Отступ</h6>
+                    <!-- Первый столбец: Изображение фона и солидная заливка -->
+                    <div class="col-md-6">
+                      <!-- Загрузка изображения фона -->
+                      <h6 class="text-muted mb-3">Изображение фона</h6>
                       <div class="form-group">
-                        <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
                         <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="externalMargin"
-                          min="0" 
-                          max="50" 
-                          step="1"
+                          type="file" 
+                          ref="backgroundImageInput"
+                          @change="handleBackgroundImageUpload" 
+                          accept="image/*"
+                          class="d-none"
+                        >
+                        <button 
+                          @click="$refs.backgroundImageInput.click()" 
+                          class="btn btn-outline-primary"
+                          style="background-color: #6f42c1; border: none; color: white;"
+                        >
+                          <i class="bi bi-image me-2"></i>
+                          {{ backgroundImage ? 'Заменить фон' : 'Загрузить фоновое изображение' }}
+                        </button>
+                        <button 
+                          v-if="backgroundImage"
+                          @click="removeBackgroundImage" 
+                          class="btn btn-outline-danger ms-2"
+                          style="background-color: #dc3545; border: none; color: white;"
+                        >
+                          <i class="bi bi-trash me-2"></i>
+                          Удалить фон
+                        </button>
+                      </div>
+                      
+                      <!-- Чекбокс для включения изображения фона -->
+                      <div class="form-check mt-3">
+                        <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          id="enableBackgroundImage"
+                          v-model="enableBackgroundImage"
+                          :disabled="!backgroundImage"
+                        >
+                        <label class="form-check-label" for="enableBackgroundImage">
+                          Включить фоновое изображение
+                        </label>
+                      </div>
+                      
+                      <!-- Превью фонового изображения -->
+                      <div v-if="backgroundImage" class="mt-3">
+                        <img 
+                          :src="backgroundImage" 
+                          alt="Фоновое изображение" 
+                          class="img-fluid rounded"
+                          style="max-height: 150px; object-fit: contain;"
                         >
                       </div>
-                    </div>
-                    
-                    <!-- Обводка -->
-                    <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Обводка</h6>
+                      
+                      <!-- Солидная заливка -->
+                      <h6 class="text-muted mb-3 mt-4">Солидная заливка</h6>
+                      
+                      <!-- Чекбокс для включения солидной заливки -->
+                      <div class="form-check mb-3">
+                        <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          id="enableSolidBackground"
+                          v-model="enableSolidBackground"
+                        >
+                        <label class="form-check-label" for="enableSolidBackground">
+                          Включить солидную заливку
+                        </label>
+                      </div>
+                      
                       <div class="form-group">
-                        <label class="form-label">Цвет обводки</label>
+                        <label class="form-label">Цвет заливки</label>
                         <input 
                           type="color" 
                           class="form-control form-control-color" 
-                          v-model="strokeColor"
-                          title="Выберите цвет обводки"
+                          v-model="solidBackgroundColor"
+                          title="Выберите цвет заливки"
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                        <label class="form-label">Прозрачность: {{ solidBackgroundOpacity }}%</label>
                         <input 
                           type="range" 
                           class="form-range" 
-                          v-model.number="strokeWidth"
-                          min="0" 
-                          max="20" 
-                          step="1"
-                        >
-                      </div>
-                    </div>
-                    
-                    <!-- Тень -->
-                    <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Тень</h6>
-                      <div class="form-group">
-                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowBlur"
-                          min="0" 
-                          max="50" 
-                          step="1"
-                        >
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label">Позиция X: {{ shadowOffsetX }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetX"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                        >
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetY"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                        >
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOpacity"
+                          v-model.number="solidBackgroundOpacity"
                           min="0" 
                           max="100" 
                           step="1"
                         >
+                      </div>
+                    </div>
+                    
+                    <!-- Второй столбец: Градиентная заливка -->
+                    <div class="col-md-6">
+                      <h6 class="text-muted mb-3">Градиентная заливка</h6>
+                      
+                      <!-- Чекбокс для включения градиентной заливки -->
+                      <div class="form-check mb-3">
+                        <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          id="enableGradientBackground"
+                          v-model="enableGradientBackground"
+                        >
+                        <label class="form-check-label" for="enableGradientBackground">
+                          Включить градиентную заливку
+                        </label>
+                      </div>
+                      
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label class="form-label">Цвет 1</label>
+                            <input 
+                              type="color" 
+                              class="form-control form-control-color" 
+                              v-model="gradientColor1"
+                              title="Выберите первый цвет градиента"
+                            >
+                          </div>
+                          <div class="form-group mt-2">
+                            <label class="form-label">Прозрачность 1: {{ gradientOpacity1 }}%</label>
+                            <input 
+                              type="range" 
+                              class="form-range" 
+                              v-model.number="gradientOpacity1"
+                              min="0" 
+                              max="100" 
+                              step="1"
+                            >
+                          </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label class="form-label">Цвет 2</label>
+                            <input 
+                              type="color" 
+                              class="form-control form-control-color" 
+                              v-model="gradientColor2"
+                              title="Выберите второй цвет градиента"
+                            >
+                          </div>
+                          <div class="form-group mt-2">
+                            <label class="form-label">Прозрачность 2: {{ gradientOpacity2 }}%</label>
+                            <input 
+                              type="range" 
+                              class="form-range" 
+                              v-model.number="gradientOpacity2"
+                              min="0" 
+                              max="100" 
+                              step="1"
+                            >
+                          </div>
+                        </div>
+                        
+                        <div class="col-12">
+                          <div class="form-group">
+                            <label class="form-label">Угол: {{ gradientAngle }}°</label>
+                            <input 
+                              type="range" 
+                              class="form-range" 
+                              v-model.number="gradientAngle"
+                              min="0" 
+                              max="360" 
+                              step="1"
+                            >
+                          </div>
+                          
+                          <div class="form-group mt-3">
+                            <label class="form-label">Превью градиента</label>
+                            <div 
+                              class="gradient-preview"
+                              style="width: 100%; height: 80px; border-radius: 8px;"
+                            ></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -575,6 +574,7 @@
             </div>
           </div>
         </div>
+
       </div>
       
 
@@ -610,7 +610,7 @@ export default {
       shadowOffsetX: 0, // Проценты (-50 до +50)
       shadowOffsetY: 0, // Проценты (-50 до +50)
       shadowOpacity: 50, // Проценты (0-100)
-      activeTab: 'background', // По умолчанию открыт таб "Фон"
+      activeTab: 'settings', // По умолчанию открыт таб "Настройки"
       uploadedImages: [],
       
       // Настройки фона
@@ -818,6 +818,19 @@ export default {
       window.addEventListener('resize', this.resizeThreeCanvas)
     },
     
+    // Динамический расчет толщины обводки в зависимости от размера маски
+    getStrokeWidthForMask(maskBounds) {
+      if (!maskBounds) {
+        // Fallback к базовому размеру
+        const baseSize = 80
+        return (this.strokeWidth / 100) * baseSize
+      }
+      
+      // Используем меньшую сторону маски как базовый размер для более точного расчета
+      const minDimension = Math.min(maskBounds.width, maskBounds.height)
+      return (this.strokeWidth / 100) * minDimension
+    },
+    
     createBackgroundLayer() {
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
@@ -825,6 +838,8 @@ export default {
       // Создаем группу для фоновых слоев
       const backgroundGroup = new paper.Group()
       backgroundGroup.name = 'background'
+      
+      let layersAdded = 0
       
       // Слой 1: Фоновое изображение (самый нижний)
       if (this.enableBackgroundImage && this.backgroundImage) {
@@ -841,8 +856,15 @@ export default {
             // Устанавливаем прозрачность
             backgroundRaster.opacity = 1
             
-            // Помещаем в группу
-            backgroundGroup.addChild(backgroundRaster)
+            // Помещаем в группу ПЕРЕД другими слоями (как самый нижний)
+            backgroundGroup.insertChild(0, backgroundRaster)
+            layersAdded++
+            
+            // Добавляем группу в проект, если это первый слой
+            if (layersAdded === 1) {
+              paper.project.addChild(backgroundGroup)
+            }
+            
             paper.view.draw()
           }
         } catch (error) {
@@ -850,11 +872,17 @@ export default {
         }
       }
       
-      // Слой 2: Солидная заливка
+      // Слой 2: Солидная заливка (средний слой)
       if (this.enableSolidBackground) {
         const solidBackground = new paper.Path.Rectangle(0, 0, viewWidth, viewHeight)
         solidBackground.fillColor = this.hexToRgba(this.solidBackgroundColor, this.solidBackgroundOpacity / 100)
         backgroundGroup.addChild(solidBackground)
+        layersAdded++
+        
+        // Добавляем группу в проект, если это первый слой
+        if (layersAdded === 1) {
+          paper.project.addChild(backgroundGroup)
+        }
       }
       
       // Слой 3: Градиентная заливка (самый верхний из фоновых)
@@ -882,10 +910,17 @@ export default {
         
         gradientBackground.fillColor = linearGradient
         backgroundGroup.addChild(gradientBackground)
+        layersAdded++
+        console.log('Градиентная заливка добавлена как слой', layersAdded)
+        
+        // Добавляем группу в проект, если это первый слой
+        if (layersAdded === 1) {
+          paper.project.addChild(backgroundGroup)
+        }
       }
       
-      // Добавляем группу в проект, если есть фоновые слои
-      if (backgroundGroup.children.length > 0) {
+      // Добавляем группу в проект, если есть фоновые слои и она еще не добавлена
+      if (layersAdded === 0 && (this.enableBackgroundImage || this.enableSolidBackground || this.enableGradientBackground)) {
         paper.project.addChild(backgroundGroup)
       }
     },
@@ -1275,7 +1310,8 @@ export default {
         mask.strokeWidth = 0
       } else {
         mask.strokeColor = this.strokeColor
-        mask.strokeWidth = this.strokeWidthPx
+        // Используем динамический расчет толщины обводки в зависимости от размера маски
+        mask.strokeWidth = this.getStrokeWidthForMask(mask.bounds)
       }
       
       if (image) {
@@ -1309,7 +1345,7 @@ export default {
           const maskBounds = mask.bounds
           
           // Уменьшаем размер маски для обрезки на величину обводки
-          const strokeInset = this.strokeWidthPx || 0
+          const strokeInset = this.getStrokeWidthForMask(maskBounds) || 0
           
           // Стандартное уменьшение маски для обрезки на величину обводки
           const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
@@ -1626,11 +1662,12 @@ export default {
           strokePath = new paper.Path(points)
           strokePath.closePath()
         } else {
-          // Fallback - создаем идеальный шестиугольник с отступом
-          const bounds = raster.bounds
-          const inset = this.strokeWidthPx / 2
-          const hexPoints = this.getHexagonPoints(bounds.width - this.strokeWidthPx, bounds.height - this.strokeWidthPx)
-          const points = hexPoints.map(p => new paper.Point(bounds.left + inset + p.x, bounds.top + inset + p.y))
+                  // Fallback - создаем идеальный шестиугольник с отступом
+        const bounds = raster.bounds
+        const strokeWidth = this.getStrokeWidthForMask(bounds)
+        const inset = strokeWidth / 2
+        const hexPoints = this.getHexagonPoints(bounds.width - strokeWidth, bounds.height - strokeWidth)
+        const points = hexPoints.map(p => new paper.Point(bounds.left + inset + p.x, bounds.top + inset + p.y))
           strokePath = new paper.Path(points)
           strokePath.closePath()
         }
@@ -1640,7 +1677,7 @@ export default {
         // Настраиваем обводку
         strokePath.fillColor = null
         strokePath.strokeColor = this.strokeColor
-        strokePath.strokeWidth = this.strokeWidthPx
+        strokePath.strokeWidth = this.getStrokeWidthForMask(raster.bounds)
         
         // Настраиваем соединение линий для четких углов
         strokePath.strokeJoin = 'miter' // Острые углы

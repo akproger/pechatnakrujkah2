@@ -11,60 +11,61 @@
       
       <!-- Вкладки и ползунки управления -->
       <div class="row mb-2">
-        <div class="col-12">
+        <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
             <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center">
+              <div class="row align-items-center">
                 <!-- Вкладки по типам масок -->
-                <div class="btn-group" role="group" aria-label="Типы масок">
-                  <input type="radio" class="btn-check" name="maskType" id="rectangle" value="rectangle" v-model="maskType">
-                  <label class="btn btn-outline-primary" for="rectangle">Параллелепипед</label>
-                  
-                  <input type="radio" class="btn-check" name="maskType" id="triangle" value="triangle" v-model="maskType">
-                  <label class="btn btn-outline-primary" for="triangle">Треугольники</label>
-                  
-                  <input type="radio" class="btn-check" name="maskType" id="hexagon" value="hexagon" v-model="maskType">
-                  <label class="btn btn-outline-primary" for="hexagon">Шестиугольники</label>
-                  
-                  <input type="radio" class="btn-check" name="maskType" id="diamond" value="diamond" v-model="maskType">
-                  <label class="btn btn-outline-primary" for="diamond">Ромбы</label>
+                <div class="col">
+                  <div class="btn-group" role="group" aria-label="Типы масок">
+                    <input type="radio" class="btn-check" name="maskType" id="rectangle" value="rectangle" v-model="maskType">
+                    <label class="btn btn-outline-primary" for="rectangle" title="Параллелепипеды">
+                      <i class="bi bi-square"></i>
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="maskType" id="triangle" value="triangle" v-model="maskType">
+                    <label class="btn btn-outline-primary" for="triangle" title="Треугольники">
+                      <i class="bi bi-triangle"></i>
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="maskType" id="hexagon" value="hexagon" v-model="maskType">
+                    <label class="btn btn-outline-primary" for="hexagon" title="Шестиугольники">
+                      <i class="bi bi-hexagon"></i>
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="maskType" id="diamond" value="diamond" v-model="maskType">
+                    <label class="btn btn-outline-primary" for="diamond" title="Ромбы">
+                      <i class="bi bi-diamond"></i>
+                    </label>
+                  </div>
                 </div>
                 
                 <!-- Ползунки управления -->
-                <div class="d-flex flex-column gap-3">
-                  <!-- Лейблы -->
-                  <div class="d-flex gap-4">
-                    <div class="form-label mb-0" style="min-width: 80px;">Строки: {{ gridRows }}</div>
-                    <div class="form-label mb-0" style="min-width: 80px; margin-left: 4px;">Столбцы: {{ gridCols }}</div>
+                <div class="d-flex gap-4 ms-auto" style="width: 330px;">
+                  <div class="form-group mb-0" style="width: 150px;">
+                    <div class="form-label mb-1" style="text-align: left;">Строки: {{ gridRows }}</div>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      id="gridRowsSlider"
+                      v-model.number="gridRows"
+                      min="1" 
+                      max="10" 
+                      step="1"
+                    >
                   </div>
                   
-                  <!-- Ползунки -->
-                  <div class="d-flex gap-4">
-                    <div class="form-group mb-0">
-                      <input 
-                        type="range" 
-                        class="form-range" 
-                        id="gridRowsSlider"
-                        v-model.number="gridRows"
-                        min="1" 
-                        max="10" 
-                        step="1"
-                        style="width: 150px;"
-                      >
-                    </div>
-                    
-                    <div class="form-group mb-0">
-                      <input 
-                        type="range" 
-                        class="form-range" 
-                        id="gridColsSlider"
-                        v-model.number="gridCols"
-                        min="1" 
-                        max="20" 
-                        step="1"
-                        style="width: 150px;"
-                      >
-                    </div>
+                  <div class="form-group mb-0" style="width: 150px;">
+                    <div class="form-label mb-1" style="text-align: left;">Столбцы: {{ gridCols }}</div>
+                    <input 
+                      type="range" 
+                      class="form-range" 
+                      id="gridColsSlider"
+                      v-model.number="gridCols"
+                      min="1" 
+                      max="20" 
+                      step="1"
+                    >
                   </div>
                 </div>
               </div>
@@ -91,6 +92,13 @@
                   @touchmove="handleTouchMove"
                   @touchend="handleTouchEnd"
                 ></canvas>
+                
+                <!-- Прелоадер -->
+                <div v-if="isLoading" class="canvas-overlay">
+                  <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -174,8 +182,9 @@
                       >
                       <button 
                         @click="$refs.imageInput.click()" 
-                        class="btn btn-primary"
+                        class="btn"
                         :disabled="uploadedImages.length >= 5"
+                        style="background-color: #0d6efd; border: none; color: white;"
                       >
                         <i class="bi bi-cloud-upload me-2"></i>
                         <span v-if="uploadedImages.length >= 5">
@@ -215,17 +224,32 @@
                             </button>
                           </div>
                           <small class="text-muted d-block mt-1">{{ image.name }}</small>
-                          <div class="form-check mt-2">
-                            <input 
-                              class="form-check-input" 
-                              type="checkbox" 
-                              :id="'image-' + index"
-                              v-model="image.useInGrid"
-                              @change="handleImageGridChange(index, $event)"
-                            >
-                            <label class="form-check-label" :for="'image-' + index">
-                              В сетке
-                            </label>
+                          <div class="d-flex gap-3 mt-2">
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'image-' + index"
+                                v-model="image.useInGrid"
+                                @change="handleImageGridChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
+                                <i class="bi bi-grid-3x3-gap me-1"></i>
+                              </label>
+                            </div>
+                            
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'disable-stroke-' + index"
+                                v-model="image.disableStroke"
+                                @change="handleImageGridChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
+                                <i class="bi bi-border me-1"></i>
+                              </label>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -376,6 +400,7 @@ export default {
       shadowOpacity: 50,
       activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: [],
+      isLoading: false, // Состояние загрузки для прелоадера
       // Three.js данные
       threeInstance: markRaw({
         scene: null,
@@ -443,6 +468,7 @@ export default {
     shadowOpacity() {
       this.generateGrid()
     },
+
     // Обновляем сетку при изменении изображений
     uploadedImages: {
       handler() {
@@ -451,13 +477,16 @@ export default {
         this.$nextTick(() => {
           setTimeout(() => {
             this.updateThreeTexture()
-          }, 300)
+          }, 500) // Увеличили задержку с 300 до 500мс
         })
       },
       deep: true
     }
   },
   mounted() {
+    // Показываем прелоадер при инициализации
+    this.isLoading = true
+    
     this.initPaper()
     
     // Инициализируем Three.js с небольшой задержкой
@@ -569,6 +598,9 @@ export default {
     generateGrid() {
       if (!this.paperScope) return
       
+      // Показываем прелоадер
+      this.isLoading = true
+      
       paper.project.clear()
       
       const viewWidth = paper.view.viewSize.width
@@ -602,7 +634,9 @@ export default {
         // Увеличиваем задержку для гарантии полной отрисовки canvas
         setTimeout(() => {
           this.updateThreeTexture()
-        }, 300)
+          // Скрываем прелоадер после обновления текстуры
+          this.isLoading = false
+        }, 500) // Увеличили задержку с 300 до 500мс
       })
     },
     
@@ -626,7 +660,8 @@ export default {
               name: file.name,
               url: e.target.result,
               file: file,
-              useInGrid: false
+              useInGrid: false,
+              disableStroke: false
             }
             
             
@@ -693,17 +728,25 @@ export default {
       return points
     },
     
-    applyMaskStyles(mask, imageUrl = null) {
-      // Применяем настройки обводки
-      mask.strokeColor = this.strokeColor
-      mask.strokeWidth = this.strokeWidth
+    applyMaskStyles(mask, image = null) {
+      // Проверяем, нужно ли отключить обводку и тень для изображений
+      const shouldDisableStroke = image && image.disableStroke
       
-      if (imageUrl) {
+      // Применяем настройки обводки
+      if (shouldDisableStroke) {
+        mask.strokeColor = 'transparent'
+        mask.strokeWidth = 0
+      } else {
+        mask.strokeColor = this.strokeColor
+        mask.strokeWidth = this.strokeWidth
+      }
+      
+      if (image) {
         // Если есть изображение, скрываем маску и создаем растр
         mask.visible = false
         
         // Создаем растр из URL
-        const raster = new paper.Raster(imageUrl)
+        const raster = new paper.Raster(image.url)
         
         // Сразу скрываем оригинальный растр, чтобы он не перекрывал маски
         raster.visible = false
@@ -887,7 +930,7 @@ export default {
             maskedRaster.data = mask.data
             
             // Применяем тень
-            this.applyShadowToRaster(maskedRaster)
+            this.applyShadowToRaster(maskedRaster, image.disableStroke)
             
             // Сохраняем родительскую группу и позицию маски
             const parentGroup = mask.parent
@@ -911,7 +954,7 @@ export default {
             maskedRaster.visible = true
             
             // Создаем обводку поверх изображения
-            if (this.strokeWidth && this.strokeWidth > 0 && this.strokeColor) {
+            if (!image.disableStroke && this.strokeWidth && this.strokeWidth > 0 && this.strokeColor) {
               this.createStrokeOverImage(maskedRaster, mask, parentGroup)
             }
             
@@ -933,7 +976,7 @@ export default {
           const colorIndex = Math.floor(Math.random() * 80)
           mask.fillColor = this.getPastelColor(colorIndex)
           mask.fillOpacity = 0.3
-          this.applyShadowToPath(mask)
+          this.applyShadowToPath(mask, image.disableStroke) // Передаем свойство disableStroke
         }
         
       } else {
@@ -943,13 +986,16 @@ export default {
         mask.fillOpacity = 0.3
         
         // Применяем настройки тени
-        this.applyShadowToPath(mask)
+        this.applyShadowToPath(mask, false) // Передаем false, так как это маска без изображения
       }
     },
     
-    applyShadowToPath(path) {
+    applyShadowToPath(path, disableStroke = false) {
+      // Проверяем, нужно ли отключить тень для изображений
+      const shouldDisableShadow = disableStroke
+      
       // Применяем настройки тени к Path
-      if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
+      if (!shouldDisableShadow && (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0)) {
         const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
         path.shadowColor = shadowColor
         path.shadowBlur = this.shadowBlur
@@ -964,9 +1010,12 @@ export default {
       }
     },
     
-    applyShadowToRaster(raster) {
+    applyShadowToRaster(raster, disableStroke = false) {
+      // Проверяем, нужно ли отключить тень для изображений
+      const shouldDisableShadow = disableStroke
+      
       // Применяем настройки тени к Raster
-      if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
+      if (!shouldDisableShadow && (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0)) {
         const shadowColor = new paper.Color(0, 0, 0, this.shadowOpacity / 100)
         raster.shadowColor = shadowColor
         raster.shadowBlur = this.shadowBlur
@@ -1111,7 +1160,7 @@ export default {
           const image = this.getImageForPosition(row, col, gridImages.length)
           
           // Применяем настройки обводки и тени
-          this.applyMaskStyles(rect, image ? image.url : null)
+          this.applyMaskStyles(rect, image)
           
           // Добавляем маску в группу
           group.addChild(rect)
@@ -1180,7 +1229,7 @@ export default {
           const image = this.getImageForPosition(row, Math.floor(col), gridImages.length)
           
           // Применяем настройки обводки и тени
-          this.applyMaskStyles(triangle, image ? image.url : null)
+          this.applyMaskStyles(triangle, image)
           
           triangle.data = { row, col: Math.floor(col), type: 'triangle', isEven }
           this.addMaskInteractivity(triangle)
@@ -1239,7 +1288,7 @@ export default {
             const image = this.getImageForPosition(row, Math.floor(col), gridImages.length)
             
             // Применяем настройки обводки и тени
-            this.applyMaskStyles(diamond, image ? image.url : null)
+            this.applyMaskStyles(diamond, image)
             
             diamond.data = { row, col: Math.floor(col), type: 'diamond', isEven }
             this.addMaskInteractivity(diamond)
@@ -1332,7 +1381,7 @@ export default {
           const image = this.getImageForPosition(row, col, gridImages.length)
           
           // Применяем настройки обводки и тени
-          this.applyMaskStyles(hexagon, image ? image.url : null)
+          this.applyMaskStyles(hexagon, image)
           
           hexagon.data = { row, col, type: 'hexagon' }
           this.addMaskInteractivity(hexagon)
@@ -1602,6 +1651,9 @@ export default {
       
       // Обновляем текстуру при изменении сетки
       this.updateThreeTexture()
+      
+      // Скрываем прелоадер после полной инициализации
+      this.isLoading = false
     },
     
     animate() {
@@ -1852,6 +1904,66 @@ export default {
     border-color: #6c757d;
     color: #fff;
   }
+}
+
+/* Стили для иконок масок */
+.btn-group .btn {
+  padding: 0.5rem 1rem;
+  
+  i {
+    font-size: 1.1rem;
+  }
+}
+
+/* Стили для ползунков управления */
+.form-group .form-label {
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-range {
+  width: 100% !important;
+}
+
+/* Стили для иконки в чекбоксе */
+.form-check-label i {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: .12rem !important;
+}
+
+.form-check-input:checked + .form-check-label i {
+  color: #016527;
+  margin-top: .12rem !important;
+}
+
+/* Стили для кнопки добавления изображений */
+.btn[style*="background-color: #0d6efd"] {
+  &:hover:not(:disabled) {
+    background-color: #0b5ed7 !important;
+    color: white !important;
+  }
+  
+  &:disabled {
+    background-color: #6c757d !important;
+    color: #adb5bd !important;
+  }
+}
+
+/* Стили для прелоадера */
+.canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 8px;
 }
 
 /* Адаптивность для мобильных устройств */

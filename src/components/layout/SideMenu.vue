@@ -37,6 +37,16 @@
               Сетки
             </router-link>
           </li>
+          <li class="nav-item">
+            <router-link 
+              to="/sticker-mania" 
+              class="nav-link d-flex align-items-center"
+              @click="$emit('toggle')"
+            >
+              <i class="bi bi-sticky me-3"></i>
+              Стикермания
+            </router-link>
+          </li>
         </ul>
       </nav>
     </div>

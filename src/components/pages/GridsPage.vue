@@ -419,17 +419,19 @@
                         </button>
                       </div>
                       
-                      <!-- Чекбокс для включения изображения фона -->
+                      <!-- Радиокнопка для выбора фонового изображения -->
                       <div class="form-check mt-3">
                         <input 
                           class="form-check-input" 
-                          type="checkbox" 
-                          id="enableBackgroundImage"
-                          v-model="enableBackgroundImage"
+                          type="radio" 
+                          id="backgroundImage"
+                          name="backgroundType"
+                          value="image"
+                          v-model="backgroundType"
                           :disabled="!backgroundImage"
                         >
-                        <label class="form-check-label" for="enableBackgroundImage">
-                          Включить фоновое изображение
+                        <label class="form-check-label" for="backgroundImage">
+                          Фоновое изображение
                         </label>
                       </div>
                       
@@ -446,16 +448,18 @@
                       <!-- Солидная заливка -->
                       <h6 class="text-muted mb-3 mt-4">Солидная заливка</h6>
                       
-                      <!-- Чекбокс для включения солидной заливки -->
+                      <!-- Радиокнопка для выбора солидной заливки -->
                       <div class="form-check mb-3">
                         <input 
                           class="form-check-input" 
-                          type="checkbox" 
-                          id="enableSolidBackground"
-                          v-model="enableSolidBackground"
+                          type="radio" 
+                          id="backgroundSolid"
+                          name="backgroundType"
+                          value="solid"
+                          v-model="backgroundType"
                         >
-                        <label class="form-check-label" for="enableSolidBackground">
-                          Включить солидную заливку
+                        <label class="form-check-label" for="backgroundSolid">
+                          Солидная заливка
                         </label>
                       </div>
                       
@@ -485,16 +489,18 @@
                     <div class="col-md-6">
                       <h6 class="text-muted mb-3">Градиентная заливка</h6>
                       
-                      <!-- Чекбокс для включения градиентной заливки -->
+                      <!-- Радиокнопка для выбора градиентной заливки -->
                       <div class="form-check mb-3">
                         <input 
                           class="form-check-input" 
-                          type="checkbox" 
-                          id="enableGradientBackground"
-                          v-model="enableGradientBackground"
+                          type="radio" 
+                          id="backgroundGradient"
+                          name="backgroundType"
+                          value="gradient"
+                          v-model="backgroundType"
                         >
-                        <label class="form-check-label" for="enableGradientBackground">
-                          Включить градиентную заливку
+                        <label class="form-check-label" for="backgroundGradient">
+                          Градиентная заливка
                         </label>
                       </div>
                       
@@ -623,7 +629,10 @@ export default {
       gradientOpacity2: 100, // Прозрачность второго цвета градиента (0-100)
       gradientAngle: 0, // Угол наклона градиента (0-360)
       
-      // Состояния включения слоев фона
+      // Выбор типа фона (только один может быть активен)
+      backgroundType: 'solid', // 'none', 'image', 'solid', 'gradient'
+      
+      // Состояния включения слоев фона (для обратной совместимости)
       enableBackgroundImage: false, // Включить фоновое изображение
       enableSolidBackground: false, // Включить солидную заливку
       enableGradientBackground: false, // Включить градиентную заливку
@@ -688,6 +697,34 @@ export default {
       const color1 = this.hexToRgba(this.gradientColor1, this.gradientOpacity1 / 100)
       const color2 = this.hexToRgba(this.gradientColor2, this.gradientOpacity2 / 100)
       return `linear-gradient(${this.gradientAngle}deg, ${color1}, ${color2})`
+    },
+    
+    // Computed свойства для синхронизации backgroundType с отдельными флагами
+    enableBackgroundImage: {
+      get() {
+        return this.backgroundType === 'image'
+      },
+      set(value) {
+        this.backgroundType = value ? 'image' : 'none'
+      }
+    },
+    
+    enableSolidBackground: {
+      get() {
+        return this.backgroundType === 'solid'
+      },
+      set(value) {
+        this.backgroundType = value ? 'solid' : 'none'
+      }
+    },
+    
+    enableGradientBackground: {
+      get() {
+        return this.backgroundType === 'gradient'
+      },
+      set(value) {
+        this.backgroundType = value ? 'gradient' : 'none'
+      }
     }
   },
   

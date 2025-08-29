@@ -1344,8 +1344,9 @@ export default {
           // Получаем размеры маски
           const maskBounds = mask.bounds
           
-          // Уменьшаем размер маски для обрезки на величину обводки
-          const strokeInset = this.getStrokeWidthForMask(maskBounds) || 0
+          // Уменьшаем размер маски для обрезки на половину величины обводки
+          // (чтобы изображение уходило под контур обводки по всем сторонам)
+          const strokeInset = (this.getStrokeWidthForMask(maskBounds) || 0) / 2
           
           // Стандартное уменьшение маски для обрезки на величину обводки
           const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)

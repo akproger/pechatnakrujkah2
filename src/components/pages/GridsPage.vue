@@ -945,7 +945,7 @@ export default {
               name: file.name,
               url: e.target.result,
               file: file,
-              useInGrid: false,
+              useInGrid: true, // Сразу помечаем для размещения в сетке
               disableStroke: false
             }
             

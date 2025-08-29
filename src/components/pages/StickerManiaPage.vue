@@ -98,6 +98,23 @@
         </div>
       </div>
       
+      <!-- Тестовый канвас для отладки масок -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <h6 class="card-title">Тестовый канвас для масок</h6>
+              <div class="canvas-container" style="height: 600px;">
+                <canvas 
+                  ref="testCanvas"
+                  class="paper-canvas"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Табы управления -->
       <div class="row mt-4">
         <div class="col-12">
@@ -174,7 +191,7 @@
                           type="checkbox" 
                           :id="'mask-' + index"
                           v-model="mask.selected"
-                          @change="generateStickers"
+                          @change="handleMaskChange(index, $event)"
                         >
                         <label class="form-check-label d-flex align-items-center" :for="'mask-' + index">
                           <img :src="mask.url" :alt="mask.name" style="width: 24px; height: 24px; margin-right: 8px;">
@@ -384,20 +401,20 @@ export default {
       
       // Маски стикеров
       stickerMasks: [
-        { name: 'Сердце', url: heartMask, selected: true },
-        { name: 'Ракета', url: rocketMask, selected: true },
-        { name: 'Облачко', url: blabMask, selected: true },
-        { name: 'Треугольник', url: trangleMask, selected: true },
-        { name: 'Октагон', url: octaGoneMask, selected: true },
-        { name: 'Форма 2', url: form2Mask, selected: true },
-        { name: 'Форма 1', url: form1Mask, selected: true },
-        { name: 'Квадрат', url: squadMask, selected: true },
-        { name: 'Звезда 6', url: star6Mask, selected: true },
-        { name: 'Шестигранник', url: sixGoneMask, selected: true },
-        { name: 'Звезда 8-2', url: star82Mask, selected: true },
-        { name: 'Звезда 8', url: star8Mask, selected: true },
-        { name: 'Звезда', url: starMask, selected: true },
-        { name: 'Круг', url: circleMask, selected: true }
+        { name: 'Сердце', url: heartMask, selected: false },
+        { name: 'Ракета', url: rocketMask, selected: false },
+        { name: 'Облачко', url: blabMask, selected: false },
+        { name: 'Треугольник', url: trangleMask, selected: false },
+        { name: 'Октагон', url: octaGoneMask, selected: false },
+        { name: 'Форма 2', url: form2Mask, selected: false },
+        { name: 'Форма 1', url: form1Mask, selected: false },
+        { name: 'Квадрат', url: squadMask, selected: false },
+        { name: 'Звезда 6', url: star6Mask, selected: false },
+        { name: 'Шестигранник', url: sixGoneMask, selected: false },
+        { name: 'Звезда 8-2', url: star82Mask, selected: false },
+        { name: 'Звезда 8', url: star8Mask, selected: false },
+        { name: 'Звезда', url: starMask, selected: false },
+        { name: 'Круг', url: circleMask, selected: false }
       ],
       
       // Загруженные изображения
@@ -420,6 +437,7 @@ export default {
   },
   mounted() {
     this.initPaper()
+    this.initTestCanvas()
     this.$nextTick(() => {
       setTimeout(() => {
         this.initThreeJS()
@@ -442,11 +460,98 @@ export default {
       // Используем локальную переменную вместо переназначения константы
       const paperInstance = this.paperScope
       
-      this.resizeCanvas()
+      // Отключаем основной канвас от рендера для тестирования
+      // this.resizeCanvas()
       
       // Обработчик изменения размера окна
-      window.addEventListener('resize', this.resizeCanvas)
+      // window.addEventListener('resize', this.resizeCanvas)
     },
+    
+    // Инициализация тестового канваса
+    initTestCanvas() {
+      const canvas = this.$refs.testCanvas
+      this.testPaperScope = new paper.PaperScope()
+      this.testPaperScope.setup(canvas)
+      
+      // Устанавливаем размер тестового канваса
+      canvas.width = 1400
+      canvas.height = 600
+      canvas.style.width = '1400px'
+      canvas.style.height = '600px'
+      
+      this.testPaperScope.view.viewSize = new this.testPaperScope.Size(1400, 600)
+      
+      // Рисуем тестовую маску (сердце)
+      this.drawTestMask()
+    },
+    
+    // Рисование тестовой маски
+    drawTestMask() {
+      if (!this.testPaperScope) return
+      
+      // Очищаем канвас
+      this.testPaperScope.project.clear()
+      
+      // Сохраняем ссылки на формы для интерактивности
+      this.testForms = []
+      
+      this.testPaperScope.view.draw()
+    },
+    
+    // Обработчик изменения чекбокса маски
+    handleMaskChange(index, event) {
+      const mask = this.stickerMasks[index]
+      mask.selected = event.target.checked
+      
+      if (event.target.checked) {
+        // Добавляем маску на тестовый канвас
+        this.addMaskToTestCanvas(mask)
+      } else {
+        // Удаляем маску с тестового канваса
+        this.removeMaskFromTestCanvas(mask.name)
+      }
+    },
+    
+    // Добавить маску на тестовый канвас
+    addMaskToTestCanvas(mask) {
+      if (!this.testPaperScope) return
+      
+      // Загружаем SVG маску
+      fetch(mask.url)
+        .then(response => response.text())
+        .then(svgText => {
+          this.testPaperScope.project.importSVG(svgText, {
+            onLoad: (item) => {
+              item.scale(2)
+              item.position = new this.testPaperScope.Point(100, 100)
+              
+              if (item.children && item.children.length > 0) {
+                const path = item.children[0]
+                path.fillColor = '#ff4757'
+                path.strokeColor = '#333'
+                path.strokeWidth = 3
+              }
+              
+              // Сохраняем ссылку на элемент
+              if (!this.testMaskItems) this.testMaskItems = {}
+              this.testMaskItems[mask.name] = item
+              
+              this.testPaperScope.view.draw()
+            }
+          })
+        })
+    },
+    
+    // Удалить маску с тестового канваса
+    removeMaskFromTestCanvas(maskName) {
+      if (this.testMaskItems && this.testMaskItems[maskName]) {
+        this.testMaskItems[maskName].remove()
+        delete this.testMaskItems[maskName]
+        this.testPaperScope.view.draw()
+      }
+    },
+    
+
     
     // Изменение размера канваса
     resizeCanvas() {
@@ -565,11 +670,15 @@ export default {
         
         // Проверяем, является ли маска кругом
         if (maskPath.constructor.name === 'Circle') {
-          // Для круга используем arc с правильными координатами
+          // Для круга используем arc с координатами относительно переведенного контекста
           const center = maskPath.bounds.center
           const radius = maskPath.radius
           
-          tempCtx.arc(center.x, center.y, radius, 0, 2 * Math.PI)
+          // Вычисляем центр относительно переведенного контекста
+          const relativeCenterX = center.x - maskBounds.x
+          const relativeCenterY = center.y - maskBounds.y
+          
+          tempCtx.arc(relativeCenterX, relativeCenterY, radius, 0, 2 * Math.PI)
         } else {
           // Для остальных форм используем сегменты
           if (maskPath.segments && maskPath.segments.length > 0) {
@@ -601,9 +710,9 @@ export default {
         const scaledWidth = imgWidth * scale
         const scaledHeight = imgHeight * scale
         
-        // Центрируем изображение
-        const offsetX = maskBounds.x + (canvasWidth - scaledWidth) / 2
-        const offsetY = maskBounds.y + (canvasHeight - scaledHeight) / 2
+        // Центрируем изображение относительно переведенного контекста
+        const offsetX = (canvasWidth - scaledWidth) / 2
+        const offsetY = (canvasHeight - scaledHeight) / 2
         
         tempCtx.drawImage(
           raster.image,

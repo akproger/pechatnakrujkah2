@@ -388,8 +388,8 @@
               <div class="card">
                 <div class="card-body">
                   <div class="row g-3">
-                    <!-- Первый столбец: Изображение фона и солидная заливка -->
-                    <div class="col-md-6">
+                    <!-- Столбец: Изображение фона и солидная заливка -->
+                    <div class="col-12">
                       <!-- Загрузка изображения фона -->
                       <h6 class="text-muted mb-3">Изображение фона</h6>
                       <div class="form-group">
@@ -485,95 +485,7 @@
                       </div>
                     </div>
                     
-                    <!-- Второй столбец: Градиентная заливка -->
-                    <div class="col-md-6">
-                      <h6 class="text-muted mb-3">Градиентная заливка</h6>
-                      
-                      <!-- Радиокнопка для выбора градиентной заливки -->
-                      <div class="form-check mb-3">
-                        <input 
-                          class="form-check-input" 
-                          type="radio" 
-                          id="backgroundGradient"
-                          name="backgroundType"
-                          value="gradient"
-                          v-model="backgroundType"
-                        >
-                        <label class="form-check-label" for="backgroundGradient">
-                          Градиентная заливка
-                        </label>
-                      </div>
-                      
-                      <div class="row g-3">
-                        <div class="col-md-6">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 1</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor1"
-                              title="Выберите первый цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 1: {{ gradientOpacity1 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity1"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                          <div class="form-group">
-                            <label class="form-label">Цвет 2</label>
-                            <input 
-                              type="color" 
-                              class="form-control form-control-color" 
-                              v-model="gradientColor2"
-                              title="Выберите второй цвет градиента"
-                            >
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность 2: {{ gradientOpacity2 }}%</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientOpacity2"
-                              min="0" 
-                              max="100" 
-                              step="1"
-                            >
-                          </div>
-                        </div>
-                        
-                        <div class="col-12">
-                          <div class="form-group">
-                            <label class="form-label">Угол: {{ gradientAngle }}°</label>
-                            <input 
-                              type="range" 
-                              class="form-range" 
-                              v-model.number="gradientAngle"
-                              min="0" 
-                              max="360" 
-                              step="1"
-                            >
-                          </div>
-                          
-                          <div class="form-group mt-3">
-                            <label class="form-label">Превью градиента</label>
-                            <div 
-                              class="gradient-preview"
-                              style="width: 100%; height: 80px; border-radius: 8px;"
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
               </div>
@@ -623,19 +535,12 @@ export default {
       backgroundImage: null, // URL фонового изображения
       solidBackgroundColor: '#ffffff', // Цвет солидной заливки
       solidBackgroundOpacity: 100, // Прозрачность солидной заливки (0-100)
-      gradientColor1: '#ffffff', // Первый цвет градиента
-      gradientColor2: '#cccccc', // Второй цвет градиента
-      gradientOpacity1: 100, // Прозрачность первого цвета градиента (0-100)
-      gradientOpacity2: 100, // Прозрачность второго цвета градиента (0-100)
-      gradientAngle: 0, // Угол наклона градиента (0-360)
+
       
       // Выбор типа фона (только один может быть активен)
       backgroundType: 'solid', // 'none', 'image', 'solid', 'gradient'
       
-      // Состояния включения слоев фона (для обратной совместимости)
-      enableBackgroundImage: false, // Включить фоновое изображение
-      enableSolidBackground: false, // Включить солидную заливку
-      enableGradientBackground: false, // Включить градиентную заливку
+      // Состояния включения слоев фона (удалено - теперь используются computed свойства)
       isLoading: false, // Состояние загрузки для прелоадера
       // Three.js данные
       threeInstance: markRaw({
@@ -692,12 +597,7 @@ export default {
       return (this.shadowOffsetY / 100) * baseSize
     },
     
-    // Градиент для фона
-    gradientBackground() {
-      const color1 = this.hexToRgba(this.gradientColor1, this.gradientOpacity1 / 100)
-      const color2 = this.hexToRgba(this.gradientColor2, this.gradientOpacity2 / 100)
-      return `linear-gradient(${this.gradientAngle}deg, ${color1}, ${color2})`
-    },
+
     
     // Computed свойства для синхронизации backgroundType с отдельными флагами
     enableBackgroundImage: {
@@ -718,14 +618,7 @@ export default {
       }
     },
     
-    enableGradientBackground: {
-      get() {
-        return this.backgroundType === 'gradient'
-      },
-      set(value) {
-        this.backgroundType = value ? 'gradient' : 'none'
-      }
-    }
+
   },
   
   watch: {
@@ -772,26 +665,7 @@ export default {
     solidBackgroundOpacity() {
       this.generateGrid()
     },
-    gradientColor1() {
-      this.generateGrid()
-      this.updateGradientPreview()
-    },
-    gradientColor2() {
-      this.generateGrid()
-      this.updateGradientPreview()
-    },
-    gradientOpacity1() {
-      this.generateGrid()
-      this.updateGradientPreview()
-    },
-    gradientOpacity2() {
-      this.generateGrid()
-      this.updateGradientPreview()
-    },
-    gradientAngle() {
-      this.generateGrid()
-      this.updateGradientPreview()
-    },
+
     
     // Состояния включения слоев фона
     enableBackgroundImage() {
@@ -800,9 +674,7 @@ export default {
     enableSolidBackground() {
       this.generateGrid()
     },
-    enableGradientBackground() {
-      this.generateGrid()
-    },
+
 
     // Обновляем сетку при изменении изображений
     uploadedImages: {
@@ -922,39 +794,7 @@ export default {
         }
       }
       
-      // Слой 3: Градиентная заливка (самый верхний из фоновых)
-      if (this.enableGradientBackground) {
-        const gradientBackground = new paper.Path.Rectangle(0, 0, viewWidth, viewHeight)
-        
-        // Создаем градиент
-        const gradient = new paper.Gradient()
-        const color1 = new paper.Color(this.gradientColor1)
-        color1.alpha = this.gradientOpacity1 / 100
-        const color2 = new paper.Color(this.gradientColor2)
-        color2.alpha = this.gradientOpacity2 / 100
-        
-        gradient.add(0, color1)
-        gradient.add(1, color2)
-        
-        // Создаем паттерн с градиентом
-        const linearGradient = new paper.GradientColor(gradient, {
-          origin: new paper.Point(0, 0),
-          destination: new paper.Point(
-            Math.cos(this.gradientAngle * Math.PI / 180) * viewWidth,
-            Math.sin(this.gradientAngle * Math.PI / 180) * viewHeight
-          )
-        })
-        
-        gradientBackground.fillColor = linearGradient
-        backgroundGroup.addChild(gradientBackground)
-        layersAdded++
-        console.log('Градиентная заливка добавлена как слой', layersAdded)
-        
-        // Добавляем группу в проект, если это первый слой
-        if (layersAdded === 1) {
-          paper.project.addChild(backgroundGroup)
-        }
-      }
+
       
       // Добавляем группу в проект, если есть фоновые слои и она еще не добавлена
       if (layersAdded === 0 && (this.enableBackgroundImage || this.enableSolidBackground || this.enableGradientBackground)) {
@@ -1174,15 +1014,7 @@ export default {
       return `rgba(${r}, ${g}, ${b}, ${alpha})`
     },
     
-    updateGradientPreview() {
-      // Обновляем превью градиента
-      this.$nextTick(() => {
-        const preview = document.querySelector('.gradient-preview')
-        if (preview) {
-          preview.style.background = this.gradientBackground
-        }
-      })
-    },
+
     
     // Методы для работы с фоном
     handleBackgroundImageUpload(event) {
@@ -1263,36 +1095,7 @@ export default {
         backgroundGroup.addChild(solidRect)
       }
       
-      // Слой 3: Градиентная заливка (самый верхний из фонов)
-      if (this.enableGradientBackground && (this.gradientOpacity1 > 0 || this.gradientOpacity2 > 0)) {
-        // Создаем градиент через Canvas API
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        canvas.width = viewWidth
-        canvas.height = viewHeight
-        
-        // Создаем линейный градиент с учетом угла
-        const angleInRadians = (this.gradientAngle * Math.PI) / 180
-        const x1 = 0
-        const y1 = 0
-        const x2 = viewWidth * Math.cos(angleInRadians)
-        const y2 = viewHeight * Math.sin(angleInRadians)
-        
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2)
-        gradient.addColorStop(0, this.hexToRgba(this.gradientColor1, this.gradientOpacity1 / 100))
-        gradient.addColorStop(1, this.hexToRgba(this.gradientColor2, this.gradientOpacity2 / 100))
-        
-        ctx.fillStyle = gradient
-        ctx.fillRect(0, 0, viewWidth, viewHeight)
-        
-        // Создаем растр из градиента
-        const gradientRaster = new paper.Raster(canvas.toDataURL())
-        gradientRaster.name = 'gradientBackground'
-        gradientRaster.bounds = new paper.Rectangle(0, 0, viewWidth, viewHeight)
-        
-        // Добавляем в группу фона
-        backgroundGroup.addChild(gradientRaster)
-      }
+
       
       return backgroundGroup
     },
@@ -2612,11 +2415,6 @@ export default {
   }
 }
 
-/* Стили для градиентного превью */
-.gradient-preview {
-  background: linear-gradient(to right, #ffffff, #cccccc);
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-}
+
 </style>
 

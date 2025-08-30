@@ -99,21 +99,7 @@
       </div>
       
       <!-- Тестовый канвас для отладки масок -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <h6 class="card-title">Тестовый канвас для масок</h6>
-              <div class="canvas-container" style="height: 600px;">
-                <canvas 
-                  ref="testCanvas"
-                  class="paper-canvas"
-                ></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <canvas ref="testCanvas" class="test-canvas"></canvas>
       
       <!-- Табы управления -->
       <div class="row mt-4">
@@ -387,6 +373,7 @@ export default {
       paperScope: null,
       testPaperScope: null,
       testMaskItems: {},
+      whiteOverlayLayer: null,
       isLoading: false,
       activeTab: 'shapes',
       
@@ -441,7 +428,10 @@ export default {
     this.initPaper()
     this.initTestCanvas()
     this.$nextTick(() => {
+      // Даем время на рендеринг DOM
       setTimeout(() => {
+        // Пересчитываем размер канваса после рендеринга
+        this.resizeTestCanvas()
         this.initThreeJS()
       }, 100)
     })
@@ -451,6 +441,9 @@ export default {
     if (this.threeInstance.animationId) {
       cancelAnimationFrame(this.threeInstance.animationId)
     }
+    
+    // Удаляем обработчик изменения размера окна
+    window.removeEventListener('resize', this.handleTestCanvasResize)
   },
   methods: {
     // Инициализация Paper.js
@@ -476,15 +469,76 @@ export default {
       this.testPaperScope.setup(canvas)
       
       // Устанавливаем размер тестового канваса
-      canvas.width = 1400
-      canvas.height = 600
-      canvas.style.width = '1400px'
-      canvas.style.height = '600px'
+      this.resizeTestCanvas()
       
-      this.testPaperScope.view.viewSize = new this.testPaperScope.Size(1400, 600)
+      // Создаем белый слой-прослойку при инициализации
+      this.createWhiteOverlayLayer()
       
       // Рисуем тестовую маску (сердце)
       this.drawTestMask()
+      
+      // Добавляем обработчик изменения размера окна
+      window.addEventListener('resize', this.handleTestCanvasResize)
+    },
+    
+    // Обработчик изменения размера окна для тестового канваса
+    handleTestCanvasResize() {
+      if (this.testPaperScope) {
+        this.resizeTestCanvas()
+        this.updateTestCanvasContent()
+      }
+    },
+    
+    // Изменение размера тестового канваса
+    resizeTestCanvas() {
+      const canvas = this.$refs.testCanvas
+      if (!canvas || !this.testPaperScope) return
+      
+      // Получаем размер контейнера
+      const container = canvas.parentElement
+      const containerWidth = container.clientWidth
+      
+      // Вычисляем высоту с учетом соотношения сторон 19:9
+      const containerHeight = (containerWidth * 9) / 19
+      
+      // Устанавливаем размеры канваса
+      canvas.width = containerWidth
+      canvas.height = containerHeight
+      canvas.style.width = '100%'
+      canvas.style.height = 'auto'
+      
+      // Обновляем размер view в Paper.js
+      this.testPaperScope.view.viewSize = new this.testPaperScope.Size(containerWidth, containerHeight)
+      
+      console.log('📐 Тестовый канвас изменен:', containerWidth, 'x', containerHeight)
+    },
+    
+    // Обновление содержимого тестового канваса при изменении размера
+    updateTestCanvasContent() {
+      if (!this.testPaperScope) return
+      
+      // Пересчитываем позиции всех масок
+      Object.keys(this.testMaskItems).forEach(maskName => {
+        const maskItem = this.testMaskItems[maskName]
+        if (maskItem && maskItem.parent) {
+          // Получаем новые размеры канваса
+          const canvasWidth = this.testPaperScope.view.viewSize.width
+          const canvasHeight = this.testPaperScope.view.viewSize.height
+          
+          // Пересчитываем позицию (центр канваса)
+          const newX = canvasWidth * 0.5
+          const newY = canvasHeight * 0.5
+          
+          // Обновляем позицию группы маски
+          maskItem.position = new this.testPaperScope.Point(newX, newY)
+        }
+      })
+      
+      // Пересоздаем белый слой-прослойку
+      this.createWhiteOverlayLayer()
+      
+      // Перерисовываем канвас
+      this.testPaperScope.view.draw()
     },
     
     // Рисование тестовой маски
@@ -493,6 +547,9 @@ export default {
       
       // Очищаем канвас
       this.testPaperScope.project.clear()
+      
+      // Создаем белый слой-прослойку после очистки
+      this.createWhiteOverlayLayer()
       
       // Сохраняем ссылки на формы для интерактивности
       this.testForms = []
@@ -528,7 +585,7 @@ export default {
             onLoad: (item) => {
               item.scale(2)
               
-              // Сдвигаем позицию на 50% от левого верхнего угла
+              // Позиционируем в центре канваса
               const canvasWidth = this.testPaperScope.view.viewSize.width
               const canvasHeight = this.testPaperScope.view.viewSize.height
               const x = canvasWidth * 0.5
@@ -603,33 +660,41 @@ export default {
                     if (path.className === 'Path' && path.segments && path.segments.length > 0) {
                       console.log('🔍 Сегменты пути:', path.segments.length)
                       
-                      // Используем более точный способ отрисовки SVG пути
-                      if (path.pathData) {
-                        // Если есть pathData, используем его для более точной отрисовки
-                        console.log('🎯 Используем pathData для точной отрисовки')
-                        console.log('📄 pathData:', path.pathData)
-                        
-                        // Парсим SVG path data и рисуем его на canvas
-                        const pathCommands = this.parseSVGPath(path.pathData)
-                        console.log('🔧 Парсированные команды:', pathCommands)
-                        console.log('🔧 Первые 3 команды:', pathCommands.slice(0, 3))
-                        tempCtx.translate(-maskBounds.x, -maskBounds.y)
-                        
-                        for (const command of pathCommands) {
-                          if (command.type === 'M') {
-                            tempCtx.moveTo(command.x, command.y)
-                          } else if (command.type === 'L') {
-                            tempCtx.lineTo(command.x, command.y)
-                          } else if (command.type === 'C') {
-                            tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
-                          } else if (command.type === 'Q') {
-                            tempCtx.quadraticCurveTo(command.x1, command.y1, command.x, command.y)
-                          } else if (command.type === 'Z') {
-                            tempCtx.closePath()
+                                                                      // Используем более точный способ отрисовки SVG пути
+                        if (path.pathData) {
+                          // Если есть pathData, используем его для более точной отрисовки
+                          console.log('🎯 Используем pathData для точной отрисовки')
+                          console.log('📄 pathData:', path.pathData)
+                          
+                          // Парсим SVG path data и рисуем его на canvas
+                          const pathCommands = this.parseSVGPath(path.pathData)
+                          console.log('🔧 Парсированные команды:', pathCommands)
+                          console.log('🔧 Первые 3 команды:', pathCommands.slice(0, 3))
+                        console.log('🔧 Последние 3 команды:', pathCommands.slice(-3))
+                          tempCtx.translate(-maskBounds.x, -maskBounds.y)
+                          
+                          // Устанавливаем fill-rule для правильной обработки отверстий
+                          tempCtx.fillRule = 'evenodd'
+                          
+                          // Используем ручную отрисовку для более точного контроля
+                          console.log('🎨 Рисуем путь вручную')
+                          
+                          for (const command of pathCommands) {
+                            if (command.type === 'M') {
+                              tempCtx.moveTo(command.x, command.y)
+                            } else if (command.type === 'L') {
+                              tempCtx.lineTo(command.x, command.y)
+                            } else if (command.type === 'C') {
+                              tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
+                            } else if (command.type === 'Q') {
+                              tempCtx.quadraticCurveTo(command.x1, command.y1, command.x, command.y)
+                            } else if (command.type === 'Z') {
+                              tempCtx.closePath()
+                            }
                           }
-                        }
-                        
-                        tempCtx.translate(maskBounds.x, maskBounds.y)
+                          tempCtx.clip()
+                          
+                          tempCtx.translate(maskBounds.x, maskBounds.y)
                       } else {
                         // Fallback на сегменты
                         console.log('📐 Используем сегменты для отрисовки')
@@ -1417,6 +1482,9 @@ export default {
     updateTestCanvasWithImages() {
       if (!this.testPaperScope) return
       
+      // Создаем белый слой-прослойку для скрытия больших фотографий
+      this.createWhiteOverlayLayer()
+      
       // Перерисовываем все выбранные маски с новыми изображениями
       this.stickerMasks.forEach(mask => {
         if (mask.selected) {
@@ -1430,6 +1498,38 @@ export default {
           this.addMaskToTestCanvas(mask)
         }
       })
+    },
+    
+    // Создание белого слоя-прослойки
+    createWhiteOverlayLayer() {
+      if (!this.testPaperScope) return
+      
+      // Удаляем старый слой-прослойку, если он существует
+      if (this.whiteOverlayLayer) {
+        this.whiteOverlayLayer.remove()
+      }
+      
+      // Создаем белый прямоугольник на весь размер канваса
+      const canvasSize = this.testPaperScope.view.viewSize
+      const whiteRect = new this.testPaperScope.Path.Rectangle(
+        new this.testPaperScope.Point(0, 0),
+        new this.testPaperScope.Point(canvasSize.width, canvasSize.height)
+      )
+      
+      whiteRect.fillColor = 'white'
+      whiteRect.strokeColor = null
+      
+      // Создаем группу для слоя-прослойки
+      this.whiteOverlayLayer = new this.testPaperScope.Group()
+      this.whiteOverlayLayer.addChild(whiteRect)
+      
+      // Добавляем слой-прослойку в проект
+      this.testPaperScope.project.activeLayer.addChild(this.whiteOverlayLayer)
+      
+      // Перемещаем слой-прослойку под все маски (но поверх больших фотографий)
+      this.whiteOverlayLayer.sendToBack()
+      
+      console.log('🟦 Белый слой-прослойка создан')
     },
     
     // Инициализация Three.js
@@ -1642,5 +1742,13 @@ export default {
   height: 40px;
   border-radius: 6px;
   border: 1px solid #dee2e6;
+}
+
+.test-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  box-shadow: 4px 4px 12px 0 rgba(0,0,0,.15);
+  max-width: 100%;
 }
 </style>

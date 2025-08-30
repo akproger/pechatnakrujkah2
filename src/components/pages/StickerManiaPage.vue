@@ -385,6 +385,8 @@ export default {
     return {
       // Paper.js
       paperScope: null,
+      testPaperScope: null,
+      testMaskItems: {},
       isLoading: false,
       activeTab: 'shapes',
       
@@ -516,6 +518,8 @@ export default {
     addMaskToTestCanvas(mask) {
       if (!this.testPaperScope) return
       
+      console.log('Добавляем маску:', mask.name)
+      
       // Загружаем SVG маску
       fetch(mask.url)
         .then(response => response.text())
@@ -523,20 +527,247 @@ export default {
           this.testPaperScope.project.importSVG(svgText, {
             onLoad: (item) => {
               item.scale(2)
-              item.position = new this.testPaperScope.Point(100, 100)
+              
+              // Сдвигаем позицию на 50% от левого верхнего угла
+              const canvasWidth = this.testPaperScope.view.viewSize.width
+              const canvasHeight = this.testPaperScope.view.viewSize.height
+              const x = canvasWidth * 0.5
+              const y = canvasHeight * 0.5
+              item.position = new this.testPaperScope.Point(x, y)
               
               if (item.children && item.children.length > 0) {
-                const path = item.children[0]
-                path.fillColor = '#ff4757'
-                path.strokeColor = '#333'
-                path.strokeWidth = 3
+                // Ищем путь в импортированном SVG
+                let path = null
+                
+                // Рекурсивно ищем Path в импортированном SVG
+                const findPath = (node) => {
+                  if (node.className === 'Path') {
+                    path = node
+                    return true
+                  }
+                  if (node.children) {
+                    for (let child of node.children) {
+                      if (findPath(child)) return true
+                    }
+                  }
+                  return false
+                }
+                
+                findPath(item)
+                
+                if (!path) {
+                  console.log('⚠️ Не найден Path в SVG:', item)
+                  // Fallback - используем первый элемент
+                  path = item.children[0]
+                }
+                
+                console.log('🔍 Найден путь:', path.className, 'Сегменты:', path.segments ? path.segments.length : 'нет')
+                
+                // Проверяем есть ли загруженные изображения
+                if (this.uploadedImages.length > 0) {
+                  // Берем первое изображение
+                  const image = this.uploadedImages[0]
+                  
+                  // Создаем растр из изображения
+                  const raster = new this.testPaperScope.Raster(image.url)
+                  raster.visible = false // Скрываем оригинальный растр
+                  
+                  // Убеждаемся, что растр не добавляется в проект
+                  raster.remove()
+                  
+                  raster.onLoad = () => {
+                    console.log('🖼️ Растр загружен:', {
+                      imageSize: { width: raster.image.width, height: raster.image.height },
+                      rasterBounds: raster.bounds
+                    })
+                    
+                    // Создаем временный canvas для обрезки изображения
+                    const tempCanvas = document.createElement('canvas')
+                    const tempCtx = tempCanvas.getContext('2d')
+                    
+                    // Получаем размеры маски
+                    const maskBounds = path.bounds
+                    console.log('📐 Размеры маски:', maskBounds)
+                    
+                    tempCanvas.width = maskBounds.width
+                    tempCanvas.height = maskBounds.height
+                    
+                    // Очищаем canvas
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+                    
+                    // Создаем путь маски на canvas
+                    tempCtx.save()
+                    tempCtx.beginPath()
+                    
+                    // Рисуем путь маски (как в GridsPage)
+                    if (path.className === 'Path' && path.segments && path.segments.length > 0) {
+                      console.log('🔍 Сегменты пути:', path.segments.length)
+                      
+                      // Используем более точный способ отрисовки SVG пути
+                      if (path.pathData) {
+                        // Если есть pathData, используем его для более точной отрисовки
+                        console.log('🎯 Используем pathData для точной отрисовки')
+                        console.log('📄 pathData:', path.pathData)
+                        
+                        // Парсим SVG path data и рисуем его на canvas
+                        const pathCommands = this.parseSVGPath(path.pathData)
+                        console.log('🔧 Парсированные команды:', pathCommands)
+                        console.log('🔧 Первые 3 команды:', pathCommands.slice(0, 3))
+                        tempCtx.translate(-maskBounds.x, -maskBounds.y)
+                        
+                        for (const command of pathCommands) {
+                          if (command.type === 'M') {
+                            tempCtx.moveTo(command.x, command.y)
+                          } else if (command.type === 'L') {
+                            tempCtx.lineTo(command.x, command.y)
+                          } else if (command.type === 'C') {
+                            tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
+                          } else if (command.type === 'Q') {
+                            tempCtx.quadraticCurveTo(command.x1, command.y1, command.x, command.y)
+                          } else if (command.type === 'Z') {
+                            tempCtx.closePath()
+                          }
+                        }
+                        
+                        tempCtx.translate(maskBounds.x, maskBounds.y)
+                      } else {
+                        // Fallback на сегменты
+                        console.log('📐 Используем сегменты для отрисовки')
+                        
+                        // Первая точка
+                        const firstPoint = path.segments[0].point
+                        const relativeFirstPoint = new this.testPaperScope.Point(
+                          firstPoint.x - maskBounds.x,
+                          firstPoint.y - maskBounds.y
+                        )
+                        tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+                        
+                        // Остальные точки
+                        let lastRelativePoint = relativeFirstPoint
+                        for (let i = 1; i < path.segments.length; i++) {
+                          const segment = path.segments[i]
+                          const relativePoint = new this.testPaperScope.Point(
+                            segment.point.x - maskBounds.x,
+                            segment.point.y - maskBounds.y
+                          )
+                          tempCtx.lineTo(relativePoint.x, relativePoint.y)
+                          lastRelativePoint = relativePoint
+                        }
+                        
+                        console.log('📏 Первая точка:', relativeFirstPoint, 'Последняя точка:', lastRelativePoint)
+                      }
+                    } else {
+                      console.log('⚠️ Нет сегментов в пути!')
+                    }
+                    
+                    tempCtx.closePath()
+                    
+                    // Проверяем, что путь создан правильно
+                    console.log('🔒 Путь закрыт, применяем clip()')
+                    tempCtx.clip()
+                    
+                    // Рисуем изображение на canvas с сохранением пропорций
+                    const imgWidth = raster.image.width
+                    const imgHeight = raster.image.height
+                    const canvasWidth = maskBounds.width
+                    const canvasHeight = maskBounds.height
+                    
+                    // Вычисляем масштаб для сохранения пропорций
+                    const scaleX = canvasWidth / imgWidth
+                    const scaleY = canvasHeight / imgHeight
+                    const scale = Math.max(scaleX, scaleY)
+                    
+                    // Вычисляем размеры масштабированного изображения
+                    const scaledWidth = imgWidth * scale
+                    const scaledHeight = imgHeight * scale
+                    
+                    // Центрируем изображение
+                    const offsetX = (canvasWidth - scaledWidth) / 2
+                    const offsetY = (canvasHeight - scaledHeight) / 2
+                    
+                    tempCtx.drawImage(
+                      raster.image,
+                      offsetX, offsetY, scaledWidth, scaledHeight
+                    )
+                    
+                    tempCtx.restore()
+                    
+                    console.log('🎨 Изображение нарисовано на canvas:', {
+                      offset: { x: offsetX, y: offsetY },
+                      scaledSize: { width: scaledWidth, height: scaledHeight }
+                    })
+                    
+                    // Конвертируем canvas в dataURL
+                    const maskedImageUrl = tempCanvas.toDataURL()
+                    console.log('📄 DataURL создан, длина:', maskedImageUrl.length)
+                    
+                    // Создаем новый растр с обрезанным изображением
+                    const maskedRaster = new this.testPaperScope.Raster(maskedImageUrl)
+                    console.log('🔄 Создан новый растр из dataURL')
+                    
+                    maskedRaster.onLoad = () => {
+                      console.log('✅ Новый растр загружен:', {
+                        bounds: maskedRaster.bounds,
+                        visible: maskedRaster.visible
+                      })
+                      // Устанавливаем позицию точно в центр маски
+                      maskedRaster.position = maskBounds.center
+                      console.log('📍 Позиция растра установлена:', maskBounds.center)
+                      
+                      // Сохраняем родительскую группу и позицию маски
+                      const parentGroup = item.parent
+                      const maskIndex = parentGroup ? parentGroup.children.indexOf(item) : -1
+                      
+                      // Удаляем оригинальную маску
+                      if (item.parent) {
+                        item.remove()
+                      }
+                      
+                      // Добавляем обрезанный растр в ту же позицию что и маска
+                      if (parentGroup) {
+                        if (maskIndex >= 0) {
+                          parentGroup.insertChild(maskIndex, maskedRaster)
+                        } else {
+                          parentGroup.addChild(maskedRaster)
+                        }
+                      }
+                      
+                      // Показываем обрезанный растр
+                      maskedRaster.visible = true
+                      
+                      // Создаем обводку поверх изображения
+                      const outlinePath = path.clone()
+                      outlinePath.fillColor = null
+                      outlinePath.strokeColor = '#333'
+                      outlinePath.strokeWidth = 3
+                      outlinePath.position = maskBounds.center
+                      
+                      if (parentGroup) {
+                        parentGroup.addChild(outlinePath)
+                      }
+                      
+                      // Сохраняем ссылку на элемент
+                      if (!this.testMaskItems) this.testMaskItems = {}
+                      this.testMaskItems[mask.name] = maskedRaster
+                      
+                      console.log('Маска с изображением добавлена:', mask.name, 'Растр в проекте:', maskedRaster.parent !== null, 'Позиция:', maskedRaster.position)
+                      this.testPaperScope.view.draw()
+                    }
+                  }
+                } else {
+                  // Если нет изображений, показываем обычную маску
+                  path.fillColor = '#ff4757'
+                  path.strokeColor = '#333'
+                  path.strokeWidth = 3
+                  
+                  // Сохраняем ссылку на элемент
+                  if (!this.testMaskItems) this.testMaskItems = {}
+                  this.testMaskItems[mask.name] = item
+                  
+                  console.log('Обычная маска добавлена:', mask.name)
+                  this.testPaperScope.view.draw()
+                }
               }
-              
-              // Сохраняем ссылку на элемент
-              if (!this.testMaskItems) this.testMaskItems = {}
-              this.testMaskItems[mask.name] = item
-              
-              this.testPaperScope.view.draw()
             }
           })
         })
@@ -545,10 +776,79 @@ export default {
     // Удалить маску с тестового канваса
     removeMaskFromTestCanvas(maskName) {
       if (this.testMaskItems && this.testMaskItems[maskName]) {
-        this.testMaskItems[maskName].remove()
+        console.log('🗑️ Удаляем маску:', maskName)
+        
+        const maskItem = this.testMaskItems[maskName]
+        if (maskItem && maskItem.parent) {
+          maskItem.remove()
+          console.log('✅ Маска удалена из проекта')
+        }
         delete this.testMaskItems[maskName]
+        
         this.testPaperScope.view.draw()
       }
+    },
+    
+    // Парсинг SVG path data
+    parseSVGPath(pathData) {
+      const commands = []
+      const regex = /([MLHVCSQTAZmlhvcsqtaz])\s*([^MLHVCSQTAZmlhvcsqtaz]*)/g
+      let match
+      let currentX = 0
+      let currentY = 0
+      
+      while ((match = regex.exec(pathData)) !== null) {
+        const command = match[1]
+        const isRelative = command === command.toLowerCase()
+        const upperCommand = command.toUpperCase()
+        const params = match[2].trim().split(/[\s,]+/).filter(p => p !== '').map(Number)
+        
+        if (upperCommand === 'M') {
+          const x = isRelative ? currentX + params[0] : params[0]
+          const y = isRelative ? currentY + params[1] : params[1]
+          commands.push({ type: 'M', x, y })
+          currentX = x
+          currentY = y
+        } else if (upperCommand === 'L') {
+          const x = isRelative ? currentX + params[0] : params[0]
+          const y = isRelative ? currentY + params[1] : params[1]
+          commands.push({ type: 'L', x, y })
+          currentX = x
+          currentY = y
+        } else if (upperCommand === 'V') {
+          // Вертикальная линия
+          const y = isRelative ? currentY + params[0] : params[0]
+          commands.push({ type: 'L', x: currentX, y })
+          currentY = y
+        } else if (upperCommand === 'H') {
+          // Горизонтальная линия
+          const x = isRelative ? currentX + params[0] : params[0]
+          commands.push({ type: 'L', x, y: currentY })
+          currentX = x
+        } else if (upperCommand === 'C') {
+          const x1 = isRelative ? currentX + params[0] : params[0]
+          const y1 = isRelative ? currentY + params[1] : params[1]
+          const x2 = isRelative ? currentX + params[2] : params[2]
+          const y2 = isRelative ? currentY + params[3] : params[3]
+          const x = isRelative ? currentX + params[4] : params[4]
+          const y = isRelative ? currentY + params[5] : params[5]
+          commands.push({ type: 'C', x1, y1, x2, y2, x, y })
+          currentX = x
+          currentY = y
+        } else if (upperCommand === 'Q') {
+          const x1 = isRelative ? currentX + params[0] : params[0]
+          const y1 = isRelative ? currentY + params[1] : params[1]
+          const x = isRelative ? currentX + params[2] : params[2]
+          const y = isRelative ? currentY + params[3] : params[3]
+          commands.push({ type: 'Q', x1, y1, x, y })
+          currentX = x
+          currentY = y
+        } else if (upperCommand === 'Z') {
+          commands.push({ type: 'Z' })
+        }
+      }
+      
+      return commands
     },
     
 
@@ -1090,6 +1390,10 @@ export default {
             }
             
             this.uploadedImages.push(newImage)
+            
+            // Обновляем тестовый канвас если есть выбранные маски
+            this.updateTestCanvasWithImages()
+            
             this.generateStickers()
           }
           reader.readAsDataURL(file)
@@ -1102,7 +1406,30 @@ export default {
     // Удаление изображения
     removeImage(index) {
       this.uploadedImages.splice(index, 1)
+      
+      // Обновляем тестовый канвас
+      this.updateTestCanvasWithImages()
+      
       this.generateStickers()
+    },
+    
+    // Обновление тестового канваса с изображениями
+    updateTestCanvasWithImages() {
+      if (!this.testPaperScope) return
+      
+      // Перерисовываем все выбранные маски с новыми изображениями
+      this.stickerMasks.forEach(mask => {
+        if (mask.selected) {
+          // Удаляем старую маску
+          if (this.testMaskItems[mask.name]) {
+            this.testMaskItems[mask.name].remove()
+            delete this.testMaskItems[mask.name]
+          }
+          
+          // Добавляем новую маску с изображением
+          this.addMaskToTestCanvas(mask)
+        }
+      })
     },
     
     // Инициализация Three.js

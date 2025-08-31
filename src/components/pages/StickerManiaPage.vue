@@ -25,6 +25,15 @@
                     <i class="bi bi-play me-2"></i>
                     Сгенерировать стикеры
                   </button>
+                  
+                  <button 
+                    @click="addMoreStickers" 
+                    class="btn btn-outline-primary"
+                    :disabled="isLoading || stickers.length === 0"
+                  >
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Еще
+                  </button>
                 </div>
                 
                 <!-- Информация о покрытии -->
@@ -320,6 +329,19 @@
                           @input="generateOptimalStickers"
                         >
                       </div>
+                      
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOpacity"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                          @input="generateOptimalStickers"
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -388,10 +410,11 @@ export default {
       
       // Настройки
       strokeColor: '#ffffff',
-      strokeWidth: 10, // Проценты (0-20)
-      shadowBlur: 5, // Проценты (0-50)
-      shadowOffsetX: 10, // Проценты (-50 до +50)
-      shadowOffsetY: 10, // Проценты (-50 до +50)
+              strokeWidth: 8, // Проценты (0-20)
+        shadowBlur: 2, // Проценты (0-50)
+        shadowOffsetX: 5, // Проценты (-50 до +50)
+        shadowOffsetY: 5, // Проценты (-50 до +50)
+        shadowOpacity: 40, // Проценты (0-100)
       
       // Стикеры
       stickers: [],
@@ -400,9 +423,9 @@ export default {
       minStickerSize: 50, // Минимальный размер стикера (50% от базового)
       maxStickerSize: 150, // Максимальный размер стикера (150% от базового)
       baseStickerSize: 100, // Базовый размер стикера
-      targetCoverage: 95, // Целевое покрытие в процентах
-      maxIterations: 1000, // Максимальное количество попыток размещения
-      overlapThreshold: 0.1 // Максимальное перекрытие (10%)
+      targetCoverage: 100, // Целевое покрытие в процентах (100%)
+      maxIterations: 2000, // Максимальное количество попыток размещения
+      overlapThreshold: 0.05 // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
     }
   },
   mounted() {
@@ -1038,47 +1061,107 @@ export default {
         }
       }
       
-      // Функция для поиска лучшей позиции
+      // Функция для поиска лучшей позиции (улучшенная)
       const findBestPosition = (size) => {
         let bestX = 0, bestY = 0, bestScore = -1
         
-        // Пробуем разные позиции
-        for (let attempt = 0; attempt < 50; attempt++) {
-          const x = Math.random() * viewWidth
-          const y = Math.random() * viewHeight
-          
-          // Проверяем, что стикер не выходит за границы
-          if (x - size/2 < 0 || x + size/2 > viewWidth || 
-              y - size/2 < 0 || y + size/2 > viewHeight) {
-            continue
-          }
-          
-          // Проверяем перекрытие с существующими стикерами
-          if (this.checkOverlap(x, y, size)) {
-            continue
-          }
-          
-          // Рассчитываем "полезность" этой позиции
-          let score = 0
-          const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
-          const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
-          const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
-          const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
-          
-          for (let row = startRow; row <= endRow; row++) {
-            for (let col = startCol; col <= endCol; col++) {
-              if (!coverageGrid[row][col]) {
-                score += 1 // Бонус за покрытие пустой области
-              } else {
-                score -= 0.1 // Штраф за перекрытие
-              }
+        // Сначала ищем пустые области в сетке
+        const emptyAreas = []
+        for (let row = 0; row < gridRows; row++) {
+          for (let col = 0; col < gridCols; col++) {
+            if (!coverageGrid[row][col]) {
+              emptyAreas.push({ row, col })
             }
           }
+        }
+        
+        // Если есть пустые области, приоритетно размещаем в них
+        if (emptyAreas.length > 0) {
+          // Выбираем случайную пустую область
+          const randomEmptyArea = emptyAreas[Math.floor(Math.random() * emptyAreas.length)]
+          const centerX = (randomEmptyArea.col + 0.5) * gridSize
+          const centerY = (randomEmptyArea.row + 0.5) * gridSize
           
-          if (score > bestScore) {
-            bestScore = score
-            bestX = x
-            bestY = y
+          // Пробуем разместить стикер в этой области
+          for (let attempt = 0; attempt < 20; attempt++) {
+            const x = centerX + (Math.random() - 0.5) * gridSize * 2
+            const y = centerY + (Math.random() - 0.5) * gridSize * 2
+            
+            // Проверяем, что стикер не выходит за границы
+            if (x - size/2 < 0 || x + size/2 > viewWidth || 
+                y - size/2 < 0 || y + size/2 > viewHeight) {
+              continue
+            }
+            
+            // Проверяем перекрытие с существующими стикерами
+            if (this.checkOverlap(x, y, size)) {
+              continue
+            }
+            
+            // Рассчитываем "полезность" этой позиции
+            let score = 0
+            const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+            const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+            const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+            const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+            
+            for (let row = startRow; row <= endRow; row++) {
+              for (let col = startCol; col <= endCol; col++) {
+                if (!coverageGrid[row][col]) {
+                  score += 2 // Увеличенный бонус за покрытие пустой области
+                } else {
+                  score -= 0.2 // Увеличенный штраф за перекрытие
+                }
+              }
+            }
+            
+            if (score > bestScore) {
+              bestScore = score
+              bestX = x
+              bestY = y
+            }
+          }
+        }
+        
+        // Если не нашли хорошую позицию в пустых областях, пробуем случайные
+        if (bestScore <= 0) {
+          for (let attempt = 0; attempt < 30; attempt++) {
+            const x = Math.random() * viewWidth
+            const y = Math.random() * viewHeight
+            
+            // Проверяем, что стикер не выходит за границы
+            if (x - size/2 < 0 || x + size/2 > viewWidth || 
+                y - size/2 < 0 || y + size/2 > viewHeight) {
+              continue
+            }
+            
+            // Проверяем перекрытие с существующими стикерами
+            if (this.checkOverlap(x, y, size)) {
+              continue
+            }
+            
+            // Рассчитываем "полезность" этой позиции
+            let score = 0
+            const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+            const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+            const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+            const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+            
+            for (let row = startRow; row <= endRow; row++) {
+              for (let col = startCol; col <= endCol; col++) {
+                if (!coverageGrid[row][col]) {
+                  score += 1 // Бонус за покрытие пустой области
+                } else {
+                  score -= 0.1 // Штраф за перекрытие
+                }
+              }
+            }
+            
+            if (score > bestScore) {
+              bestScore = score
+              bestX = x
+              bestY = y
+            }
           }
         }
         
@@ -1089,8 +1172,18 @@ export default {
       while (currentCoverage < this.targetCoverage && iterations < this.maxIterations) {
         iterations++
         
-        // Выбираем случайный размер стикера (50% - 150% от базового)
-        const sizeMultiplier = 0.5 + Math.random() * 1.0 // 0.5 - 1.5
+        // Выбираем размер стикера в зависимости от покрытия
+        let sizeMultiplier
+        if (currentCoverage < 50) {
+          // В начале используем большие стикеры для быстрого покрытия
+          sizeMultiplier = 1.0 + Math.random() * 0.5 // 1.0 - 1.5
+        } else if (currentCoverage < 80) {
+          // В середине используем средние стикеры
+          sizeMultiplier = 0.7 + Math.random() * 0.6 // 0.7 - 1.3
+        } else {
+          // В конце используем маленькие стикеры для заполнения пустот
+          sizeMultiplier = 0.5 + Math.random() * 0.5 // 0.5 - 1.0
+        }
         const size = this.baseStickerSize * sizeMultiplier
         
         // Ищем лучшую позицию
@@ -1138,6 +1231,275 @@ export default {
           this.isLoading = false
         }, 300)
       })
+    },
+    
+    // Добавление дополнительных стикеров
+    async addMoreStickers() {
+      console.log('🔄 Добавляем дополнительные стикеры...')
+      
+      // Проверяем условия
+      const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
+      const selectedImages = this.uploadedImages
+      
+      if (selectedMasks.length === 0 || selectedImages.length === 0) {
+        console.log('⚠️ Нет выбранных масок или изображений')
+        return
+      }
+      
+      if (this.stickers.length === 0) {
+        console.log('⚠️ Нет существующих стикеров для дополнения')
+        return
+      }
+      
+      this.isLoading = true
+      
+      try {
+        // Получаем размеры канваса
+        const viewWidth = this.paperScope.view.viewSize.width
+        const viewHeight = this.paperScope.view.viewSize.height
+        
+        console.log(`🎯 Добавление стикеров: ${viewWidth} x ${viewHeight}`)
+        
+        // Создаем сетку для отслеживания покрытия
+        const gridSize = 10 // Размер ячейки сетки
+        const gridCols = Math.ceil(viewWidth / gridSize)
+        const gridRows = Math.ceil(viewHeight / gridSize)
+        
+        // Инициализируем сетку покрытия на основе существующих стикеров
+        const coverageGrid = Array(gridRows).fill().map(() => Array(gridCols).fill(false))
+        
+        // Функция для обновления сетки покрытия
+        const updateCoverageGrid = (x, y, size) => {
+          const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+          const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+          const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+          const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+          
+          for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
+              coverageGrid[row][col] = true
+            }
+          }
+        }
+        
+        // Функция для расчета покрытия
+        const calculateCoverage = () => {
+          let coveredCells = 0
+          let totalCells = 0
+          
+          for (let row = 0; row < gridRows; row++) {
+            for (let col = 0; col < gridCols; col++) {
+              totalCells++
+              if (coverageGrid[row][col]) {
+                coveredCells++
+              }
+            }
+          }
+          
+          return (coveredCells / totalCells) * 100
+        }
+        
+        // Обновляем сетку на основе существующих стикеров
+        for (const sticker of this.stickers) {
+          updateCoverageGrid(sticker.x, sticker.y, sticker.size)
+        }
+        
+        let currentCoverage = calculateCoverage()
+        console.log(`📊 Текущее покрытие: ${Math.round(currentCoverage)}%`)
+        
+                 // Функция для поиска лучшей позиции (улучшенная версия)
+         const findBestPosition = (size) => {
+           let bestX = 0, bestY = 0, bestScore = -1
+           
+           // Ищем пустые области в сетке
+           const emptyAreas = []
+           for (let row = 0; row < gridRows; row++) {
+             for (let col = 0; col < gridCols; col++) {
+               if (!coverageGrid[row][col]) {
+                 emptyAreas.push({ row, col })
+               }
+             }
+           }
+           
+           if (emptyAreas.length === 0) {
+             console.log('✅ Нет пустых областей для размещения')
+             return null
+           }
+           
+           // Сначала пробуем разместить в пустых областях
+           for (let areaIndex = 0; areaIndex < Math.min(5, emptyAreas.length); areaIndex++) {
+             const randomEmptyArea = emptyAreas[Math.floor(Math.random() * emptyAreas.length)]
+             const centerX = (randomEmptyArea.col + 0.5) * gridSize
+             const centerY = (randomEmptyArea.row + 0.5) * gridSize
+             
+             // Пробуем разместить стикер в этой области
+             for (let attempt = 0; attempt < 15; attempt++) {
+               const x = centerX + (Math.random() - 0.5) * gridSize * 1.5
+               const y = centerY + (Math.random() - 0.5) * gridSize * 1.5
+               
+               // Проверяем, что стикер не выходит за границы
+               if (x - size/2 < 0 || x + size/2 > viewWidth || 
+                   y - size/2 < 0 || y + size/2 > viewHeight) {
+                 continue
+               }
+               
+               // Проверяем перекрытие с существующими стикерами (более мягкая проверка)
+               if (this.checkOverlap(x, y, size * 0.8)) { // Уменьшаем зону перекрытия
+                 continue
+               }
+               
+               // Рассчитываем "полезность" этой позиции
+               let score = 0
+               const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+               const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+               const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+               const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+               
+               for (let row = startRow; row <= endRow; row++) {
+                 for (let col = startCol; col <= endCol; col++) {
+                   if (!coverageGrid[row][col]) {
+                     score += 4 // Увеличенный бонус за покрытие пустой области
+                   } else {
+                     score -= 0.2 // Уменьшенный штраф за перекрытие
+                   }
+                 }
+               }
+               
+               if (score > bestScore) {
+                 bestScore = score
+                 bestX = x
+                 bestY = y
+               }
+             }
+           }
+           
+           // Если не нашли хорошую позицию в пустых областях, пробуем случайные
+           if (bestScore <= 0) {
+             console.log('🔄 Пробуем случайные позиции...')
+             for (let attempt = 0; attempt < 30; attempt++) {
+               const x = Math.random() * viewWidth
+               const y = Math.random() * viewHeight
+               
+               // Проверяем, что стикер не выходит за границы
+               if (x - size/2 < 0 || x + size/2 > viewWidth || 
+                   y - size/2 < 0 || y + size/2 > viewHeight) {
+                 continue
+               }
+               
+               // Очень мягкая проверка перекрытия для случайных позиций
+               if (this.checkOverlap(x, y, size * 0.5)) {
+                 continue
+               }
+               
+               // Рассчитываем "полезность" этой позиции
+               let score = 0
+               const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+               const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+               const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+               const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+               
+               for (let row = startRow; row <= endRow; row++) {
+                 for (let col = startCol; col <= endCol; col++) {
+                   if (!coverageGrid[row][col]) {
+                     score += 2 // Бонус за покрытие пустой области
+                   } else {
+                     score -= 0.1 // Минимальный штраф за перекрытие
+                   }
+                 }
+               }
+               
+               if (score > bestScore) {
+                 bestScore = score
+                 bestX = x
+                 bestY = y
+               }
+             }
+           }
+           
+           return bestScore > 0 ? { x: bestX, y: bestY } : null
+         }
+        
+        // Добавляем дополнительные стикеры (максимум 10 за раз)
+        let addedCount = 0
+        const maxAdditional = 10
+        let attemptsWithoutSuccess = 0
+        const maxAttemptsWithoutSuccess = 5
+        
+        while (addedCount < maxAdditional && attemptsWithoutSuccess < maxAttemptsWithoutSuccess) {
+          // Адаптивный выбор размера стикера (улучшенная версия)
+          let sizeMultiplier
+          if (currentCoverage < 60) {
+            // Если покрытие очень низкое, используем большие стикеры
+            sizeMultiplier = 0.8 + Math.random() * 0.4 // 0.8 - 1.2
+          } else if (currentCoverage < 75) {
+            // Если покрытие низкое, используем средние стикеры
+            sizeMultiplier = 0.6 + Math.random() * 0.4 // 0.6 - 1.0
+          } else if (currentCoverage < 85) {
+            // Если покрытие среднее, используем маленькие стикеры
+            sizeMultiplier = 0.4 + Math.random() * 0.4 // 0.4 - 0.8
+          } else {
+            // Если покрытие высокое, используем очень маленькие стикеры
+            sizeMultiplier = 0.25 + Math.random() * 0.35 // 0.25 - 0.6
+          }
+          
+          const size = this.baseStickerSize * sizeMultiplier
+          
+          // Ищем лучшую позицию
+          const position = findBestPosition(size)
+          
+          if (position) {
+            // Создаем стикер
+            try {
+              const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
+              
+              if (sticker) {
+                this.stickers.push(sticker)
+                updateCoverageGrid(position.x, position.y, size)
+                currentCoverage = calculateCoverage()
+                this.coveragePercentage = Math.round(currentCoverage)
+                addedCount++
+                attemptsWithoutSuccess = 0 // Сбрасываем счетчик неудачных попыток
+                
+                console.log(`📊 Добавлен стикер ${addedCount}: покрытие ${this.coveragePercentage}%`)
+              }
+            } catch (error) {
+              console.error('Ошибка создания стикера:', error)
+              attemptsWithoutSuccess++
+            }
+          } else {
+            attemptsWithoutSuccess++
+            console.log(`❌ Попытка ${attemptsWithoutSuccess}: не удалось найти позицию для стикера размером ${size.toFixed(1)}`)
+            
+            // Если не удается найти позицию, пробуем еще раз с меньшим размером
+            if (attemptsWithoutSuccess >= 3) {
+              console.log('🔄 Пробуем с еще меньшим размером стикера...')
+            }
+          }
+        }
+        
+        if (attemptsWithoutSuccess >= maxAttemptsWithoutSuccess) {
+          console.log('⚠️ Достигнут лимит неудачных попыток, останавливаем добавление')
+        }
+        
+        console.log(`✅ Добавлено ${addedCount} стикеров, итоговое покрытие: ${this.coveragePercentage}%`)
+        
+        // Обновляем канвас
+        this.paperScope.view.draw()
+        
+        // Обновляем 3D текстуру
+        this.$nextTick(() => {
+          setTimeout(() => {
+            if (this.$refs.threeRenderer) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
+            this.isLoading = false
+          }, 300)
+        })
+        
+      } catch (error) {
+        console.error('Ошибка при добавлении стикеров:', error)
+        this.isLoading = false
+      }
     },
     
     // Создание оптимального стикера
@@ -1301,9 +1663,13 @@ export default {
                     const scaleY = canvasHeight / imgHeight
                     const scale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
                     
+                    // Дополнительно увеличиваем масштаб для гарантированного заполнения
+                    const extraScale = 1.1 // Увеличиваем на 10% для гарантии заполнения
+                    const finalScale = scale * extraScale
+                    
                     // Вычисляем размеры масштабированного изображения
-                    const scaledWidth = imgWidth * scale
-                    const scaledHeight = imgHeight * scale
+                    const scaledWidth = imgWidth * finalScale
+                    const scaledHeight = imgHeight * finalScale
                     
                     // Вычисляем смещение для центрирования
                     const offsetX = (canvasWidth - scaledWidth) / 2
@@ -1351,11 +1717,13 @@ export default {
                       // Создаем отдельную маску для тени (заполненная)
                       const shadowPath = path.clone()
                       shadowPath.position = new this.paperScope.Point(x, y)
-                      shadowPath.fillColor = 'rgba(0, 0, 0, 0.3)' // Заполняем тень
+                      // Используем shadowOpacity для прозрачности тени
+                      const shadowAlpha = this.shadowOpacity / 100
+                      shadowPath.fillColor = `rgba(0, 0, 0, ${shadowAlpha})` // Заполняем тень
                       shadowPath.strokeColor = null
                       
                       // Применяем тень к заполненной маске
-                      shadowPath.shadowColor = 'rgba(0, 0, 0, 0.3)'
+                      shadowPath.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
                       shadowPath.shadowBlur = this.shadowBlur // Фиксированная размытость тени
                       shadowPath.shadowOffset = new this.paperScope.Point(
                         this.shadowOffsetX, // Фиксированное смещение тени по X
@@ -1418,9 +1786,10 @@ export default {
       console.log('⬜ Белый фон создан')
     },
     
-    // Проверка перекрытия стикеров
+    // Проверка перекрытия стикеров (улучшенная версия)
     checkOverlap(x, y, size) {
-      const margin = 10 // Минимальное расстояние между стикерами
+      // Уменьшаем margin для более мягкой проверки
+      const margin = 5 // Минимальное расстояние между стикерами (уменьшено с 10 до 5)
       
       for (const sticker of this.stickers) {
         // Используем данные стикера для проверки перекрытия
@@ -1428,18 +1797,21 @@ export default {
         const stickerY = sticker.y
         const stickerSize = sticker.size
         
+        // Уменьшаем зону проверки для более мягкого перекрытия
+        const overlapThreshold = 0.3 // Допускаем 30% перекрытие
+        
         const newBounds = {
-          left: x - size/2 - margin,
-          top: y - size/2 - margin,
-          right: x + size/2 + margin,
-          bottom: y + size/2 + margin
+          left: x - size/2 * (1 - overlapThreshold) - margin,
+          top: y - size/2 * (1 - overlapThreshold) - margin,
+          right: x + size/2 * (1 - overlapThreshold) + margin,
+          bottom: y + size/2 * (1 - overlapThreshold) + margin
         }
         
         const stickerBounds = {
-          left: stickerX - stickerSize/2 - margin,
-          top: stickerY - stickerSize/2 - margin,
-          right: stickerX + stickerSize/2 + margin,
-          bottom: stickerY + stickerSize/2 + margin
+          left: stickerX - stickerSize/2 * (1 - overlapThreshold) - margin,
+          top: stickerY - stickerSize/2 * (1 - overlapThreshold) - margin,
+          right: stickerX + stickerSize/2 * (1 - overlapThreshold) + margin,
+          bottom: stickerY + stickerSize/2 * (1 - overlapThreshold) + margin
         }
         
         if (this.boundsIntersect(stickerBounds, newBounds)) {

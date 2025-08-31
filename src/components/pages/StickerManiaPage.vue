@@ -561,8 +561,8 @@ export default {
       const mask = this.stickerMasks[index]
       mask.selected = event.target.checked
       
-      // Пересоздаем все слои последовательно
-      this.updateCanvasWithImages()
+      // НЕ обновляем канвас при выборе масок - только сохраняем состояние
+      console.log(`🎭 Маска "${mask.name}" ${mask.selected ? 'выбрана' : 'отменена'}`)
     },
     
     // Добавить маску на канвас
@@ -994,7 +994,7 @@ export default {
 
     
     // Алгоритм оптимального размещения стикеров
-    runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight) {
+    async runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight) {
       console.log('🚀 Запуск алгоритма оптимального размещения')
       
       // Создаем сетку для отслеживания покрытия
@@ -1091,20 +1091,24 @@ export default {
         const position = findBestPosition(size)
         
         if (position) {
-          // Создаем стикер
-          const sticker = this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
-          
-          if (sticker) {
-            this.stickers.push(sticker)
+          // Создаем стикер (теперь асинхронно)
+          try {
+            const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
             
-            // Обновляем сетку покрытия
-            updateCoverageGrid(position.x, position.y, size)
-            
-            // Пересчитываем покрытие
-            currentCoverage = calculateCoverage()
-            this.coveragePercentage = Math.round(currentCoverage)
-            
-            console.log(`📊 Итерация ${iterations}: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+            if (sticker) {
+              this.stickers.push(sticker)
+              
+              // Обновляем сетку покрытия
+              updateCoverageGrid(position.x, position.y, size)
+              
+              // Пересчитываем покрытие
+              currentCoverage = calculateCoverage()
+              this.coveragePercentage = Math.round(currentCoverage)
+              
+              console.log(`📊 Итерация ${iterations}: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+            }
+          } catch (error) {
+            console.error('Ошибка создания стикера:', error)
           }
         }
         
@@ -1140,134 +1144,167 @@ export default {
       // Случайный поворот для лучшего покрытия
       const rotation = Math.random() * 360
       
-      // Создаем стикер
-      const sticker = new this.paperScope.Group()
-      
-      // Создаем маску из SVG
-      const maskPath = this.createMaskFromSVG(randomMask, x, y, size/2)
-      maskPath.rotate(rotation)
-      
-      // Создаем растр из изображения
-      const raster = new this.paperScope.Raster(randomImage.url)
-      
-      raster.onLoad = () => {
-        // Создаем временный canvas для обрезки изображения
-        const tempCanvas = document.createElement('canvas')
-        const tempCtx = tempCanvas.getContext('2d')
-        
-        // Получаем границы маски
-        const maskBounds = maskPath.bounds
-        
-        // Устанавливаем размер canvas равным размеру маски
-        tempCanvas.width = maskBounds.width
-        tempCanvas.height = maskBounds.height
-        
-        // Применяем обрезку по форме маски
-        tempCtx.save()
-        tempCtx.translate(-maskBounds.x, -maskBounds.y)
-        
-        // Создаем путь для обрезки
-        tempCtx.beginPath()
-        
-        // Проверяем, является ли маска кругом
-        if (maskPath.constructor.name === 'Circle') {
-          // Для круга используем arc с координатами относительно переведенного контекста
-          const center = maskPath.bounds.center
-          const radius = maskPath.radius
-          
-          // Вычисляем центр относительно переведенного контекста
-          const relativeCenterX = center.x - maskBounds.x
-          const relativeCenterY = center.y - maskBounds.y
-          
-          tempCtx.arc(relativeCenterX, relativeCenterY, radius, 0, 2 * Math.PI)
-        } else {
-          // Для остальных форм используем сегменты
-          if (maskPath.segments && maskPath.segments.length > 0) {
-            const firstPoint = maskPath.segments[0].point
-            tempCtx.moveTo(firstPoint.x, firstPoint.y)
-            
-            for (let i = 1; i < maskPath.segments.length; i++) {
-              const segment = maskPath.segments[i]
-              tempCtx.lineTo(segment.point.x, segment.point.y)
-            }
-          }
-        }
-        
-        tempCtx.closePath()
-        tempCtx.clip()
-        
-        // Рисуем изображение на canvas с сохранением пропорций
-        const imgWidth = raster.image.width
-        const imgHeight = raster.image.height
-        const canvasWidth = maskBounds.width
-        const canvasHeight = maskBounds.height
-        
-        // Вычисляем масштаб для сохранения пропорций
-        const scaleX = canvasWidth / imgWidth
-        const scaleY = canvasHeight / imgHeight
-        const scale = Math.max(scaleX, scaleY)
-        
-        // Вычисляем размеры масштабированного изображения
-        const scaledWidth = imgWidth * scale
-        const scaledHeight = imgHeight * scale
-        
-        // Вычисляем смещение для центрирования
-        const offsetX = (canvasWidth - scaledWidth) / 2
-        const offsetY = (canvasHeight - scaledHeight) / 2
-        
-        // Рисуем изображение
-        tempCtx.drawImage(
-          raster.image,
-          offsetX,
-          offsetY,
-          scaledWidth,
-          scaledHeight
-        )
-        
-        tempCtx.restore()
-        
-        // Создаем новый растр из обрезанного изображения
-        const dataURL = tempCanvas.toDataURL('image/png')
-        const clippedRaster = new this.paperScope.Raster(dataURL)
-        
-        clippedRaster.onLoad = () => {
-          // Позиционируем обрезанный растр
-          clippedRaster.position = new this.paperScope.Point(x, y)
-          
-          // Создаем контур для обводки и тени
-          const outlinePath = maskPath.clone()
-          
-          // Применяем обводку и тень к контуру
-          const strokeWidthPixels = (this.strokeWidth / 100) * size
-          outlinePath.strokeColor = this.strokeColor
-          outlinePath.strokeWidth = strokeWidthPixels
-          outlinePath.fillColor = null
-          
-          outlinePath.shadowColor = 'rgba(0, 0, 0, 0.3)'
-          outlinePath.shadowBlur = (this.shadowBlur / 100) * size
-          outlinePath.shadowOffset = new this.paperScope.Point(
-            (this.shadowOffsetX / 100) * size,
-            (this.shadowOffsetY / 100) * size
-          )
-          
-          // Добавляем элементы в группу стикера
-          sticker.addChild(clippedRaster)
-          sticker.addChild(outlinePath)
-          
-          // Добавляем группу в проект
-          this.paperScope.project.addChild(sticker)
-        }
-      }
-      
-      return {
-        group: sticker,
-        x: x,
-        y: y,
-        size: size,
-        rotation: rotation,
-        mask: randomMask.name,
-        image: randomImage.name
-      }
+      return new Promise((resolve) => {
+        // Загружаем SVG маску (как в addMaskToCanvas)
+        fetch(randomMask.url)
+          .then(response => response.text())
+          .then(svgText => {
+            this.paperScope.project.importSVG(svgText, {
+              onLoad: (item) => {
+                // Масштабируем и позиционируем
+                const scale = size / 100 // Масштабируем под нужный размер
+                item.scale(scale)
+                item.position = new this.paperScope.Point(x, y)
+                item.rotate(rotation)
+                
+                if (item.children && item.children.length > 0) {
+                  // Ищем путь в импортированном SVG
+                  let path = null
+                  
+                  // Рекурсивно ищем Path в импортированном SVG
+                  const findPath = (node) => {
+                    if (node.className === 'Path') {
+                      path = node
+                      return true
+                    }
+                    if (node.children) {
+                      for (let child of node.children) {
+                        if (findPath(child)) return true
+                      }
+                    }
+                    return false
+                  }
+                  
+                  findPath(item)
+                  
+                  if (!path) {
+                    console.log('⚠️ Не найден Path в SVG:', item)
+                    path = item.children[0]
+                  }
+                  
+                  // Создаем растр из изображения
+                  const raster = new this.paperScope.Raster(randomImage.url)
+                  raster.visible = false // Скрываем оригинальный растр
+                  
+                  raster.onLoad = () => {
+                    // Создаем временный canvas для обрезки изображения
+                    const tempCanvas = document.createElement('canvas')
+                    const tempCtx = tempCanvas.getContext('2d')
+                    
+                    // Получаем размеры маски
+                    const maskBounds = path.bounds
+                    
+                    tempCanvas.width = maskBounds.width
+                    tempCanvas.height = maskBounds.height
+                    
+                    // Очищаем canvas
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+                    
+                    // Создаем путь маски на canvas
+                    tempCtx.save()
+                    tempCtx.beginPath()
+                    
+                    // Рисуем путь маски (как в addMaskToCanvas)
+                    if (path.className === 'Path' && path.segments && path.segments.length > 0) {
+                      const firstPoint = path.segments[0].point
+                      tempCtx.moveTo(firstPoint.x, firstPoint.y)
+                      
+                      for (let i = 1; i < path.segments.length; i++) {
+                        const segment = path.segments[i]
+                        tempCtx.lineTo(segment.point.x, segment.point.y)
+                      }
+                    }
+                    
+                    tempCtx.closePath()
+                    tempCtx.clip()
+                    
+                    // Рисуем изображение на canvas с сохранением пропорций
+                    const imgWidth = raster.image.width
+                    const imgHeight = raster.image.height
+                    const canvasWidth = maskBounds.width
+                    const canvasHeight = maskBounds.height
+                    
+                    // Вычисляем масштаб для сохранения пропорций
+                    const scaleX = canvasWidth / imgWidth
+                    const scaleY = canvasHeight / imgHeight
+                    const scale = Math.max(scaleX, scaleY)
+                    
+                    // Вычисляем размеры масштабированного изображения
+                    const scaledWidth = imgWidth * scale
+                    const scaledHeight = imgHeight * scale
+                    
+                    // Вычисляем смещение для центрирования
+                    const offsetX = (canvasWidth - scaledWidth) / 2
+                    const offsetY = (canvasHeight - scaledHeight) / 2
+                    
+                    // Рисуем изображение
+                    tempCtx.drawImage(
+                      raster.image,
+                      offsetX,
+                      offsetY,
+                      scaledWidth,
+                      scaledHeight
+                    )
+                    
+                    tempCtx.restore()
+                    
+                    // Создаем новый растр из обрезанного изображения
+                    const dataURL = tempCanvas.toDataURL('image/png')
+                    const clippedRaster = new this.paperScope.Raster(dataURL)
+                    
+                    clippedRaster.onLoad = () => {
+                      // Позиционируем обрезанный растр точно в центр маски
+                      clippedRaster.position = path.bounds.center
+                      
+                      // Создаем контур для обводки и тени
+                      const outlinePath = path.clone()
+                      
+                      // Применяем обводку и тень к контуру
+                      const strokeWidthPixels = (this.strokeWidth / 100) * size
+                      outlinePath.strokeColor = this.strokeColor
+                      outlinePath.strokeWidth = strokeWidthPixels
+                      outlinePath.fillColor = null
+                      
+                      outlinePath.shadowColor = 'rgba(0, 0, 0, 0.3)'
+                      outlinePath.shadowBlur = (this.shadowBlur / 100) * size
+                      outlinePath.shadowOffset = new this.paperScope.Point(
+                        (this.shadowOffsetX / 100) * size,
+                        (this.shadowOffsetY / 100) * size
+                      )
+                      
+                      // Создаем группу стикера
+                      const sticker = new this.paperScope.Group()
+                      sticker.addChild(clippedRaster)
+                      sticker.addChild(outlinePath)
+                      
+                      // Добавляем группу в проект
+                      this.paperScope.project.activeLayer.addChild(sticker)
+                      
+                      // Удаляем оригинальный импортированный элемент
+                      item.remove()
+                      
+                      resolve({
+                        group: sticker,
+                        x: x,
+                        y: y,
+                        size: size,
+                        rotation: rotation,
+                        mask: randomMask.name,
+                        image: randomImage.name
+                      })
+                    }
+                  }
+                } else {
+                  resolve(null)
+                }
+              }
+            })
+          })
+          .catch(error => {
+            console.error('Ошибка загрузки SVG:', error)
+            resolve(null)
+          })
+      })
     },
     
 
@@ -1606,10 +1643,16 @@ export default {
             
             this.uploadedImages.push(newImage)
             
-            // Обновляем канвас если есть выбранные маски
-            this.updateCanvasWithImages()
+            // Обновляем канвас только если есть выбранные маски
+            const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
+            if (selectedMasks.length > 0) {
+              this.updateCanvasWithImages()
+            }
             
-            this.generateOptimalStickers()
+            // Генерируем стикеры только если есть выбранные маски и изображения
+            if (selectedMasks.length > 0) {
+              this.generateOptimalStickers()
+            }
           }
           reader.readAsDataURL(file)
         }
@@ -1622,10 +1665,16 @@ export default {
     removeImage(index) {
       this.uploadedImages.splice(index, 1)
       
-      // Обновляем канвас
-      this.updateCanvasWithImages()
+      // Обновляем канвас только если есть выбранные маски
+      const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
+      if (selectedMasks.length > 0) {
+        this.updateCanvasWithImages()
+      }
       
-      this.generateOptimalStickers()
+      // Генерируем стикеры только если есть выбранные маски и изображения
+      if (selectedMasks.length > 0 && this.uploadedImages.length > 0) {
+        this.generateOptimalStickers()
+      }
     },
     
     // Обновление канваса с изображениями

@@ -741,7 +741,7 @@ export default {
                     const canvasWidth = maskBounds.width
                     const canvasHeight = maskBounds.height
                     
-                    // Вычисляем масштаб для сохранения пропорций
+                    // Вычисляем масштаб для заполнения всей площади
                     const scaleX = canvasWidth / imgWidth
                     const scaleY = canvasHeight / imgHeight
                     const scale = Math.max(scaleX, scaleY)
@@ -1296,10 +1296,10 @@ export default {
                     const canvasWidth = maskBounds.width
                     const canvasHeight = maskBounds.height
                     
-                    // Вычисляем масштаб для сохранения пропорций
+                    // Вычисляем масштаб для заполнения всей площади стикера
                     const scaleX = canvasWidth / imgWidth
                     const scaleY = canvasHeight / imgHeight
-                    const scale = Math.max(scaleX, scaleY)
+                    const scale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
                     
                     // Вычисляем размеры масштабированного изображения
                     const scaledWidth = imgWidth * scale
@@ -1338,27 +1338,35 @@ export default {
                       // Позиционируем обрезанный растр точно в центр маски
                       clippedRaster.position = new this.paperScope.Point(x, y)
                       
-                      // Создаем контур для обводки и тени
+                      // Создаем контур для обводки
                       const outlinePath = path.clone()
                       outlinePath.position = new this.paperScope.Point(x, y)
                       
-                      // Применяем обводку и тень к контуру
-                      const strokeWidthPixels = (this.strokeWidth / 100) * size
+                      // Применяем обводку к контуру (фиксированные параметры)
+                      const strokeWidthPixels = this.strokeWidth // Фиксированная толщина обводки
                       outlinePath.strokeColor = this.strokeColor
                       outlinePath.strokeWidth = strokeWidthPixels
                       outlinePath.fillColor = null
                       
-                      outlinePath.shadowColor = 'rgba(0, 0, 0, 0.3)'
-                      outlinePath.shadowBlur = (this.shadowBlur / 100) * size
-                      outlinePath.shadowOffset = new this.paperScope.Point(
-                        (this.shadowOffsetX / 100) * size,
-                        (this.shadowOffsetY / 100) * size
+                      // Создаем отдельную маску для тени (заполненная)
+                      const shadowPath = path.clone()
+                      shadowPath.position = new this.paperScope.Point(x, y)
+                      shadowPath.fillColor = 'rgba(0, 0, 0, 0.3)' // Заполняем тень
+                      shadowPath.strokeColor = null
+                      
+                      // Применяем тень к заполненной маске
+                      shadowPath.shadowColor = 'rgba(0, 0, 0, 0.3)'
+                      shadowPath.shadowBlur = this.shadowBlur // Фиксированная размытость тени
+                      shadowPath.shadowOffset = new this.paperScope.Point(
+                        this.shadowOffsetX, // Фиксированное смещение тени по X
+                        this.shadowOffsetY  // Фиксированное смещение тени по Y
                       )
                       
-                      // Создаем группу стикера
+                      // Создаем группу стикера (правильный порядок слоев)
                       const sticker = new this.paperScope.Group()
-                      sticker.addChild(clippedRaster)
-                      sticker.addChild(outlinePath)
+                      sticker.addChild(shadowPath) // Тень внизу
+                      sticker.addChild(clippedRaster) // Изображение посередине
+                      sticker.addChild(outlinePath) // Обводка сверху
                       
                       // Добавляем группу в проект
                       this.paperScope.project.activeLayer.addChild(sticker)

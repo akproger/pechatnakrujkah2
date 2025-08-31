@@ -2594,11 +2594,15 @@ export default {
           return null
         }
         
-        // Определяем позицию текста
-        const centerX = this.paperScope.view.center.x
-        const centerY = this.paperScope.view.center.y + 100 // Немного ниже центра
+        // Определяем позицию текста (случайная позиция в пределах канваса)
+        const canvasWidth = this.paperScope.view.size.width
+        const canvasHeight = this.paperScope.view.size.height
         
-        // Создаем текстовый элемент
+        // Случайная позиция с отступами от краев
+        const centerX = 100 + Math.random() * (canvasWidth - 200)
+        const centerY = 100 + Math.random() * (canvasHeight - 200)
+        
+        // Создаем текстовый элемент с правильной точкой привязки
         const textItem = new this.paperScope.PointText({
           point: new this.paperScope.Point(centerX, centerY),
           content: text.content || '',
@@ -2607,6 +2611,10 @@ export default {
           fillColor: text.color || '#FF0000',
           justification: text.textAlign || 'center'
         })
+        
+        // Устанавливаем правильную точку привязки (центр текста)
+        textItem.justification = 'center'
+        textItem.point = new this.paperScope.Point(centerX, centerY)
         
         // Добавляем метаданные для идентификации
         textItem.data = {
@@ -2622,9 +2630,16 @@ export default {
               console.log('📐 Bounds доступны:', textItem.bounds)
               const background = this.createBackgroundForText(text, textItem)
               if (background) {
-                background.sendToBack()
+                // Перемещаем подложку под текст, но над остальными элементами
+                background.bringToFront()
                 textItem.bringToFront()
-                console.log('✅ Подложка создана для текста:', text.content)
+                
+                // Устанавливаем правильный z-index для подложки
+                background.data = background.data || {}
+                background.data.isTextBackground = true
+                background.data.textId = textItem.id
+                
+                console.log('✅ Подложка создана для текста:', text.content, 'z-index установлен')
               } else {
                 console.warn('❌ Не удалось создать подложку для текста:', text.content)
               }
@@ -2642,19 +2657,36 @@ export default {
         // Создаем HTML элемент для управления (видимый для событий)
         const textElement = document.createElement('div')
         textElement.className = 'canvas-text-overlay'
+        
+        // Получаем размеры и позицию текста из Paper.js
+        const textBounds = textItem.bounds
+        const textWidth = textBounds ? textBounds.width : 100
+        const textHeight = textBounds ? textBounds.height : 30
+        
+        // Используем центр текста для позиционирования HTML элемента
+        const textCenterX = textBounds ? textBounds.center.x : centerX
+        const textCenterY = textBounds ? textBounds.center.y : centerY
+        
         textElement.style.cssText = `
           position: absolute;
-          top: ${centerY}px;
-          left: ${centerX}px;
+          top: ${textCenterY}px;
+          left: ${textCenterX}px;
           transform: translate(-50%, -50%);
-          width: ${textItem.bounds ? textItem.bounds.width : 100}px;
-          height: ${textItem.bounds ? textItem.bounds.height : 30}px;
+          width: ${textWidth}px;
+          height: ${textHeight}px;
           pointer-events: auto;
           cursor: pointer;
           z-index: 1000;
           background-color: rgba(255, 0, 0, 0.1);
           border: 1px dashed rgba(255, 0, 0, 0.3);
         `
+        
+        console.log('📐 HTML элемент управления создан:', {
+          width: textWidth,
+          height: textHeight,
+          centerX: centerX,
+          centerY: centerY
+        })
         
         // Добавляем уникальный ID для текста
         const textId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -2675,7 +2707,6 @@ export default {
           startRotation: 0,
           lastRotation: null,
           continuousRotation: 0,
-          smoothedRotation: null,
           lastMouseX: null,
           paperItem: textItem
         }
@@ -2735,12 +2766,21 @@ export default {
           const bgColor = this.getBackgroundColor(text.backgroundId)
           console.log('🎨 Создаем цветную подложку:', bgColor)
           if (bgColor) {
+            // Создаем подложку с отступами
+            const expandedBounds = bounds.expand(12)
             const background = new this.paperScope.Path.Rectangle({
-              rectangle: bounds.expand(8),
+              rectangle: expandedBounds,
               fillColor: bgColor,
               strokeColor: null
             })
-            console.log('✅ Цветная подложка создана:', background)
+            
+            // Устанавливаем метаданные для идентификации
+            background.data = {
+              isTextBackground: true,
+              textId: textItem.id
+            }
+            
+            console.log('✅ Цветная подложка создана:', background, 'bounds:', expandedBounds)
             return background
           }
         }
@@ -3057,12 +3097,29 @@ export default {
           const paperPoint = new this.paperScope.Point(x, y)
           state.paperItem.position = paperPoint
           
+          // Обновляем подложку если есть
+          this.updateTextBackground(state.paperItem)
+          
+          // Принудительно обновляем Paper.js view для синхронизации
+          if (this.paperScope && this.paperScope.view) {
+            this.paperScope.view.update()
+          }
+          
           // Обновляем HTML элемент управления
           requestAnimationFrame(() => {
             textElement.style.left = `${x}px`
             textElement.style.top = `${y}px`
             textElement.style.transform = 'translate(-50%, -50%)'
+            
+            // Обновляем размеры HTML элемента под новый размер текста
+            const textBounds = state.paperItem.bounds
+            if (textBounds) {
+              textElement.style.width = `${textBounds.width}px`
+              textElement.style.height = `${textBounds.height}px`
+            }
           })
+          
+          console.log('🔄 Перемещение текста:', { x, y })
         }
         
         state.hasChanges = true
@@ -3148,11 +3205,26 @@ export default {
         // Обновляем Paper.js элемент
         if (state.paperItem) {
           state.paperItem.fontSize = newSize
+          
+          // Обновляем подложку если есть
+          this.updateTextBackground(state.paperItem)
+          
+          // Принудительно обновляем Paper.js view для синхронизации
+          if (this.paperScope && this.paperScope.view) {
+            this.paperScope.view.update()
+          }
         }
         
         // Обновляем HTML элемент управления
         requestAnimationFrame(() => {
           textElement.style.fontSize = `${newSize}px`
+          
+          // Обновляем размеры HTML элемента под новый размер текста
+          const textBounds = state.paperItem.bounds
+          if (textBounds) {
+            textElement.style.width = `${textBounds.width}px`
+            textElement.style.height = `${textBounds.height}px`
+          }
         })
         
         state.hasChanges = true
@@ -3254,7 +3326,6 @@ export default {
           
           // Устанавливаем начальные значения без изменений
           state.continuousRotation = currentRotation
-          state.smoothedRotation = currentRotation
           
           console.log('🔄 Инициализация вращения:', currentRotation, 'градусов')
           
@@ -3265,8 +3336,8 @@ export default {
         // Вычисляем изменение позиции мыши по оси X
         const deltaX = e.clientX - state.lastMouseX
         
-        // Чувствительность вращения (градусов на пиксель)
-        const sensitivity = 0.5
+        // Чувствительность вращения (градусов на пиксель) - еще больше увеличиваем
+        const sensitivity = 4.0
         
         // Вычисляем изменение угла на основе движения по X
         const deltaRotation = deltaX * sensitivity
@@ -3277,13 +3348,11 @@ export default {
         // Обновляем последнюю позицию мыши
         state.lastMouseX = e.clientX
         
-        // Применяем сглаживание к непрерывному углу
-        const smoothingFactor = 0.9
-        const smoothedRotation = state.smoothedRotation + (deltaRotation * smoothingFactor)
-        state.smoothedRotation = smoothedRotation
+        // Применяем вращение напрямую (без сглаживания для быстрого отклика)
+        state.continuousRotation += deltaRotation
         
         // Нормализуем только для отображения в индикаторе
-        let displayRotation = smoothedRotation % 360
+        let displayRotation = state.continuousRotation % 360
         if (displayRotation < 0) displayRotation += 360
         
         // Обновляем визуальный индикатор
@@ -3291,13 +3360,27 @@ export default {
         
         // Обновляем Paper.js элемент (конвертируем градусы в радианы)
         if (state.paperItem) {
-          const rotationInRadians = (smoothedRotation * Math.PI) / 180
+          const rotationInRadians = (state.continuousRotation * Math.PI) / 180
           state.paperItem.rotation = rotationInRadians
+          
+          // Обновляем подложку если есть
+          this.updateTextBackground(state.paperItem, rotationInRadians)
+          
+          // Принудительно обновляем Paper.js view для синхронизации
+          if (this.paperScope && this.paperScope.view) {
+            this.paperScope.view.update()
+          }
+          
+          console.log('🔄 Вращение текста:', {
+            degrees: state.continuousRotation,
+            radians: rotationInRadians,
+            position: state.paperItem.position
+          })
         }
         
         // Применяем вращение к HTML элементу управления
         requestAnimationFrame(() => {
-          textElement.style.transform = `translate(-50%, -50%) rotate(${smoothedRotation}deg)`
+          textElement.style.transform = `translate(-50%, -50%) rotate(${state.continuousRotation}deg)`
         })
         
         state.hasChanges = true
@@ -3427,10 +3510,10 @@ export default {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 200px;
-        height: 40px;
+        width: 150px;
+        height: 30px;
         border: 2px solid #007bff;
-        border-radius: 20px;
+        border-radius: 15px;
         background: rgba(0, 123, 255, 0.1);
         pointer-events: none;
         z-index: 1003;
@@ -3446,12 +3529,12 @@ export default {
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 6px;
-        height: 6px;
+        width: 4px;
+        height: 4px;
         background: #007bff;
         border-radius: 50%;
         transform: translate(-50%, -50%);
-        box-shadow: 0 0 4px rgba(0, 123, 255, 0.6);
+        box-shadow: 0 0 3px rgba(0, 123, 255, 0.6);
         border: 1px solid white;
       `
       
@@ -3509,6 +3592,37 @@ export default {
             this.$refs.threeRenderer.forceUpdate()
           }
         }, 500)
+      })
+    },
+    
+    // Обновление подложки текста при трансформациях
+    updateTextBackground(textItem, rotation = null) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      console.log('🔄 Обновление подложки для текста:', textItem.content, 'rotation:', rotation)
+      
+      this.paperScope.project.getItems().forEach(item => {
+        if (item.data && item.data.isTextBackground && item.data.textId === textItem.id) {
+          console.log('🎨 Найдена подложка для обновления:', item)
+          
+          // Получаем текущие границы текста
+          const textBounds = textItem.bounds
+          if (textBounds) {
+            // Создаем новые границы с отступами
+            const expandedBounds = textBounds.expand(12)
+            
+            // Обновляем позицию и размер подложки
+            item.bounds = expandedBounds
+            
+            // Если передана ротация, применяем её к подложке
+            if (rotation !== null) {
+              item.rotation = rotation
+              console.log('🔄 Применена ротация к подложке:', rotation)
+            }
+            
+            console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
+          }
+        }
       })
     }
   }

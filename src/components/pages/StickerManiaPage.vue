@@ -973,6 +973,12 @@ export default {
       
       this.isLoading = true
       
+      // Очищаем канвас полностью
+      this.paperScope.project.clear()
+      
+      // Создаем белый фон
+      this.createWhiteBackground()
+      
       // Очищаем существующие стикеры
       this.stickers.forEach(sticker => {
         if (sticker.group) {
@@ -1141,6 +1147,8 @@ export default {
       // Случайное изображение
       const randomImage = images[Math.floor(Math.random() * images.length)]
       
+      console.log(`🎨 Создаем стикер: ${randomMask.name} + ${randomImage.name} в позиции (${x}, ${y}) размером ${size}`)
+      
       // Случайный поворот для лучшего покрытия
       const rotation = Math.random() * 360
       
@@ -1154,8 +1162,8 @@ export default {
                 // Масштабируем и позиционируем
                 const scale = size / 100 // Масштабируем под нужный размер
                 item.scale(scale)
-                item.position = new this.paperScope.Point(x, y)
                 item.rotate(rotation)
+                // НЕ позиционируем здесь - позиционируем после обрезки
                 
                 if (item.children && item.children.length > 0) {
                   // Ищем путь в импортированном SVG
@@ -1182,17 +1190,20 @@ export default {
                     path = item.children[0]
                   }
                   
-                  // Создаем растр из изображения
+                  // Создаем растр из изображения (новый для каждого стикера)
                   const raster = new this.paperScope.Raster(randomImage.url)
                   raster.visible = false // Скрываем оригинальный растр
                   
                   raster.onLoad = () => {
+                    console.log(`🖼️ Растр загружен: ${randomImage.name}, размеры: ${raster.image.width}x${raster.image.height}`)
+                    
                     // Создаем временный canvas для обрезки изображения
                     const tempCanvas = document.createElement('canvas')
                     const tempCtx = tempCanvas.getContext('2d')
                     
                     // Получаем размеры маски
                     const maskBounds = path.bounds
+                    console.log(`📐 Размеры маски ${randomMask.name}: ${maskBounds.width}x${maskBounds.height}`)
                     
                     tempCanvas.width = maskBounds.width
                     tempCanvas.height = maskBounds.height
@@ -1206,19 +1217,80 @@ export default {
                     
                     // Рисуем путь маски (как в addMaskToCanvas)
                     if (path.className === 'Path' && path.segments && path.segments.length > 0) {
-                      const firstPoint = path.segments[0].point
-                      tempCtx.moveTo(firstPoint.x, firstPoint.y)
+                      console.log('🔍 Сегменты пути:', path.segments.length)
                       
-                      for (let i = 1; i < path.segments.length; i++) {
-                        const segment = path.segments[i]
-                        tempCtx.lineTo(segment.point.x, segment.point.y)
+                      // Используем более точный способ отрисовки SVG пути
+                      if (path.pathData) {
+                        // Если есть pathData, используем его для более точной отрисовки
+                        console.log('🎯 Используем pathData для точной отрисовки')
+                        console.log('📄 pathData:', path.pathData)
+                        
+                        // Парсим SVG path data и рисуем его на canvas
+                        const pathCommands = this.parseSVGPath(path.pathData)
+                        console.log('🔧 Парсированные команды:', pathCommands)
+                        console.log('🔧 Первые 3 команды:', pathCommands.slice(0, 3))
+                        console.log('🔧 Последние 3 команды:', pathCommands.slice(-3))
+                        tempCtx.translate(-maskBounds.x, -maskBounds.y)
+                        
+                        // Устанавливаем fill-rule для правильной обработки отверстий
+                        tempCtx.fillRule = 'evenodd'
+                        
+                        // Используем ручную отрисовку для более точного контроля
+                        console.log('🎨 Рисуем путь вручную')
+                        
+                        for (const command of pathCommands) {
+                          if (command.type === 'M') {
+                            tempCtx.moveTo(command.x, command.y)
+                          } else if (command.type === 'L') {
+                            tempCtx.lineTo(command.x, command.y)
+                          } else if (command.type === 'C') {
+                            tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
+                          } else if (command.type === 'Q') {
+                            tempCtx.quadraticCurveTo(command.x1, command.y1, command.x, command.y)
+                          } else if (command.type === 'Z') {
+                            tempCtx.closePath()
+                          }
+                        }
+                        tempCtx.clip()
+                        
+                        tempCtx.translate(maskBounds.x, maskBounds.y)
+                      } else {
+                        // Fallback на сегменты
+                        console.log('📐 Используем сегменты для отрисовки')
+                        
+                        // Первая точка
+                        const firstPoint = path.segments[0].point
+                        const relativeFirstPoint = new this.paperScope.Point(
+                          firstPoint.x - maskBounds.x,
+                          firstPoint.y - maskBounds.y
+                        )
+                        tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+                        
+                        // Остальные точки
+                        let lastRelativePoint = relativeFirstPoint
+                        for (let i = 1; i < path.segments.length; i++) {
+                          const segment = path.segments[i]
+                          const relativePoint = new this.paperScope.Point(
+                            segment.point.x - maskBounds.x,
+                            segment.point.y - maskBounds.y
+                          )
+                          tempCtx.lineTo(relativePoint.x, relativePoint.y)
+                          lastRelativePoint = relativePoint
+                        }
+                        
+                        console.log('📏 Первая точка:', relativeFirstPoint, 'Последняя точка:', lastRelativePoint)
                       }
+                    } else {
+                      console.log('⚠️ Нет сегментов в пути!')
                     }
                     
                     tempCtx.closePath()
+                    
+                    // Проверяем, что путь создан правильно
+                    console.log('🔒 Путь закрыт, применяем clip()')
                     tempCtx.clip()
                     
-                    // Рисуем изображение на canvas с сохранением пропорций
+                    // Рисуем изображение на canvas с сохранением пропорций и поворотом
                     const imgWidth = raster.image.width
                     const imgHeight = raster.image.height
                     const canvasWidth = maskBounds.width
@@ -1237,6 +1309,12 @@ export default {
                     const offsetX = (canvasWidth - scaledWidth) / 2
                     const offsetY = (canvasHeight - scaledHeight) / 2
                     
+                    // Применяем поворот к изображению
+                    tempCtx.save()
+                    tempCtx.translate(canvasWidth / 2, canvasHeight / 2)
+                    tempCtx.rotate((rotation * Math.PI) / 180)
+                    tempCtx.translate(-canvasWidth / 2, -canvasHeight / 2)
+                    
                     // Рисуем изображение
                     tempCtx.drawImage(
                       raster.image,
@@ -1248,16 +1326,21 @@ export default {
                     
                     tempCtx.restore()
                     
+                    tempCtx.restore()
+                    
                     // Создаем новый растр из обрезанного изображения
                     const dataURL = tempCanvas.toDataURL('image/png')
+                    console.log(`✂️ Создан обрезанный растр, размер dataURL: ${dataURL.length} символов`)
                     const clippedRaster = new this.paperScope.Raster(dataURL)
                     
                     clippedRaster.onLoad = () => {
+                      console.log(`✅ Обрезанный растр загружен, позиционируем в (${x}, ${y})`)
                       // Позиционируем обрезанный растр точно в центр маски
-                      clippedRaster.position = path.bounds.center
+                      clippedRaster.position = new this.paperScope.Point(x, y)
                       
                       // Создаем контур для обводки и тени
                       const outlinePath = path.clone()
+                      outlinePath.position = new this.paperScope.Point(x, y)
                       
                       // Применяем обводку и тень к контуру
                       const strokeWidthPixels = (this.strokeWidth / 100) * size
@@ -1307,7 +1390,25 @@ export default {
       })
     },
     
-
+    // Создание белого фона
+    createWhiteBackground() {
+      if (!this.paperScope) return
+      
+      // Создаем белый прямоугольник на весь размер канваса
+      const canvasSize = this.paperScope.view.viewSize
+      const whiteRect = new this.paperScope.Path.Rectangle(
+        new this.paperScope.Point(0, 0),
+        new this.paperScope.Point(canvasSize.width, canvasSize.height)
+      )
+      
+      whiteRect.fillColor = 'white'
+      whiteRect.strokeColor = null
+      
+      // Добавляем в проект
+      this.paperScope.project.activeLayer.addChild(whiteRect)
+      
+      console.log('⬜ Белый фон создан')
+    },
     
     // Проверка перекрытия стикеров
     checkOverlap(x, y, size) {
@@ -1643,13 +1744,8 @@ export default {
             
             this.uploadedImages.push(newImage)
             
-            // Обновляем канвас только если есть выбранные маски
+            // НЕ обновляем канвас при загрузке изображений - только генерируем стикеры
             const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
-            if (selectedMasks.length > 0) {
-              this.updateCanvasWithImages()
-            }
-            
-            // Генерируем стикеры только если есть выбранные маски и изображения
             if (selectedMasks.length > 0) {
               this.generateOptimalStickers()
             }
@@ -1665,13 +1761,8 @@ export default {
     removeImage(index) {
       this.uploadedImages.splice(index, 1)
       
-      // Обновляем канвас только если есть выбранные маски
+      // НЕ обновляем канвас при удалении изображений - только генерируем стикеры
       const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
-      if (selectedMasks.length > 0) {
-        this.updateCanvasWithImages()
-      }
-      
-      // Генерируем стикеры только если есть выбранные маски и изображения
       if (selectedMasks.length > 0 && this.uploadedImages.length > 0) {
         this.generateOptimalStickers()
       }

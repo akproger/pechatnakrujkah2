@@ -411,8 +411,12 @@ export default {
     },
 
     deleteText(index) {
+      const textToDelete = this.texts[index]
       this.texts.splice(index, 1)
       this.$emit('texts-changed', this.texts)
+      
+      // Эмитим событие для удаления с канваса
+      this.$emit('text-deleted', textToDelete)
     },
 
     updateTextVisibility(text) {

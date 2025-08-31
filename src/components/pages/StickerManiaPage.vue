@@ -273,6 +273,7 @@
                     v-model="texts"
                     @texts-changed="handleTextsChanged"
                     @text-visibility-changed="handleTextVisibilityChanged"
+                    @text-deleted="handleTextDeleted"
                   />
                 </div>
               </div>
@@ -2451,13 +2452,7 @@ export default {
       this.updateCanvasWithTexts()
       
       // Дополнительно обновляем 3D текстуру
-      this.$nextTick(() => {
-        setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-            this.$refs.threeRenderer.forceUpdate()
-          }
-        }, 200)
-      })
+      this.forceUpdate3DTexture()
     },
     
     // Обработка изменения видимости текста
@@ -2465,14 +2460,40 @@ export default {
       // Обновляем канвас с текстами
       this.updateCanvasWithTexts()
       
-      // Дополнительно обновляем 3D текстуру
-      this.$nextTick(() => {
-        setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-            this.$refs.threeRenderer.forceUpdate()
-          }
-        }, 200)
+      // Принудительно обновляем 3D текстуру
+      this.forceUpdate3DTexture()
+    },
+    
+    // Обработка удаления текста
+    handleTextDeleted(deletedText) {
+      // Находим и удаляем HTML элемент с канваса
+      const textElement = this.htmlTextElements.find(el => {
+        return el.textContent === deletedText.content
       })
+      
+      if (textElement) {
+        // Удаляем элемент из DOM
+        if (textElement.parentNode) {
+          textElement.parentNode.removeChild(textElement)
+        }
+        
+        // Удаляем из массива отслеживания
+        const index = this.htmlTextElements.indexOf(textElement)
+        if (index > -1) {
+          this.htmlTextElements.splice(index, 1)
+        }
+        
+        // Удаляем состояние управления
+        const textId = textElement.dataset.textId
+        if (textId && this.textControlStates[textId]) {
+          delete this.textControlStates[textId]
+        }
+        
+        console.log('🗑️ Текст удален с канваса:', deletedText.content)
+      }
+      
+      // Обновляем канвас
+      this.updateCanvasWithTexts()
     },
     
     // Обновление канваса с текстами
@@ -2492,36 +2513,39 @@ export default {
           })
           this.htmlTextElements = [] // Очищаем массив
           
+          // Удаляем существующие текстовые элементы с Paper.js канваса
+          if (this.paperScope && this.paperScope.project) {
+            this.paperScope.project.getItems({ className: 'TextItem' }).forEach(item => {
+              if (item.data && item.data.isTextOverlay) {
+                item.remove()
+              }
+            })
+          }
+          
           // Добавляем видимые тексты
           const visibleTexts = this.texts.filter(text => text.visible)
-          console.log('📝 Добавляем HTML тексты на канвас:', visibleTexts.length, 'текстов')
+          console.log('📝 Добавляем тексты на канвас:', visibleTexts.length, 'текстов')
           visibleTexts.forEach((text, index) => {
-            console.log(`📝 Добавляем HTML текст ${index + 1}:`, text.content)
-            const textElement = this.addHtmlTextToCanvas(text)
+            console.log(`📝 Добавляем текст ${index + 1}:`, text.content)
+            const textElement = this.addTextToPaperCanvas(text)
             if (textElement) {
               this.htmlTextElements.push(textElement)
-              console.log(`✅ HTML текст ${index + 1} добавлен успешно`)
+              console.log(`✅ Текст ${index + 1} добавлен успешно`)
             } else {
-              console.warn(`❌ Не удалось добавить HTML текст ${index + 1}`)
+              console.warn(`❌ Не удалось добавить текст ${index + 1}`)
             }
           })
           
-          // Обновляем 3D текстуру
-          this.$nextTick(() => {
-            setTimeout(() => {
-              if (this.$refs.threeRenderer) {
-                this.$refs.threeRenderer.forceUpdate()
-              }
-            }, 100)
-          })
+          // Принудительно обновляем 3D текстуру
+          this.forceUpdate3DTexture()
         } catch (error) {
-          console.error('❌ Ошибка при обновлении HTML текстов на канвасе:', error)
+          console.error('❌ Ошибка при обновлении текстов на канвасе:', error)
         }
       })
     },
     
-    // Добавление HTML текста поверх канваса
-    addHtmlTextToCanvas(text) {
+    // Добавление текста на Paper.js канвас
+    addTextToPaperCanvas(text) {
       try {
         const canvas = this.$refs.testCanvas
         if (!canvas) {
@@ -2564,36 +2588,64 @@ export default {
           }
         }
         
-        // Создаем HTML элемент для текста
+        // Создаем Paper.js TextItem
+        if (!this.paperScope) {
+          console.warn('Paper.js не инициализирован')
+          return null
+        }
+        
+        // Определяем позицию текста
+        const centerX = this.paperScope.view.center.x
+        const centerY = this.paperScope.view.center.y + 100 // Немного ниже центра
+        
+        // Создаем текстовый элемент
+        const textItem = new this.paperScope.PointText({
+          point: new this.paperScope.Point(centerX, centerY),
+          content: text.content || '',
+          fontFamily: text.fontFamily || 'Arial',
+          fontSize: text.fontSize || 24,
+          fillColor: text.color || '#FF0000',
+          justification: text.textAlign || 'center'
+        })
+        
+        // Добавляем метаданные для идентификации
+        textItem.data = {
+          isTextOverlay: true,
+          originalText: text
+        }
+        
+        // Создаем подложку если нужно
+        if (!text.showWithoutBackground && text.backgroundId) {
+          const background = this.createBackgroundForText(text, textItem)
+          if (background) {
+            background.sendToBack()
+            textItem.bringToFront()
+          }
+        }
+        
+        // Перемещаем текст на передний план
+        textItem.bringToFront()
+        
+        // Создаем HTML элемент для управления (невидимый, только для событий)
         const textElement = document.createElement('div')
         textElement.className = 'canvas-text-overlay'
-        textElement.textContent = text.content || ''
         textElement.style.cssText = `
           position: absolute;
-          top: 100px;
-          left: 50%;
-          transform: translateX(-50%);
-          font-family: ${text.fontFamily || 'Arial'};
-          font-size: ${text.fontSize || 24}px;
-          color: ${text.color || '#FF0000'};
-          text-align: ${text.textAlign || 'center'};
-          z-index: 1000;
+          top: ${centerY}px;
+          left: ${centerX}px;
+          transform: translate(-50%, -50%);
+          width: ${textItem.bounds ? textItem.bounds.width : 100}px;
+          height: ${textItem.bounds ? textItem.bounds.height : 30}px;
           pointer-events: auto;
-          background-color: ${backgroundStyle};
-          padding: ${padding};
-          border-radius: ${borderRadius};
-          white-space: nowrap;
-          font-weight: bold;
-          min-width: fit-content;
-          box-sizing: border-box;
           cursor: pointer;
-          user-select: none;
-          transition: transform 0.1s ease, font-size 0.1s ease;
+          z-index: 1000;
+          opacity: 0;
         `
         
         // Добавляем уникальный ID для текста
         const textId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         textElement.dataset.textId = textId
+        textElement.dataset.paperItemId = textItem.id
         
         // Инициализируем состояние управления
         this.textControlStates[textId] = {
@@ -2606,7 +2658,12 @@ export default {
           startX: 0,
           startY: 0,
           startScale: 1,
-          startRotation: 0
+          startRotation: 0,
+          lastRotation: null,
+          continuousRotation: 0,
+          smoothedRotation: null,
+          lastMouseX: null,
+          paperItem: textItem
         }
         
         // Добавляем обработчик клика
@@ -2625,13 +2682,11 @@ export default {
           canvasContainer.style.position = 'relative'
           canvasContainer.appendChild(textElement)
           
-          console.log('📝 HTML текстовый элемент создан:', {
-            content: textElement.textContent,
-            fontSize: textElement.style.fontSize,
-            color: textElement.style.color,
-            background: textElement.style.backgroundColor,
-            padding: textElement.style.padding,
-            borderRadius: textElement.style.borderRadius
+          console.log('📝 Текстовый элемент создан на Paper.js канвасе:', {
+            content: textItem.content,
+            fontSize: textItem.fontSize,
+            color: textItem.fillColor,
+            position: textItem.point
           })
           
           return textElement
@@ -2890,7 +2945,13 @@ export default {
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       `
       
-      icon.innerHTML = `<i class="bi ${iconClass}"></i>`
+      // Очищаем содержимое перед добавлением иконки
+      icon.innerHTML = ''
+      
+      // Создаем иконку с CSS классом для ::before псевдоэлемента
+      const iconElement = document.createElement('i')
+      iconElement.className = `bi ${iconClass}`
+      icon.appendChild(iconElement)
       icon.addEventListener('click', (e) => {
         e.stopPropagation()
         onClick()
@@ -3005,6 +3066,9 @@ export default {
       
       state.isMoving = false
       console.log('🔄 Остановлено перемещение текста:', textId)
+      
+      // Обновляем 3D модель после завершения перемещения
+      this.forceUpdate3DTexture()
     },
     
     // Переключение режима масштабирования
@@ -3087,6 +3151,9 @@ export default {
       
       state.isScaling = false
       console.log('🔍 Остановлено масштабирование текста:', textId)
+      
+      // Обновляем 3D модель после завершения масштабирования
+      this.forceUpdate3DTexture()
     },
     
     // Переключение режима поворота
@@ -3113,6 +3180,10 @@ export default {
       state.isMoving = false
       state.isScaling = false
       state.startRotation = 0
+      state.lastRotation = null
+      state.continuousRotation = 0
+      state.smoothedRotation = null
+      state.lastMouseX = null
       
       // Скрываем элементы управления
       const controls = textElement.querySelector('.text-controls')
@@ -3128,24 +3199,59 @@ export default {
       const handleMouseMove = (e) => {
         if (!state.isRotating) return
         
-        const rect = textElement.parentElement.getBoundingClientRect()
-        const centerX = rect.left + rect.width / 2
-        const centerY = rect.top + rect.height / 2
+        // Инициализируем при первом вызове
+        if (state.lastMouseX === null) {
+          state.lastMouseX = e.clientX
+          
+          // Получаем текущий угол поворота текста
+          const currentTransform = textElement.style.transform
+          let currentRotation = 0
+          
+          if (currentTransform && currentTransform.includes('rotate')) {
+            const match = currentTransform.match(/rotate\(([^)]+)deg\)/)
+            if (match) {
+              currentRotation = parseFloat(match[1]) || 0
+            }
+          }
+          
+          // Устанавливаем начальные значения без изменений
+          state.continuousRotation = currentRotation
+          state.smoothedRotation = currentRotation
+          
+          // Пропускаем первый кадр, чтобы избежать подскакивания
+          return
+        }
         
-        // Вычисляем угол от центра текста до курсора
-        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI
-        let rotation = angle + 90
+        // Вычисляем изменение позиции мыши по оси X
+        const deltaX = e.clientX - state.lastMouseX
         
-        // Нормализуем угол
-        rotation = rotation % 360
-        if (rotation < 0) rotation += 360
+        // Чувствительность вращения (градусов на пиксель)
+        const sensitivity = 0.5
+        
+        // Вычисляем изменение угла на основе движения по X
+        const deltaRotation = deltaX * sensitivity
+        
+        // Обновляем непрерывный угол
+        state.continuousRotation += deltaRotation
+        
+        // Обновляем последнюю позицию мыши
+        state.lastMouseX = e.clientX
+        
+        // Применяем сглаживание к непрерывному углу
+        const smoothingFactor = 0.9
+        const smoothedRotation = state.smoothedRotation + (deltaRotation * smoothingFactor)
+        state.smoothedRotation = smoothedRotation
+        
+        // Нормализуем только для отображения в индикаторе
+        let displayRotation = smoothedRotation % 360
+        if (displayRotation < 0) displayRotation += 360
         
         // Обновляем визуальный индикатор
-        this.updateRotationIndicator(rotationIndicator, rotation)
+        this.updateRotationIndicator(rotationIndicator, displayRotation)
         
-        // Применяем вращение к тексту
+        // Применяем вращение к тексту (используем непрерывный угол)
         requestAnimationFrame(() => {
-          textElement.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
+          textElement.style.transform = `translate(-50%, -50%) rotate(${smoothedRotation}deg)`
         })
         
         state.hasChanges = true
@@ -3182,6 +3288,9 @@ export default {
       
       state.isRotating = false
       console.log('🔄 Остановлено вращение текста:', textId)
+      
+      // Обновляем 3D модель после завершения вращения
+      this.forceUpdate3DTexture()
     },
     
     // Показ кнопки "Применить"
@@ -3258,6 +3367,9 @@ export default {
       }
       
       console.log('✅ Изменения применены для текста:', textId)
+      
+      // Обновляем 3D модель после применения изменений
+      this.forceUpdate3DTexture()
     },
     
     // Создание визуального индикатора вращения
@@ -3269,48 +3381,16 @@ export default {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 120px;
-        height: 120px;
+        width: 200px;
+        height: 40px;
         border: 2px solid #007bff;
-        border-radius: 50%;
+        border-radius: 20px;
         background: rgba(0, 123, 255, 0.1);
         pointer-events: none;
         z-index: 1003;
         display: flex;
         align-items: center;
         justify-content: center;
-      `
-      
-      // Создаем сегмент (линию от центра до края)
-      const segment = document.createElement('div')
-      segment.className = 'rotation-segment'
-      segment.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 60px;
-        height: 2px;
-        background: #007bff;
-        transform-origin: left center;
-        transform: translateY(-50%) rotate(0deg);
-        border-radius: 1px;
-        box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
-      `
-      
-      // Создаем точку на конце сегмента
-      const endPoint = document.createElement('div')
-      endPoint.className = 'rotation-endpoint'
-      endPoint.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 8px;
-        height: 8px;
-        background: #007bff;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 6px rgba(0, 123, 255, 0.8);
-        border: 2px solid white;
       `
       
       // Создаем центральную точку
@@ -3329,30 +3409,61 @@ export default {
         border: 1px solid white;
       `
       
-      indicator.appendChild(segment)
-      indicator.appendChild(endPoint)
+      // Создаем текст с инструкцией
+      const instruction = document.createElement('div')
+      instruction.className = 'rotation-instruction'
+      instruction.textContent = 'Двигайте мышь влево/вправо'
+      instruction.style.cssText = `
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #007bff;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      `
+      
       indicator.appendChild(centerPoint)
+      indicator.appendChild(instruction)
       
       return indicator
     },
     
     // Обновление визуального индикатора вращения
     updateRotationIndicator(indicator, angle) {
-      const segment = indicator.querySelector('.rotation-segment')
-      const endPoint = indicator.querySelector('.rotation-endpoint')
-      
-      if (segment && endPoint) {
-        // Обновляем сегмент
-        segment.style.transform = `translateY(-50%) rotate(${angle}deg)`
+      // Простое обновление без анимации
+      // Индикатор остается статичным
+    },
+    
+    // Принудительное обновление 3D текстуры
+    forceUpdate3DTexture() {
+      this.$nextTick(() => {
+        // Обновляем Paper.js view
+        if (this.paperScope && this.paperScope.view) {
+          this.paperScope.view.update()
+        }
         
-        // Обновляем позицию конечной точки
-        const radius = 60 // радиус круга
-        const radian = (angle - 90) * Math.PI / 180 // конвертируем в радианы и корректируем
-        const x = Math.cos(radian) * radius
-        const y = Math.sin(radian) * radius
+        // Принудительно обновляем 3D текстуру с задержками
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }, 100)
         
-        endPoint.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
-      }
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }, 300)
+        
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }, 500)
+      })
     }
   }
 }
@@ -3393,12 +3504,17 @@ export default {
   animation: fadeInScale 0.3s ease;
 }
 
-.rotation-segment {
-  transition: transform 0.1s ease;
+.rotation-instruction {
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.rotation-endpoint {
-  transition: transform 0.1s ease;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInScale {
@@ -3563,6 +3679,9 @@ export default {
 
 .card-body.p-0 {
   padding: 0 !important;
+}
+.control-icon:before {
+  display: none !important;
 }
 
 </style>

@@ -23,7 +23,7 @@
                     :disabled="isLoading"
                   >
                     <i class="bi bi-play me-2"></i>
-                    Сгенерировать стикеры
+                    {{ isLoading ? 'Генерация (5 итераций)...' : 'Сгенерировать стикеры (5 итераций)' }}
                   </button>
                   
                   <button 
@@ -1007,8 +1007,8 @@ export default {
       console.log('✅ Стили стикеров обновлены')
     },
     
-    // Оптимальная генерация стикеров
-    generateOptimalStickers() {
+    // Оптимальная генерация стикеров (5 итераций)
+    async generateOptimalStickers() {
       if (!this.paperScope) {
         console.log('❌ PaperScope не инициализирован')
         return
@@ -1048,10 +1048,61 @@ export default {
       const viewWidth = this.paperScope.view.viewSize.width
       const viewHeight = this.paperScope.view.viewSize.height
       
-      console.log('🎯 Оптимальная генерация стикеров:', viewWidth, 'x', viewHeight)
+      console.log('🎯 Запуск 5 итераций генерации стикеров:', viewWidth, 'x', viewHeight)
       
-      // Запускаем алгоритм оптимального размещения
-      this.runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight)
+      // Запускаем 5 итераций генерации
+      await this.runMultipleGenerations(selectedMasks, selectedImages, viewWidth, viewHeight)
+    },
+    
+    // Запуск множественных итераций генерации
+    async runMultipleGenerations(selectedMasks, selectedImages, viewWidth, viewHeight) {
+      console.log('🚀 Запуск 5 итераций генерации...')
+      
+      try {
+        // Итерация 1: Основная генерация
+        console.log('📋 Итерация 1/5: Основная генерация')
+        await this.runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight)
+        
+        // Итерации 2-5: Дополнительные слои
+        for (let iteration = 2; iteration <= 5; iteration++) {
+          console.log(`📋 Итерация ${iteration}/5: Дополнительный слой`)
+          
+          // Проверяем общий лимит стикеров (максимум 100)
+          if (this.stickers.length >= 100) {
+            console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
+            break
+          }
+          
+          // Небольшая пауза между итерациями для стабильности
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Запускаем addMoreStickers для создания нового слоя
+          await this.addMoreStickers()
+          
+          // Обновляем прогресс
+          console.log(`✅ Итерация ${iteration}/5 завершена. Всего стикеров: ${this.stickers.length}`)
+        }
+        
+        console.log('🎉 Все итерации генерации завершены!')
+        console.log(`📊 Итоговое количество стикеров: ${this.stickers.length} (максимум 100 - 20 на итерацию)`)
+        
+        // Финальное обновление
+        this.paperScope.view.draw()
+        
+        // Обновляем 3D текстуру
+        this.$nextTick(() => {
+          setTimeout(() => {
+            if (this.$refs.threeRenderer) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
+            this.isLoading = false
+          }, 300)
+        })
+        
+      } catch (error) {
+        console.error('❌ Ошибка при выполнении множественных итераций:', error)
+        this.isLoading = false
+      }
     },
     
 
@@ -1208,8 +1259,8 @@ export default {
         return bestScore > 0 ? { x: bestX, y: bestY } : null
       }
       
-      // Основной цикл размещения
-      while (currentCoverage < this.targetCoverage && iterations < this.maxIterations) {
+      // Основной цикл размещения (ограничиваем 20 стикерами на итерацию и общим лимитом 100)
+      while (currentCoverage < this.targetCoverage && iterations < this.maxIterations && this.stickers.length < 20 && this.stickers.length < 100) {
         iterations++
         
         // Выбираем размер стикера в зависимости от покрытия (увеличены минимальные размеры в 3 раза)
@@ -1257,7 +1308,10 @@ export default {
         }
       }
       
-      console.log(`✅ Завершено: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+      if (this.stickers.length >= 100) {
+        console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
+      }
+      console.log(`✅ Завершено: ${this.stickers.length} стикеров (максимум 20), покрытие ${this.coveragePercentage}%`)
       
       // Финальное обновление канваса
       this.paperScope.view.draw()
@@ -1265,20 +1319,19 @@ export default {
       // Обновляем стили всех стикеров
       this.updateStickerStyles()
       
-      // Обновляем 3D текстуру
+      // Обновляем 3D текстуру (но не устанавливаем isLoading = false, это делается в runMultipleGenerations)
       this.$nextTick(() => {
         setTimeout(() => {
           if (this.$refs.threeRenderer) {
             this.$refs.threeRenderer.forceUpdate()
           }
-          this.isLoading = false
         }, 300)
       })
     },
     
     // Добавление дополнительных стикеров
     async addMoreStickers() {
-      console.log('🔄 Добавляем дополнительные стикеры...')
+      console.log('🔄 Создаем новый слой со стикерами...')
       
       // Проверяем условия
       const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
@@ -1289,11 +1342,6 @@ export default {
         return
       }
       
-      if (this.stickers.length === 0) {
-        console.log('⚠️ Нет существующих стикеров для дополнения')
-        return
-      }
-      
       this.isLoading = true
       
       try {
@@ -1301,14 +1349,17 @@ export default {
         const viewWidth = this.paperScope.view.viewSize.width
         const viewHeight = this.paperScope.view.viewSize.height
         
-        console.log(`🎯 Добавление стикеров: ${viewWidth} x ${viewHeight}`)
+        console.log(`🎯 Создание нового слоя стикеров: ${viewWidth} x ${viewHeight}`)
         
-        // Создаем сетку для отслеживания покрытия
+        // Создаем новый слой - НЕ перемещаем существующие стикеры, новые будут поверх
+        console.log('🔄 Создаем новый слой поверх существующих стикеров...')
+        
+        // Создаем сетку для отслеживания покрытия (пустая, так как не учитываем предыдущие стикеры)
         const gridSize = 10 // Размер ячейки сетки
         const gridCols = Math.ceil(viewWidth / gridSize)
         const gridRows = Math.ceil(viewHeight / gridSize)
         
-        // Инициализируем сетку покрытия на основе существующих стикеров
+        // Инициализируем пустую сетку покрытия (не учитываем существующие стикеры)
         const coverageGrid = Array(gridRows).fill().map(() => Array(gridCols).fill(false))
         
         // Функция для обновления сетки покрытия (учитывает стикеры за границами канваса)
@@ -1345,38 +1396,33 @@ export default {
           return (coveredCells / totalCells) * 100
         }
         
-        // Обновляем сетку на основе существующих стикеров
-        for (const sticker of this.stickers) {
-          updateCoverageGrid(sticker.x, sticker.y, sticker.size)
-        }
+        let currentCoverage = 0 // Начинаем с 0, так как не учитываем предыдущие стикеры
+        console.log(`📊 Начинаем новый слой с покрытием: ${Math.round(currentCoverage)}%`)
         
-        let currentCoverage = calculateCoverage()
-        console.log(`📊 Текущее покрытие: ${Math.round(currentCoverage)}%`)
-        
-                 // Функция для поиска лучшей позиции (улучшенная версия)
-         const findBestPosition = (size) => {
-           let bestX = 0, bestY = 0, bestScore = -1
-           
-           // Ищем пустые области в сетке
-           const emptyAreas = []
-           for (let row = 0; row < gridRows; row++) {
-             for (let col = 0; col < gridCols; col++) {
-               if (!coverageGrid[row][col]) {
-                 emptyAreas.push({ row, col })
-               }
-             }
-           }
-           
-           if (emptyAreas.length === 0) {
-             console.log('✅ Нет пустых областей для размещения')
-             return null
-           }
-           
-           // Сначала пробуем разместить в пустых областях
-           for (let areaIndex = 0; areaIndex < Math.min(5, emptyAreas.length); areaIndex++) {
-             const randomEmptyArea = emptyAreas[Math.floor(Math.random() * emptyAreas.length)]
-             const centerX = (randomEmptyArea.col + 0.5) * gridSize
-             const centerY = (randomEmptyArea.row + 0.5) * gridSize
+        // Функция для поиска лучшей позиции (не учитывает существующие стикеры)
+        const findBestPosition = (size) => {
+          let bestX = 0, bestY = 0, bestScore = -1
+          
+          // Ищем пустые области в сетке (только новые стикеры)
+          const emptyAreas = []
+          for (let row = 0; row < gridRows; row++) {
+            for (let col = 0; col < gridCols; col++) {
+              if (!coverageGrid[row][col]) {
+                emptyAreas.push({ row, col })
+              }
+            }
+          }
+          
+          if (emptyAreas.length === 0) {
+            console.log('✅ Нет пустых областей для размещения')
+            return null
+          }
+          
+          // Сначала пробуем разместить в пустых областях
+          for (let areaIndex = 0; areaIndex < Math.min(5, emptyAreas.length); areaIndex++) {
+            const randomEmptyArea = emptyAreas[Math.floor(Math.random() * emptyAreas.length)]
+            const centerX = (randomEmptyArea.col + 0.5) * gridSize
+            const centerY = (randomEmptyArea.row + 0.5) * gridSize
              
              // Пробуем разместить стикер в этой области
              for (let attempt = 0; attempt < 15; attempt++) {
@@ -1390,8 +1436,8 @@ export default {
                  continue
                }
                
-               // Проверяем перекрытие с существующими стикерами (разрешено перекрытие на 30%)
-               if (this.checkOverlap(x, y, size)) { // Используем полный размер, так как checkOverlap уже учитывает 30% перекрытие
+               // Проверяем перекрытие только с новыми стикерами (не учитываем существующие)
+               if (this.checkOverlap(x, y, size, true)) { // excludeExisting = true - не проверяем существующие стикеры
                  continue
                }
                
@@ -1435,8 +1481,8 @@ export default {
                  continue
                }
                
-               // Проверка перекрытия для случайных позиций (разрешено перекрытие на 30%)
-               if (this.checkOverlap(x, y, size)) { // Используем полный размер, так как checkOverlap уже учитывает 30% перекрытие
+               // Проверка перекрытия для случайных позиций (только с новыми стикерами)
+               if (this.checkOverlap(x, y, size, true)) { // excludeExisting = true - не проверяем существующие стикеры
                  continue
                }
                
@@ -1468,27 +1514,24 @@ export default {
            return bestScore > 0 ? { x: bestX, y: bestY } : null
          }
         
-        // Добавляем дополнительные стикеры (максимум 10 за раз)
-        let addedCount = 0
-        const maxAdditional = 10
-        let attemptsWithoutSuccess = 0
-        const maxAttemptsWithoutSuccess = 5
+        // Генерируем новый слой стикеров (ограничиваем 20 стикерами на итерацию)
+        let iterations = 0
+        const maxIterations = 20 // Ограничиваем количество стикеров в новом слое
         
-        while (addedCount < maxAdditional && attemptsWithoutSuccess < maxAttemptsWithoutSuccess) {
-          // Адаптивный выбор размера стикера (увеличены минимальные размеры в 3 раза)
+        while (currentCoverage < 80 && iterations < maxIterations && this.stickers.length < 100) { // Останавливаемся на 80% покрытии, 20 стикерах или общем лимите 100
+          iterations++
+          
+          // Выбираем размер стикера в зависимости от покрытия (увеличены минимальные размеры в 3 раза)
           let sizeMultiplier
-          if (currentCoverage < 60) {
-            // Если покрытие очень низкое, используем большие стикеры
-            sizeMultiplier = 1.2 + Math.random() * 0.4 // 1.2 - 1.6
-          } else if (currentCoverage < 75) {
-            // Если покрытие низкое, используем средние стикеры
-            sizeMultiplier = 1.0 + Math.random() * 0.4 // 1.0 - 1.4
-          } else if (currentCoverage < 85) {
-            // Если покрытие среднее, используем маленькие стикеры (увеличены в 3 раза)
-            sizeMultiplier = 1.2 + Math.random() * 0.4 // 1.2 - 1.6 (было 0.4 - 0.8)
+          if (currentCoverage < 50) {
+            // В начале используем большие стикеры для быстрого покрытия
+            sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0
+          } else if (currentCoverage < 70) {
+            // В середине используем средние стикеры
+            sizeMultiplier = 1.2 + Math.random() * 0.6 // 1.2 - 1.8
           } else {
-            // Если покрытие высокое, используем очень маленькие стикеры (увеличены в 3 раза)
-            sizeMultiplier = 0.75 + Math.random() * 0.35 // 0.75 - 1.1 (было 0.25 - 0.6)
+            // В конце используем маленькие стикеры для заполнения пустот (увеличены в 3 раза)
+            sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
           }
           
           const size = this.baseStickerSize * sizeMultiplier
@@ -1506,37 +1549,25 @@ export default {
                 updateCoverageGrid(position.x, position.y, size)
                 currentCoverage = calculateCoverage()
                 this.coveragePercentage = Math.round(currentCoverage)
-                addedCount++
-                attemptsWithoutSuccess = 0 // Сбрасываем счетчик неудачных попыток
                 
-                console.log(`📊 Добавлен стикер ${addedCount}: покрытие ${this.coveragePercentage}%`)
+                console.log(`📊 Добавлен стикер ${iterations}: покрытие ${this.coveragePercentage}%`)
               }
             } catch (error) {
               console.error('Ошибка создания стикера:', error)
-              attemptsWithoutSuccess++
             }
           } else {
-            attemptsWithoutSuccess++
-            console.log(`❌ Попытка ${attemptsWithoutSuccess}: не удалось найти позицию для стикера размером ${size.toFixed(1)}`)
-            
-            // Если не удается найти позицию, пробуем еще раз с меньшим размером
-            if (attemptsWithoutSuccess >= 3) {
-              console.log('🔄 Пробуем с еще меньшим размером стикера...')
-            }
+            console.log(`❌ Не удалось найти позицию для стикера ${iterations}`)
+            break // Прерываем цикл, если не можем найти позицию
           }
         }
         
-        if (attemptsWithoutSuccess >= maxAttemptsWithoutSuccess) {
-          console.log('⚠️ Достигнут лимит неудачных попыток, останавливаем добавление')
+        if (this.stickers.length >= 100) {
+          console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
         }
+        console.log(`✅ Создан новый слой: ${iterations} стикеров (максимум 20), покрытие: ${this.coveragePercentage}%`)
         
-        console.log(`✅ Добавлено ${addedCount} стикеров, итоговое покрытие: ${this.coveragePercentage}%`)
-        
-        // Обновляем канвас
+        // Обновляем канвас только один раз в конце
         this.paperScope.view.draw()
-        
-        // Обновляем стили всех стикеров (включая новые)
-        this.updateStickerStyles()
         
         // Обновляем 3D текстуру
         this.$nextTick(() => {
@@ -1839,11 +1870,14 @@ export default {
     },
     
     // Проверка перекрытия стикеров (разрешено перекрытие на 30%)
-    checkOverlap(x, y, size) {
+    checkOverlap(x, y, size, excludeExisting = false) {
       // Убираем margin для разрешения перекрытия
       const margin = 0 // Убираем минимальное расстояние между стикерами
       
-      for (const sticker of this.stickers) {
+      // Если excludeExisting = true, не проверяем перекрытие с существующими стикерами
+      const stickersToCheck = excludeExisting ? [] : this.stickers
+      
+      for (const sticker of stickersToCheck) {
         // Используем данные стикера для проверки перекрытия
         const stickerX = sticker.x
         const stickerY = sticker.y

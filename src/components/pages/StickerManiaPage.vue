@@ -18,7 +18,7 @@
                 <!-- Кнопка генерации стикеров -->
                 <div class="col">
                   <button 
-                    @click="generateStickers" 
+                    @click="generateOptimalStickers" 
                     class="btn btn-primary"
                     :disabled="isLoading"
                   >
@@ -27,32 +27,16 @@
                   </button>
                 </div>
                 
-                <!-- Счетчик стикеров -->
+                <!-- Информация о покрытии -->
                 <div class="d-flex gap-4 ms-auto" style="width: 330px;">
                   <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Количество стикеров: {{ stickers.length }}</div>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="maxStickers"
-                      min="10" 
-                      max="100" 
-                      step="5"
-                      @input="generateStickers"
-                    >
+                    <div class="form-label mb-1" style="text-align: left;">Стикеров: {{ stickers.length }}</div>
+                    <div class="text-muted small">Автоматический расчет</div>
                   </div>
                   
                   <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Размер стикеров: {{ minSize }}-{{ maxSize }}</div>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      v-model.number="stickerSize"
-                      min="50" 
-                      max="200" 
-                      step="10"
-                      @input="updateStickerSize"
-                    >
+                    <div class="form-label mb-1" style="text-align: left;">Покрытие: {{ coveragePercentage }}%</div>
+                    <div class="text-muted small">Цель: 100%</div>
                   </div>
                 </div>
               </div>
@@ -241,7 +225,7 @@
                               type="checkbox" 
                               :id="'use-image-' + index"
                               v-model="image.useInStickers"
-                              @change="generateStickers"
+                              @change="generateOptimalStickers"
                             >
                           </div>
                           <img :src="image.url" :alt="image.name" style="width: 40px; height: 40px; object-fit: cover; margin-right: 8px;">
@@ -279,7 +263,7 @@
                           type="color" 
                           class="form-control form-control-color" 
                           v-model="strokeColor"
-                          @change="generateStickers"
+                          @change="generateOptimalStickers"
                           title="Выберите цвет обводки"
                         >
                       </div>
@@ -292,7 +276,7 @@
                           min="0" 
                           max="20" 
                           step="1"
-                          @input="generateStickers"
+                          @input="generateOptimalStickers"
                         >
                       </div>
                     </div>
@@ -309,7 +293,7 @@
                           min="0" 
                           max="50" 
                           step="1"
-                          @input="generateStickers"
+                          @input="generateOptimalStickers"
                         >
                       </div>
                       <div class="form-group mt-2">
@@ -321,7 +305,7 @@
                           min="-50" 
                           max="50" 
                           step="1"
-                          @input="generateStickers"
+                          @input="generateOptimalStickers"
                         >
                       </div>
                       <div class="form-group mt-2">
@@ -333,7 +317,7 @@
                           min="-50" 
                           max="50" 
                           step="1"
-                          @input="generateStickers"
+                          @input="generateOptimalStickers"
                         >
                       </div>
                     </div>
@@ -411,10 +395,14 @@ export default {
       
       // Стикеры
       stickers: [],
-      maxStickers: 50,
-      stickerSize: 100, // Размер стикеров
-      minSize: 50,
-      maxSize: 150
+      coveragePercentage: 0,
+      // Настройки генерации
+      minStickerSize: 50, // Минимальный размер стикера (50% от базового)
+      maxStickerSize: 150, // Максимальный размер стикера (150% от базового)
+      baseStickerSize: 100, // Базовый размер стикера
+      targetCoverage: 95, // Целевое покрытие в процентах
+      maxIterations: 1000, // Максимальное количество попыток размещения
+      overlapThreshold: 0.1 // Максимальное перекрытие (10%)
     }
   },
   mounted() {
@@ -962,41 +950,176 @@ export default {
     
 
     
-    // Генерация стикеров
-    generateStickers() {
-      if (!this.paperScope) return
-      
-      this.isLoading = true
-      
-      this.paperScope.project.clear()
-      
-      const viewWidth = this.paperScope.view.viewSize.width
-      const viewHeight = this.paperScope.view.viewSize.height
-      
-      // Получаем выбранные маски и изображения
-      const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
-      const selectedImages = this.uploadedImages.filter(img => img.useInStickers)
-      
-      if (selectedMasks.length === 0 || selectedImages.length === 0) {
-        this.isLoading = false
+    // Оптимальная генерация стикеров
+    generateOptimalStickers() {
+      if (!this.paperScope) {
+        console.log('❌ PaperScope не инициализирован')
         return
       }
       
-      // Убираем фоновые изображения - они не нужны для стикеров
+      // Проверяем, что есть выбранные маски и изображения
+      const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
+      const selectedImages = this.uploadedImages.filter(img => img.useInStickers)
       
+      if (selectedMasks.length === 0) {
+        alert('Выберите хотя бы одну форму стикера')
+        return
+      }
+      
+      if (selectedImages.length === 0) {
+        alert('Загрузите и выберите хотя бы одно изображение')
+        return
+      }
+      
+      this.isLoading = true
+      
+      // Очищаем существующие стикеры
+      this.stickers.forEach(sticker => {
+        if (sticker.group) {
+          sticker.group.remove()
+        }
+      })
       this.stickers = []
       
-      // Заполняем область стикерами
-      for (let i = 0; i < this.maxStickers; i++) {
-        const sticker = this.createSticker(selectedMasks, selectedImages, viewWidth, viewHeight)
-        if (sticker) {
-          this.stickers.push(sticker)
+      // Получаем размеры канваса
+      const viewWidth = this.paperScope.view.viewSize.width
+      const viewHeight = this.paperScope.view.viewSize.height
+      
+      console.log('🎯 Оптимальная генерация стикеров:', viewWidth, 'x', viewHeight)
+      
+      // Запускаем алгоритм оптимального размещения
+      this.runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight)
+    },
+    
+
+    
+    // Алгоритм оптимального размещения стикеров
+    runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight) {
+      console.log('🚀 Запуск алгоритма оптимального размещения')
+      
+      // Создаем сетку для отслеживания покрытия
+      const gridSize = 10 // Размер ячейки сетки
+      const gridCols = Math.ceil(viewWidth / gridSize)
+      const gridRows = Math.ceil(viewHeight / gridSize)
+      const coverageGrid = Array(gridRows).fill().map(() => Array(gridCols).fill(false))
+      
+      let totalCovered = 0
+      let iterations = 0
+      let currentCoverage = 0
+      
+      // Функция для расчета покрытия
+      const calculateCoverage = () => {
+        let covered = 0
+        for (let row = 0; row < gridRows; row++) {
+          for (let col = 0; col < gridCols; col++) {
+            if (coverageGrid[row][col]) covered++
+          }
+        }
+        return (covered / (gridRows * gridCols)) * 100
+      }
+      
+      // Функция для обновления сетки покрытия
+      const updateCoverageGrid = (x, y, size) => {
+        const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+        const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+        const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+        const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+        
+        for (let row = startRow; row <= endRow; row++) {
+          for (let col = startCol; col <= endCol; col++) {
+            coverageGrid[row][col] = true
+          }
         }
       }
       
+      // Функция для поиска лучшей позиции
+      const findBestPosition = (size) => {
+        let bestX = 0, bestY = 0, bestScore = -1
+        
+        // Пробуем разные позиции
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const x = Math.random() * viewWidth
+          const y = Math.random() * viewHeight
+          
+          // Проверяем, что стикер не выходит за границы
+          if (x - size/2 < 0 || x + size/2 > viewWidth || 
+              y - size/2 < 0 || y + size/2 > viewHeight) {
+            continue
+          }
+          
+          // Проверяем перекрытие с существующими стикерами
+          if (this.checkOverlap(x, y, size)) {
+            continue
+          }
+          
+          // Рассчитываем "полезность" этой позиции
+          let score = 0
+          const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
+          const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
+          const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
+          const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
+          
+          for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
+              if (!coverageGrid[row][col]) {
+                score += 1 // Бонус за покрытие пустой области
+              } else {
+                score -= 0.1 // Штраф за перекрытие
+              }
+            }
+          }
+          
+          if (score > bestScore) {
+            bestScore = score
+            bestX = x
+            bestY = y
+          }
+        }
+        
+        return bestScore > 0 ? { x: bestX, y: bestY } : null
+      }
+      
+      // Основной цикл размещения
+      while (currentCoverage < this.targetCoverage && iterations < this.maxIterations) {
+        iterations++
+        
+        // Выбираем случайный размер стикера (50% - 150% от базового)
+        const sizeMultiplier = 0.5 + Math.random() * 1.0 // 0.5 - 1.5
+        const size = this.baseStickerSize * sizeMultiplier
+        
+        // Ищем лучшую позицию
+        const position = findBestPosition(size)
+        
+        if (position) {
+          // Создаем стикер
+          const sticker = this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
+          
+          if (sticker) {
+            this.stickers.push(sticker)
+            
+            // Обновляем сетку покрытия
+            updateCoverageGrid(position.x, position.y, size)
+            
+            // Пересчитываем покрытие
+            currentCoverage = calculateCoverage()
+            this.coveragePercentage = Math.round(currentCoverage)
+            
+            console.log(`📊 Итерация ${iterations}: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+          }
+        }
+        
+        // Обновляем канвас каждые 10 стикеров
+        if (this.stickers.length % 10 === 0) {
+          this.paperScope.view.draw()
+        }
+      }
+      
+      console.log(`✅ Завершено: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+      
+      // Финальное обновление канваса
       this.paperScope.view.draw()
       
-      // Обновляем 3D текстуру через компонент
+      // Обновляем 3D текстуру
       this.$nextTick(() => {
         setTimeout(() => {
           if (this.$refs.threeRenderer) {
@@ -1007,32 +1130,22 @@ export default {
       })
     },
     
-
-    
-    // Создание одного стикера
-    createSticker(masks, images, viewWidth, viewHeight) {
+    // Создание оптимального стикера
+    createOptimalSticker(masks, images, x, y, size) {
       // Случайная маска
       const randomMask = masks[Math.floor(Math.random() * masks.length)]
       // Случайное изображение
       const randomImage = images[Math.floor(Math.random() * images.length)]
       
-      // Случайный размер (minSize-maxSize единиц)
-      const size = this.minSize + Math.random() * (this.maxSize - this.minSize)
-      
-      // Случайная позиция
-      const x = Math.random() * (viewWidth - size)
-      const y = Math.random() * (viewHeight - size)
-      
-      // Проверяем перекрытие с существующими стикерами
-      if (this.checkOverlap(x, y, size)) {
-        return null
-      }
+      // Случайный поворот для лучшего покрытия
+      const rotation = Math.random() * 360
       
       // Создаем стикер
       const sticker = new this.paperScope.Group()
       
       // Создаем маску из SVG
-      const maskPath = this.createMaskFromSVG(randomMask, x + size/2, y + size/2, size/2)
+      const maskPath = this.createMaskFromSVG(randomMask, x, y, size/2)
+      maskPath.rotate(rotation)
       
       // Создаем растр из изображения
       const raster = new this.paperScope.Raster(randomImage.url)
@@ -1098,26 +1211,28 @@ export default {
         const scaledWidth = imgWidth * scale
         const scaledHeight = imgHeight * scale
         
-        // Центрируем изображение относительно переведенного контекста
+        // Вычисляем смещение для центрирования
         const offsetX = (canvasWidth - scaledWidth) / 2
         const offsetY = (canvasHeight - scaledHeight) / 2
         
+        // Рисуем изображение
         tempCtx.drawImage(
           raster.image,
-          offsetX, offsetY, scaledWidth, scaledHeight
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
         )
         
         tempCtx.restore()
         
-        // Конвертируем canvas в dataURL
-        const maskedImageUrl = tempCanvas.toDataURL()
+        // Создаем новый растр из обрезанного изображения
+        const dataURL = tempCanvas.toDataURL('image/png')
+        const clippedRaster = new this.paperScope.Raster(dataURL)
         
-        // Создаем новый растр с обрезанным изображением
-        const maskedRaster = new this.paperScope.Raster(maskedImageUrl)
-        
-        maskedRaster.onLoad = () => {
-          // Устанавливаем позицию точно в центр маски
-          maskedRaster.position = maskPath.bounds.center
+        clippedRaster.onLoad = () => {
+          // Позиционируем обрезанный растр
+          clippedRaster.position = new this.paperScope.Point(x, y)
           
           // Создаем контур для обводки и тени
           const outlinePath = maskPath.clone()
@@ -1136,31 +1251,49 @@ export default {
           )
           
           // Добавляем элементы в группу стикера
-          sticker.addChild(maskedRaster)
+          sticker.addChild(clippedRaster)
           sticker.addChild(outlinePath)
           
-          this.paperScope.project.activeLayer.addChild(sticker)
+          // Добавляем группу в проект
+          this.paperScope.project.addChild(sticker)
         }
       }
       
-
-      
-
-      
-      return sticker
+      return {
+        group: sticker,
+        x: x,
+        y: y,
+        size: size,
+        rotation: rotation,
+        mask: randomMask.name,
+        image: randomImage.name
+      }
     },
+    
+
     
     // Проверка перекрытия стикеров
     checkOverlap(x, y, size) {
       const margin = 10 // Минимальное расстояние между стикерами
       
       for (const sticker of this.stickers) {
-        const stickerBounds = sticker.bounds
+        // Используем данные стикера для проверки перекрытия
+        const stickerX = sticker.x
+        const stickerY = sticker.y
+        const stickerSize = sticker.size
+        
         const newBounds = {
-          left: x - margin,
-          top: y - margin,
-          right: x + size + margin,
-          bottom: y + size + margin
+          left: x - size/2 - margin,
+          top: y - size/2 - margin,
+          right: x + size/2 + margin,
+          bottom: y + size/2 + margin
+        }
+        
+        const stickerBounds = {
+          left: stickerX - stickerSize/2 - margin,
+          top: stickerY - stickerSize/2 - margin,
+          right: stickerX + stickerSize/2 + margin,
+          bottom: stickerY + stickerSize/2 + margin
         }
         
         if (this.boundsIntersect(stickerBounds, newBounds)) {
@@ -1447,13 +1580,7 @@ export default {
       return path
     },
     
-    // Обновление размера стикеров
-    updateStickerSize() {
-      const sizeRange = this.stickerSize
-      this.minSize = Math.max(30, sizeRange - 50)
-      this.maxSize = Math.min(200, sizeRange + 50)
-      this.generateStickers()
-    },
+
     
     // Загрузка изображений
     handleImageUpload(event) {
@@ -1482,7 +1609,7 @@ export default {
             // Обновляем канвас если есть выбранные маски
             this.updateCanvasWithImages()
             
-            this.generateStickers()
+            this.generateOptimalStickers()
           }
           reader.readAsDataURL(file)
         }
@@ -1498,7 +1625,7 @@ export default {
       // Обновляем канвас
       this.updateCanvasWithImages()
       
-      this.generateStickers()
+      this.generateOptimalStickers()
     },
     
     // Обновление канваса с изображениями

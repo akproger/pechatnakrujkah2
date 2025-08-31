@@ -2527,6 +2527,41 @@ export default {
           return null
         }
         
+        // Определяем стили подложки
+        let backgroundStyle = 'transparent'
+        let padding = '0'
+        let borderRadius = '0'
+        
+        if (!text.showWithoutBackground && text.backgroundId) {
+          if (text.backgroundId.startsWith('svg')) {
+            // SVG подложки - используем простые CSS формы
+            switch (text.backgroundId) {
+              case 'svg001':
+                backgroundStyle = '#D9D9D9'
+                padding = '8px 12px'
+                borderRadius = '0'
+                break
+              case 'svg002':
+                backgroundStyle = '#D9D9D9'
+                padding = '8px 12px'
+                borderRadius = '21px'
+                break
+              case 'svg003':
+                backgroundStyle = '#D9D9D9'
+                padding = '8px 12px'
+                borderRadius = '50%'
+                break
+              default:
+                backgroundStyle = 'transparent'
+            }
+          } else {
+            // Цветные подложки
+            backgroundStyle = this.getBackgroundColor(text.backgroundId)
+            padding = '8px 12px'
+            borderRadius = '4px'
+          }
+        }
+        
         // Создаем HTML элемент для текста
         const textElement = document.createElement('div')
         textElement.className = 'canvas-text-overlay'
@@ -2542,11 +2577,13 @@ export default {
           text-align: ${text.textAlign || 'center'};
           z-index: 1000;
           pointer-events: none;
-          background-color: ${text.showWithoutBackground ? 'transparent' : this.getBackgroundColor(text.backgroundId)};
-          padding: ${text.showWithoutBackground ? '0' : '8px 12px'};
-          border-radius: ${text.showWithoutBackground ? '0' : '4px'};
+          background-color: ${backgroundStyle};
+          padding: ${padding};
+          border-radius: ${borderRadius};
           white-space: nowrap;
           font-weight: bold;
+          min-width: fit-content;
+          box-sizing: border-box;
         `
         
         // Добавляем элемент в контейнер канваса
@@ -2559,7 +2596,9 @@ export default {
             content: textElement.textContent,
             fontSize: textElement.style.fontSize,
             color: textElement.style.color,
-            position: textElement.style.top
+            background: textElement.style.backgroundColor,
+            padding: textElement.style.padding,
+            borderRadius: textElement.style.borderRadius
           })
           
           return textElement

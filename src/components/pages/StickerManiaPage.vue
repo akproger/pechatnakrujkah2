@@ -13,10 +13,10 @@
       <div class="row mb-2">
         <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
-            <div class="card-body">
+            <div class="card-body" style="padding-left: 10px;">
               <div class="row align-items-center">
                 <!-- Кнопка генерации стикеров -->
-                <div class="col">
+                <div class="col" style="padding: 0;">
                   <button 
                     @click="generateOptimalStickers" 
                     class="btn btn-primary"
@@ -24,24 +24,13 @@
                     style="background-color: #007bff; border-color: #007bff;"
                   >
                     <i class="bi bi-lightning-fill me-2"></i>
-                    {{ isLoading ? 'Генерация (5 итераций)...' : 'Сгенерировать стикеры (5 итераций)' }}
+                    {{ isLoading ? 'Генерация...' : 'Сгенерировать стикеры' }}
                   </button>
                   
 
                 </div>
                 
-                <!-- Информация о покрытии -->
-                <div class="d-flex gap-4 ms-auto" style="width: 330px;">
-                  <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Стикеров: {{ stickers.length }}</div>
-                    <div class="text-muted small">Автоматический расчет</div>
-                  </div>
-                  
-                  <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Покрытие: {{ coveragePercentage }}%</div>
-                    <div class="text-muted small">Цель: 100%</div>
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>

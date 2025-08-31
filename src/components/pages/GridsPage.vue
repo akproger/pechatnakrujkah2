@@ -108,12 +108,15 @@
         <div class="col-md-4">
           <div class="card">
             <div class="card-body p-0">
-              <div class="preview-container">
-                <canvas 
-                  ref="threeCanvas"
-                  class="three-canvas"
-                ></canvas>
-              </div>
+              <ThreeDRenderer 
+                ref="threeRenderer"
+                :source-canvas="$refs.paperCanvas"
+                :auto-update="true"
+                :rotation-speed="0.01"
+                @initialized="onThreeInitialized"
+                @texture-updated="onTextureUpdated"
+                @texture-error="onTextureError"
+              />
             </div>
           </div>
         </div>
@@ -504,9 +507,13 @@
 import paper from 'paper'
 import * as THREE from 'three'
 import { markRaw } from 'vue'
+import ThreeDRenderer from '../ThreeDRenderer.vue'
 
 export default {
   name: 'GridsPage',
+  components: {
+    ThreeDRenderer
+  },
   data() {
     return {
       // Настройки для каждого типа сетки
@@ -683,7 +690,9 @@ export default {
         // Также обновляем Three.js текстуру с увеличенной задержкой
         this.$nextTick(() => {
           setTimeout(() => {
-            this.updateThreeTexture()
+            if (this.$refs.threeRenderer) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
           }, 500) // Увеличили задержку с 300 до 500мс
         })
       },
@@ -696,12 +705,7 @@ export default {
     
     this.initPaper()
     
-    // Инициализируем Three.js с небольшой задержкой
-    this.$nextTick(() => {
-      setTimeout(() => {
-        this.initThreeJS()
-      }, 200)
-    })
+    // Three.js теперь инициализируется через компонент ThreeDRenderer
   },
   beforeUnmount() {
     this.cleanup()
@@ -918,7 +922,9 @@ export default {
       this.$nextTick(() => {
         // Увеличиваем задержку для гарантии полной отрисовки canvas
         setTimeout(() => {
-          this.updateThreeTexture()
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
           // Скрываем прелоадер после обновления текстуры
           this.isLoading = false
         }, 500) // Увеличили задержку с 300 до 500мс
@@ -2065,7 +2071,9 @@ export default {
       this.animate()
       
       // Обновляем текстуру при изменении сетки
-      this.updateThreeTexture()
+      if (this.$refs.threeRenderer) {
+        this.$refs.threeRenderer.forceUpdate()
+      }
       
       // Скрываем прелоадер после полной инициализации
       this.isLoading = false
@@ -2100,7 +2108,9 @@ export default {
       if (paperCanvas.width === 0 || paperCanvas.height === 0) {
         console.log('🔸 Canvas еще не готов, откладываем обновление')
         setTimeout(() => {
-          this.updateThreeTexture()
+          if (this.$refs.threeRenderer) {
+          this.$refs.threeRenderer.forceUpdate()
+        }
         }, 100)
         return
       }
@@ -2182,24 +2192,17 @@ export default {
       this.threeInstance.camera = null
     },
     
-    resizeThreeCanvas() {
-      if (!this.threeInstance.renderer || !this.threeInstance.camera) return
-      
-      const canvas = this.$refs.threeCanvas
-      const container = canvas.parentElement
-      const rect = container.getBoundingClientRect()
-      
-      // Увеличиваем разрешение Three.js canvas для высокого качества
-      const devicePixelRatio = window.devicePixelRatio || 1
-      const targetWidth = rect.width * devicePixelRatio
-      const targetHeight = rect.height * devicePixelRatio
-      
-      this.threeInstance.camera.aspect = rect.width / rect.height
-      this.threeInstance.camera.updateProjectionMatrix()
-      
-      this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
-      canvas.style.width = rect.width + 'px'
-      canvas.style.height = rect.height + 'px'
+    // Обработчики событий ThreeDRenderer
+    onThreeInitialized() {
+      console.log('✅ ThreeDRenderer инициализирован')
+    },
+    
+    onTextureUpdated() {
+      console.log('✅ Текстура ThreeDRenderer обновлена')
+    },
+    
+    onTextureError(error) {
+      console.error('❌ Ошибка текстуры ThreeDRenderer:', error)
     }
   }
 }
@@ -2254,6 +2257,7 @@ export default {
   height: 0;
   padding-bottom: 100%; // Квадратное соотношение для 3D превью
   position: relative;
+  background: transparent;
   
   canvas {
     position: absolute;
@@ -2261,7 +2265,7 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #f8f9fa;
+    background: transparent;
     border-radius: 8px;
   }
 }

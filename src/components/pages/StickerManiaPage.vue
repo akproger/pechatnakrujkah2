@@ -1,5 +1,12 @@
 <template>
   <div class="sticker-mania-page">
+    <!-- Лайтбокс выбора стикеров -->
+    <StickerSelectionModal
+      :is-visible="showSelectionModal"
+      :sticker-masks="stickerMasks"
+      @close="closeSelectionModal"
+      @finish="handleSelectionFinish"
+    />
     <div class="container">
       <!-- Заголовок страницы -->
       <div class="row">
@@ -18,7 +25,7 @@
                 <!-- Кнопка генерации стикеров -->
                 <div class="col" style="padding: 0;">
                   <button 
-                    @click="generateOptimalStickers" 
+                    @click="handleGenerateClick" 
                     class="btn btn-primary"
                     :disabled="isLoading"
                     style="background-color: #007bff; border-color: #007bff;"
@@ -341,6 +348,7 @@
 import paper from 'paper'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
+import StickerSelectionModal from '../StickerSelectionModal.vue'
 import heartMask from '/src/assets/masks/heart.svg'
 import rocketMask from '/src/assets/masks/rocket.svg'
 import blabMask from '/src/assets/masks/blab.svg'
@@ -359,7 +367,8 @@ import circleMask from '/src/assets/masks/circle.svg'
 export default {
   name: 'StickerManiaPage',
   components: {
-    ThreeDRenderer
+    ThreeDRenderer,
+    StickerSelectionModal
   },
   data() {
     return {
@@ -369,6 +378,8 @@ export default {
       whiteOverlayLayer: null,
       isLoading: false,
       activeTab: 'shapes',
+      showSelectionModal: false,
+      isFirstTime: true,
       
       // Маски стикеров
       stickerMasks: [
@@ -2348,6 +2359,49 @@ export default {
     
     onTextureError(error) {
       console.error('❌ Ошибка текстуры ThreeDRenderer:', error)
+    },
+    
+    // Обработчик клика на кнопку генерации
+    handleGenerateClick() {
+      if (this.isFirstTime) {
+        // Первый раз - показываем лайтбокс
+        this.showSelectionModal = true
+      } else {
+        // Последующие разы - запускаем генерацию напрямую
+        this.generateOptimalStickers()
+      }
+    },
+    
+    // Закрытие лайтбокса
+    closeSelectionModal() {
+      this.showSelectionModal = false
+    },
+    
+    // Обработка завершения выбора в лайтбоксе
+    handleSelectionFinish(data) {
+      console.log('🎯 Завершен выбор в лайтбоксе:', data)
+      
+      // Обновляем выбранные маски
+      this.stickerMasks.forEach(mask => {
+        mask.selected = data.selectedMasks.some(selectedMask => selectedMask.name === mask.name)
+      })
+      
+      // Обновляем загруженные изображения
+      this.uploadedImages = data.uploadedImages.map(img => ({
+        ...img,
+        useInStickers: true // Автоматически помечаем для использования в стикерах
+      }))
+      
+      // Закрываем лайтбокс
+      this.closeSelectionModal()
+      
+      // Помечаем, что это больше не первый раз
+      this.isFirstTime = false
+      
+      // Запускаем генерацию стикеров
+      this.$nextTick(() => {
+        this.generateOptimalStickers()
+      })
     }
   }
 }

@@ -1081,16 +1081,19 @@ export default {
         return (covered / (gridRows * gridCols)) * 100
       }
       
-      // Функция для обновления сетки покрытия
+      // Функция для обновления сетки покрытия (учитывает стикеры за границами канваса)
       const updateCoverageGrid = (x, y, size) => {
         const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
         const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
         const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
         const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
         
-        for (let row = startRow; row <= endRow; row++) {
-          for (let col = startCol; col <= endCol; col++) {
-            coverageGrid[row][col] = true
+        // Проверяем, что есть хотя бы одна ячейка внутри канваса
+        if (startCol <= endCol && startRow <= endRow) {
+          for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
+              coverageGrid[row][col] = true
+            }
           }
         }
       }
@@ -1121,14 +1124,15 @@ export default {
             const x = centerX + (Math.random() - 0.5) * gridSize * 2
             const y = centerY + (Math.random() - 0.5) * gridSize * 2
             
-            // Проверяем, что стикер не выходит за границы
-            if (x - size/2 < 0 || x + size/2 > viewWidth || 
-                y - size/2 < 0 || y + size/2 > viewHeight) {
+            // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
+            // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+            const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
+            if (overlapWithCanvas < 0.2) {
               continue
             }
             
-            // Проверяем перекрытие с существующими стикерами
-            if (this.checkOverlap(x, y, size)) {
+            // Проверяем перекрытие с существующими стикерами (разрешено перекрытие на 30%)
+            if (this.checkOverlap(x, y, size)) { // checkOverlap уже учитывает 30% перекрытие
               continue
             }
             
@@ -1159,18 +1163,20 @@ export default {
         
         // Если не нашли хорошую позицию в пустых областях, пробуем случайные
         if (bestScore <= 0) {
-          for (let attempt = 0; attempt < 30; attempt++) {
-            const x = Math.random() * viewWidth
-            const y = Math.random() * viewHeight
+                       for (let attempt = 0; attempt < 30; attempt++) {
+               // Расширяем область поиска за пределы канваса для лучшего заполнения
+               const x = (Math.random() - 0.2) * viewWidth * 1.4 // -20% до +40% от ширины
+               const y = (Math.random() - 0.2) * viewHeight * 1.4 // -20% до +40% от высоты
             
-            // Проверяем, что стикер не выходит за границы
-            if (x - size/2 < 0 || x + size/2 > viewWidth || 
-                y - size/2 < 0 || y + size/2 > viewHeight) {
+            // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
+            // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+            const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
+            if (overlapWithCanvas < 0.2) {
               continue
             }
             
-            // Проверяем перекрытие с существующими стикерами
-            if (this.checkOverlap(x, y, size)) {
+            // Проверяем перекрытие с существующими стикерами (разрешено перекрытие на 30%)
+            if (this.checkOverlap(x, y, size)) { // checkOverlap уже учитывает 30% перекрытие
               continue
             }
             
@@ -1206,17 +1212,17 @@ export default {
       while (currentCoverage < this.targetCoverage && iterations < this.maxIterations) {
         iterations++
         
-        // Выбираем размер стикера в зависимости от покрытия
+        // Выбираем размер стикера в зависимости от покрытия (увеличены минимальные размеры в 3 раза)
         let sizeMultiplier
         if (currentCoverage < 50) {
           // В начале используем большие стикеры для быстрого покрытия
-          sizeMultiplier = 1.0 + Math.random() * 0.5 // 1.0 - 1.5
+          sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0
         } else if (currentCoverage < 80) {
           // В середине используем средние стикеры
-          sizeMultiplier = 0.7 + Math.random() * 0.6 // 0.7 - 1.3
+          sizeMultiplier = 1.2 + Math.random() * 0.6 // 1.2 - 1.8
         } else {
-          // В конце используем маленькие стикеры для заполнения пустот
-          sizeMultiplier = 0.5 + Math.random() * 0.5 // 0.5 - 1.0
+          // В конце используем маленькие стикеры для заполнения пустот (увеличены в 3 раза)
+          sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
         }
         const size = this.baseStickerSize * sizeMultiplier
         
@@ -1305,16 +1311,19 @@ export default {
         // Инициализируем сетку покрытия на основе существующих стикеров
         const coverageGrid = Array(gridRows).fill().map(() => Array(gridCols).fill(false))
         
-        // Функция для обновления сетки покрытия
+        // Функция для обновления сетки покрытия (учитывает стикеры за границами канваса)
         const updateCoverageGrid = (x, y, size) => {
           const startCol = Math.max(0, Math.floor((x - size/2) / gridSize))
           const endCol = Math.min(gridCols - 1, Math.floor((x + size/2) / gridSize))
           const startRow = Math.max(0, Math.floor((y - size/2) / gridSize))
           const endRow = Math.min(gridRows - 1, Math.floor((y + size/2) / gridSize))
           
-          for (let row = startRow; row <= endRow; row++) {
-            for (let col = startCol; col <= endCol; col++) {
-              coverageGrid[row][col] = true
+          // Проверяем, что есть хотя бы одна ячейка внутри канваса
+          if (startCol <= endCol && startRow <= endRow) {
+            for (let row = startRow; row <= endRow; row++) {
+              for (let col = startCol; col <= endCol; col++) {
+                coverageGrid[row][col] = true
+              }
             }
           }
         }
@@ -1374,14 +1383,15 @@ export default {
                const x = centerX + (Math.random() - 0.5) * gridSize * 1.5
                const y = centerY + (Math.random() - 0.5) * gridSize * 1.5
                
-               // Проверяем, что стикер не выходит за границы
-               if (x - size/2 < 0 || x + size/2 > viewWidth || 
-                   y - size/2 < 0 || y + size/2 > viewHeight) {
+               // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
+               // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+               const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
+               if (overlapWithCanvas < 0.2) {
                  continue
                }
                
-               // Проверяем перекрытие с существующими стикерами (более мягкая проверка)
-               if (this.checkOverlap(x, y, size * 0.8)) { // Уменьшаем зону перекрытия
+               // Проверяем перекрытие с существующими стикерами (разрешено перекрытие на 30%)
+               if (this.checkOverlap(x, y, size)) { // Используем полный размер, так как checkOverlap уже учитывает 30% перекрытие
                  continue
                }
                
@@ -1414,17 +1424,19 @@ export default {
            if (bestScore <= 0) {
              console.log('🔄 Пробуем случайные позиции...')
              for (let attempt = 0; attempt < 30; attempt++) {
-               const x = Math.random() * viewWidth
-               const y = Math.random() * viewHeight
+               // Расширяем область поиска за пределы канваса для лучшего заполнения
+               const x = (Math.random() - 0.2) * viewWidth * 1.4 // -20% до +40% от ширины
+               const y = (Math.random() - 0.2) * viewHeight * 1.4 // -20% до +40% от высоты
                
-               // Проверяем, что стикер не выходит за границы
-               if (x - size/2 < 0 || x + size/2 > viewWidth || 
-                   y - size/2 < 0 || y + size/2 > viewHeight) {
+               // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
+               // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+               const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
+               if (overlapWithCanvas < 0.2) {
                  continue
                }
                
-               // Очень мягкая проверка перекрытия для случайных позиций
-               if (this.checkOverlap(x, y, size * 0.5)) {
+               // Проверка перекрытия для случайных позиций (разрешено перекрытие на 30%)
+               if (this.checkOverlap(x, y, size)) { // Используем полный размер, так как checkOverlap уже учитывает 30% перекрытие
                  continue
                }
                
@@ -1463,20 +1475,20 @@ export default {
         const maxAttemptsWithoutSuccess = 5
         
         while (addedCount < maxAdditional && attemptsWithoutSuccess < maxAttemptsWithoutSuccess) {
-          // Адаптивный выбор размера стикера (улучшенная версия)
+          // Адаптивный выбор размера стикера (увеличены минимальные размеры в 3 раза)
           let sizeMultiplier
           if (currentCoverage < 60) {
             // Если покрытие очень низкое, используем большие стикеры
-            sizeMultiplier = 0.8 + Math.random() * 0.4 // 0.8 - 1.2
+            sizeMultiplier = 1.2 + Math.random() * 0.4 // 1.2 - 1.6
           } else if (currentCoverage < 75) {
             // Если покрытие низкое, используем средние стикеры
-            sizeMultiplier = 0.6 + Math.random() * 0.4 // 0.6 - 1.0
+            sizeMultiplier = 1.0 + Math.random() * 0.4 // 1.0 - 1.4
           } else if (currentCoverage < 85) {
-            // Если покрытие среднее, используем маленькие стикеры
-            sizeMultiplier = 0.4 + Math.random() * 0.4 // 0.4 - 0.8
+            // Если покрытие среднее, используем маленькие стикеры (увеличены в 3 раза)
+            sizeMultiplier = 1.2 + Math.random() * 0.4 // 1.2 - 1.6 (было 0.4 - 0.8)
           } else {
-            // Если покрытие высокое, используем очень маленькие стикеры
-            sizeMultiplier = 0.25 + Math.random() * 0.35 // 0.25 - 0.6
+            // Если покрытие высокое, используем очень маленькие стикеры (увеличены в 3 раза)
+            sizeMultiplier = 0.75 + Math.random() * 0.35 // 0.75 - 1.1 (было 0.25 - 0.6)
           }
           
           const size = this.baseStickerSize * sizeMultiplier
@@ -1826,10 +1838,10 @@ export default {
       console.log('⬜ Белый фон создан')
     },
     
-    // Проверка перекрытия стикеров (улучшенная версия)
+    // Проверка перекрытия стикеров (разрешено перекрытие на 30%)
     checkOverlap(x, y, size) {
-      // Уменьшаем margin для более мягкой проверки
-      const margin = 5 // Минимальное расстояние между стикерами (уменьшено с 10 до 5)
+      // Убираем margin для разрешения перекрытия
+      const margin = 0 // Убираем минимальное расстояние между стикерами
       
       for (const sticker of this.stickers) {
         // Используем данные стикера для проверки перекрытия
@@ -1837,7 +1849,7 @@ export default {
         const stickerY = sticker.y
         const stickerSize = sticker.size
         
-        // Уменьшаем зону проверки для более мягкого перекрытия
+        // Разрешаем перекрытие на 30% (стикеры могут заходить друг на друга на 30%)
         const overlapThreshold = 0.3 // Допускаем 30% перекрытие
         
         const newBounds = {
@@ -1868,6 +1880,41 @@ export default {
                bounds1.left > bounds2.right || 
                bounds1.bottom < bounds2.top || 
                bounds1.top > bounds2.bottom)
+    },
+    
+    // Расчет перекрытия стикера с канвасом
+    calculateCanvasOverlap(x, y, size, viewWidth, viewHeight) {
+      // Границы стикера
+      const stickerLeft = x - size/2
+      const stickerRight = x + size/2
+      const stickerTop = y - size/2
+      const stickerBottom = y + size/2
+      
+      // Границы канваса
+      const canvasLeft = 0
+      const canvasRight = viewWidth
+      const canvasTop = 0
+      const canvasBottom = viewHeight
+      
+      // Находим область пересечения
+      const overlapLeft = Math.max(stickerLeft, canvasLeft)
+      const overlapRight = Math.min(stickerRight, canvasRight)
+      const overlapTop = Math.max(stickerTop, canvasTop)
+      const overlapBottom = Math.min(stickerBottom, canvasBottom)
+      
+      // Если нет пересечения, возвращаем 0
+      if (overlapLeft >= overlapRight || overlapTop >= overlapBottom) {
+        return 0
+      }
+      
+      // Площадь пересечения
+      const overlapArea = (overlapRight - overlapLeft) * (overlapBottom - overlapTop)
+      
+      // Площадь стикера
+      const stickerArea = size * size
+      
+      // Возвращаем долю перекрытия (от 0 до 1)
+      return overlapArea / stickerArea
     },
     
     // Создание маски из SVG

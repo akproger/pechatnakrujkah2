@@ -21,19 +21,13 @@
                     @click="generateOptimalStickers" 
                     class="btn btn-primary"
                     :disabled="isLoading"
+                    style="background-color: #007bff; border-color: #007bff;"
                   >
-                    <i class="bi bi-play me-2"></i>
+                    <i class="bi bi-lightning-fill me-2"></i>
                     {{ isLoading ? 'Генерация (5 итераций)...' : 'Сгенерировать стикеры (5 итераций)' }}
                   </button>
                   
-                  <button 
-                    @click="addMoreStickers" 
-                    class="btn btn-outline-primary"
-                    :disabled="isLoading || stickers.length === 0"
-                  >
-                    <i class="bi bi-plus-circle me-2"></i>
-                    Еще
-                  </button>
+
                 </div>
                 
                 <!-- Информация о покрытии -->

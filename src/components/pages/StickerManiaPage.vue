@@ -127,6 +127,23 @@
             <li class="nav-item" role="presentation">
               <button 
                 class="nav-link" 
+                :class="{ 'active': activeTab === 'text' }"
+                id="text-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#text" 
+                type="button" 
+                role="tab" 
+                aria-controls="text" 
+                aria-selected="activeTab === 'text'"
+                @click="activeTab = 'text'"
+              >
+                <i class="bi bi-type me-2"></i>
+                Текст
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
                 :class="{ 'active': activeTab === 'settings' }"
                 id="settings-tab" 
                 data-bs-toggle="tab" 
@@ -246,6 +263,23 @@
           </div>
         </div>
 
+        <!-- Таб "Текст" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'text' }" id="text" role="tabpanel" aria-labelledby="text-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <TextEditor 
+                    v-model="texts"
+                    @texts-changed="handleTextsChanged"
+                    @text-visibility-changed="handleTextVisibilityChanged"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Таб "Настройки" -->
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
           <div class="row mt-3">
@@ -349,6 +383,7 @@ import paper from 'paper'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import StickerSelectionModal from '../StickerSelectionModal.vue'
+import TextEditor from '../TextEditor.vue'
 import heartMask from '/src/assets/masks/heart.svg'
 import rocketMask from '/src/assets/masks/rocket.svg'
 import blabMask from '/src/assets/masks/blab.svg'
@@ -368,7 +403,8 @@ export default {
   name: 'StickerManiaPage',
   components: {
     ThreeDRenderer,
-    StickerSelectionModal
+    StickerSelectionModal,
+    TextEditor
   },
   data() {
     return {
@@ -380,6 +416,9 @@ export default {
       activeTab: 'shapes',
       showSelectionModal: false,
       isFirstTime: true,
+      texts: [],
+      textItems: [], // Массив для отслеживания текстовых элементов на канвасе
+      htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
       
       // Маски стикеров
       stickerMasks: [
@@ -2402,6 +2441,246 @@ export default {
       this.$nextTick(() => {
         this.generateOptimalStickers()
       })
+    },
+    
+    // Обработка изменения текстов
+    handleTextsChanged(texts) {
+      this.texts = texts
+      this.updateCanvasWithTexts()
+      
+      // Дополнительно обновляем 3D текстуру
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }, 200)
+      })
+    },
+    
+    // Обработка изменения видимости текста
+    handleTextVisibilityChanged(text) {
+      // Обновляем канвас с текстами
+      this.updateCanvasWithTexts()
+      
+      // Дополнительно обновляем 3D текстуру
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }, 200)
+      })
+    },
+    
+    // Обновление канваса с текстами
+    updateCanvasWithTexts() {
+      // Используем nextTick для безопасной обновления
+      this.$nextTick(() => {
+        try {
+          // Удаляем существующие HTML текстовые элементы
+          this.htmlTextElements.forEach(element => {
+            if (element && element.parentNode) {
+              try {
+                element.parentNode.removeChild(element)
+              } catch (e) {
+                console.warn('Не удалось удалить HTML текстовый элемент:', e)
+              }
+            }
+          })
+          this.htmlTextElements = [] // Очищаем массив
+          
+          // Добавляем видимые тексты
+          const visibleTexts = this.texts.filter(text => text.visible)
+          console.log('📝 Добавляем HTML тексты на канвас:', visibleTexts.length, 'текстов')
+          visibleTexts.forEach((text, index) => {
+            console.log(`📝 Добавляем HTML текст ${index + 1}:`, text.content)
+            const textElement = this.addHtmlTextToCanvas(text)
+            if (textElement) {
+              this.htmlTextElements.push(textElement)
+              console.log(`✅ HTML текст ${index + 1} добавлен успешно`)
+            } else {
+              console.warn(`❌ Не удалось добавить HTML текст ${index + 1}`)
+            }
+          })
+          
+          // Обновляем 3D текстуру
+          this.$nextTick(() => {
+            setTimeout(() => {
+              if (this.$refs.threeRenderer) {
+                this.$refs.threeRenderer.forceUpdate()
+              }
+            }, 100)
+          })
+        } catch (error) {
+          console.error('❌ Ошибка при обновлении HTML текстов на канвасе:', error)
+        }
+      })
+    },
+    
+    // Добавление HTML текста поверх канваса
+    addHtmlTextToCanvas(text) {
+      try {
+        const canvas = this.$refs.testCanvas
+        if (!canvas) {
+          console.warn('Канвас не найден')
+          return null
+        }
+        
+        // Создаем HTML элемент для текста
+        const textElement = document.createElement('div')
+        textElement.className = 'canvas-text-overlay'
+        textElement.textContent = text.content || ''
+        textElement.style.cssText = `
+          position: absolute;
+          top: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: ${text.fontFamily || 'Arial'};
+          font-size: ${text.fontSize || 24}px;
+          color: ${text.color || '#FF0000'};
+          text-align: ${text.textAlign || 'center'};
+          z-index: 1000;
+          pointer-events: none;
+          background-color: ${text.showWithoutBackground ? 'transparent' : this.getBackgroundColor(text.backgroundId)};
+          padding: ${text.showWithoutBackground ? '0' : '8px 12px'};
+          border-radius: ${text.showWithoutBackground ? '0' : '4px'};
+          white-space: nowrap;
+          font-weight: bold;
+        `
+        
+        // Добавляем элемент в контейнер канваса
+        const canvasContainer = canvas.parentElement
+        if (canvasContainer) {
+          canvasContainer.style.position = 'relative'
+          canvasContainer.appendChild(textElement)
+          
+          console.log('📝 HTML текстовый элемент создан:', {
+            content: textElement.textContent,
+            fontSize: textElement.style.fontSize,
+            color: textElement.style.color,
+            position: textElement.style.top
+          })
+          
+          return textElement
+        }
+        
+        return null
+      } catch (error) {
+        console.error('❌ Ошибка при добавлении HTML текста:', error)
+        return null
+      }
+    },
+    
+    // Создание подложки для текста
+    createBackgroundForText(text, textItem) {
+      try {
+        if (!textItem || !textItem.bounds) {
+          console.warn('Некорректный текстовый элемент для создания подложки')
+          return null
+        }
+        
+        const bounds = textItem.bounds
+        
+        // Проверяем, является ли подложка SVG
+        if (text.backgroundId && text.backgroundId.startsWith('svg')) {
+          return this.createSvgBackground(text.backgroundId, bounds)
+        } else if (text.backgroundId && text.backgroundId !== 'none') {
+          // Обычная цветная подложка
+          const bgColor = this.getBackgroundColor(text.backgroundId)
+          if (bgColor) {
+            return new this.paperScope.Path.Rectangle({
+              rectangle: bounds.expand(8),
+              fillColor: bgColor,
+              strokeColor: null
+            })
+          }
+        }
+        
+        return null
+      } catch (error) {
+        console.error('❌ Ошибка при создании подложки для текста:', error)
+        return null
+      }
+    },
+    
+    // Создание SVG подложки
+    createSvgBackground(svgId, textBounds) {
+      try {
+        if (!textBounds || !textBounds.center || !textBounds.size) {
+          console.warn('Некорректные границы для создания SVG подложки')
+          return null
+        }
+        
+        // Создаем простые геометрические формы вместо загрузки SVG
+        const center = textBounds.center
+        const size = textBounds.size.multiply(1.2) // Немного больше текста
+        
+        switch (svgId) {
+          case 'svg001':
+            // Прямоугольник
+            return new this.paperScope.Path.Rectangle({
+              rectangle: new this.paperScope.Rectangle(
+                center.subtract(size.divide(2)),
+                center.add(size.divide(2))
+              ),
+              fillColor: '#D9D9D9',
+              strokeColor: null
+            })
+            
+          case 'svg002':
+            // Прямоугольник с закругленными углами
+            const rect = new this.paperScope.Path.Rectangle({
+              rectangle: new this.paperScope.Rectangle(
+                center.subtract(size.divide(2)),
+                center.add(size.divide(2))
+              ),
+              fillColor: '#D9D9D9',
+              strokeColor: null
+            })
+            // Добавляем закругленные углы
+            if (rect && typeof rect.smooth === 'function') {
+              rect.smooth()
+            }
+            return rect
+            
+          case 'svg003':
+            // Эллипс
+            return new this.paperScope.Path.Ellipse({
+              center: center,
+              size: size,
+              fillColor: '#D9D9D9',
+              strokeColor: null
+            })
+            
+          default:
+            return null
+        }
+      } catch (error) {
+        console.error('❌ Ошибка при создании SVG подложки:', error)
+        return null
+      }
+    },
+    
+    // Получение цвета подложки
+    getBackgroundColor(backgroundId) {
+      const backgrounds = {
+        'white': '#ffffff',
+        'black': '#000000',
+        'gray': '#f8f9fa',
+        'blue': '#e3f2fd',
+        'green': '#e8f5e8',
+        'yellow': '#fff8e1',
+        'red': '#ffebee'
+      }
+      return backgrounds[backgroundId] || 'transparent'
+    },
+    
+    // Создание текстовой маски с изображением
+    createTextMask(text, textItem) {
+      // Здесь будет логика создания маски из текста
+      // Пока оставляем заглушку
+      console.log('Создание текстовой маски:', text)
     }
   }
 }

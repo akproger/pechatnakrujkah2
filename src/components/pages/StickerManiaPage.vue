@@ -285,7 +285,7 @@
                           min="0" 
                           max="20" 
                           step="1"
-                          @input="generateOptimalStickers"
+                          @input="updateStickerStyles"
                         >
                       </div>
                     </div>
@@ -302,7 +302,7 @@
                           min="0" 
                           max="50" 
                           step="1"
-                          @input="generateOptimalStickers"
+                          @input="updateStickerStyles"
                         >
                       </div>
                       <div class="form-group mt-2">
@@ -314,7 +314,7 @@
                           min="-50" 
                           max="50" 
                           step="1"
-                          @input="generateOptimalStickers"
+                          @input="updateStickerStyles"
                         >
                       </div>
                       <div class="form-group mt-2">
@@ -326,7 +326,7 @@
                           min="-50" 
                           max="50" 
                           step="1"
-                          @input="generateOptimalStickers"
+                          @input="updateStickerStyles"
                         >
                       </div>
                       
@@ -339,7 +339,7 @@
                           min="0" 
                           max="100" 
                           step="1"
-                          @input="generateOptimalStickers"
+                          @input="updateStickerStyles"
                         >
                       </div>
                     </div>
@@ -969,9 +969,43 @@ export default {
       return commands
     },
     
-
-    
-
+    // Обновление стилей существующих стикеров
+    updateStickerStyles() {
+      if (!this.paperScope || this.stickers.length === 0) return
+      
+      console.log('🎨 Обновляем стили стикеров...')
+      
+      for (const sticker of this.stickers) {
+        if (sticker.group && sticker.group.children && sticker.group.children.length >= 3) {
+          // Получаем элементы стикера
+          const shadowPath = sticker.group.children[0] // Тень внизу
+          const clippedRaster = sticker.group.children[1] // Изображение посередине
+          const outlinePath = sticker.group.children[2] // Обводка сверху
+          
+          // Обновляем обводку
+          if (outlinePath) {
+            outlinePath.strokeColor = this.strokeColor
+            outlinePath.strokeWidth = this.strokeWidth
+          }
+          
+          // Обновляем тень
+          if (shadowPath) {
+            const shadowAlpha = this.shadowOpacity / 100
+            shadowPath.fillColor = `rgba(0, 0, 0, ${shadowAlpha})`
+            shadowPath.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
+            shadowPath.shadowBlur = this.shadowBlur
+            shadowPath.shadowOffset = new this.paperScope.Point(
+              this.shadowOffsetX,
+              this.shadowOffsetY
+            )
+          }
+        }
+      }
+      
+      // Перерисовываем канвас
+      this.paperScope.view.draw()
+      console.log('✅ Стили стикеров обновлены')
+    },
     
     // Оптимальная генерация стикеров
     generateOptimalStickers() {
@@ -1221,6 +1255,9 @@ export default {
       
       // Финальное обновление канваса
       this.paperScope.view.draw()
+      
+      // Обновляем стили всех стикеров
+      this.updateStickerStyles()
       
       // Обновляем 3D текстуру
       this.$nextTick(() => {
@@ -1485,6 +1522,9 @@ export default {
         
         // Обновляем канвас
         this.paperScope.view.draw()
+        
+        // Обновляем стили всех стикеров (включая новые)
+        this.updateStickerStyles()
         
         // Обновляем 3D текстуру
         this.$nextTick(() => {

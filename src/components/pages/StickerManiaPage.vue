@@ -68,8 +68,8 @@
             <div class="card-body p-0">
               <div class="canvas-container">
                 <canvas 
-                  ref="paperCanvas"
-                  class="paper-canvas"
+                  ref="testCanvas"
+                  class="test-canvas"
                 ></canvas>
                 
                 <!-- Прелоадер -->
@@ -98,8 +98,7 @@
         </div>
       </div>
       
-      <!-- Тестовый канвас для отладки масок -->
-      <canvas ref="testCanvas" class="test-canvas"></canvas>
+
       
       <!-- Табы управления -->
       <div class="row mt-4">
@@ -168,7 +167,7 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-body">
-                  <h6 class="text-muted mb-3">Выберите формы стикеров</h6>
+
                   <div class="row g-3">
                     <div v-for="(mask, index) in stickerMasks" :key="index" class="col-md-3 col-sm-4 col-6">
                       <div class="form-check">
@@ -371,8 +370,8 @@ export default {
     return {
       // Paper.js
       paperScope: null,
-      testPaperScope: null,
-      testMaskItems: {},
+
+              maskItems: {},
       whiteOverlayLayer: null,
       isLoading: false,
       activeTab: 'shapes',
@@ -425,15 +424,25 @@ export default {
     }
   },
   mounted() {
-    this.initPaper()
-    this.initTestCanvas()
+    console.log('🚀 Компонент смонтирован')
     this.$nextTick(() => {
-      // Даем время на рендеринг DOM
-      setTimeout(() => {
-        // Пересчитываем размер канваса после рендеринга
-        this.resizeTestCanvas()
+      console.log('🔄 DOM обновлен')
+      // Даем больше времени на рендеринг DOM
+      setTimeout(async () => {
+        console.log('⏰ Таймаут истек, начинаем инициализацию')
+        
+        // Проверяем, что канвас существует
+        const canvas = this.$refs.testCanvas
+        if (!canvas) {
+          console.log('❌ Канвас не найден после таймаута')
+          return
+        }
+        console.log('✅ Канвас найден:', canvas)
+        
+        // Инициализируем Paper.js
+        await this.initPaper()
         this.initThreeJS()
-      }, 100)
+      }, 200)
     })
   },
   beforeUnmount() {
@@ -442,138 +451,150 @@ export default {
       cancelAnimationFrame(this.threeInstance.animationId)
     }
     
+    // Очищаем Three.js ресурсы
+    this.cleanupThreeJS()
+    
     // Удаляем обработчик изменения размера окна
-    window.removeEventListener('resize', this.handleTestCanvasResize)
+    window.removeEventListener('resize', this.handleCanvasResize)
+    // Очищаем все обработчики resize
+    window.removeEventListener('resize', () => {})
   },
   methods: {
     // Инициализация Paper.js
-    initPaper() {
-      const canvas = this.$refs.paperCanvas
+    async initPaper() {
+      const canvas = this.$refs.testCanvas
+      if (!canvas) {
+        console.log('❌ Канвас не найден при инициализации')
+        return
+      }
+      
+      console.log('🎨 Инициализация Paper.js')
+      
       this.paperScope = new paper.PaperScope()
       this.paperScope.setup(canvas)
       
-      // Используем локальную переменную вместо переназначения константы
-      const paperInstance = this.paperScope
-      
-      // Отключаем основной канвас от рендера для тестирования
-      // this.resizeCanvas()
-      
-      // Обработчик изменения размера окна
-      // window.addEventListener('resize', this.resizeCanvas)
-    },
-    
-    // Инициализация тестового канваса
-    initTestCanvas() {
-      const canvas = this.$refs.testCanvas
-      this.testPaperScope = new paper.PaperScope()
-      this.testPaperScope.setup(canvas)
-      
-      // Устанавливаем размер тестового канваса
-      this.resizeTestCanvas()
+      // Устанавливаем размер канваса
+      this.resizeCanvas()
       
       // Создаем белый слой-прослойку при инициализации
-      this.createWhiteOverlayLayer()
+      await this.createWhiteOverlayLayer()
       
-      // Рисуем тестовую маску (сердце)
-      this.drawTestMask()
+      // Добавляем обработчик изменения размера окна с debounce
+      let resizeTimeout
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout)
+        resizeTimeout = setTimeout(() => {
+          this.handleCanvasResize()
+          this.resizeThreeCanvas()
+        }, 100)
+      })
       
-      // Добавляем обработчик изменения размера окна
-      window.addEventListener('resize', this.handleTestCanvasResize)
+      console.log('✅ Paper.js инициализирован')
     },
     
-    // Обработчик изменения размера окна для тестового канваса
-    handleTestCanvasResize() {
-      if (this.testPaperScope) {
-        this.resizeTestCanvas()
-        this.updateTestCanvasContent()
+
+    
+    // Обработчик изменения размера окна
+    async handleCanvasResize() {
+      if (this.paperScope) {
+        console.log('🔄 Изменение размера окна - обновляем канвас')
+        this.resizeCanvas()
+        await this.updateCanvasContent()
       }
     },
     
-    // Изменение размера тестового канваса
-    resizeTestCanvas() {
+    // Изменение размера канваса
+    resizeCanvas() {
       const canvas = this.$refs.testCanvas
-      if (!canvas || !this.testPaperScope) return
+      if (!canvas) {
+        console.log('⚠️ Канвас не найден')
+        return
+      }
       
-      // Получаем размер контейнера
+      if (!this.paperScope) {
+        console.log('⚠️ PaperScope не инициализирован')
+        return
+      }
+      
+      // Получаем размер контейнера (.canvas-container)
       const container = canvas.parentElement
-      const containerWidth = container.clientWidth
+      if (!container) {
+        console.log('⚠️ Контейнер не найден')
+        return
+      }
       
-      // Вычисляем высоту с учетом соотношения сторон 19:9
+      const containerWidth = container.clientWidth
       const containerHeight = (containerWidth * 9) / 19
+      
+      console.log('📏 Размеры контейнера:', containerWidth, 'x', containerHeight)
       
       // Устанавливаем размеры канваса
       canvas.width = containerWidth
       canvas.height = containerHeight
       canvas.style.width = '100%'
-      canvas.style.height = 'auto'
+      canvas.style.height = '100%'
+      
+
       
       // Обновляем размер view в Paper.js
-      this.testPaperScope.view.viewSize = new this.testPaperScope.Size(containerWidth, containerHeight)
+      this.paperScope.view.viewSize = new this.paperScope.Size(containerWidth, containerHeight)
       
-      console.log('📐 Тестовый канвас изменен:', containerWidth, 'x', containerHeight)
+      console.log('📐 Канвас изменен:', containerWidth, 'x', containerHeight)
     },
     
-    // Обновление содержимого тестового канваса при изменении размера
-    updateTestCanvasContent() {
-      if (!this.testPaperScope) return
+    // Обновление содержимого канваса при изменении размера
+    async updateCanvasContent() {
+      if (!this.paperScope) return
+      
+      // Скрываем все большие растры при изменении размера
+      this.paperScope.project.activeLayer.children.forEach(child => {
+        if (child.className === 'Raster' && child.bounds && 
+            (child.bounds.width > 500 || child.bounds.height > 500)) {
+          console.log('👁️ Скрываем большой растр при изменении размера:', child.bounds)
+          child.visible = false
+        }
+      })
       
       // Пересчитываем позиции всех масок
-      Object.keys(this.testMaskItems).forEach(maskName => {
-        const maskItem = this.testMaskItems[maskName]
+      Object.keys(this.maskItems).forEach(maskName => {
+        const maskItem = this.maskItems[maskName]
         if (maskItem && maskItem.parent) {
           // Получаем новые размеры канваса
-          const canvasWidth = this.testPaperScope.view.viewSize.width
-          const canvasHeight = this.testPaperScope.view.viewSize.height
+          const canvasWidth = this.paperScope.view.viewSize.width
+          const canvasHeight = this.paperScope.view.viewSize.height
           
           // Пересчитываем позицию (центр канваса)
           const newX = canvasWidth * 0.5
           const newY = canvasHeight * 0.5
           
           // Обновляем позицию группы маски
-          maskItem.position = new this.testPaperScope.Point(newX, newY)
+          maskItem.position = new this.paperScope.Point(newX, newY)
         }
       })
       
       // Пересоздаем белый слой-прослойку
-      this.createWhiteOverlayLayer()
+      await this.createWhiteOverlayLayer()
       
       // Перерисовываем канвас
-      this.testPaperScope.view.draw()
+      this.paperScope.view.draw()
     },
     
-    // Рисование тестовой маски
-    drawTestMask() {
-      if (!this.testPaperScope) return
-      
-      // Очищаем канвас
-      this.testPaperScope.project.clear()
-      
-      // Создаем белый слой-прослойку после очистки
-      this.createWhiteOverlayLayer()
-      
-      // Сохраняем ссылки на формы для интерактивности
-      this.testForms = []
-      
-      this.testPaperScope.view.draw()
-    },
+
     
     // Обработчик изменения чекбокса маски
     handleMaskChange(index, event) {
       const mask = this.stickerMasks[index]
       mask.selected = event.target.checked
       
-      if (event.target.checked) {
-        // Добавляем маску на тестовый канвас
-        this.addMaskToTestCanvas(mask)
-      } else {
-        // Удаляем маску с тестового канваса
-        this.removeMaskFromTestCanvas(mask.name)
-      }
+      // Пересоздаем все слои последовательно
+      this.updateCanvasWithImages()
     },
     
-    // Добавить маску на тестовый канвас
-    addMaskToTestCanvas(mask) {
-      if (!this.testPaperScope) return
+    // Добавить маску на канвас
+    addMaskToCanvas(mask) {
+      if (!this.paperScope) return Promise.resolve()
+      
+      return new Promise(async (resolve) => {
       
       console.log('Добавляем маску:', mask.name)
       
@@ -581,16 +602,16 @@ export default {
       fetch(mask.url)
         .then(response => response.text())
         .then(svgText => {
-          this.testPaperScope.project.importSVG(svgText, {
+          this.paperScope.project.importSVG(svgText, {
             onLoad: (item) => {
               item.scale(2)
               
               // Позиционируем в центре канваса
-              const canvasWidth = this.testPaperScope.view.viewSize.width
-              const canvasHeight = this.testPaperScope.view.viewSize.height
+              const canvasWidth = this.paperScope.view.viewSize.width
+              const canvasHeight = this.paperScope.view.viewSize.height
               const x = canvasWidth * 0.5
               const y = canvasHeight * 0.5
-              item.position = new this.testPaperScope.Point(x, y)
+              item.position = new this.paperScope.Point(x, y)
               
               if (item.children && item.children.length > 0) {
                 // Ищем путь в импортированном SVG
@@ -626,17 +647,25 @@ export default {
                   const image = this.uploadedImages[0]
                   
                   // Создаем растр из изображения
-                  const raster = new this.testPaperScope.Raster(image.url)
+                  const raster = new this.paperScope.Raster(image.url)
                   raster.visible = false // Скрываем оригинальный растр
+                  console.log('🖼️ Растр создан, visible = false')
                   
-                  // Убеждаемся, что растр не добавляется в проект
-                  raster.remove()
+                  // НЕ перемещаем растр - оставляем его там, где он есть
+                  console.log('📍 Оригинальный растр оставлен на месте')
                   
+                  // Обработка загрузки растра (как в GridsPage)
                   raster.onLoad = () => {
                     console.log('🖼️ Растр загружен:', {
                       imageSize: { width: raster.image.width, height: raster.image.height },
                       rasterBounds: raster.bounds
                     })
+                    
+                    // Дополнительная проверка - убеждаемся что растр скрыт
+                    if (raster.parent) {
+                      raster.visible = false
+                      console.log('👁️ Оригинальный растр скрыт в onLoad')
+                    }
                     
                     // Создаем временный canvas для обрезки изображения
                     const tempCanvas = document.createElement('canvas')
@@ -701,7 +730,7 @@ export default {
                         
                         // Первая точка
                         const firstPoint = path.segments[0].point
-                        const relativeFirstPoint = new this.testPaperScope.Point(
+                        const relativeFirstPoint = new this.paperScope.Point(
                           firstPoint.x - maskBounds.x,
                           firstPoint.y - maskBounds.y
                         )
@@ -711,7 +740,7 @@ export default {
                         let lastRelativePoint = relativeFirstPoint
                         for (let i = 1; i < path.segments.length; i++) {
                           const segment = path.segments[i]
-                          const relativePoint = new this.testPaperScope.Point(
+                          const relativePoint = new this.paperScope.Point(
                             segment.point.x - maskBounds.x,
                             segment.point.y - maskBounds.y
                           )
@@ -767,7 +796,7 @@ export default {
                     console.log('📄 DataURL создан, длина:', maskedImageUrl.length)
                     
                     // Создаем новый растр с обрезанным изображением
-                    const maskedRaster = new this.testPaperScope.Raster(maskedImageUrl)
+                    const maskedRaster = new this.paperScope.Raster(maskedImageUrl)
                     console.log('🔄 Создан новый растр из dataURL')
                     
                     maskedRaster.onLoad = () => {
@@ -783,9 +812,10 @@ export default {
                       const parentGroup = item.parent
                       const maskIndex = parentGroup ? parentGroup.children.indexOf(item) : -1
                       
-                      // Удаляем оригинальную маску
+                      // Удаляем оригинальную маску (как в GridsPage)
                       if (item.parent) {
                         item.remove()
+                        console.log('🗑️ Оригинальная маска удалена из проекта')
                       }
                       
                       // Добавляем обрезанный растр в ту же позицию что и маска
@@ -816,41 +846,66 @@ export default {
                       this.testMaskItems[mask.name] = maskedRaster
                       
                       console.log('Маска с изображением добавлена:', mask.name, 'Растр в проекте:', maskedRaster.parent !== null, 'Позиция:', maskedRaster.position)
-                      this.testPaperScope.view.draw()
+                      
+                      // Финальная проверка - убеждаемся что оригинальный растр скрыт
+                      if (raster.parent) {
+                        raster.visible = false
+                        console.log('👁️ Оригинальный растр скрыт (финальная проверка)')
+                      }
+                      
+                      this.paperScope.view.draw()
+                      resolve()
                     }
                   }
+                  
+                  // Обработка ошибок загрузки растра (как в GridsPage)
+                  raster.onError = () => {
+                    console.log('❌ Ошибка загрузки изображения для маски:', mask.name)
+                    // Если изображение не загрузилось, показываем маску с обычной заливкой
+                    path.fillColor = '#ff4757'
+                    path.strokeColor = '#333'
+                    path.strokeWidth = 3
+                    
+                    // Сохраняем ссылку на элемент
+                    if (!this.maskItems) this.maskItems = {}
+                    this.maskItems[mask.name] = item
+                    
+                    resolve()
+                  }
                 } else {
-                  // Если нет изображений, показываем обычную маску
+                  // Если нет изображений, показываем обычную маску (как в GridsPage)
                   path.fillColor = '#ff4757'
                   path.strokeColor = '#333'
                   path.strokeWidth = 3
                   
                   // Сохраняем ссылку на элемент
-                  if (!this.testMaskItems) this.testMaskItems = {}
-                  this.testMaskItems[mask.name] = item
+                  if (!this.maskItems) this.maskItems = {}
+                  this.maskItems[mask.name] = item
                   
                   console.log('Обычная маска добавлена:', mask.name)
-                  this.testPaperScope.view.draw()
+                  this.paperScope.view.draw()
+                  resolve()
                 }
               }
             }
           })
         })
+      })
     },
     
-    // Удалить маску с тестового канваса
-    removeMaskFromTestCanvas(maskName) {
-      if (this.testMaskItems && this.testMaskItems[maskName]) {
+    // Удалить маску с канваса
+    removeMaskFromCanvas(maskName) {
+      if (this.maskItems && this.maskItems[maskName]) {
         console.log('🗑️ Удаляем маску:', maskName)
         
-        const maskItem = this.testMaskItems[maskName]
+        const maskItem = this.maskItems[maskName]
         if (maskItem && maskItem.parent) {
           maskItem.remove()
           console.log('✅ Маска удалена из проекта')
         }
-        delete this.testMaskItems[maskName]
+        delete this.maskItems[maskName]
         
-        this.testPaperScope.view.draw()
+        this.paperScope.view.draw()
       }
     },
     
@@ -918,28 +973,7 @@ export default {
     
 
     
-    // Изменение размера канваса
-    resizeCanvas() {
-      const canvas = this.$refs.paperCanvas
-      const container = canvas.parentElement.parentElement // Получаем canvas-container
-      const rect = container.getBoundingClientRect()
-      
-      // Устанавливаем соотношение сторон 19:9
-      const targetWidth = rect.width
-      const targetHeight = (targetWidth * 9) / 19
-      
-      // Устанавливаем CSS размер для отображения
-      canvas.style.width = targetWidth + 'px'
-      canvas.style.height = targetHeight + 'px'
-      
-      // Устанавливаем внутреннее разрешение canvas
-      canvas.width = targetWidth
-      canvas.height = targetHeight
-      
-      if (this.paperScope) {
-        this.paperScope.view.viewSize = new this.paperScope.Size(canvas.width, canvas.height)
-      }
-    },
+
     
     // Генерация стикеров
     generateStickers() {
@@ -1456,8 +1490,8 @@ export default {
             
             this.uploadedImages.push(newImage)
             
-            // Обновляем тестовый канвас если есть выбранные маски
-            this.updateTestCanvasWithImages()
+            // Обновляем канвас если есть выбранные маски
+            this.updateCanvasWithImages()
             
             this.generateStickers()
           }
@@ -1472,110 +1506,248 @@ export default {
     removeImage(index) {
       this.uploadedImages.splice(index, 1)
       
-      // Обновляем тестовый канвас
-      this.updateTestCanvasWithImages()
+      // Обновляем канвас
+      this.updateCanvasWithImages()
       
       this.generateStickers()
     },
     
-    // Обновление тестового канваса с изображениями
-    updateTestCanvasWithImages() {
-      if (!this.testPaperScope) return
+    // Обновление канваса с изображениями
+    updateCanvasWithImages() {
+      if (!this.paperScope) return
       
-      // Создаем белый слой-прослойку для скрытия больших фотографий
-      this.createWhiteOverlayLayer()
+      // Очищаем канвас
+      this.paperScope.project.clear()
       
-      // Перерисовываем все выбранные маски с новыми изображениями
+      // Последовательно создаем слои
+      this.createLayersSequentially()
+    },
+    
+    // Последовательное создание слоев
+    async createLayersSequentially() {
+      if (!this.paperScope) return
+      
+      console.log('🎨 Начинаем последовательное создание слоев')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
+      // 1. Создаем белый слой-прослойку (самый нижний)
+      await this.createWhiteOverlayLayer()
+      console.log('⬜ Белый слой создан')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
+      // 2. Добавляем все выбранные маски с изображениями
+      const maskPromises = []
       this.stickerMasks.forEach(mask => {
         if (mask.selected) {
-          // Удаляем старую маску
-          if (this.testMaskItems[mask.name]) {
-            this.testMaskItems[mask.name].remove()
-            delete this.testMaskItems[mask.name]
-          }
-          
-          // Добавляем новую маску с изображением
-          this.addMaskToTestCanvas(mask)
+          maskPromises.push(this.addMaskToCanvas(mask))
         }
       })
+      
+      // Ждем завершения всех операций с масками
+      await Promise.all(maskPromises)
+      console.log('🎭 Все маски добавлены')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
+      console.log('✅ Все слои созданы последовательно')
+      this.paperScope.view.draw()
+      console.log('🎨 Канвас перерисован')
     },
     
     // Создание белого слоя-прослойки
-    createWhiteOverlayLayer() {
-      if (!this.testPaperScope) return
+    async createWhiteOverlayLayer() {
+      if (!this.paperScope) return
       
       // Удаляем старый слой-прослойку, если он существует
       if (this.whiteOverlayLayer) {
         this.whiteOverlayLayer.remove()
       }
       
+      // Скрываем все большие растры перед созданием белого слоя
+      this.paperScope.project.activeLayer.children.forEach(child => {
+        if (child.className === 'Raster' && child.bounds && 
+            (child.bounds.width > 500 || child.bounds.height > 500)) {
+          console.log('👁️ Скрываем большой растр:', child.bounds)
+          child.visible = false
+        }
+      })
+      console.log('👁️ Все большие растры скрыты')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
       // Создаем белый прямоугольник на весь размер канваса
-      const canvasSize = this.testPaperScope.view.viewSize
-      const whiteRect = new this.testPaperScope.Path.Rectangle(
-        new this.testPaperScope.Point(0, 0),
-        new this.testPaperScope.Point(canvasSize.width, canvasSize.height)
+      const canvasSize = this.paperScope.view.viewSize
+      const whiteRect = new this.paperScope.Path.Rectangle(
+        new this.paperScope.Point(0, 0),
+        new this.paperScope.Point(canvasSize.width, canvasSize.height)
       )
       
       whiteRect.fillColor = 'white'
       whiteRect.strokeColor = null
       
       // Создаем группу для слоя-прослойки
-      this.whiteOverlayLayer = new this.testPaperScope.Group()
+      this.whiteOverlayLayer = new this.paperScope.Group()
       this.whiteOverlayLayer.addChild(whiteRect)
       
       // Добавляем слой-прослойку в проект
-      this.testPaperScope.project.activeLayer.addChild(this.whiteOverlayLayer)
+      this.paperScope.project.activeLayer.addChild(this.whiteOverlayLayer)
       
       // Перемещаем слой-прослойку под все маски (но поверх больших фотографий)
       this.whiteOverlayLayer.sendToBack()
       
       console.log('🟦 Белый слой-прослойка создан')
+      await new Promise(resolve => setTimeout(resolve, 10))
     },
     
     // Инициализация Three.js
     initThreeJS() {
       const canvas = this.$refs.threeCanvas
+      if (!canvas) return
       
-      // Сцена
+      console.log('🎨 Инициализация Three.js')
+      
+      // Создаем сцену
       this.threeInstance.scene = new THREE.Scene()
       
-      // Камера
-      this.threeInstance.camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000)
-      this.threeInstance.camera.position.set(15, 0, 15)
-      this.threeInstance.camera.lookAt(0, 0, 0)
+      // Создаем камеру
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      const aspect = rect.width / rect.height
       
-      // Рендерер
-      this.threeInstance.renderer = new THREE.WebGLRenderer({ canvas, alpha: true })
-      this.threeInstance.renderer.setSize(canvas.clientWidth, canvas.clientHeight)
-      this.threeInstance.renderer.setClearColor(0x000000, 0)
+      this.threeInstance.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000)
+      this.threeInstance.camera.position.set(0, 0, 15)
       
-      // Освещение
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
-      this.threeInstance.scene.add(ambientLight)
+      // Создаем рендерер с высоким качеством
+      this.threeInstance.renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        alpha: true, 
+        antialias: true,
+        preserveDrawingBuffer: true
+      })
       
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-      directionalLight.position.set(10, 10, 5)
-      this.threeInstance.scene.add(directionalLight)
+      // Настраиваем рендерер для лучшего отображения цветов
+      this.threeInstance.renderer.toneMapping = THREE.NoToneMapping
+      this.threeInstance.renderer.outputColorSpace = THREE.SRGBColorSpace
       
-      // Создаем кружку (цилиндр)
-      const cylinderGeometry = new THREE.CylinderGeometry(4, 4, 9.5, 32)
-      const cylinderMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff })
-      this.threeInstance.cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial)
+      // Устанавливаем размеры с учетом device pixel ratio
+      const devicePixelRatio = window.devicePixelRatio || 1
+      const targetWidth = rect.width * devicePixelRatio
+      const targetHeight = rect.height * devicePixelRatio
       
-      // Группа для кружки
+      this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
+      canvas.style.width = rect.width + 'px'
+      canvas.style.height = rect.height + 'px'
+      
+      this.threeInstance.renderer.setClearColor(0xf8f9fa, 0)
+      this.threeInstance.renderer.setPixelRatio(devicePixelRatio)
+      
+      // Создаем цилиндр (кружка)
+      const radius = 4 // Диаметр 8, радиус 4
+      const height = 9.5
+      const radialSegments = 64 // Увеличили количество радиальных сегментов для сглаживания
+      const heightSegments = 16 // Увеличили количество сегментов по высоте
+      
+      const geometry = new THREE.CylinderGeometry(radius, radius, height, radialSegments, heightSegments, true)
+      
+      // Создаем белый материал для кружки
+      const cylinderMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff,
+        transparent: false, // Убираем прозрачность
+        opacity: 1.0,
+        depthWrite: true,
+        depthTest: true
+      })
+      
+      // Создаем группу для объединения кружки и поверхности печати
       this.threeInstance.mugGroup = new THREE.Group()
-      this.threeInstance.mugGroup.add(this.threeInstance.cylinder)
       this.threeInstance.scene.add(this.threeInstance.mugGroup)
       
-      // Поверхность для печати
-      const printGeometry = new THREE.PlaneGeometry(16, 8.5)
-      const printMaterial = new THREE.MeshBasicMaterial({ 
+      // Добавляем кружку в группу
+      this.threeInstance.cylinder = new THREE.Mesh(geometry, cylinderMaterial)
+      this.threeInstance.mugGroup.add(this.threeInstance.cylinder)
+      
+      // Создаем кастомную геометрию для области печати (прямоугольник, обернутый вокруг кружки)
+      const printSurfaceRadius = radius + 0.02 // Увеличили радиус для предотвращения просвечивания
+      const printSurfaceHeight = height
+      
+      // Вычисляем размеры области печати с учетом соотношения 19:9
+      const cylinderCircumference = 2 * Math.PI * printSurfaceRadius
+      const targetRatio = 19 / 9
+      const maxPrintWidth = printSurfaceHeight * targetRatio
+      
+      // Определяем размеры области печати
+      let printWidth, printHeight
+      if (maxPrintWidth > cylinderCircumference) {
+        printWidth = cylinderCircumference
+        printHeight = cylinderCircumference / targetRatio
+      } else {
+        printWidth = maxPrintWidth
+        printHeight = printSurfaceHeight
+      }
+      
+      // Вычисляем углы для области печати
+      const angleWidth = (printWidth / cylinderCircumference) * Math.PI * 2
+      const angleStart = -angleWidth / 2 // Центрируем область печати
+      const angleEnd = angleWidth / 2
+      
+      // Создаем кастомную геометрию
+      const printSurfaceGeometry = new THREE.BufferGeometry()
+      
+      // Создаем вершины для прямоугольной области печати
+      const vertices = []
+      const uvs = []
+      const indices = []
+      
+      // Количество сегментов для создания плавной поверхности
+      const segmentsX = 32 // Увеличили для более плавной поверхности
+      const segmentsY = 16 // Увеличили для более плавной поверхности
+      
+      // Создаем сетку вершин
+      for (let y = 0; y <= segmentsY; y++) {
+        for (let x = 0; x <= segmentsX; x++) {
+          const angle = angleStart + (angleEnd - angleStart) * (x / segmentsX)
+          const heightPos = (y / segmentsY - 0.5) * printHeight
+          
+          // Позиция вершины
+          const xPos = printSurfaceRadius * Math.cos(angle)
+          const zPos = printSurfaceRadius * Math.sin(angle)
+          const yPos = heightPos
+          
+          vertices.push(xPos, yPos, zPos)
+          
+          // UV координаты
+          uvs.push(x / segmentsX, 1 - y / segmentsY)
+        }
+      }
+      
+      // Создаем индексы для треугольников
+      for (let y = 0; y < segmentsY; y++) {
+        for (let x = 0; x < segmentsX; x++) {
+          const a = y * (segmentsX + 1) + x
+          const b = a + 1
+          const c = (y + 1) * (segmentsX + 1) + x
+          const d = c + 1
+          
+          indices.push(a, b, c)
+          indices.push(b, d, c)
+        }
+      }
+      
+      // Устанавливаем атрибуты геометрии
+      printSurfaceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+      printSurfaceGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+      printSurfaceGeometry.setIndex(indices)
+      printSurfaceGeometry.computeVertexNormals()
+      
+      // Создаем материал для поверхности печати
+      const printSurfaceMaterial = new THREE.MeshBasicMaterial({ 
         color: 0xffffff,
         transparent: true,
-        opacity: 0.9
+        opacity: 1.0,
+        depthWrite: false,
+        depthTest: false
       })
-      this.threeInstance.printSurface = new THREE.Mesh(printGeometry, printMaterial)
-      this.threeInstance.printSurface.position.z = 4.01
+      
+      // Создаем поверхность печати
+      this.threeInstance.printSurface = new THREE.Mesh(printSurfaceGeometry, printSurfaceMaterial)
       this.threeInstance.mugGroup.add(this.threeInstance.printSurface)
       
       // Анимация вращения
@@ -1586,33 +1758,126 @@ export default {
       }
       animate()
       
-      // Обработчик изменения размера
-      window.addEventListener('resize', this.resizeThreeCanvas)
+      console.log('✅ Three.js инициализирован')
     },
     
     // Изменение размера Three.js канваса
     resizeThreeCanvas() {
       const canvas = this.$refs.threeCanvas
-      this.threeInstance.camera.aspect = canvas.clientWidth / canvas.clientHeight
+      if (!canvas || !this.threeInstance.renderer || !this.threeInstance.camera) return
+      
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      const aspect = rect.width / rect.height
+      
+      this.threeInstance.camera.aspect = aspect
       this.threeInstance.camera.updateProjectionMatrix()
-      this.threeInstance.renderer.setSize(canvas.clientWidth, canvas.clientHeight)
+      
+      const devicePixelRatio = window.devicePixelRatio || 1
+      const targetWidth = rect.width * devicePixelRatio
+      const targetHeight = rect.height * devicePixelRatio
+      
+      this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
+      canvas.style.width = rect.width + 'px'
+      canvas.style.height = rect.height + 'px'
     },
     
     // Обновление текстуры 3D модели
     updateThreeTexture() {
-      if (!this.threeInstance.printSurface || !this.paperScope) return
-      
-      const canvas = this.$refs.paperCanvas
-      const texture = new THREE.CanvasTexture(canvas)
-      
-      if (this.threeInstance.printSurface.material.map) {
-        this.threeInstance.printSurface.material.map.dispose()
+      if (!this.threeInstance.printSurface) {
+        console.log('🔸 Поверхность печати не найдена')
+        return
       }
       
-      this.threeInstance.printSurface.material.map = texture
-      this.threeInstance.printSurface.material.needsUpdate = true
+      // Получаем canvas с сеткой
+      const paperCanvas = this.$refs.testCanvas
+      if (!paperCanvas) {
+        console.log('🔸 Paper canvas не найден')
+        return
+      }
       
-      console.log('✅ Текстура обновлена успешно')
+      // Проверяем, что canvas имеет размеры и готов к рендерингу
+      if (paperCanvas.width === 0 || paperCanvas.height === 0) {
+        console.log('🔸 Canvas еще не готов, откладываем обновление')
+        setTimeout(() => {
+          this.updateThreeTexture()
+        }, 100)
+        return
+      }
+      
+      try {
+        // Создаем текстуру из canvas с высоким качеством
+        const texture = new THREE.CanvasTexture(paperCanvas)
+        texture.needsUpdate = true
+        
+        // Ждем, пока текстура загрузится
+        texture.addEventListener('load', () => {
+          console.log('✅ Текстура загружена успешно')
+        })
+        
+        // Настраиваем параметры текстуры для высокого качества и насыщенных цветов
+        texture.generateMipmaps = false
+        texture.minFilter = THREE.LinearFilter
+        texture.magFilter = THREE.LinearFilter
+        texture.format = THREE.RGBAFormat
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.flipY = false // Предотвращаем переворот текстуры
+        
+        // Создаем материал с текстурой для насыщенных цветов
+        const material = new THREE.MeshBasicMaterial({ 
+          map: texture,
+          transparent: true,
+          opacity: 1.0,
+          color: 0xffffff, // Белый цвет для сохранения оригинальных цветов
+          toneMapped: false // Отключаем tone mapping для сохранения яркости
+        })
+        
+        // Обновляем материал поверхности печати
+        if (this.threeInstance.printSurface.material) {
+          this.threeInstance.printSurface.material.dispose()
+        }
+        this.threeInstance.printSurface.material = material
+        
+        console.log('✅ Текстура обновлена успешно')
+      } catch (error) {
+        console.error('❌ Ошибка при обновлении текстуры:', error)
+      }
+    },
+    
+    cleanupThreeJS() {
+      if (this.threeInstance.animationId) {
+        cancelAnimationFrame(this.threeInstance.animationId)
+        this.threeInstance.animationId = null
+      }
+      
+      if (this.threeInstance.renderer) {
+        this.threeInstance.renderer.dispose()
+        this.threeInstance.renderer = null
+      }
+      
+      if (this.threeInstance.cylinder) {
+        this.threeInstance.cylinder.geometry.dispose()
+        if (this.threeInstance.cylinder.material) {
+          this.threeInstance.cylinder.material.dispose()
+        }
+        this.threeInstance.cylinder = null
+      }
+      
+      if (this.threeInstance.printSurface) {
+        this.threeInstance.printSurface.geometry.dispose()
+        if (this.threeInstance.printSurface.material) {
+          this.threeInstance.printSurface.material.dispose()
+        }
+        this.threeInstance.printSurface = null
+      }
+      
+      if (this.threeInstance.mugGroup) {
+        this.threeInstance.mugGroup.clear()
+        this.threeInstance.mugGroup = null
+      }
+      
+      this.threeInstance.scene = null
+      this.threeInstance.camera = null
     }
   }
 }
@@ -1639,13 +1904,14 @@ export default {
   background: #fff;
 }
 
-.paper-canvas {
+.test-canvas {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   display: block;
+  box-shadow: 4px 4px 12px 0 rgba(0,0,0,.15);
 }
 
 .canvas-overlay {
@@ -1744,11 +2010,20 @@ export default {
   border: 1px solid #dee2e6;
 }
 
-.test-canvas {
-  width: 100%;
-  height: auto;
-  display: block;
-  box-shadow: 4px 4px 12px 0 rgba(0,0,0,.15);
-  max-width: 100%;
+.card {
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
 }
+
+.card-body {
+  padding: 1rem;
+}
+
+.card-body.p-0 {
+  padding: 0 !important;
+}
+
 </style>

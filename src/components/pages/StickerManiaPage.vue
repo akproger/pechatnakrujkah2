@@ -418,7 +418,9 @@ export default {
       isFirstTime: true,
       texts: [],
       textItems: [], // Массив для отслеживания текстовых элементов на канвасе
-      htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
+              htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
+        activeTextElement: null, // Активный текстовый элемент для редактирования
+        textControlStates: {}, // Состояния управления для каждого текста
       
       // Маски стикеров
       stickerMasks: [
@@ -2576,7 +2578,7 @@ export default {
           color: ${text.color || '#FF0000'};
           text-align: ${text.textAlign || 'center'};
           z-index: 1000;
-          pointer-events: none;
+          pointer-events: auto;
           background-color: ${backgroundStyle};
           padding: ${padding};
           border-radius: ${borderRadius};
@@ -2584,7 +2586,38 @@ export default {
           font-weight: bold;
           min-width: fit-content;
           box-sizing: border-box;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.1s ease, font-size 0.1s ease;
         `
+        
+        // Добавляем уникальный ID для текста
+        const textId = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        textElement.dataset.textId = textId
+        
+        // Инициализируем состояние управления
+        this.textControlStates[textId] = {
+          isActive: false,
+          isMoving: false,
+          isScaling: false,
+          isRotating: false,
+          hasChanges: false,
+          originalTransform: '',
+          startX: 0,
+          startY: 0,
+          startScale: 1,
+          startRotation: 0
+        }
+        
+        // Добавляем обработчик клика
+        textElement.addEventListener('click', (e) => {
+          e.stopPropagation()
+          if (this.handleTextClick) {
+            this.handleTextClick(textElement, textId)
+          } else {
+            console.warn('Метод handleTextClick не найден')
+          }
+        })
         
         // Добавляем элемент в контейнер канваса
         const canvasContainer = canvas.parentElement
@@ -2720,6 +2753,606 @@ export default {
       // Здесь будет логика создания маски из текста
       // Пока оставляем заглушку
       console.log('Создание текстовой маски:', text)
+    },
+    
+    // Обработка клика по тексту
+    handleTextClick(textElement, textId) {
+      console.log('🎯 handleTextClick вызван:', textId)
+      
+      const state = this.textControlStates[textId]
+      
+      if (!state) {
+        console.warn('Состояние не найдено для текста:', textId)
+        return
+      }
+      
+      // Если уже активно, деактивируем
+      if (state.isActive) {
+        this.deactivateTextControls(textId)
+        return
+      }
+      
+      // Активируем управление
+      this.activateTextControls(textElement, textId)
+    },
+    
+    // Активация элементов управления текстом
+    activateTextControls(textElement, textId) {
+      console.log('🎯 activateTextControls вызван:', textId)
+      
+      const state = this.textControlStates[textId]
+      if (!state) {
+        console.warn('Состояние не найдено для активации:', textId)
+        return
+      }
+      
+      // Деактивируем предыдущий активный элемент
+      if (this.activeTextElement && this.activeTextElement !== textElement) {
+        const prevId = this.activeTextElement.dataset.textId
+        if (prevId) {
+          this.deactivateTextControls(prevId)
+        }
+      }
+      
+      this.activeTextElement = textElement
+      state.isActive = true
+      
+      // Сохраняем оригинальное состояние
+      state.originalTransform = textElement.style.transform
+      
+      // Создаем элементы управления
+      this.createTextControls(textElement, textId)
+      
+      console.log('🎯 Активированы элементы управления для текста:', textId)
+    },
+    
+    // Деактивация элементов управления
+    deactivateTextControls(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      state.isActive = false
+      state.isMoving = false
+      state.isScaling = false
+      state.isRotating = false
+      
+      // Удаляем элементы управления
+      this.removeTextControls(textId)
+      
+      if (this.activeTextElement && this.activeTextElement.dataset.textId === textId) {
+        this.activeTextElement = null
+      }
+      
+      console.log('🎯 Деактивированы элементы управления для текста:', textId)
+    },
+    
+    // Создание элементов управления
+    createTextControls(textElement, textId) {
+      const controlsContainer = document.createElement('div')
+      controlsContainer.className = 'text-controls'
+      controlsContainer.dataset.textId = textId
+      controlsContainer.style.cssText = `
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        z-index: 1001;
+        pointer-events: auto;
+      `
+      
+      // Иконка перемещения
+      const moveIcon = this.createControlIcon('bi-arrows-move', 'Перемещение', () => {
+        this.toggleTextMove(textId)
+      })
+      
+      // Иконка масштабирования
+      const scaleIcon = this.createControlIcon('bi-arrows-angle-expand', 'Масштаб', () => {
+        this.toggleTextScale(textId)
+      })
+      
+      // Иконка поворота
+      const rotateIcon = this.createControlIcon('bi-arrow-clockwise', 'Поворот', () => {
+        this.toggleTextRotate(textId)
+      })
+      
+      controlsContainer.appendChild(moveIcon)
+      controlsContainer.appendChild(scaleIcon)
+      controlsContainer.appendChild(rotateIcon)
+      
+      // Добавляем контейнер к текстовому элементу
+      textElement.appendChild(controlsContainer)
+      
+      // Добавляем обработчик клика вне элемента для деактивации
+      setTimeout(() => {
+        document.addEventListener('click', this.handleOutsideClick)
+      }, 100)
+    },
+    
+    // Создание иконки управления
+    createControlIcon(iconClass, title, onClick) {
+      const icon = document.createElement('div')
+      icon.className = `control-icon ${iconClass}`
+      icon.title = title
+      icon.style.cssText = `
+        width: 32px;
+        height: 32px;
+        background-color: #007bff;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      `
+      
+      icon.innerHTML = `<i class="bi ${iconClass}"></i>`
+      icon.addEventListener('click', (e) => {
+        e.stopPropagation()
+        onClick()
+      })
+      
+      // Hover эффект
+      icon.addEventListener('mouseenter', () => {
+        icon.style.backgroundColor = '#0056b3'
+        icon.style.transform = 'scale(1.1)'
+      })
+      
+      icon.addEventListener('mouseleave', () => {
+        icon.style.backgroundColor = '#007bff'
+        icon.style.transform = 'scale(1)'
+      })
+      
+      return icon
+    },
+    
+    // Удаление элементов управления
+    removeTextControls(textId) {
+      const controls = document.querySelector(`.text-controls[data-text-id="${textId}"]`)
+      if (controls) {
+        controls.remove()
+      }
+      
+      // Удаляем обработчик клика вне элемента
+      document.removeEventListener('click', this.handleOutsideClick)
+    },
+    
+    // Обработка клика вне элемента
+    handleOutsideClick(e) {
+      if (this.activeTextElement && !this.activeTextElement.contains(e.target)) {
+        const textId = this.activeTextElement.dataset.textId
+        if (textId) {
+          this.deactivateTextControls(textId)
+        }
+      }
+    },
+    
+    // Переключение режима перемещения
+    toggleTextMove(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      if (state.isMoving) {
+        this.stopTextMove(textId)
+      } else {
+        this.startTextMove(textId)
+      }
+    },
+    
+    // Начало перемещения
+    startTextMove(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      const textElement = this.htmlTextElements.find(el => el.dataset.textId === textId)
+      if (!textElement) return
+      
+      state.isMoving = true
+      state.isScaling = false
+      state.isRotating = false
+      
+      // Скрываем элементы управления
+      const controls = textElement.querySelector('.text-controls')
+      if (controls) {
+        controls.style.display = 'none'
+      }
+      
+      // Добавляем обработчики мыши
+      const handleMouseMove = (e) => {
+        if (!state.isMoving) return
+        
+        const rect = textElement.parentElement.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        
+        // Используем requestAnimationFrame для плавности
+        requestAnimationFrame(() => {
+          textElement.style.left = `${x}px`
+          textElement.style.top = `${y}px`
+          textElement.style.transform = 'translate(-50%, -50%)'
+        })
+        
+        state.hasChanges = true
+        this.showApplyButton(textId)
+      }
+      
+      const handleMouseUp = () => {
+        state.isMoving = false
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+        
+        // Показываем элементы управления
+        const controls = textElement.querySelector('.text-controls')
+        if (controls) {
+          controls.style.display = 'flex'
+        }
+      }
+      
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      
+      console.log('🔄 Начато перемещение текста:', textId)
+    },
+    
+    // Остановка перемещения
+    stopTextMove(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      state.isMoving = false
+      console.log('🔄 Остановлено перемещение текста:', textId)
+    },
+    
+    // Переключение режима масштабирования
+    toggleTextScale(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      if (state.isScaling) {
+        this.stopTextScale(textId)
+      } else {
+        this.startTextScale(textId)
+      }
+    },
+    
+    // Начало масштабирования
+    startTextScale(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      const textElement = this.htmlTextElements.find(el => el.dataset.textId === textId)
+      if (!textElement) return
+      
+      state.isScaling = true
+      state.isMoving = false
+      state.isRotating = false
+      state.startScale = parseFloat(textElement.style.fontSize) || 24
+      
+      // Скрываем элементы управления
+      const controls = textElement.querySelector('.text-controls')
+      if (controls) {
+        controls.style.display = 'none'
+      }
+      
+      // Добавляем обработчики мыши
+      const handleMouseMove = (e) => {
+        if (!state.isScaling) return
+        
+        const rect = textElement.parentElement.getBoundingClientRect()
+        const centerY = rect.top + rect.height / 2
+        const distance = Math.abs(e.clientY - centerY)
+        
+        // Более интуитивное масштабирование
+        const baseDistance = 50 // базовая дистанция для масштабирования
+        const scaleFactor = Math.max(0.3, Math.min(5, distance / baseDistance))
+        const scale = Math.max(0.5, Math.min(3, scaleFactor))
+        
+        const newSize = state.startScale * scale
+        
+        // Используем requestAnimationFrame для плавности
+        requestAnimationFrame(() => {
+          textElement.style.fontSize = `${newSize}px`
+        })
+        
+        state.hasChanges = true
+        this.showApplyButton(textId)
+      }
+      
+      const handleMouseUp = () => {
+        state.isScaling = false
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+        
+        // Показываем элементы управления
+        const controls = textElement.querySelector('.text-controls')
+        if (controls) {
+          controls.style.display = 'flex'
+        }
+      }
+      
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      
+      console.log('🔍 Начато масштабирование текста:', textId)
+    },
+    
+    // Остановка масштабирования
+    stopTextScale(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      state.isScaling = false
+      console.log('🔍 Остановлено масштабирование текста:', textId)
+    },
+    
+    // Переключение режима поворота
+    toggleTextRotate(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      if (state.isRotating) {
+        this.stopTextRotate(textId)
+      } else {
+        this.startTextRotate(textId)
+      }
+    },
+    
+    // Начало поворота
+    startTextRotate(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      const textElement = this.htmlTextElements.find(el => el.dataset.textId === textId)
+      if (!textElement) return
+      
+      state.isRotating = true
+      state.isMoving = false
+      state.isScaling = false
+      state.startRotation = 0
+      
+      // Скрываем элементы управления
+      const controls = textElement.querySelector('.text-controls')
+      if (controls) {
+        controls.style.display = 'none'
+      }
+      
+      // Создаем визуальный индикатор вращения
+      const rotationIndicator = this.createRotationIndicator(textElement)
+      textElement.appendChild(rotationIndicator)
+      
+      // Добавляем обработчики мыши
+      const handleMouseMove = (e) => {
+        if (!state.isRotating) return
+        
+        const rect = textElement.parentElement.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+        
+        // Вычисляем угол от центра текста до курсора
+        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI
+        let rotation = angle + 90
+        
+        // Нормализуем угол
+        rotation = rotation % 360
+        if (rotation < 0) rotation += 360
+        
+        // Обновляем визуальный индикатор
+        this.updateRotationIndicator(rotationIndicator, rotation)
+        
+        // Применяем вращение к тексту
+        requestAnimationFrame(() => {
+          textElement.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
+        })
+        
+        state.hasChanges = true
+        this.showApplyButton(textId)
+      }
+      
+      const handleMouseUp = () => {
+        state.isRotating = false
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+        
+        // Удаляем визуальный индикатор
+        if (rotationIndicator && rotationIndicator.parentNode) {
+          rotationIndicator.parentNode.removeChild(rotationIndicator)
+        }
+        
+        // Показываем элементы управления
+        const controls = textElement.querySelector('.text-controls')
+        if (controls) {
+          controls.style.display = 'flex'
+        }
+      }
+      
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      
+      console.log('🔄 Начато вращение текста:', textId)
+    },
+    
+    // Остановка поворота
+    stopTextRotate(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      state.isRotating = false
+      console.log('🔄 Остановлено вращение текста:', textId)
+    },
+    
+    // Показ кнопки "Применить"
+    showApplyButton(textId) {
+      const state = this.textControlStates[textId]
+      if (!state || !state.hasChanges) return
+      
+      const textElement = this.htmlTextElements.find(el => el.dataset.textId === textId)
+      if (!textElement) return
+      
+      // Удаляем существующую кнопку
+      const existingButton = textElement.querySelector('.apply-button')
+      if (existingButton) {
+        existingButton.remove()
+      }
+      
+      // Создаем кнопку "Применить"
+      const applyButton = document.createElement('div')
+      applyButton.className = 'apply-button'
+      applyButton.innerHTML = '<i class="bi bi-check-lg"></i>'
+      applyButton.title = 'Применить изменения'
+      applyButton.style.cssText = `
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 32px;
+        height: 32px;
+        background-color: #28a745;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        z-index: 1002;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+      `
+      
+      applyButton.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.applyTextChanges(textId)
+      })
+      
+      // Hover эффект
+      applyButton.addEventListener('mouseenter', () => {
+        applyButton.style.backgroundColor = '#218838'
+        applyButton.style.transform = 'scale(1.1)'
+      })
+      
+      applyButton.addEventListener('mouseleave', () => {
+        applyButton.style.backgroundColor = '#28a745'
+        applyButton.style.transform = 'scale(1)'
+      })
+      
+      textElement.appendChild(applyButton)
+    },
+    
+    // Применение изменений
+    applyTextChanges(textId) {
+      const state = this.textControlStates[textId]
+      if (!state) return
+      
+      state.hasChanges = false
+      
+      // Удаляем кнопку "Применить"
+      const textElement = this.htmlTextElements.find(el => el.dataset.textId === textId)
+      if (textElement) {
+        const applyButton = textElement.querySelector('.apply-button')
+        if (applyButton) {
+          applyButton.remove()
+        }
+      }
+      
+      console.log('✅ Изменения применены для текста:', textId)
+    },
+    
+    // Создание визуального индикатора вращения
+    createRotationIndicator(textElement) {
+      const indicator = document.createElement('div')
+      indicator.className = 'rotation-indicator'
+      indicator.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 120px;
+        height: 120px;
+        border: 2px solid #007bff;
+        border-radius: 50%;
+        background: rgba(0, 123, 255, 0.1);
+        pointer-events: none;
+        z-index: 1003;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `
+      
+      // Создаем сегмент (линию от центра до края)
+      const segment = document.createElement('div')
+      segment.className = 'rotation-segment'
+      segment.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 2px;
+        background: #007bff;
+        transform-origin: left center;
+        transform: translateY(-50%) rotate(0deg);
+        border-radius: 1px;
+        box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
+      `
+      
+      // Создаем точку на конце сегмента
+      const endPoint = document.createElement('div')
+      endPoint.className = 'rotation-endpoint'
+      endPoint.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: #007bff;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 6px rgba(0, 123, 255, 0.8);
+        border: 2px solid white;
+      `
+      
+      // Создаем центральную точку
+      const centerPoint = document.createElement('div')
+      centerPoint.className = 'rotation-center'
+      centerPoint.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        background: #007bff;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 4px rgba(0, 123, 255, 0.6);
+        border: 1px solid white;
+      `
+      
+      indicator.appendChild(segment)
+      indicator.appendChild(endPoint)
+      indicator.appendChild(centerPoint)
+      
+      return indicator
+    },
+    
+    // Обновление визуального индикатора вращения
+    updateRotationIndicator(indicator, angle) {
+      const segment = indicator.querySelector('.rotation-segment')
+      const endPoint = indicator.querySelector('.rotation-endpoint')
+      
+      if (segment && endPoint) {
+        // Обновляем сегмент
+        segment.style.transform = `translateY(-50%) rotate(${angle}deg)`
+        
+        // Обновляем позицию конечной точки
+        const radius = 60 // радиус круга
+        const radian = (angle - 90) * Math.PI / 180 // конвертируем в радианы и корректируем
+        const x = Math.cos(radian) * radius
+        const y = Math.sin(radian) * radius
+        
+        endPoint.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
+      }
     }
   }
 }
@@ -2730,6 +3363,82 @@ export default {
   min-height: 100vh;
   background-color: #f8f9fa;
   padding: 20px 0;
+}
+
+/* Стили для элементов управления текстом */
+.text-controls {
+  animation: fadeIn 0.3s ease;
+}
+
+.control-icon {
+  transition: all 0.2s ease;
+}
+
+.control-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.apply-button {
+  animation: bounceIn 0.3s ease;
+}
+
+.apply-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Стили для индикатора вращения */
+.rotation-indicator {
+  animation: fadeInScale 0.3s ease;
+}
+
+.rotation-segment {
+  transition: transform 0.1s ease;
+}
+
+.rotation-endpoint {
+  transition: transform 0.1s ease;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .page-title {

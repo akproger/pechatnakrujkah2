@@ -422,6 +422,7 @@ export default {
               htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
         activeTextElement: null, // Активный текстовый элемент для редактирования
         textControlStates: {}, // Состояния управления для каждого текста
+        textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
       
       // Маски стикеров
       stickerMasks: [
@@ -2703,6 +2704,10 @@ export default {
                 console.log('✅ Подложка добавлена в слой:', background.parent ? background.parent.name : 'Корневой слой')
                 console.log('✅ ID подложки:', background.id)
                 console.log('✅ Метаданные подложки:', background.data)
+                
+                // СОХРАНЯЕМ ПРЯМУЮ СВЯЗЬ С ПОДЛОЖКОЙ!
+                this.textBackgroundMap[textItem.id] = background
+                console.log('🔗 ПРЯМАЯ СВЯЗЬ: Подложка сохранена в карте для textItem.id:', textItem.id)
               } else {
                 console.warn('❌ Не удалось создать подложку для текста:', text.content)
               }
@@ -2776,7 +2781,8 @@ export default {
           lastRotation: null,
           continuousRotation: 0,
           lastMouseX: null,
-          paperItem: textItem
+          paperItem: textItem,
+          backgroundItem: null // ПРЯМАЯ СВЯЗЬ С ПОДЛОЖКОЙ!
         }
         
         // Добавляем обработчик клика
@@ -3855,131 +3861,76 @@ export default {
       })
     },
     
-    // Обновление подложки текста при трансформациях
+    // Обновление подложки текста при трансформациях - ПРЯМАЯ СВЯЗЬ!
     updateTextBackground(textItem, rotation = null) {
       if (!this.paperScope || !this.paperScope.project) return
       
       console.log('🔄 Обновление подложки для текста:', textItem.content, 'rotation:', rotation)
       console.log('🔄 ID текстового элемента:', textItem.id)
       
-      let foundBackground = false
-      let totalItems = 0
-      let itemsWithData = 0
+      // ПРЯМАЯ СВЯЗЬ: Получаем подложку из карты!
+      const background = this.textBackgroundMap[textItem.id]
       
-      // Функция для рекурсивного поиска элементов во всех слоях
-      const searchInLayer = (layer, depth = 0) => {
-        let layerItems = 0
-        let layerItemsWithData = 0
+      if (background) {
+        console.log('🎨 ПРЯМАЯ СВЯЗЬ: Подложка найдена в карте!', background)
+        console.log('🎨 Тип подложки:', background.constructor.name)
+        console.log('🎨 Текущие свойства подложки:', {
+          bounds: background.bounds,
+          position: background.position,
+          rotation: background.rotation
+        })
         
-        // Ищем элементы в текущем слое
-        if (layer.children) {
-          layer.children.forEach(child => {
-            totalItems++
-            layerItems++
-            
-            if (child.data) {
-              itemsWithData++
-              layerItemsWithData++
-              console.log(`🔍 Элемент ${totalItems} (слой ${depth}):`, {
-                type: child.constructor.name,
-                data: child.data,
-                id: child.id,
-                bounds: child.bounds,
-                position: child.position,
-                rotation: child.rotation,
-                layer: layer.name || `Layer${depth}`
-              })
-              
-              if (child.data.isTextBackground && child.data.textId === textItem.id) {
-                foundBackground = true
-                console.log('🎨 Найдена подложка для обновления:', child)
-                console.log('🎨 Тип подложки:', child.constructor.name)
-                console.log('🎨 Слой подложки:', layer.name || `Layer${depth}`)
-                console.log('🎨 Текущие свойства подложки:', {
-                  bounds: child.bounds,
-                  position: child.position,
-                  rotation: child.rotation
-                })
-                
-                // Получаем текущие границы текста
-                const textBounds = textItem.bounds
-                if (textBounds) {
-                  console.log('📐 Границы текста:', textBounds)
-                  console.log('📐 Позиция текста:', textItem.position)
-                  
-                  // Создаем новые границы с отступами
-                  const expandedBounds = textBounds.expand(12)
-                  console.log('📐 Расширенные границы подложки:', expandedBounds)
-                  
-                  // Обновляем позицию и размер подложки правильно
-                  if (child instanceof this.paperScope.Path.Rectangle) {
-                    // Для прямоугольников обновляем rectangle
-                    console.log('🔄 Обновляем rectangle подложки с:', child.rectangle, 'на:', expandedBounds)
-                    child.rectangle = expandedBounds
-                    console.log('🔄 Обновлен rectangle подложки')
-                  } else if (child instanceof this.paperScope.Path.Ellipse) {
-                    // Для эллипсов обновляем center и size
-                    console.log('🔄 Обновляем center подложки с:', child.center, 'на:', expandedBounds.center)
-                    console.log('🔄 Обновляем size подложки с:', child.size, 'на:', expandedBounds.size)
-                    child.center = expandedBounds.center
-                    child.size = expandedBounds.size
-                    console.log('🔄 Обновлен center и size подложки')
-                  } else {
-                    // Для других типов используем bounds
-                    try {
-                      console.log('🔄 Обновляем bounds подложки с:', child.bounds, 'на:', expandedBounds)
-                      child.bounds = expandedBounds
-                      console.log('🔄 Обновлены bounds подложки')
-                    } catch (error) {
-                      console.warn('⚠️ Не удалось обновить bounds подложки:', error)
-                    }
-                  }
-                  
-                  // Если передана ротация, применяем её к подложке
-                  if (rotation !== null) {
-                    console.log('🔄 Применяем ротацию к подложке:', rotation, 'радиан')
-                    child.rotation = rotation
-                    console.log('🔄 Применена ротация к подложке:', rotation)
-                  }
-                  
-                  console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
-                  console.log('✅ Новые свойства подложки:', {
-                    bounds: child.bounds,
-                    position: child.position,
-                    rotation: child.rotation
-                  })
-                }
-              }
+        // Получаем текущие границы текста
+        const textBounds = textItem.bounds
+        if (textBounds) {
+          console.log('📐 Границы текста:', textBounds)
+          console.log('📐 Позиция текста:', textItem.position)
+          
+          // Создаем новые границы с отступами
+          const expandedBounds = textBounds.expand(12)
+          console.log('📐 Расширенные границы подложки:', expandedBounds)
+          
+          // Обновляем позицию и размер подложки правильно
+          if (background instanceof this.paperScope.Path.Rectangle) {
+            // Для прямоугольников обновляем rectangle
+            console.log('🔄 Обновляем rectangle подложки с:', background.rectangle, 'на:', expandedBounds)
+            background.rectangle = expandedBounds
+            console.log('🔄 Обновлен rectangle подложки')
+          } else if (background instanceof this.paperScope.Path.Ellipse) {
+            // Для эллипсов обновляем center и size
+            console.log('🔄 Обновляем center подложки с:', background.center, 'на:', expandedBounds.center)
+            console.log('🔄 Обновляем size подложки с:', background.size, 'на:', expandedBounds.size)
+            background.center = expandedBounds.center
+            background.size = expandedBounds.size
+            console.log('🔄 Обновлен center и size подложки')
+          } else {
+            // Для других типов используем bounds
+            try {
+              console.log('🔄 Обновляем bounds подложки с:', background.bounds, 'на:', expandedBounds)
+              background.bounds = expandedBounds
+              console.log('🔄 Обновлены bounds подложки')
+            } catch (error) {
+              console.warn('⚠️ Не удалось обновить bounds подложки:', error)
             }
-            
-            // Рекурсивно ищем в дочерних слоях
-            if (child.children && child.children.length > 0) {
-              searchInLayer(child, depth + 1)
-            }
+          }
+          
+          // Если передана ротация, применяем её к подложке
+          if (rotation !== null) {
+            console.log('🔄 Применяем ротацию к подложке:', rotation, 'радиан')
+            background.rotation = rotation
+            console.log('🔄 Применена ротация к подложке:', rotation)
+          }
+          
+          console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
+          console.log('✅ Новые свойства подложки:', {
+            bounds: background.bounds,
+            position: background.position,
+            rotation: background.rotation
           })
         }
-        
-        console.log(`📊 Слой ${depth}: элементов ${layerItems}, с метаданными ${layerItemsWithData}`)
-      }
-      
-      // Начинаем поиск с корневого слоя
-      searchInLayer(this.paperScope.project)
-      
-      console.log(`📊 Статистика: всего элементов ${totalItems}, с метаданными ${itemsWithData}`)
-      
-      if (!foundBackground) {
-        console.warn('⚠️ Подложка не найдена для текста:', textItem.content, 'ID:', textItem.id)
-        console.warn('⚠️ Проверяем все элементы с метаданными isTextBackground:')
-        this.paperScope.project.getItems().forEach(item => {
-          if (item.data && item.data.isTextBackground) {
-            console.log('🔍 Подложка:', {
-              id: item.id,
-              textId: item.data.textId,
-              type: item.constructor.name,
-              bounds: item.bounds
-            })
-          }
-        })
+      } else {
+        console.warn('⚠️ Подложка не найдена в карте для текста:', textItem.content, 'ID:', textItem.id)
+        console.warn('⚠️ Доступные записи в карте:', Object.keys(this.textBackgroundMap))
       }
     }
   }

@@ -2448,7 +2448,9 @@ export default {
     
     // Обработка изменения текстов
     handleTextsChanged(texts) {
+      console.log('🔄 handleTextsChanged вызван с текстами:', texts)
       this.texts = texts
+      console.log('📝 Массив текстов обновлен, вызываем updateCanvasWithTexts')
       this.updateCanvasWithTexts()
       
       // Дополнительно обновляем 3D текстуру
@@ -2498,8 +2500,10 @@ export default {
     
     // Обновление канваса с текстами
     updateCanvasWithTexts() {
+      console.log('🚀 updateCanvasWithTexts вызван')
       // Используем nextTick для безопасной обновления
       this.$nextTick(() => {
+        console.log('🔄 nextTick выполнен')
         try {
           // Удаляем существующие HTML текстовые элементы
           this.htmlTextElements.forEach(element => {
@@ -2523,6 +2527,8 @@ export default {
           }
           
           // Добавляем видимые тексты
+          console.log('📊 Всего текстов в массиве:', this.texts.length)
+          console.log('📊 Все тексты:', this.texts)
           const visibleTexts = this.texts.filter(text => text.visible)
           console.log('📝 Добавляем тексты на канвас:', visibleTexts.length, 'текстов')
           visibleTexts.forEach((text, index) => {
@@ -2547,6 +2553,16 @@ export default {
     // Добавление текста на Paper.js канвас
     addTextToPaperCanvas(text) {
       try {
+        console.log('🎯 addTextToPaperCanvas вызван с параметрами:', {
+          content: text.content,
+          backgroundId: text.backgroundId,
+          showWithoutBackground: text.showWithoutBackground,
+          fontFamily: text.fontFamily,
+          fontSize: text.fontSize,
+          color: text.color,
+          textAlign: text.textAlign
+        })
+        
         const canvas = this.$refs.testCanvas
         if (!canvas) {
           console.warn('Канвас не найден')
@@ -2623,12 +2639,34 @@ export default {
         }
         
         // Создаем подложку если нужно (с задержкой для корректных bounds)
+        console.log('🔍 Проверяем условие создания подложки:', {
+          showWithoutBackground: text.showWithoutBackground,
+          backgroundId: text.backgroundId,
+          condition1: !text.showWithoutBackground,
+          condition2: !!text.backgroundId,
+          finalCondition: !text.showWithoutBackground && text.backgroundId
+        })
+        
+        console.log('🔍 ДЕТАЛЬНАЯ ПРОВЕРКА ТЕКСТА:', {
+          text: text,
+          textKeys: Object.keys(text),
+          showWithoutBackground: text.showWithoutBackground,
+          backgroundId: text.backgroundId,
+          backgroundIdType: typeof text.backgroundId,
+          backgroundIdTruthy: !!text.backgroundId,
+          condition1: !text.showWithoutBackground,
+          condition2: !!text.backgroundId,
+          finalCondition: !text.showWithoutBackground && text.backgroundId
+        })
+        
         if (!text.showWithoutBackground && text.backgroundId) {
           console.log('🎨 Создаем подложку для текста:', text.content, 'backgroundId:', text.backgroundId)
           this.$nextTick(() => {
             if (textItem.bounds) {
               console.log('📐 Bounds доступны:', textItem.bounds)
+              console.log('🎯 Вызываем createBackgroundForText с параметрами:', { text, textItem })
               const background = this.createBackgroundForText(text, textItem)
+              console.log('🎯 Результат createBackgroundForText:', background)
               if (background) {
                 // Перемещаем подложку под текст, но над остальными элементами
                 background.bringToFront()
@@ -2639,7 +2677,32 @@ export default {
                 background.data.isTextBackground = true
                 background.data.textId = textItem.id
                 
+                // УБЕЖДАЕМСЯ, что подложка добавлена в проект Paper.js
+                if (this.paperScope && this.paperScope.project) {
+                  // Если подложка не в проекте, добавляем её
+                  if (!background.parent) {
+                    this.paperScope.project.addChild(background)
+                    console.log('✅ Подложка добавлена в проект Paper.js')
+                  }
+                  
+                  const allItems = this.paperScope.project.getItems()
+                  console.log('📊 Всего элементов в проекте после создания подложки:', allItems.length)
+                  allItems.forEach((item, index) => {
+                    if (item.data) {
+                      console.log(`🔍 Элемент ${index}:`, {
+                        type: item.constructor.name,
+                        data: item.data,
+                        id: item.id,
+                        parent: item.parent ? item.parent.name : 'Корневой слой'
+                      })
+                    }
+                  })
+                }
+                
                 console.log('✅ Подложка создана для текста:', text.content, 'z-index установлен')
+                console.log('✅ Подложка добавлена в слой:', background.parent ? background.parent.name : 'Корневой слой')
+                console.log('✅ ID подложки:', background.id)
+                console.log('✅ Метаданные подложки:', background.data)
               } else {
                 console.warn('❌ Не удалось создать подложку для текста:', text.content)
               }
@@ -2649,6 +2712,11 @@ export default {
           })
         } else {
           console.log('ℹ️ Подложка не нужна для текста:', text.content, 'showWithoutBackground:', text.showWithoutBackground, 'backgroundId:', text.backgroundId)
+          console.log('ℹ️ Причина:', {
+            showWithoutBackground: text.showWithoutBackground,
+            backgroundId: text.backgroundId,
+            reason: text.showWithoutBackground ? 'showWithoutBackground = true' : (text.backgroundId ? 'backgroundId отсутствует' : 'backgroundId = null/undefined')
+          })
         }
         
         // Перемещаем текст на передний план
@@ -2748,6 +2816,19 @@ export default {
     createBackgroundForText(text, textItem) {
       try {
         console.log('🎨 Создание подложки:', text.backgroundId, 'для текста:', text.content)
+        console.log('🎯 МЕТОД createBackgroundForText ВЫЗВАН!')
+        console.log('🎯 Параметры метода:', { text, textItem })
+        console.log('🎯 Тип textItem:', textItem ? textItem.constructor.name : 'undefined')
+        console.log('🎯 Тип textItem.bounds:', textItem?.bounds ? textItem.bounds.constructor.name : 'undefined')
+        
+        // ДИАГНОСТИКА paperScope
+        console.log('🔍 ДИАГНОСТИКА paperScope в createBackgroundForText:')
+        console.log('  - paperScope существует:', !!this.paperScope)
+        console.log('  - Тип paperScope:', this.paperScope ? this.paperScope.constructor.name : 'undefined')
+        console.log('  - project существует:', !!(this.paperScope && this.paperScope.project))
+        console.log('  - Тип project:', this.paperScope && this.paperScope.project ? this.paperScope.project.constructor.name : 'undefined')
+        console.log('  - activeLayer существует:', !!(this.paperScope && this.paperScope.project && this.paperScope.project.activeLayer))
+        console.log('  - Тип activeLayer:', this.paperScope && this.paperScope.project && this.paperScope.project.activeLayer ? this.paperScope.project.activeLayer.constructor.name : 'undefined')
         
         if (!textItem || !textItem.bounds) {
           console.warn('Некорректный текстовый элемент для создания подложки')
@@ -2760,7 +2841,14 @@ export default {
         // Проверяем, является ли подложка SVG
         if (text.backgroundId && text.backgroundId.startsWith('svg')) {
           console.log('🎨 Создаем SVG подложку:', text.backgroundId)
-          return this.createSvgBackground(text.backgroundId, bounds)
+          const background = this.createSvgBackground(text.backgroundId, bounds)
+          if (background) {
+            background.data.textId = textItem.id
+            console.log('✅ Установлен textId для SVG подложки:', textItem.id)
+            console.log('✅ Финальные метаданные SVG подложки:', background.data)
+            console.log('✅ SVG подложка создана и готова к добавлению в проект')
+          }
+          return background
         } else if (text.backgroundId && text.backgroundId !== 'none') {
           // Обычная цветная подложка
           const bgColor = this.getBackgroundColor(text.backgroundId)
@@ -2780,6 +2868,66 @@ export default {
               textId: textItem.id
             }
             
+            // ПРИНУДИТЕЛЬНО добавляем подложку в проект Paper.js
+            if (this.paperScope) {
+              // Проверяем доступные способы добавления
+              console.log('🔍 Проверяем paperScope для цветной подложки:', {
+                hasProject: !!this.paperScope.project,
+                projectType: this.paperScope.project ? this.paperScope.project.constructor.name : 'undefined',
+                hasActiveLayer: !!this.paperScope.project?.activeLayer,
+                activeLayerType: this.paperScope.project?.activeLayer ? this.paperScope.project.activeLayer.constructor.name : 'undefined',
+                paperScopeType: this.paperScope.constructor.name
+              })
+              
+              // ДИАГНОСТИКА доступных методов
+              if (this.paperScope.project) {
+                console.log('🔍 Доступные методы у project:', Object.getOwnPropertyNames(this.paperScope.project))
+                console.log('🔍 Доступные методы у project.__proto__:', Object.getOwnPropertyNames(this.paperScope.project.__proto__))
+                console.log('🔍 Тип addChild:', typeof this.paperScope.project.addChild)
+                console.log('🔍 Тип appendChild:', typeof this.paperScope.project.appendChild)
+                console.log('🔍 Тип insertChild:', typeof this.paperScope.project.insertChild)
+              }
+              
+              try {
+                // ПРИОРИТЕТ: Добавляем в корневой проект для лучшей видимости
+                if (this.paperScope.project) {
+                  // В Paper.js 2 используем insertItem для добавления в корневой проект
+                  if (typeof this.paperScope.project.insertItem === 'function') {
+                    this.paperScope.project.insertItem(background)
+                    console.log('✅ Цветная подложка добавлена через project.insertItem')
+                  } else if (typeof this.paperScope.project.addChild === 'function') {
+                    this.paperScope.project.addChild(background)
+                    console.log('✅ Цветная подложка добавлена через project.addChild')
+                  } else if (typeof this.paperScope.project.appendChild === 'function') {
+                    this.paperScope.project.appendChild(background)
+                    console.log('✅ Цветная подложка добавлена через project.appendChild')
+                  } else {
+                    // Fallback: через активный слой
+                    if (this.paperScope.project?.activeLayer) {
+                      this.paperScope.project.activeLayer.addChild(background)
+                      console.log('✅ Цветная подложка добавлена через activeLayer.addChild')
+                    } else {
+                      // Последний fallback: напрямую в paperScope
+                      this.paperScope.addChild(background)
+                      console.log('✅ Цветная подложка добавлена напрямую в paperScope')
+                    }
+                  }
+                }
+                // Fallback: через активный слой
+                else if (this.paperScope.project?.activeLayer) {
+                  this.paperScope.project.activeLayer.addChild(background)
+                  console.log('✅ Цветная подложка добавлена через активный слой')
+                }
+                // Fallback: напрямую в paperScope
+                else {
+                  this.paperScope.addChild(background)
+                  console.log('✅ Цветная подложка добавлена напрямую в paperScope')
+                }
+              } catch (error) {
+                console.error('❌ Ошибка при добавлении цветной подложки:', error)
+              }
+            }
+            
             console.log('✅ Цветная подложка создана:', background, 'bounds:', expandedBounds)
             return background
           }
@@ -2796,6 +2944,15 @@ export default {
     // Создание SVG подложки
     createSvgBackground(svgId, textBounds) {
       try {
+        // ДИАГНОСТИКА paperScope
+        console.log('🔍 ДИАГНОСТИКА paperScope в createSvgBackground:')
+        console.log('  - paperScope существует:', !!this.paperScope)
+        console.log('  - Тип paperScope:', this.paperScope ? this.paperScope.constructor.name : 'undefined')
+        console.log('  - project существует:', !!(this.paperScope && this.paperScope.project))
+        console.log('  - Тип project:', this.paperScope && this.paperScope.project ? this.paperScope.project.constructor.name : 'undefined')
+        console.log('  - activeLayer существует:', !!(this.paperScope && this.paperScope.project && this.paperScope.project.activeLayer))
+        console.log('  - Тип activeLayer:', this.paperScope && this.paperScope.project && this.paperScope.project.activeLayer ? this.paperScope.project.activeLayer.constructor.name : 'undefined')
+        
         if (!textBounds || !textBounds.center || !textBounds.size) {
           console.warn('Некорректные границы для создания SVG подложки')
           return null
@@ -2805,10 +2962,12 @@ export default {
         const center = textBounds.center
         const size = textBounds.size.multiply(1.2) // Немного больше текста
         
+        let background = null
+        
         switch (svgId) {
           case 'svg001':
             // Прямоугольник
-            return new this.paperScope.Path.Rectangle({
+            background = new this.paperScope.Path.Rectangle({
               rectangle: new this.paperScope.Rectangle(
                 center.subtract(size.divide(2)),
                 center.add(size.divide(2))
@@ -2816,10 +2975,11 @@ export default {
               fillColor: '#D9D9D9',
               strokeColor: null
             })
+            break
             
           case 'svg002':
             // Прямоугольник с закругленными углами
-            const rect = new this.paperScope.Path.Rectangle({
+            background = new this.paperScope.Path.Rectangle({
               rectangle: new this.paperScope.Rectangle(
                 center.subtract(size.divide(2)),
                 center.add(size.divide(2))
@@ -2828,23 +2988,98 @@ export default {
               strokeColor: null
             })
             // Добавляем закругленные углы
-            if (rect && typeof rect.smooth === 'function') {
-              rect.smooth()
+            if (background && typeof background.smooth === 'function') {
+              background.smooth()
             }
-            return rect
+            break
             
           case 'svg003':
             // Эллипс
-            return new this.paperScope.Path.Ellipse({
+            background = new this.paperScope.Path.Ellipse({
               center: center,
               size: size,
               fillColor: '#D9D9D9',
               strokeColor: null
             })
+            break
             
           default:
             return null
         }
+        
+                    // Устанавливаем метаданные для идентификации SVG подложки
+            if (background) {
+              background.data = {
+                isTextBackground: true,
+                textId: null // Будет установлено в createBackgroundForText
+              }
+              
+                            // ПРИНУДИТЕЛЬНО добавляем SVG подложку в проект Paper.js
+              if (this.paperScope) {
+                // Проверяем доступные способы добавления
+                console.log('🔍 Проверяем paperScope для SVG подложки:', {
+                  hasProject: !!this.paperScope.project,
+                  projectType: this.paperScope.project ? this.paperScope.project.constructor.name : 'undefined',
+                  hasActiveLayer: !!this.paperScope.project?.activeLayer,
+                  activeLayerType: this.paperScope.project?.activeLayer ? this.paperScope.project.activeLayer.constructor.name : 'undefined',
+                  paperScopeType: this.paperScope.constructor.name
+                })
+                
+                // ДИАГНОСТИКА доступных методов
+                if (this.paperScope.project) {
+                  console.log('🔍 Доступные методы у project для SVG:', Object.getOwnPropertyNames(this.paperScope.project))
+                  console.log('🔍 Тип addChild для SVG:', typeof this.paperScope.project.addChild)
+                  console.log('🔍 Тип appendChild для SVG:', typeof this.paperScope.project.appendChild)
+                  console.log('🔍 Тип insertChild для SVG:', typeof this.paperScope.project.insertChild)
+                }
+                
+                try {
+                  // ПРИОРИТЕТ: Добавляем в корневой проект для лучшей видимости
+                  if (this.paperScope.project) {
+                    // В Paper.js 2 используем insertItem для добавления в корневой проект
+                    if (typeof this.paperScope.project.insertItem === 'function') {
+                      this.paperScope.project.insertItem(background)
+                      console.log('✅ SVG подложка добавлена через project.insertItem')
+                    } else if (typeof this.paperScope.project.addChild === 'function') {
+                      this.paperScope.project.addChild(background)
+                      console.log('✅ SVG подложка добавлена через project.addChild')
+                    } else if (typeof this.paperScope.project.appendChild === 'function') {
+                      this.paperScope.project.appendChild(background)
+                      console.log('✅ SVG подложка добавлена через project.appendChild')
+                    } else {
+                      // Fallback: через активный слой
+                      if (this.paperScope.project?.activeLayer) {
+                        this.paperScope.project.activeLayer.addChild(background)
+                        console.log('✅ SVG подложка добавлена через activeLayer.addChild')
+                      } else {
+                        // Последний fallback: напрямую в paperScope
+                        this.paperScope.addChild(background)
+                        console.log('✅ SVG подложка добавлена напрямую в paperScope')
+                      }
+                    }
+                  }
+                  // Fallback: через активный слой
+                  else if (this.paperScope.project?.activeLayer) {
+                    this.paperScope.project.activeLayer.addChild(background)
+                    console.log('✅ SVG подложка добавлена через активный слой')
+                  }
+                  // Fallback: напрямую в paperScope
+                  else {
+                    this.paperScope.addChild(background)
+                    console.log('✅ SVG подложка добавлена напрямую в paperScope')
+                  }
+                } catch (error) {
+                  console.error('❌ Ошибка при добавлении SVG подложки:', error)
+                }
+              }
+              
+              console.log('✅ SVG подложка создана с метаданными:', background)
+              console.log('✅ Метаданные SVG подложки:', background.data)
+              console.log('✅ Тип SVG подложки:', background.constructor.name)
+              console.log('✅ SVG подложка готова к возврату')
+            }
+        
+        return background
       } catch (error) {
         console.error('❌ Ошибка при создании SVG подложки:', error)
         return null
@@ -3098,11 +3333,13 @@ export default {
           state.paperItem.position = paperPoint
           
           // Обновляем подложку если есть
+          console.log('🔄 Обновление подложки при перемещении текста')
           this.updateTextBackground(state.paperItem)
           
           // Принудительно обновляем Paper.js view для синхронизации
           if (this.paperScope && this.paperScope.view) {
             this.paperScope.view.update()
+            console.log('🔄 Paper.js view обновлен')
           }
           
           // Обновляем HTML элемент управления
@@ -3207,11 +3444,13 @@ export default {
           state.paperItem.fontSize = newSize
           
           // Обновляем подложку если есть
+          console.log('🔄 Обновление подложки при масштабировании текста')
           this.updateTextBackground(state.paperItem)
           
           // Принудительно обновляем Paper.js view для синхронизации
           if (this.paperScope && this.paperScope.view) {
             this.paperScope.view.update()
+            console.log('🔄 Paper.js view обновлен')
           }
         }
         
@@ -3348,9 +3587,6 @@ export default {
         // Обновляем последнюю позицию мыши
         state.lastMouseX = e.clientX
         
-        // Применяем вращение напрямую (без сглаживания для быстрого отклика)
-        state.continuousRotation += deltaRotation
-        
         // Нормализуем только для отображения в индикаторе
         let displayRotation = state.continuousRotation % 360
         if (displayRotation < 0) displayRotation += 360
@@ -3364,11 +3600,13 @@ export default {
           state.paperItem.rotation = rotationInRadians
           
           // Обновляем подложку если есть
+          console.log('🔄 Обновление подложки при вращении текста')
           this.updateTextBackground(state.paperItem, rotationInRadians)
           
           // Принудительно обновляем Paper.js view для синхронизации
           if (this.paperScope && this.paperScope.view) {
             this.paperScope.view.update()
+            console.log('🔄 Paper.js view обновлен')
           }
           
           console.log('🔄 Вращение текста:', {
@@ -3378,9 +3616,31 @@ export default {
           })
         }
         
-        // Применяем вращение к HTML элементу управления
+        // Применяем вращение к HTML элементу управления и синхронизируем позицию
         requestAnimationFrame(() => {
-          textElement.style.transform = `translate(-50%, -50%) rotate(${state.continuousRotation}deg)`
+          // Получаем обновленную позицию из Paper.js элемента
+          const textBounds = state.paperItem.bounds
+          if (textBounds) {
+            const textCenterX = textBounds.center.x
+            const textCenterY = textBounds.center.y
+            
+            // Обновляем позицию и вращение HTML элемента
+            textElement.style.left = `${textCenterX}px`
+            textElement.style.top = `${textCenterY}px`
+            textElement.style.transform = `translate(-50%, -50%) rotate(${state.continuousRotation}deg)`
+            
+            // Обновляем размеры HTML элемента
+            textElement.style.width = `${textBounds.width}px`
+            textElement.style.height = `${textBounds.height}px`
+            
+            console.log('🔄 HTML элемент синхронизирован:', {
+              x: textCenterX,
+              y: textCenterY,
+              width: textBounds.width,
+              height: textBounds.height,
+              rotation: state.continuousRotation
+            })
+          }
         })
         
         state.hasChanges = true
@@ -3600,30 +3860,127 @@ export default {
       if (!this.paperScope || !this.paperScope.project) return
       
       console.log('🔄 Обновление подложки для текста:', textItem.content, 'rotation:', rotation)
+      console.log('🔄 ID текстового элемента:', textItem.id)
       
-      this.paperScope.project.getItems().forEach(item => {
-        if (item.data && item.data.isTextBackground && item.data.textId === textItem.id) {
-          console.log('🎨 Найдена подложка для обновления:', item)
-          
-          // Получаем текущие границы текста
-          const textBounds = textItem.bounds
-          if (textBounds) {
-            // Создаем новые границы с отступами
-            const expandedBounds = textBounds.expand(12)
+      let foundBackground = false
+      let totalItems = 0
+      let itemsWithData = 0
+      
+      // Функция для рекурсивного поиска элементов во всех слоях
+      const searchInLayer = (layer, depth = 0) => {
+        let layerItems = 0
+        let layerItemsWithData = 0
+        
+        // Ищем элементы в текущем слое
+        if (layer.children) {
+          layer.children.forEach(child => {
+            totalItems++
+            layerItems++
             
-            // Обновляем позицию и размер подложки
-            item.bounds = expandedBounds
-            
-            // Если передана ротация, применяем её к подложке
-            if (rotation !== null) {
-              item.rotation = rotation
-              console.log('🔄 Применена ротация к подложке:', rotation)
+            if (child.data) {
+              itemsWithData++
+              layerItemsWithData++
+              console.log(`🔍 Элемент ${totalItems} (слой ${depth}):`, {
+                type: child.constructor.name,
+                data: child.data,
+                id: child.id,
+                bounds: child.bounds,
+                position: child.position,
+                rotation: child.rotation,
+                layer: layer.name || `Layer${depth}`
+              })
+              
+              if (child.data.isTextBackground && child.data.textId === textItem.id) {
+                foundBackground = true
+                console.log('🎨 Найдена подложка для обновления:', child)
+                console.log('🎨 Тип подложки:', child.constructor.name)
+                console.log('🎨 Слой подложки:', layer.name || `Layer${depth}`)
+                console.log('🎨 Текущие свойства подложки:', {
+                  bounds: child.bounds,
+                  position: child.position,
+                  rotation: child.rotation
+                })
+                
+                // Получаем текущие границы текста
+                const textBounds = textItem.bounds
+                if (textBounds) {
+                  console.log('📐 Границы текста:', textBounds)
+                  console.log('📐 Позиция текста:', textItem.position)
+                  
+                  // Создаем новые границы с отступами
+                  const expandedBounds = textBounds.expand(12)
+                  console.log('📐 Расширенные границы подложки:', expandedBounds)
+                  
+                  // Обновляем позицию и размер подложки правильно
+                  if (child instanceof this.paperScope.Path.Rectangle) {
+                    // Для прямоугольников обновляем rectangle
+                    console.log('🔄 Обновляем rectangle подложки с:', child.rectangle, 'на:', expandedBounds)
+                    child.rectangle = expandedBounds
+                    console.log('🔄 Обновлен rectangle подложки')
+                  } else if (child instanceof this.paperScope.Path.Ellipse) {
+                    // Для эллипсов обновляем center и size
+                    console.log('🔄 Обновляем center подложки с:', child.center, 'на:', expandedBounds.center)
+                    console.log('🔄 Обновляем size подложки с:', child.size, 'на:', expandedBounds.size)
+                    child.center = expandedBounds.center
+                    child.size = expandedBounds.size
+                    console.log('🔄 Обновлен center и size подложки')
+                  } else {
+                    // Для других типов используем bounds
+                    try {
+                      console.log('🔄 Обновляем bounds подложки с:', child.bounds, 'на:', expandedBounds)
+                      child.bounds = expandedBounds
+                      console.log('🔄 Обновлены bounds подложки')
+                    } catch (error) {
+                      console.warn('⚠️ Не удалось обновить bounds подложки:', error)
+                    }
+                  }
+                  
+                  // Если передана ротация, применяем её к подложке
+                  if (rotation !== null) {
+                    console.log('🔄 Применяем ротацию к подложке:', rotation, 'радиан')
+                    child.rotation = rotation
+                    console.log('🔄 Применена ротация к подложке:', rotation)
+                  }
+                  
+                  console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
+                  console.log('✅ Новые свойства подложки:', {
+                    bounds: child.bounds,
+                    position: child.position,
+                    rotation: child.rotation
+                  })
+                }
+              }
             }
             
-            console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
-          }
+            // Рекурсивно ищем в дочерних слоях
+            if (child.children && child.children.length > 0) {
+              searchInLayer(child, depth + 1)
+            }
+          })
         }
-      })
+        
+        console.log(`📊 Слой ${depth}: элементов ${layerItems}, с метаданными ${layerItemsWithData}`)
+      }
+      
+      // Начинаем поиск с корневого слоя
+      searchInLayer(this.paperScope.project)
+      
+      console.log(`📊 Статистика: всего элементов ${totalItems}, с метаданными ${itemsWithData}`)
+      
+      if (!foundBackground) {
+        console.warn('⚠️ Подложка не найдена для текста:', textItem.content, 'ID:', textItem.id)
+        console.warn('⚠️ Проверяем все элементы с метаданными isTextBackground:')
+        this.paperScope.project.getItems().forEach(item => {
+          if (item.data && item.data.isTextBackground) {
+            console.log('🔍 Подложка:', {
+              id: item.id,
+              textId: item.data.textId,
+              type: item.constructor.name,
+              bounds: item.bounds
+            })
+          }
+        })
+      }
     }
   }
 }

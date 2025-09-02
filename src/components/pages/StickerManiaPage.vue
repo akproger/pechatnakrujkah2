@@ -138,29 +138,30 @@
             <!-- Содержимое вкладки "Разговор" -->
             <div class="tab-content">
               <div class="tab-pane active">
-                <!-- Превью текста с подложкой -->
-                <div class="form-group mb-3">
-                  <label class="form-label">Превью (соотношение сторон 19:9):</label>
-                  <div class="text-preview">
-                    <canvas 
-                      ref="previewCanvas" 
-                      class="preview-canvas"
-                      :width="previewCanvasWidth"
-                      :height="previewCanvasHeight"
-                    ></canvas>
+                <!-- Область с полем ввода и превью (закреплена) -->
+                <div class="text-input-preview-area">
+                  <!-- Поле ввода текста (слева) -->
+                  <div class="text-input-section">
+                    <textarea 
+                      id="textInput"
+                      v-model="textDialogData.text"
+                      class="form-control"
+                      rows="6"
+                      placeholder="Введите текст..."
+                    ></textarea>
                   </div>
-                </div>
-                
-                <!-- Поле ввода текста -->
-                <div class="form-group mb-3">
-                  <label for="textInput" class="form-label">Текст:</label>
-                  <textarea 
-                    id="textInput"
-                    v-model="textDialogData.text"
-                    class="form-control"
-                    rows="3"
-                    placeholder="Введите текст..."
-                  ></textarea>
+                  
+                  <!-- Превью текста с подложкой (справа) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvas" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                      ></canvas>
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Кнопка параметров -->
@@ -751,16 +752,16 @@ export default {
     }
   },
   computed: {
-    // Размеры для превью канваса с соотношением сторон 19:9
+    // Размеры для превью канваса с соотношением сторон 19:9 (разрешение увеличено в 3 раза)
     previewCanvasWidth() {
-      if (!this.$refs.testCanvas) return 400
-      // Ограничиваем максимальную ширину для превью
+      if (!this.$refs.testCanvas) return 1200
+      // Ограничиваем максимальную ширину для превью (в 3 раза больше)
       const mainWidth = this.$refs.testCanvas.width || 400
-      return Math.min(mainWidth, 400)
+      return Math.min(mainWidth * 3, 1200)
     },
     previewCanvasHeight() {
-      if (!this.$refs.testCanvas) return 190
-      // Вычисляем высоту на основе ширины с соотношением 19:9
+      if (!this.$refs.testCanvas) return 570
+      // Вычисляем высоту на основе ширины с соотношением 19:9 (в 3 раза больше)
       const width = this.previewCanvasWidth
       return Math.round((width * 9) / 19)
     }
@@ -4833,6 +4834,26 @@ export default {
   overflow-y: auto;
 }
 
+/* Область с полем ввода и превью */
+.text-input-preview-area {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+/* Секция поля ввода текста */
+.text-input-section {
+  flex: 0 0 300px;
+  min-width: 300px;
+}
+
+/* Секция превью */
+.text-preview-section {
+  flex: 1;
+  min-width: 0;
+}
+
 .text-preview {
   background: #f8f9fa;
   border: 2px solid #dee2e6;
@@ -4843,13 +4864,8 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  margin-bottom: 20px;
   /* Автоматическая высота под размер канваса */
   width: 100%;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  /* Высота автоматически подстраивается под содержимое */
   height: auto;
   min-height: fit-content;
 }
@@ -4863,6 +4879,9 @@ export default {
   /* Обеспечиваем правильное соотношение сторон */
   max-width: 100%;
   display: block;
+  /* Улучшаем качество рендеринга для высокого разрешения */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .text-dialog-footer {
@@ -4901,6 +4920,22 @@ export default {
   .text-dialog-header,
   .text-dialog-footer {
     padding: 16px 20px;
+  }
+  
+  /* На мобильных устройствах элементы располагаются вертикально */
+  .text-input-preview-area {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .text-input-section {
+    flex: none;
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .text-preview-section {
+    width: 100%;
   }
 }
 

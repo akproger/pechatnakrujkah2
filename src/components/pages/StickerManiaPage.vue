@@ -4485,8 +4485,8 @@ export default {
       const previewX = this.textDialogPosition.x * scaleX
       const previewY = this.textDialogPosition.y * scaleY
       
-      // Адаптируем размеры для превью (делаем все пропорционально меньше)
-      const previewScale = 0.4 // Масштаб 40% от оригинальных размеров
+      // Адаптируем размеры для превью (учитываем увеличенное разрешение в 3 раза)
+      const previewScale = 1.2 // Масштаб 120% от оригинальных размеров (0.4 * 3)
       
       // Настройки текста (адаптированные под превью)
       const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
@@ -4570,8 +4570,8 @@ export default {
       const previewX = this.textDialogPosition.x * scaleX
       const previewY = this.textDialogPosition.y * scaleY
       
-      // Адаптируем размеры для превью (делаем все пропорционально меньше)
-      const previewScale = 0.4 // Масштаб 40% от оригинальных размеров
+      // Адаптируем размеры для превью (учитываем увеличенное разрешение в 3 раза)
+      const previewScale = 1.2 // Масштаб 120% от оригинальных размеров (0.4 * 3)
       
       // Настройки текста (адаптированные под превью)
       const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
@@ -4766,6 +4766,8 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Поддерживаем sticky позиционирование */
+  position: relative;
 }
 
 .text-dialog-header {
@@ -4794,14 +4796,19 @@ export default {
 }
 
 .text-dialog-body {
-  padding: 24px;
+  padding: 0;
   overflow-y: auto;
   flex: 1;
+  /* Убираем ограничения высоты для правильной прокрутки */
+  max-height: none;
+  /* Поддерживаем sticky позиционирование */
+  position: relative;
 }
 
 .text-dialog-tabs {
   border-bottom: 2px solid #e9ecef;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  padding: 0 24px;
 }
 
 .text-dialog-tabs .nav-link {
@@ -4828,19 +4835,31 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   padding: 20px;
-  margin-top: 20px;
+  margin: 20px 24px 0 24px;
   border: 1px solid #e9ecef;
-  max-height: 60vh;
-  overflow-y: auto;
+  /* Убираем ограничение высоты для правильной прокрутки */
+  max-height: none;
+  overflow-y: visible;
 }
 
 /* Область с полем ввода и превью */
-.text-input-preview-area {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
-  align-items: flex-start;
-}
+    .text-input-preview-area {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      height: auto;
+      min-height: fit-content;
+      /* Закрепляем область при скролле */
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+      padding: 20px;
+      border: 0;
+      margin: 0 0 24px 0;
+      /* Убираем тень */
+      box-shadow: none;
+    }
 
 /* Секция поля ввода текста */
 .text-input-section {
@@ -4854,16 +4873,21 @@ export default {
   min-width: 0;
 }
 
+/* Контейнер с кнопкой "Параметры" */
+.mb-3 {
+  padding: 0 20px;
+}
+
 .text-preview {
-  background: #f8f9fa;
-  border: 2px solid #dee2e6;
-  border-radius: 8px;
-  padding: 16px;
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   /* Автоматическая высота под размер канваса */
   width: 100%;
   height: auto;
@@ -4873,12 +4897,16 @@ export default {
 .preview-canvas {
   width: 100%;
   height: auto;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border: none;
+  border-radius: 0;
   background: white;
   /* Обеспечиваем правильное соотношение сторон */
   max-width: 100%;
   display: block;
+  /* Убираем ограничения высоты */
+  max-height: none;
+  /* Добавляем тень */
+  box-shadow: 4px 4px 12px 0 rgba(0, 0, 0, .15);
   /* Улучшаем качество рендеринга для высокого разрешения */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
@@ -4926,6 +4954,9 @@ export default {
   .text-input-preview-area {
     flex-direction: column;
     gap: 16px;
+    /* На мобильных устройствах sticky может не работать корректно */
+    position: relative;
+    top: auto;
   }
   
   .text-input-section {

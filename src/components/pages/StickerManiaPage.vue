@@ -5076,10 +5076,17 @@ export default {
       
       if (isTopLeft) {
         // Левый верхний угол - точки на верхней стороне
-        const point1X = bgX + tailWidthPixels
-        const point1Y = bgY
-        const point2X = bgX + tailWidthPixels * 2
-        const point2Y = bgY
+        let point1X = bgX + tailWidthPixels
+        let point1Y = bgY
+        let point2X = bgX + tailWidthPixels * 2
+        let point2Y = bgY
+        
+        // Проверяем, не выходит ли точка2 за правую границу
+        if (point2X > bgX + bgWidth) {
+          // Переходим на правую сторону и продолжаем движение вниз
+          point2X = bgX + bgWidth
+          point2Y = bgY + ((bgX + tailWidthPixels * 2) - (bgX + bgWidth))
+        }
         
         // Строим путь: левый верхний угол → точка1 → острая вершина → точка2 → правый верхний угол → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5093,10 +5100,17 @@ export default {
         
       } else if (isTopRight) {
         // Правый верхний угол - точки на верхней стороне
-        const point1X = bgX + bgWidth - tailWidthPixels * 2
-        const point1Y = bgY
-        const point2X = bgX + bgWidth - tailWidthPixels
-        const point2Y = bgY
+        let point1X = bgX + bgWidth - tailWidthPixels * 2
+        let point1Y = bgY
+        let point2X = bgX + bgWidth - tailWidthPixels
+        let point2Y = bgY
+        
+        // Проверяем, не выходит ли точка1 за левую границу
+        if (point1X < bgX) {
+          // Переходим на левую сторону и продолжаем движение вниз
+          point1X = bgX
+          point1Y = bgY + (bgX - (bgX + bgWidth - tailWidthPixels * 2))
+        }
         
         // Строим путь: левый верхний угол → правый верхний угол → точка1 → острая вершина → точка2 → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5110,10 +5124,17 @@ export default {
         
       } else if (isBottomRight) {
         // Правый нижний угол - точки на правой стороне
-        const point1X = bgX + bgWidth
-        const point1Y = bgY + bgHeight - tailWidthPixels * 2
-        const point2X = bgX + bgWidth
-        const point2Y = bgY + bgHeight - tailWidthPixels
+        let point1X = bgX + bgWidth
+        let point1Y = bgY + bgHeight - tailWidthPixels * 2
+        let point2X = bgX + bgWidth
+        let point2Y = bgY + bgHeight - tailWidthPixels
+        
+        // Проверяем, не выходит ли точка1 за верхнюю границу
+        if (point1Y < bgY) {
+          // Переходим на верхнюю сторону и продолжаем движение влево
+          point1X = bgX + bgWidth - (bgY - (bgY + bgHeight - tailWidthPixels * 2))
+          point1Y = bgY
+        }
         
         // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → точка1 → острая вершина → точка2 → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5127,10 +5148,17 @@ export default {
         
       } else if (isBottomLeft) {
         // Левый нижний угол - точки на левой стороне
-        const point1X = bgX
-        const point1Y = bgY + bgHeight - tailWidthPixels
-        const point2X = bgX
-        const point2Y = bgY + bgHeight - tailWidthPixels * 2
+        let point1X = bgX
+        let point1Y = bgY + bgHeight - tailWidthPixels
+        let point2X = bgX
+        let point2Y = bgY + bgHeight - tailWidthPixels * 2
+        
+        // Проверяем, не выходит ли точка2 за верхнюю границу
+        if (point2Y < bgY) {
+          // Переходим на верхнюю сторону и продолжаем движение вправо
+          point2X = bgX + (bgY - (bgY + bgHeight - tailWidthPixels))
+          point2Y = bgY
+        }
         
         // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → нижняя сторона → точка1 → острая вершина → точка2 → левая сторона
         ctx.moveTo(bgX, bgY)
@@ -5151,14 +5179,26 @@ export default {
       // tailWidth теперь в процентах от 40% до 100%
       const tailWidthPixels = tailWidthPercent * 50 // Увеличено в 2.5 раза (было 20)
       
-      let point1X, point1Y, point2X, point2Y
-      
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне
-        point1X = intersectionPoint.x - tailWidthPixels
-        point1Y = bgY // Точка на верхней стороне
-        point2X = intersectionPoint.x + tailWidthPixels
-        point2Y = bgY // Точка на верхней стороне
+        let point1X = intersectionPoint.x - tailWidthPixels
+        let point1Y = bgY
+        let point2X = intersectionPoint.x + tailWidthPixels
+        let point2Y = bgY
+        
+        // Проверяем, не выходит ли точка1 за левую границу
+        if (point1X < bgX) {
+          // Переходим на левую сторону и продолжаем движение вниз
+          point1X = bgX
+          point1Y = bgY + (bgX - (intersectionPoint.x - tailWidthPixels))
+        }
+        
+        // Проверяем, не выходит ли точка2 за правую границу
+        if (point2X > bgX + bgWidth) {
+          // Переходим на правую сторону и продолжаем движение вниз
+          point2X = bgX + bgWidth
+          point2Y = bgY + ((intersectionPoint.x + tailWidthPixels) - (bgX + bgWidth))
+        }
         
         // Строим путь: левый верхний угол → точка1 → острая вершина → точка2 → правый верхний угол → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5172,10 +5212,24 @@ export default {
         
       } else if (tailSide === 'right') {
         // Хвост выходит справа - точки на правой стороне
-        point1X = bgX + bgWidth // Точка на правой стороне
-        point1Y = intersectionPoint.y - tailWidthPixels
-        point2X = bgX + bgWidth // Точка на правой стороне
-        point2Y = intersectionPoint.y + tailWidthPixels
+        let point1X = bgX + bgWidth
+        let point1Y = intersectionPoint.y - tailWidthPixels
+        let point2X = bgX + bgWidth
+        let point2Y = intersectionPoint.y + tailWidthPixels
+        
+        // Проверяем, не выходит ли точка1 за верхнюю границу
+        if (point1Y < bgY) {
+          // Переходим на верхнюю сторону и продолжаем движение влево
+          point1X = bgX + bgWidth - (bgY - (intersectionPoint.y - tailWidthPixels))
+          point1Y = bgY
+        }
+        
+        // Проверяем, не выходит ли точка2 за нижнюю границу
+        if (point2Y > bgY + bgHeight) {
+          // Переходим на нижнюю сторону и продолжаем движение влево
+          point2X = bgX + bgWidth - ((intersectionPoint.y + tailWidthPixels) - (bgY + bgHeight))
+          point2Y = bgY + bgHeight
+        }
         
         // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → точка1 → острая вершина → точка2 → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5189,10 +5243,24 @@ export default {
         
       } else if (tailSide === 'bottom') {
         // Хвост выходит снизу - точки на нижней стороне
-        point1X = intersectionPoint.x + tailWidthPixels
-        point1Y = bgY + bgHeight // Точка на нижней стороне
-        point2X = intersectionPoint.x - tailWidthPixels
-        point2Y = bgY + bgHeight // Точка на нижней стороне
+        let point1X = intersectionPoint.x + tailWidthPixels
+        let point1Y = bgY + bgHeight
+        let point2X = intersectionPoint.x - tailWidthPixels
+        let point2Y = bgY + bgHeight
+        
+        // Проверяем, не выходит ли точка1 за правую границу
+        if (point1X > bgX + bgWidth) {
+          // Переходим на правую сторону и продолжаем движение вверх
+          point1X = bgX + bgWidth
+          point1Y = bgY + bgHeight - ((intersectionPoint.x + tailWidthPixels) - (bgX + bgWidth))
+        }
+        
+        // Проверяем, не выходит ли точка2 за левую границу
+        if (point2X < bgX) {
+          // Переходим на левую сторону и продолжаем движение вверх
+          point2X = bgX
+          point2Y = bgY + bgHeight - (bgX - (intersectionPoint.x - tailWidthPixels))
+        }
         
         // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → точка1 → острая вершина → точка2 → остальные стороны
         ctx.moveTo(bgX, bgY)
@@ -5206,10 +5274,24 @@ export default {
         
       } else if (tailSide === 'left') {
         // Хвост выходит слева - точки на левой стороне
-        point1X = bgX // Точка на левой стороне
-        point1Y = intersectionPoint.y + tailWidthPixels
-        point2X = bgX // Точка на левой стороне
-        point2Y = intersectionPoint.y - tailWidthPixels
+        let point1X = bgX
+        let point1Y = intersectionPoint.y + tailWidthPixels
+        let point2X = bgX
+        let point2Y = intersectionPoint.y - tailWidthPixels
+        
+        // Проверяем, не выходит ли точка1 за нижнюю границу
+        if (point1Y > bgY + bgHeight) {
+          // Переходим на нижнюю сторону и продолжаем движение вправо
+          point1X = bgX + ((intersectionPoint.y + tailWidthPixels) - (bgY + bgHeight))
+          point1Y = bgY + bgHeight
+        }
+        
+        // Проверяем, не выходит ли точка2 за верхнюю границу
+        if (point2Y < bgY) {
+          // Переходим на верхнюю сторону и продолжаем движение вправо
+          point2X = bgX + (bgY - (intersectionPoint.y - tailWidthPixels))
+          point2Y = bgY
+        }
         
         // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → нижняя сторона → точка1 → острая вершина → точка2 → левая сторона
         ctx.moveTo(bgX, bgY)

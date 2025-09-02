@@ -33,8 +33,19 @@
                     <i class="bi bi-lightning-fill me-2"></i>
                     {{ isLoading ? 'Генерация...' : 'Сгенерировать стикеры' }}
                   </button>
-                  
-
+                </div>
+                
+                <!-- Кнопка добавления текста -->
+                <div class="col" style="padding: 0;">
+                  <button 
+                    @click="activateTextMode" 
+                    class="btn btn-success"
+                    :class="{ 'btn-warning': isTextModeActive }"
+                    style="background-color: #28a745; border-color: #28a745;"
+                  >
+                    <i class="bi bi-type me-2"></i>
+                    {{ isTextModeActive ? 'Отменить' : 'Текст' }}
+                  </button>
                 </div>
                 
 
@@ -84,7 +95,259 @@
         </div>
       </div>
       
-
+      <!-- Диалог добавления текста -->
+      <div v-if="showTextDialog" class="text-dialog-overlay" @click="closeTextDialog">
+        <div class="text-dialog" @click.stop>
+          <div class="text-dialog-header">
+            <h5 class="text-dialog-title">
+              <i class="bi bi-type me-2"></i>
+              Добавить текст
+            </h5>
+            <button type="button" class="btn-close" @click="closeTextDialog"></button>
+          </div>
+          
+          <div class="text-dialog-body">
+            <!-- Вкладки -->
+            <ul class="nav nav-tabs text-dialog-tabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" type="button" role="tab">
+                  <i class="bi bi-chat-dots me-2"></i>
+                  Разговор
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" type="button" role="tab" disabled>
+                  <i class="bi bi-lightbulb me-2"></i>
+                  Мысли
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" type="button" role="tab" disabled>
+                  <i class="bi bi-star me-2"></i>
+                  Стандарт
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" type="button" role="tab" disabled>
+                  <i class="bi bi-image me-2"></i>
+                  Текст с изображением
+                </button>
+              </li>
+            </ul>
+            
+            <!-- Содержимое вкладки "Разговор" -->
+            <div class="tab-content">
+              <div class="tab-pane active">
+                <!-- Превью текста с подложкой -->
+                <div class="form-group mb-3">
+                  <label class="form-label">Превью (соотношение сторон 19:9):</label>
+                  <div class="text-preview">
+                    <canvas 
+                      ref="previewCanvas" 
+                      class="preview-canvas"
+                      :width="previewCanvasWidth"
+                      :height="previewCanvasHeight"
+                    ></canvas>
+                  </div>
+                </div>
+                
+                <!-- Поле ввода текста -->
+                <div class="form-group mb-3">
+                  <label for="textInput" class="form-label">Текст:</label>
+                  <textarea 
+                    id="textInput"
+                    v-model="textDialogData.text"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Введите текст..."
+                  ></textarea>
+                </div>
+                
+                <!-- Кнопка параметров -->
+                <div class="mb-3">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    @click="toggleParameters"
+                  >
+                    <i class="bi bi-gear me-2"></i>
+                    Параметры
+                  </button>
+                </div>
+                
+                <!-- Блок параметров (скрыт по умолчанию) -->
+                <div v-show="showParameters" class="parameters-block">
+                  
+                  <!-- Выбор шрифта -->
+                  <div class="form-group mb-3">
+                    <label for="fontSelect" class="form-label">Шрифт:</label>
+                    <select id="fontSelect" v-model="textDialogData.font" class="form-select">
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Настройки шрифта -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Стиль шрифта:</label>
+                    <div class="btn-group" role="group">
+                      <input type="radio" class="btn-check" id="normal" value="normal" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="normal">Обычный</label>
+                      
+                      <input type="radio" class="btn-check" id="bold" value="bold" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="bold">Жирный</label>
+                      
+                      <input type="radio" class="btn-check" id="bolder" value="bolder" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="bolder">Полужирный</label>
+                      
+                      <input type="radio" class="btn-check" id="italic" value="italic" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="italic">Курсив</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Размер текста -->
+                  <div class="form-group mb-3">
+                    <label for="fontSize" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
+                    <input 
+                      type="range" 
+                      id="fontSize" 
+                      v-model="textDialogData.fontSize" 
+                      class="form-range" 
+                      min="12" 
+                      max="72" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Цвет текста -->
+                  <div class="form-group mb-3">
+                    <label for="textColor" class="form-label">Цвет текста:</label>
+                    <input type="color" id="textColor" v-model="textDialogData.textColor" class="form-control form-control-color">
+                  </div>
+                  
+                  <!-- Цвет подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundColor" class="form-label">Цвет подложки:</label>
+                    <input type="color" id="backgroundColor" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
+                  </div>
+                  
+                  <!-- Размер хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailSize" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
+                    <input 
+                      type="range" 
+                      id="tailSize" 
+                      v-model="textDialogData.tailSize" 
+                      class="form-range" 
+                      min="10" 
+                      max="50" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Ширина хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailWidth" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
+                    <input 
+                      type="range" 
+                      id="tailWidth" 
+                      v-model="textDialogData.tailWidth" 
+                      class="form-range" 
+                      min="10" 
+                      max="40" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Угол хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailAngle" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
+                    <input 
+                      type="range" 
+                      id="tailAngle" 
+                      v-model="textDialogData.tailAngle" 
+                      class="form-range" 
+                      min="0" 
+                      max="90" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Ширина подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundWidth" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundWidth" 
+                      v-model="textDialogData.backgroundWidth" 
+                      class="form-range" 
+                      min="100" 
+                      max="400" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Высота подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundHeight" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundHeight" 
+                      v-model="textDialogData.backgroundHeight" 
+                      class="form-range" 
+                      min="50" 
+                      max="200" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Отступ от краев -->
+                  <div class="form-group mb-3">
+                    <label for="padding" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
+                    <input 
+                      type="range" 
+                      id="padding" 
+                      v-model="textDialogData.padding" 
+                      class="form-range" 
+                      min="5" 
+                      max="30" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Обводка -->
+                  <div class="form-group mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" id="stroke" v-model="textDialogData.stroke" class="form-check-input">
+                      <label for="stroke" class="form-check-label">Обводка</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Тень -->
+                  <div class="form-group mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" id="shadow" v-model="textDialogData.shadow" class="form-check-input">
+                      <label for="shadow" class="form-check-label">Тень</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-dialog-footer">
+            <button type="button" class="btn btn-secondary" @click="closeTextDialog">
+              Отмена
+            </button>
+            <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
+              Применить
+            </button>
+          </div>
+        </div>
+      </div>
       
       <!-- Табы управления -->
       <div class="row mt-4">
@@ -419,10 +682,10 @@ export default {
       isFirstTime: true,
       texts: [],
       textItems: [], // Массив для отслеживания текстовых элементов на канвасе
-              htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
-        activeTextElement: null, // Активный текстовый элемент для редактирования
-        textControlStates: {}, // Состояния управления для каждого текста
-        textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
+      htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
+      activeTextElement: null, // Активный текстовый элемент для редактирования
+      textControlStates: {}, // Состояния управления для каждого текста
+      textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
       
       // Маски стикеров
       stickerMasks: [
@@ -447,11 +710,11 @@ export default {
       
       // Настройки
       strokeColor: '#ffffff',
-              strokeWidth: 8, // Проценты (0-20)
-        shadowBlur: 2, // Проценты (0-50)
-        shadowOffsetX: 5, // Проценты (-50 до +50)
-        shadowOffsetY: 5, // Проценты (-50 до +50)
-        shadowOpacity: 40, // Проценты (0-100)
+      strokeWidth: 8, // Проценты (0-20)
+      shadowBlur: 2, // Проценты (0-50)
+      shadowOffsetX: 5, // Проценты (-50 до +50)
+      shadowOffsetY: 5, // Проценты (-50 до +50)
+      shadowOpacity: 40, // Проценты (0-100)
       
       // Стикеры
       stickers: [],
@@ -462,7 +725,102 @@ export default {
       baseStickerSize: 100, // Базовый размер стикера
       targetCoverage: 100, // Целевое покрытие в процентах (100%)
       maxIterations: 2000, // Максимальное количество попыток размещения
-      overlapThreshold: 0.05 // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
+      overlapThreshold: 0.05, // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
+      
+      // Режим добавления текста
+      isTextModeActive: false, // Активен ли режим добавления текста
+      showTextDialog: false, // Показать ли диалог добавления текста
+      textDialogPosition: null, // Позиция для размещения текста
+      showParameters: false, // Показать ли блок параметров
+      textDialogData: {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'normal',
+        fontSize: 24,
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+        tailSize: 30,
+        tailWidth: 20,
+        tailAngle: 45,
+        backgroundWidth: 200,
+        backgroundHeight: 100,
+        padding: 12,
+        stroke: false,
+        shadow: false
+      }
+    }
+  },
+  computed: {
+    // Размеры для превью канваса с соотношением сторон 19:9
+    previewCanvasWidth() {
+      if (!this.$refs.testCanvas) return 400
+      // Ограничиваем максимальную ширину для превью
+      const mainWidth = this.$refs.testCanvas.width || 400
+      return Math.min(mainWidth, 400)
+    },
+    previewCanvasHeight() {
+      if (!this.$refs.testCanvas) return 190
+      // Вычисляем высоту на основе ширины с соотношением 19:9
+      const width = this.previewCanvasWidth
+      return Math.round((width * 9) / 19)
+    }
+  },
+  watch: {
+    // Автоматически обновляем превью при изменении любых параметров текста
+    'textDialogData.text'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.fontSize'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.fontWeight'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.font'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.textColor'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.backgroundColor'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.backgroundWidth'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.backgroundHeight'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.padding'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.stroke'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadow'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
     }
   },
   mounted() {
@@ -523,6 +881,9 @@ export default {
           this.handleCanvasResize()
         }, 100)
       })
+      
+      // Добавляем обработчик клика по канвасу для режима текста
+      canvas.addEventListener('click', this.handleCanvasClick)
       
       console.log('✅ Paper.js инициализирован')
     },
@@ -3978,6 +4339,312 @@ export default {
         console.warn('⚠️ Подложка не найдена в карте для текста:', textItem.content, 'ID:', textItem.id)
         console.warn('⚠️ Доступные записи в карте:', Object.keys(this.textBackgroundMap))
       }
+    },
+    
+    // === РЕЖИМ ДОБАВЛЕНИЯ ТЕКСТА ===
+    
+    // Активация режима добавления текста
+    activateTextMode() {
+      this.isTextModeActive = !this.isTextModeActive
+      console.log('🔄 Режим добавления текста:', this.isTextModeActive ? 'активирован' : 'деактивирован')
+      
+      if (this.isTextModeActive) {
+        // Добавляем курсор-указатель для канваса
+        const canvas = this.$refs.testCanvas
+        if (canvas) {
+          canvas.style.cursor = 'crosshair'
+        }
+      } else {
+        // Возвращаем обычный курсор
+        const canvas = this.$refs.testCanvas
+        if (canvas) {
+          canvas.style.cursor = 'default'
+        }
+        
+        // Закрываем диалог если он открыт
+        this.showTextDialog = false
+        this.textDialogPosition = null
+      }
+    },
+    
+    // Обработчик клика по канвасу в режиме текста
+    handleCanvasClick(event) {
+      if (!this.isTextModeActive) return
+      
+      console.log('🖱️ Клик по канвасу в режиме текста')
+      
+      // Получаем позицию клика относительно канваса
+      const canvas = this.$refs.testCanvas
+      const rect = canvas.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      
+      // Конвертируем в координаты Paper.js
+      const point = new this.paperScope.Point(x, y)
+      
+      console.log('📍 Позиция клика:', { x, y, point })
+      
+      // Сохраняем позицию и открываем диалог
+      this.textDialogPosition = point
+      this.showTextDialog = true
+      
+      // Деактивируем режим текста
+      this.isTextModeActive = false
+      
+      // Возвращаем обычный курсор
+      canvas.style.cursor = 'default'
+      
+      // Обновляем превью сразу после открытия диалога
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    
+    // Закрытие диалога добавления текста
+    closeTextDialog() {
+      this.showTextDialog = false
+      this.textDialogPosition = null
+      this.resetTextDialogData()
+    },
+    
+    // Сброс данных диалога
+    resetTextDialogData() {
+      this.textDialogData = {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'normal',
+        fontSize: 24,
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+        tailSize: 30,
+        tailWidth: 20,
+        tailAngle: 45,
+        backgroundWidth: 200,
+        backgroundHeight: 100,
+        padding: 12,
+        stroke: false,
+        shadow: false
+      }
+    },
+    
+    // Переключение показа параметров
+    toggleParameters() {
+      this.showParameters = !this.showParameters
+      console.log('🔄 Параметры текста:', this.showParameters ? 'показаны' : 'скрыты')
+    },
+    
+    // Обновление превью канваса
+    updatePreviewCanvas() {
+      const previewCanvas = this.$refs.previewCanvas
+      const mainCanvas = this.$refs.testCanvas
+      
+      if (!previewCanvas || !mainCanvas) {
+        console.log('⚠️ Канвасы не найдены для превью')
+        return
+      }
+      
+      console.log('🔄 Обновление превью канваса')
+      
+      // Получаем контекст превью канваса
+      const previewCtx = previewCanvas.getContext('2d')
+      
+      // Очищаем превью
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+      
+      // Копируем содержимое основного канваса в превью
+      previewCtx.drawImage(mainCanvas, 0, 0, previewCanvas.width, previewCanvas.height)
+      
+      // Добавляем текст с базовой подложкой в месте клика или дефолтный текст
+      if (this.textDialogPosition && this.textDialogData.text) {
+        this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+      } else if (this.textDialogPosition) {
+        // Показываем дефолтный текст "Текст" на дефолтной подложке
+        this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+      }
+      
+      console.log('✅ Превью канваса обновлено')
+    },
+    
+    // Отрисовка текста с подложкой на превью канвасе
+    drawTextPreviewOnCanvas(ctx, canvas) {
+      if (!this.textDialogPosition || !this.textDialogData.text) return
+      
+      console.log('🎨 Отрисовка текста на превью:', this.textDialogData.text)
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      // Используем соотношение сторон 19:9 для корректного масштабирования
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Адаптируем размеры для превью (делаем все пропорционально меньше)
+      const previewScale = 0.4 // Масштаб 40% от оригинальных размеров
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры текста
+      const textMetrics = ctx.measureText(this.textDialogData.text)
+      const textWidth = textMetrics.width
+      const textHeight = fontSize
+      
+      // Размеры подложки (адаптированные под превью)
+      const backgroundWidth = Math.max(
+        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        textHeight + padding * 2
+      )
+      
+      // Позиция подложки (центрируем относительно точки клика)
+      const bgX = previewX - backgroundWidth / 2
+      const bgY = previewY - backgroundHeight / 2
+      
+      // Рисуем подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      
+      // Добавляем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = Math.max(1, Math.round(2 * previewScale))
+        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      }
+      
+      // Добавляем тень если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+        ctx.shadowBlur = Math.max(2, Math.round(10 * previewScale))
+        ctx.shadowOffsetX = Math.max(1, Math.round(5 * previewScale))
+        ctx.shadowOffsetY = Math.max(1, Math.round(5 * previewScale))
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.fillText(this.textDialogData.text, previewX, previewY)
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      console.log('✅ Текст с подложкой отрисован на превью')
+    },
+    
+    // Отрисовка дефолтного текста "Текст" на превью канвасе
+    drawDefaultTextPreviewOnCanvas(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      console.log('🎨 Отрисовка дефолтного текста на превью')
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Адаптируем размеры для превью (делаем все пропорционально меньше)
+      const previewScale = 0.4 // Масштаб 40% от оригинальных размеров
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры текста
+      const textMetrics = ctx.measureText('Текст')
+      const textWidth = textMetrics.width
+      const textHeight = fontSize
+      
+      // Размеры подложки (адаптированные под превью)
+      const backgroundWidth = Math.max(
+        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        textHeight + padding * 2
+      )
+      
+      // Позиция подложки (центрируем относительно точки клика)
+      const bgX = previewX - backgroundWidth / 2
+      const bgY = previewY - backgroundHeight / 2
+      
+      // Рисуем подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      
+      // Добавляем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = Math.max(1, Math.round(2 * previewScale))
+        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      }
+      
+      // Добавляем тень если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+        ctx.shadowBlur = Math.max(2, Math.round(10 * previewScale))
+        ctx.shadowOffsetX = Math.max(1, Math.round(5 * previewScale))
+        ctx.shadowOffsetY = Math.max(1, Math.round(5 * previewScale))
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.fillText('Текст', previewX, previewY)
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      console.log('✅ Дефолтный текст с подложкой отрисован на превью')
+    },
+    
+    // Применение текста на канвас
+    applyTextToCanvas() {
+      if (!this.textDialogPosition || !this.paperScope) return
+      
+      console.log('✅ Применение текста на канвас:', this.textDialogData)
+      
+      // TODO: Создание текста с составной подложкой
+      // Пока просто закрываем диалог
+      this.closeTextDialog()
     }
   }
 }
@@ -4068,6 +4735,172 @@ export default {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* === СТИЛИ ДЛЯ ДИАЛОГА ДОБАВЛЕНИЯ ТЕКСТА === */
+
+.text-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.text-dialog {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.text-dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.text-dialog-header .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.text-dialog-header .btn-close:hover {
+  opacity: 1;
+}
+
+.text-dialog-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.text-dialog-tabs {
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 24px;
+}
+
+.text-dialog-tabs .nav-link {
+  border: none;
+  border-radius: 0;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 12px 20px;
+  margin-right: 4px;
+}
+
+.text-dialog-tabs .nav-link.active {
+  color: #667eea;
+  border-bottom: 2px solid #667eea;
+  background: transparent;
+}
+
+.text-dialog-tabs .nav-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.parameters-block {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid #e9ecef;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.text-preview {
+  background: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 20px;
+  /* Автоматическая высота под размер канваса */
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  /* Высота автоматически подстраивается под содержимое */
+  height: auto;
+  min-height: fit-content;
+}
+
+.preview-canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+  /* Обеспечиваем правильное соотношение сторон */
+  max-width: 100%;
+  display: block;
+}
+
+.text-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.text-dialog-footer .btn {
+  padding: 10px 24px;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.form-control-color {
+  width: 60px;
+  height: 38px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .text-dialog {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .text-dialog-body {
+    padding: 16px;
+  }
+  
+  .text-dialog-header,
+  .text-dialog-footer {
+    padding: 16px 20px;
   }
 }
 

@@ -244,7 +244,7 @@
                       v-model="textDialogData.tailSize" 
                       class="form-range" 
                       min="10" 
-                      max="50" 
+                      max="250" 
                       step="1"
                     >
                   </div>
@@ -272,7 +272,7 @@
                       v-model="textDialogData.tailAngle" 
                       class="form-range" 
                       min="0" 
-                      max="90" 
+                      max="359" 
                       step="1"
                     >
                   </div>
@@ -4672,38 +4672,30 @@ export default {
       const bgX = previewX - backgroundWidth / 2
       const bgY = previewY - backgroundHeight / 2
       
-      // Сначала рисуем тень если включена (применяется к подложке)
+      // Сначала рисуем тень если включена (применяется к объединенной фигуре)
       if (this.textDialogData.shadow) {
         ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
         ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
         ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
         ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
-        
-        // Рисуем подложку с тенью
-        ctx.fillStyle = backgroundColor
-        ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
-        
-        // Сбрасываем тень
+      }
+      
+      // Рисуем объединенную фигуру (подложка + хвост) с тенью
+      this.drawCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
+      
+      // Сбрасываем тень
+      if (this.textDialogData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 0
       }
       
-      // Рисуем основную подложку
-      ctx.fillStyle = backgroundColor
-      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
-      
-      // Рисуем хвост (острый треугольник с прямым углом)
-      this.drawTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
-      
-      // Добавляем обводку если включена (применяется к подложке и хвосту)
+      // Добавляем обводку если включена (применяется к объединенной фигуре)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
         ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
-        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
-        // Обводим хвост
-        this.strokeTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
+        this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
       // Рисуем текст
@@ -4770,38 +4762,30 @@ export default {
       ctx.fillStyle = backgroundColor
       ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
       
-      // Сначала рисуем тень если включена (применяется к подложке)
+      // Сначала рисуем тень если включена (применяется к объединенной фигуре)
       if (this.textDialogData.shadow) {
         ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
         ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
         ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
         ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
-        
-        // Рисуем подложку с тенью
-        ctx.fillStyle = backgroundColor
-        ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
-        
-        // Сбрасываем тень
+      }
+      
+      // Рисуем объединенную фигуру (подложка + хвост) с тенью
+      this.drawCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
+      
+      // Сбрасываем тень
+      if (this.textDialogData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 0
       }
       
-      // Рисуем основную подложку
-      ctx.fillStyle = backgroundColor
-      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
-      
-      // Рисуем хвост (острый треугольник с прямым углом)
-      this.drawTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
-      
-      // Добавляем обводку если включена (применяется к подложке и хвосту)
+      // Добавляем обводку если включена (применяется к объединенной фигуре)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
         ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
-        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
-        // Обводим хвост
-        this.strokeTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
+        this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
       // Рисуем текст
@@ -4815,10 +4799,10 @@ export default {
     drawTail(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
       console.log('🎨 Начинаем отрисовку хвоста:', { centerX, centerY, bgWidth, bgHeight, scale })
       
-      // Параметры хвоста
-      const tailSize = Math.max(0.3, this.textDialogData.tailSize / 100) // Минимум 30% от размера подложки
-      const tailWidth = Math.max(0.2, this.textDialogData.tailWidth / 100) // Минимум 20% от размера подложки
-      const tailAngle = this.textDialogData.tailAngle * Math.PI / 180 // Угол в радианах
+      // Параметры хвоста - приводим к числам и устанавливаем минимумы
+      const tailSize = Math.max(0.1, Number(this.textDialogData.tailSize) / 100) // Минимум 10% от размера подложки
+      const tailWidth = Math.max(0.1, Number(this.textDialogData.tailWidth) / 100) // Минимум 10% от размера подложки
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180 // Угол в радианах
       
       console.log('📐 Параметры хвоста:', { 
         tailSize: this.textDialogData.tailSize, 
@@ -4829,27 +4813,39 @@ export default {
         tailAngleRad: tailAngle
       })
       
-      // Размеры хвоста - хвост должен выходить за границы подложки!
-      const tailLength = bgHeight * tailSize + bgHeight * 0.3 // Длина хвоста + 30% за границы
-      const tailBaseWidth = bgWidth * tailWidth // Ширина основания хвоста
+      // Размеры хвоста (управляются ползунками)
+      // Длина хвоста - привязываем к минимальному размеру подложки
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize // Длина хвоста от минимального размера
       
-      console.log('📏 Размеры хвоста:', { tailLength, tailBaseWidth, bgHeight, bgWidth })
+      // Ширина основания - ограничиваем минимальным размером подложки
+      const maxBaseWidth = minDimension * 0.8 // Максимум 80% от минимального размера
+      const tailBaseWidth = Math.min(minDimension * tailWidth, maxBaseWidth)
       
-      // Позиция прямого угла хвоста (край подложки, откуда выходит хвост)
-      // Хвост должен выходить из подложки, а не из центра!
-      const rightAngleX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
-      const rightAngleY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      console.log('📏 Размеры хвоста:', { 
+        tailLength, 
+        tailBaseWidth, 
+        bgHeight, 
+        bgWidth, 
+        minDimension,
+        maxBaseWidth,
+        actualTailWidth: tailBaseWidth
+      })
       
-      // Вычисляем координаты острой вершины хвоста
-      const sharpPointX = rightAngleX + tailLength * Math.cos(tailAngle)
-      const sharpPointY = rightAngleY + tailLength * Math.sin(tailAngle)
+      // НОВАЯ ЛОГИКА: Прямой угол хвоста в центре подложки
+      const rightAngleX = centerX // Прямой угол в центре подложки
+      const rightAngleY = centerY
+      
+      // Вычисляем координаты острой вершины хвоста (выходит из центра подложки)
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
       
       // Вычисляем координаты основания хвоста (перпендикулярно к направлению хвоста)
       const baseAngle = tailAngle + Math.PI / 2 // Перпендикулярный угол
-      const basePoint1X = rightAngleX + (tailBaseWidth / 2) * Math.cos(baseAngle)
-      const basePoint1Y = rightAngleY + (tailBaseWidth / 2) * Math.sin(baseAngle)
-      const basePoint2X = rightAngleX - (tailBaseWidth / 2) * Math.cos(baseAngle)
-      const basePoint2Y = rightAngleY - (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint1X = centerX + (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint1Y = centerY + (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint2X = centerX - (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint2Y = centerY - (tailBaseWidth / 2) * Math.sin(baseAngle)
       
       console.log('📍 Координаты хвоста:', {
         rightAngle: { x: rightAngleX, y: rightAngleY },
@@ -4858,14 +4854,9 @@ export default {
         basePoint2: { x: basePoint2X, y: basePoint2Y }
       })
       
-      console.log('🎯 Позиция хвоста относительно подложки:', {
-        centerX, centerY, bgWidth, bgHeight,
-        rightAngleOffset: { x: rightAngleX - centerX, y: rightAngleY - centerY }
-      })
-      
       // Рисуем треугольник хвоста
       ctx.beginPath()
-      ctx.moveTo(rightAngleX, rightAngleY) // Прямой угол
+      ctx.moveTo(rightAngleX, rightAngleY) // Прямой угол (центр подложки)
       ctx.lineTo(basePoint1X, basePoint1Y) // Первая точка основания
       ctx.lineTo(sharpPointX, sharpPointY) // Острая вершина
       ctx.lineTo(basePoint2X, basePoint2Y) // Вторая точка основания
@@ -4878,31 +4869,114 @@ export default {
       console.log('✅ Хвост отрисован успешно')
     },
     
-    // Обводка хвоста
-    strokeTail(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
-      // Параметры хвоста
-      const tailSize = this.textDialogData.tailSize / 100
-      const tailWidth = this.textDialogData.tailWidth / 100
-      const tailAngle = this.textDialogData.tailAngle * Math.PI / 180
+    // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
+    drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
+      // Создаем путь для объединенной фигуры
+      ctx.beginPath()
       
-      // Размеры хвоста - хвост должен выходить за границы подложки!
-      const tailLength = bgHeight * tailSize + bgHeight * 0.3
-      const tailBaseWidth = bgWidth * tailWidth
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
       
-      // Позиция прямого угла хвоста (край подложки, откуда выходит хвост)
-      const rightAngleX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
-      const rightAngleY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      // Рисуем подложку как часть пути
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Добавляем хвост к тому же пути
+      this.addTailToPath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      
+      // Заполняем объединенную фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+    },
+    
+    // Добавление хвоста к существующему пути (для объединенной фигуры)
+    addTailToPath(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Параметры хвоста - приводим к числам и устанавливаем минимумы
+      const tailSize = Math.max(0.1, Number(this.textDialogData.tailSize) / 100)
+      const tailWidth = Math.max(0.1, Number(this.textDialogData.tailWidth) / 100)
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста
+      // Длина хвоста - привязываем к минимальному размеру подложки
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize // Длина хвоста от минимального размера
+      
+      // Ширина основания - ограничиваем минимальным размером подложки
+      const maxBaseWidth = minDimension * 0.8 // Максимум 80% от минимального размера
+      const tailBaseWidth = Math.min(minDimension * tailWidth, maxBaseWidth)
+      
+      // Прямой угол хвоста в центре подложки
+      const rightAngleX = centerX
+      const rightAngleY = centerY
       
       // Вычисляем координаты острой вершины хвоста
-      const sharpPointX = rightAngleX + tailLength * Math.cos(tailAngle)
-      const sharpPointY = rightAngleY + tailLength * Math.sin(tailAngle)
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
       
       // Вычисляем координаты основания хвоста
       const baseAngle = tailAngle + Math.PI / 2
-      const basePoint1X = rightAngleX + (tailBaseWidth / 2) * Math.cos(baseAngle)
-      const basePoint1Y = rightAngleY + (tailBaseWidth / 2) * Math.sin(baseAngle)
-      const basePoint2X = rightAngleX - (tailBaseWidth / 2) * Math.cos(baseAngle)
-      const basePoint2Y = rightAngleY - (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint1X = centerX + (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint1Y = centerY + (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint2X = centerX - (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint2Y = centerY - (tailBaseWidth / 2) * Math.sin(baseAngle)
+      
+      // Добавляем хвост к существующему пути
+      ctx.moveTo(rightAngleX, rightAngleY)
+      ctx.lineTo(basePoint1X, basePoint1Y)
+      ctx.lineTo(sharpPointX, sharpPointY)
+      ctx.lineTo(basePoint2X, basePoint2Y)
+      ctx.closePath()
+    },
+    
+    // Обводка объединенной фигуры (подложка + хвост) как единое целое
+    strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Создаем путь для объединенной фигуры
+      ctx.beginPath()
+      
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      // Рисуем подложку как часть пути
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Добавляем хвост к тому же пути
+      this.addTailToPath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      
+      // Обводим объединенную фигуру
+      ctx.stroke()
+    },
+    
+    // Обводка хвоста
+    strokeTail(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Параметры хвоста - приводим к числам и устанавливаем минимумы
+      const tailSize = Math.max(0.1, Number(this.textDialogData.tailSize) / 100)
+      const tailWidth = Math.max(0.1, Number(this.textDialogData.tailWidth) / 100)
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (управляются ползунками)
+      // Длина хвоста - привязываем к минимальному размеру подложки
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize // Длина хвоста от минимального размера
+      
+      // Ширина основания - ограничиваем минимальным размером подложки
+      const maxBaseWidth = minDimension * 0.8 // Максимум 80% от минимального размера
+      const tailBaseWidth = Math.min(minDimension * tailWidth, maxBaseWidth)
+      
+      // НОВАЯ ЛОГИКА: Прямой угол хвоста в центре подложки
+      const rightAngleX = centerX // Прямой угол в центре подложки
+      const rightAngleY = centerY
+      
+      // Вычисляем координаты острой вершины хвоста (выходит из центра подложки)
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
+      
+      // Вычисляем координаты основания хвоста (перпендикулярно к направлению хвоста)
+      const baseAngle = tailAngle + Math.PI / 2
+      const basePoint1X = centerX + (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint1Y = centerY + (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint2X = centerX - (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint2Y = centerY - (tailBaseWidth / 2) * Math.sin(baseAngle)
       
       // Рисуем обводку хвоста
       ctx.beginPath()

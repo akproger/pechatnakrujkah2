@@ -321,17 +321,105 @@
                   
                   <!-- Обводка -->
                   <div class="form-group mb-3">
-                    <div class="form-check">
+                    <div class="form-check mb-2">
                       <input type="checkbox" id="stroke" v-model="textDialogData.stroke" class="form-check-input">
                       <label for="stroke" class="form-check-label">Обводка</label>
+                    </div>
+                    
+                    <!-- Параметры обводки (показываются только если обводка включена) -->
+                    <div v-if="textDialogData.stroke" class="ms-4">
+                      <!-- Толщина обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeWidth" class="form-label">Толщина обводки: {{ textDialogData.strokeWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="strokeWidth" 
+                          v-model="textDialogData.strokeWidth" 
+                          class="form-range" 
+                          min="1" 
+                          max="10" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Цвет обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeColor" class="form-label">Цвет обводки:</label>
+                        <input type="color" id="strokeColor" v-model="textDialogData.strokeColor" class="form-control form-control-color">
+                      </div>
                     </div>
                   </div>
                   
                   <!-- Тень -->
                   <div class="form-group mb-3">
-                    <div class="form-check">
+                    <div class="form-check mb-2">
                       <input type="checkbox" id="shadow" v-model="textDialogData.shadow" class="form-check-input">
                       <label for="shadow" class="form-check-label">Тень</label>
+                    </div>
+                    
+                    <!-- Параметры тени (показываются только если тень включена) -->
+                    <div v-if="textDialogData.shadow" class="ms-4">
+                      <!-- Цвет тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowColor" class="form-label">Цвет тени:</label>
+                        <input type="color" id="shadowColor" v-model="textDialogData.shadowColor" class="form-control form-control-color">
+                      </div>
+                      
+                      <!-- Прозрачность тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOpacity" class="form-label">Прозрачность тени: {{ textDialogData.shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          id="shadowOpacity" 
+                          v-model="textDialogData.shadowOpacity" 
+                          class="form-range" 
+                          min="10" 
+                          max="100" 
+                          step="5"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по X -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetX" class="form-label">Смещение по X: {{ textDialogData.shadowOffsetX }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetX" 
+                          v-model="textDialogData.shadowOffsetX" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по Y -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetY" class="form-label">Смещение по Y: {{ textDialogData.shadowOffsetY }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetY" 
+                          v-model="textDialogData.shadowOffsetY" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Размытие тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowBlur" class="form-label">Размытие тени: {{ textDialogData.shadowBlur }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowBlur" 
+                          v-model="textDialogData.shadowBlur" 
+                          class="form-range" 
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -747,7 +835,14 @@ export default {
         backgroundHeight: 100,
         padding: 12,
         stroke: false,
-        shadow: false
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 30,
+        shadowOffsetX: 4,
+        shadowOffsetY: 4,
+        shadowBlur: 8
       }
     }
   },
@@ -819,6 +914,41 @@ export default {
       })
     },
     'textDialogData.shadow'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.strokeWidth'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.strokeColor'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadowColor'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadowOpacity'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadowOffsetX'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadowOffsetY'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.shadowBlur'() {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
@@ -4520,34 +4650,38 @@ export default {
       const bgX = previewX - backgroundWidth / 2
       const bgY = previewY - backgroundHeight / 2
       
-      // Рисуем подложку
+      // Сначала рисуем тень если включена (применяется к подложке)
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
+        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
+        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        
+        // Рисуем подложку с тенью
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+        
+        // Сбрасываем тень
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Рисуем основную подложку
       ctx.fillStyle = backgroundColor
       ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
       
-      // Добавляем обводку если включена
+      // Добавляем обводку если включена (применяется к подложке)
       if (this.textDialogData.stroke) {
-        ctx.strokeStyle = '#000000'
-        ctx.lineWidth = Math.max(1, Math.round(2 * previewScale))
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
         ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
-      }
-      
-      // Добавляем тень если включена
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-        ctx.shadowBlur = Math.max(2, Math.round(10 * previewScale))
-        ctx.shadowOffsetX = Math.max(1, Math.round(5 * previewScale))
-        ctx.shadowOffsetY = Math.max(1, Math.round(5 * previewScale))
       }
       
       // Рисуем текст
       ctx.fillStyle = textColor
       ctx.fillText(this.textDialogData.text, previewX, previewY)
-      
-      // Сбрасываем тень
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
       
       console.log('✅ Текст с подложкой отрисован на превью')
     },
@@ -4609,30 +4743,38 @@ export default {
       ctx.fillStyle = backgroundColor
       ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
       
-      // Добавляем обводку если включена
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = '#000000'
-        ctx.lineWidth = Math.max(1, Math.round(2 * previewScale))
-        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      // Сначала рисуем тень если включена (применяется к подложке)
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
+        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
+        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        
+        // Рисуем подложку с тенью
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+        
+        // Сбрасываем тень
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
       
-      // Добавляем тень если включена
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-        ctx.shadowBlur = Math.max(2, Math.round(10 * previewScale))
-        ctx.shadowOffsetX = Math.max(1, Math.round(5 * previewScale))
-        ctx.shadowOffsetY = Math.max(1, Math.round(5 * previewScale))
+      // Рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      
+      // Добавляем обводку если включена (применяется к подложке)
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
+        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
       }
       
       // Рисуем текст
       ctx.fillStyle = textColor
       ctx.fillText('Текст', previewX, previewY)
-      
-      // Сбрасываем тень
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
       
       console.log('✅ Дефолтный текст с подложкой отрисован на превью')
     },

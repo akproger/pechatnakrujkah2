@@ -952,6 +952,21 @@ export default {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
+    },
+    'textDialogData.tailSize'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.tailWidth'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.tailAngle'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
     }
   },
   mounted() {
@@ -4575,6 +4590,8 @@ export default {
       }
       
       console.log('🔄 Обновление превью канваса')
+      console.log('🎯 textDialogPosition:', this.textDialogPosition)
+      console.log('🎯 textDialogData.text:', this.textDialogData.text)
       
       // Получаем контекст превью канваса
       const previewCtx = previewCanvas.getContext('2d')
@@ -4601,6 +4618,11 @@ export default {
       if (!this.textDialogPosition || !this.textDialogData.text) return
       
       console.log('🎨 Отрисовка текста на превью:', this.textDialogData.text)
+      console.log('🎯 Параметры хвоста в начале метода:', {
+        tailSize: this.textDialogData.tailSize,
+        tailWidth: this.textDialogData.tailWidth,
+        tailAngle: this.textDialogData.tailAngle
+      })
       
       // Конвертируем координаты клика в координаты превью канваса
       // Используем соотношение сторон 19:9 для корректного масштабирования
@@ -4672,11 +4694,16 @@ export default {
       ctx.fillStyle = backgroundColor
       ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
       
-      // Добавляем обводку если включена (применяется к подложке)
+      // Рисуем хвост (острый треугольник с прямым углом)
+      this.drawTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
+      
+      // Добавляем обводку если включена (применяется к подложке и хвосту)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
         ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
         ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+        // Обводим хвост
+        this.strokeTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
       // Рисуем текст
@@ -4765,11 +4792,16 @@ export default {
       ctx.fillStyle = backgroundColor
       ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
       
-      // Добавляем обводку если включена (применяется к подложке)
+      // Рисуем хвост (острый треугольник с прямым углом)
+      this.drawTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
+      
+      // Добавляем обводку если включена (применяется к подложке и хвосту)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
         ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
         ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+        // Обводим хвост
+        this.strokeTail(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
       // Рисуем текст
@@ -4777,6 +4809,111 @@ export default {
       ctx.fillText('Текст', previewX, previewY)
       
       console.log('✅ Дефолтный текст с подложкой отрисован на превью')
+    },
+    
+    // Отрисовка хвоста (острого треугольника с прямым углом)
+    drawTail(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      console.log('🎨 Начинаем отрисовку хвоста:', { centerX, centerY, bgWidth, bgHeight, scale })
+      
+      // Параметры хвоста
+      const tailSize = Math.max(0.3, this.textDialogData.tailSize / 100) // Минимум 30% от размера подложки
+      const tailWidth = Math.max(0.2, this.textDialogData.tailWidth / 100) // Минимум 20% от размера подложки
+      const tailAngle = this.textDialogData.tailAngle * Math.PI / 180 // Угол в радианах
+      
+      console.log('📐 Параметры хвоста:', { 
+        tailSize: this.textDialogData.tailSize, 
+        tailWidth: this.textDialogData.tailWidth, 
+        tailAngle: this.textDialogData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailAngleRad: tailAngle
+      })
+      
+      // Размеры хвоста - хвост должен выходить за границы подложки!
+      const tailLength = bgHeight * tailSize + bgHeight * 0.3 // Длина хвоста + 30% за границы
+      const tailBaseWidth = bgWidth * tailWidth // Ширина основания хвоста
+      
+      console.log('📏 Размеры хвоста:', { tailLength, tailBaseWidth, bgHeight, bgWidth })
+      
+      // Позиция прямого угла хвоста (край подложки, откуда выходит хвост)
+      // Хвост должен выходить из подложки, а не из центра!
+      const rightAngleX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
+      const rightAngleY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      
+      // Вычисляем координаты острой вершины хвоста
+      const sharpPointX = rightAngleX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = rightAngleY + tailLength * Math.sin(tailAngle)
+      
+      // Вычисляем координаты основания хвоста (перпендикулярно к направлению хвоста)
+      const baseAngle = tailAngle + Math.PI / 2 // Перпендикулярный угол
+      const basePoint1X = rightAngleX + (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint1Y = rightAngleY + (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint2X = rightAngleX - (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint2Y = rightAngleY - (tailBaseWidth / 2) * Math.sin(baseAngle)
+      
+      console.log('📍 Координаты хвоста:', {
+        rightAngle: { x: rightAngleX, y: rightAngleY },
+        sharpPoint: { x: sharpPointX, y: sharpPointY },
+        basePoint1: { x: basePoint1X, y: basePoint1Y },
+        basePoint2: { x: basePoint2X, y: basePoint2Y }
+      })
+      
+      console.log('🎯 Позиция хвоста относительно подложки:', {
+        centerX, centerY, bgWidth, bgHeight,
+        rightAngleOffset: { x: rightAngleX - centerX, y: rightAngleY - centerY }
+      })
+      
+      // Рисуем треугольник хвоста
+      ctx.beginPath()
+      ctx.moveTo(rightAngleX, rightAngleY) // Прямой угол
+      ctx.lineTo(basePoint1X, basePoint1Y) // Первая точка основания
+      ctx.lineTo(sharpPointX, sharpPointY) // Острая вершина
+      ctx.lineTo(basePoint2X, basePoint2Y) // Вторая точка основания
+      ctx.closePath()
+      
+      // Заполняем хвост цветом подложки
+      ctx.fillStyle = this.textDialogData.backgroundColor
+      ctx.fill()
+      
+      console.log('✅ Хвост отрисован успешно')
+    },
+    
+    // Обводка хвоста
+    strokeTail(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Параметры хвоста
+      const tailSize = this.textDialogData.tailSize / 100
+      const tailWidth = this.textDialogData.tailWidth / 100
+      const tailAngle = this.textDialogData.tailAngle * Math.PI / 180
+      
+      // Размеры хвоста - хвост должен выходить за границы подложки!
+      const tailLength = bgHeight * tailSize + bgHeight * 0.3
+      const tailBaseWidth = bgWidth * tailWidth
+      
+      // Позиция прямого угла хвоста (край подложки, откуда выходит хвост)
+      const rightAngleX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
+      const rightAngleY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      
+      // Вычисляем координаты острой вершины хвоста
+      const sharpPointX = rightAngleX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = rightAngleY + tailLength * Math.sin(tailAngle)
+      
+      // Вычисляем координаты основания хвоста
+      const baseAngle = tailAngle + Math.PI / 2
+      const basePoint1X = rightAngleX + (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint1Y = rightAngleY + (tailBaseWidth / 2) * Math.sin(baseAngle)
+      const basePoint2X = rightAngleX - (tailBaseWidth / 2) * Math.cos(baseAngle)
+      const basePoint2Y = rightAngleY - (tailBaseWidth / 2) * Math.sin(baseAngle)
+      
+      // Рисуем обводку хвоста
+      ctx.beginPath()
+      ctx.moveTo(rightAngleX, rightAngleY)
+      ctx.lineTo(basePoint1X, basePoint1Y)
+      ctx.lineTo(sharpPointX, sharpPointY)
+      ctx.lineTo(basePoint2X, basePoint2Y)
+      ctx.closePath()
+      
+      // Обводим хвост
+      ctx.stroke()
     },
     
     // Применение текста на канвас

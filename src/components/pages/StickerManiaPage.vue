@@ -3581,8 +3581,8 @@ export default {
         // Вычисляем изменение позиции мыши по оси X
         const deltaX = e.clientX - state.lastMouseX
         
-        // Чувствительность вращения (градусов на пиксель) - еще больше увеличиваем
-        const sensitivity = 4.0
+        // Чувствительность вращения (градусов на пиксель) - ОПТИМАЛЬНАЯ
+        const sensitivity = 1.5
         
         // Вычисляем изменение угла на основе движения по X
         const deltaRotation = deltaX * sensitivity
@@ -3600,37 +3600,58 @@ export default {
         // Обновляем визуальный индикатор
         this.updateRotationIndicator(rotationIndicator, displayRotation)
         
-        // Обновляем Paper.js элемент (конвертируем градусы в радианы)
+        // СИНХРОННО обновляем ВСЕ элементы с одним источником истины!
+        const rotationInRadians = (state.continuousRotation * Math.PI) / 180
+        
+        // 1️⃣ СНАЧАЛА обновляем Paper.js элементы (текст и подложка)
         if (state.paperItem) {
-          const rotationInRadians = (state.continuousRotation * Math.PI) / 180
+          // Обновляем текст СИНХРОННО
           state.paperItem.rotation = rotationInRadians
           
-          // Обновляем подложку если есть
+          // Обновляем подложку СИНХРОННО
           console.log('🔄 Обновление подложки при вращении текста')
           this.updateTextBackground(state.paperItem, rotationInRadians)
           
-          // Принудительно обновляем Paper.js view для синхронизации
+          // ПРИНУДИТЕЛЬНО обновляем Paper.js view для синхронизации
           if (this.paperScope && this.paperScope.view) {
             this.paperScope.view.update()
             console.log('🔄 Paper.js view обновлен')
+            
+            // ДОПОЛНИТЕЛЬНАЯ ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ
+            // Убеждаемся что все Paper.js элементы обновлены
+            if (this.paperScope.project) {
+              this.paperScope.project.view.update()
+              console.log('🔄 Paper.js project view дополнительно обновлен')
+            }
+            
+            // РАДИКАЛЬНОЕ РЕШЕНИЕ: Дополнительная принудительная синхронизация
+            // Убеждаемся что все изменения применены
+            setTimeout(() => {
+              if (this.paperScope && this.paperScope.view) {
+                this.paperScope.view.update()
+                console.log('🔄 Paper.js view дополнительно обновлен через setTimeout')
+              }
+            }, 0)
           }
           
-          console.log('🔄 Вращение текста:', {
+          console.log('🔄 Вращение текста и подложки:', {
             degrees: state.continuousRotation,
             radians: rotationInRadians,
-            position: state.paperItem.position
+            position: state.paperItem.position,
+            textRotation: state.paperItem.rotation,
+            textBounds: state.paperItem.bounds
           })
         }
         
-        // Применяем вращение к HTML элементу управления и синхронизируем позицию
-        requestAnimationFrame(() => {
-          // Получаем обновленную позицию из Paper.js элемента
-          const textBounds = state.paperItem.bounds
-          if (textBounds) {
-            const textCenterX = textBounds.center.x
-            const textCenterY = textBounds.center.y
-            
-            // Обновляем позицию и вращение HTML элемента
+        // 2️⃣ ПОТОМ СИНХРОННО обновляем HTML элемент управления
+        const textBounds = state.paperItem.bounds
+        if (textBounds) {
+          const textCenterX = textBounds.center.x
+          const textCenterY = textBounds.center.y
+          
+          // РАДИКАЛЬНОЕ РЕШЕНИЕ: Принудительная синхронизация через requestAnimationFrame
+          requestAnimationFrame(() => {
+            // ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ HTML элемента с тем же углом
             textElement.style.left = `${textCenterX}px`
             textElement.style.top = `${textCenterY}px`
             textElement.style.transform = `translate(-50%, -50%) rotate(${state.continuousRotation}deg)`
@@ -3639,15 +3660,32 @@ export default {
             textElement.style.width = `${textBounds.width}px`
             textElement.style.height = `${textBounds.height}px`
             
-            console.log('🔄 HTML элемент синхронизирован:', {
+            // ПРИНУДИТЕЛЬНО обновляем DOM для синхронизации
+            textElement.offsetHeight // force reflow
+            
+            // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА СИНХРОНИЗАЦИИ
+            // Убеждаемся что HTML элемент действительно обновился
+            const computedStyle = window.getComputedStyle(textElement)
+            const actualRotation = computedStyle.transform
+            console.log('🔄 Проверка синхронизации HTML элемента:', {
+              expectedRotation: `${state.continuousRotation}deg`,
+              actualTransform: actualRotation,
+              isSynchronized: actualRotation.includes(`rotate(${state.continuousRotation}deg)`)
+            })
+            
+            console.log('🔄 HTML элемент ПРИНУДИТЕЛЬНО синхронизирован с Paper.js:', {
               x: textCenterX,
               y: textCenterY,
               width: textBounds.width,
               height: textBounds.height,
-              rotation: state.continuousRotation
+              rotation: state.continuousRotation,
+              radians: rotationInRadians,
+              htmlTransform: textElement.style.transform,
+              htmlLeft: textElement.style.left,
+              htmlTop: textElement.style.top
             })
-          }
-        })
+          })
+        }
         
         state.hasChanges = true
         this.showApplyButton(textId)
@@ -3890,36 +3928,44 @@ export default {
           const expandedBounds = textBounds.expand(12)
           console.log('📐 Расширенные границы подложки:', expandedBounds)
           
-          // Обновляем позицию и размер подложки правильно
-          if (background instanceof this.paperScope.Path.Rectangle) {
-            // Для прямоугольников обновляем rectangle
-            console.log('🔄 Обновляем rectangle подложки с:', background.rectangle, 'на:', expandedBounds)
-            background.rectangle = expandedBounds
-            console.log('🔄 Обновлен rectangle подложки')
-          } else if (background instanceof this.paperScope.Path.Ellipse) {
-            // Для эллипсов обновляем center и size
-            console.log('🔄 Обновляем center подложки с:', background.center, 'на:', expandedBounds.center)
-            console.log('🔄 Обновляем size подложки с:', background.size, 'на:', expandedBounds.size)
-            background.center = expandedBounds.center
-            background.size = expandedBounds.size
-            console.log('🔄 Обновлен center и size подложки')
+          // ПРИ ПОВОРОТЕ НЕ ОБНОВЛЯЕМ РАЗМЕРЫ ПОДЛОЖКИ - только позицию!
+          if (rotation !== null) {
+            // При повороте обновляем только позицию, сохраняя размеры
+            console.log('🔄 ПОВОРОТ: Обновляем только позицию подложки, сохраняя размеры')
+            background.position = expandedBounds.center
+            background.rotation = rotation
+            console.log('🔄 ПОВОРОТ: Обновлена позиция и ротация подложки')
           } else {
-            // Для других типов используем bounds
-            try {
-              console.log('🔄 Обновляем bounds подложки с:', background.bounds, 'на:', expandedBounds)
-              background.bounds = expandedBounds
-              console.log('🔄 Обновлены bounds подложки')
-            } catch (error) {
-              console.warn('⚠️ Не удалось обновить bounds подложки:', error)
+            // При перемещении обновляем размеры и позицию
+            console.log('🔄 ПЕРЕМЕЩЕНИЕ: Обновляем размеры и позицию подложки')
+            
+            // Обновляем позицию и размер подложки правильно
+            if (background instanceof this.paperScope.Path.Rectangle) {
+              // Для прямоугольников обновляем rectangle
+              console.log('🔄 Обновляем rectangle подложки с:', background.rectangle, 'на:', expandedBounds)
+              background.rectangle = expandedBounds
+              console.log('🔄 Обновлен rectangle подложки')
+            } else if (background instanceof this.paperScope.Path.Ellipse) {
+              // Для эллипсов обновляем center и size
+              console.log('🔄 Обновляем center подложки с:', background.center, 'на:', expandedBounds.center)
+              console.log('🔄 Обновляем size подложки с:', background.size, 'на:', expandedBounds.size)
+              background.center = expandedBounds.center
+              background.size = expandedBounds.size
+              console.log('🔄 Обновлен center и size подложки')
+            } else {
+              // Для других типов используем bounds
+              try {
+                console.log('🔄 Обновляем bounds подложки с:', background.bounds, 'на:', expandedBounds)
+                background.bounds = expandedBounds
+                console.log('🔄 Обновлены bounds подложки')
+              } catch (error) {
+                console.warn('⚠️ Не удалось обновить bounds подложки:', error)
+              }
             }
           }
           
-          // Если передана ротация, применяем её к подложке
-          if (rotation !== null) {
-            console.log('🔄 Применяем ротацию к подложке:', rotation, 'радиан')
-            background.rotation = rotation
-            console.log('🔄 Применена ротация к подложке:', rotation)
-          }
+          // Ротация уже применена выше в блоке "ПРИ ПОВОРОТЕ"
+          // Дополнительно не применяем, чтобы избежать дублирования
           
           console.log('✅ Обновлена подложка для текста:', textItem.content, 'bounds:', expandedBounds)
           console.log('✅ Новые свойства подложки:', {

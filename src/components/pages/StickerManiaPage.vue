@@ -4871,22 +4871,307 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
-      // Создаем путь для объединенной фигуры
+      // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
+      
+      // Строим объединенную фигуру как единый путь
+      this.buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      
+      // Заполняем объединенную фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+    },
+    
+    // Построение пути для суперподложки (подложка + хвост как единая фигура)
+    buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Параметры хвоста
+      const tailSize = Math.max(0.1, Number(this.textDialogData.tailSize) / 100)
+      const tailWidth = Math.max(0.1, Number(this.textDialogData.tailWidth) / 100)
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize
       
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
       const bgY = centerY - bgHeight / 2
       
-      // Рисуем подложку как часть пути
+      // Вычисляем точку пересечения линии хвоста с границей подложки
+      const intersectionPoint = this.getTailIntersectionWithBackground(
+        centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight
+      )
+      
+      if (intersectionPoint) {
+        // Создаем суперподложку с хвостом
+        this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
+                                   intersectionPoint, tailAngle, tailLength, tailWidth)
+      } else {
+        // Если нет пересечения, рисуем обычную подложку
+        this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
+      }
+    },
+    
+    // Вычисление точки пересечения линии хвоста с границей подложки
+    getTailIntersectionWithBackground(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight) {
+      // Линия хвоста: от центра подложки под углом tailAngle
+      const lineStartX = centerX
+      const lineStartY = centerY
+      const lineEndX = centerX + 1000 * Math.cos(tailAngle) // Достаточно длинная линия
+      const lineEndY = centerY + 1000 * Math.sin(tailAngle)
+      
+      // Проверяем пересечение с каждой стороной подложки
+      const sides = [
+        // Верхняя сторона
+        { x1: bgX, y1: bgY, x2: bgX + bgWidth, y2: bgY },
+        // Правая сторона
+        { x1: bgX + bgWidth, y1: bgY, x2: bgX + bgWidth, y2: bgY + bgHeight },
+        // Нижняя сторона
+        { x1: bgX + bgWidth, y1: bgY + bgHeight, x2: bgX, y2: bgY + bgHeight },
+        // Левая сторона
+        { x1: bgX, y1: bgY + bgHeight, x2: bgX, y2: bgY }
+      ]
+      
+      for (const side of sides) {
+        const intersection = this.getLineIntersection(
+          lineStartX, lineStartY, lineEndX, lineEndY,
+          side.x1, side.y1, side.x2, side.y2
+        )
+        
+        if (intersection) {
+          // Проверяем, что точка пересечения находится на стороне подложки
+          if (this.isPointOnLineSegment(intersection.x, intersection.y, side.x1, side.y1, side.x2, side.y2)) {
+            return intersection
+          }
+        }
+      }
+      
+      return null
+    },
+    
+    // Вычисление пересечения двух линий
+    getLineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(den) < 1e-10) return null // Линии параллельны
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
+      
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
+      }
+      
+      return null
+    },
+    
+    // Проверка, находится ли точка на отрезке
+    isPointOnLineSegment(px, py, x1, y1, x2, y2) {
+      const tolerance = 1e-10
+      
+      // Проверяем, что точка лежит на линии
+      const crossProduct = Math.abs((px - x1) * (y2 - y1) - (py - y1) * (x2 - x1))
+      if (crossProduct > tolerance) return false
+      
+      // Проверяем, что точка находится между концами отрезка
+      const dotProduct = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)
+      const squaredLength = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+      
+      return dotProduct >= 0 && dotProduct <= squaredLength
+    },
+    
+    // Построение пути суперподложки с хвостом
+    buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
+                           intersectionPoint, tailAngle, tailLength, tailWidth) {
+      // Базовое расстояние для точек хвоста (20px по умолчанию)
+      const baseTailWidth = 20
+      const tailWidthPixels = baseTailWidth * (Number(this.textDialogData.tailWidth) / 100)
+      
+      // Вычисляем точки хвоста на линии пересечения
+      const perpendicularAngle = tailAngle + Math.PI / 2
+      
+      // Точка 1: на расстоянии tailWidthPixels назад по периметру
+      const point1X = intersectionPoint.x - tailWidthPixels * Math.cos(perpendicularAngle)
+      const point1Y = intersectionPoint.y - tailWidthPixels * Math.sin(perpendicularAngle)
+      
+      // Точка 2: на расстоянии tailWidthPixels вперед по периметру
+      const point2X = intersectionPoint.x + tailWidthPixels * Math.cos(perpendicularAngle)
+      const point2Y = intersectionPoint.y + tailWidthPixels * Math.sin(perpendicularAngle)
+      
+      // Острая вершина хвоста
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
+      
+      // Определяем, с какой стороны подложки выходит хвост
+      const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      
+      // Строим путь суперподложки
+      ctx.beginPath()
+      
+      if (tailSide === 'top') {
+        // Хвост выходит сверху
+        this.buildTopTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                 intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                                 sharpPointX, sharpPointY)
+      } else if (tailSide === 'right') {
+        // Хвост выходит справа
+        this.buildRightTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                   intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                                   sharpPointX, sharpPointY)
+      } else if (tailSide === 'bottom') {
+        // Хвост выходит снизу
+        this.buildBottomTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                    intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                                    sharpPointX, sharpPointY)
+      } else if (tailSide === 'left') {
+        // Хвост выходит слева
+        this.buildLeftTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                  intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                                  sharpPointX, sharpPointY)
+      }
+      
+      ctx.closePath()
+    },
+    
+    // Построение простого пути подложки без хвоста
+    buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight) {
+      ctx.beginPath()
       ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      ctx.closePath()
+    },
+    
+    // Определение стороны выхода хвоста по точке пересечения
+    getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 1
       
-      // Добавляем хвост к тому же пути
-      this.addTailToPath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      // Верхняя сторона
+      if (Math.abs(intersectionPoint.y - bgY) < tolerance) return 'top'
+      // Правая сторона
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance) return 'right'
+      // Нижняя сторона
+      if (Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return 'bottom'
+      // Левая сторона
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance) return 'left'
       
-      // Заполняем объединенную фигуру
-      ctx.fillStyle = backgroundColor
-      ctx.fill()
+      return 'top' // По умолчанию
+    },
+    
+    // Построение пути суперподложки с хвостом сверху
+    buildTopTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                         intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                         sharpPointX, sharpPointY) {
+      // Начинаем с левого верхнего угла
+      ctx.moveTo(bgX, bgY)
+      
+      // Идем по верхней стороне до первой точки хвоста
+      ctx.lineTo(point1X, point1Y)
+      
+      // Идем к острой вершине хвоста
+      ctx.lineTo(sharpPointX, sharpPointY)
+      
+      // Идем ко второй точке хвоста
+      ctx.lineTo(point2X, point2Y)
+      
+      // Продолжаем по верхней стороне до правого угла
+      ctx.lineTo(bgX + bgWidth, bgY)
+      
+      // Идем по правой стороне
+      ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+      
+      // Идем по нижней стороне
+      ctx.lineTo(bgX, bgY + bgHeight)
+      
+      // Замыкаем по левой стороне
+      ctx.lineTo(bgX, bgY)
+    },
+    
+    // Построение пути суперподложки с хвостом справа
+    buildRightTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                           intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                           sharpPointX, sharpPointY) {
+      // Начинаем с левого верхнего угла
+      ctx.moveTo(bgX, bgY)
+      
+      // Идем по верхней стороне
+      ctx.lineTo(bgX + bgWidth, bgY)
+      
+      // Идем по правой стороне до первой точки хвоста
+      ctx.lineTo(point1X, point1Y)
+      
+      // Идем к острой вершине хвоста
+      ctx.lineTo(sharpPointX, sharpPointY)
+      
+      // Идем ко второй точке хвоста
+      ctx.lineTo(point2X, point2Y)
+      
+      // Продолжаем по правой стороне до нижнего угла
+      ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+      
+      // Идем по нижней стороне
+      ctx.lineTo(bgX, bgY + bgHeight)
+      
+      // Замыкаем по левой стороне
+      ctx.lineTo(bgX, bgY)
+    },
+    
+    // Построение пути суперподложки с хвостом снизу
+    buildBottomTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                            intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                            sharpPointX, sharpPointY) {
+      // Начинаем с левого верхнего угла
+      ctx.moveTo(bgX, bgY)
+      
+      // Идем по верхней стороне
+      ctx.lineTo(bgX + bgWidth, bgY)
+      
+      // Идем по правой стороне
+      ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+      
+      // Идем по нижней стороне до первой точки хвоста
+      ctx.lineTo(point1X, point1Y)
+      
+      // Идем к острой вершине хвоста
+      ctx.lineTo(sharpPointX, sharpPointY)
+      
+      // Идем ко второй точке хвоста
+      ctx.lineTo(point2X, point2Y)
+      
+      // Продолжаем по нижней стороне до левого угла
+      ctx.lineTo(bgX, bgY + bgHeight)
+      
+      // Замыкаем по левой стороне
+      ctx.lineTo(bgX, bgY)
+    },
+    
+    // Построение пути суперподложки с хвостом слева
+    buildLeftTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                          intersectionPoint, point1X, point1Y, point2X, point2Y, 
+                          sharpPointX, sharpPointY) {
+      // Начинаем с левого верхнего угла
+      ctx.moveTo(bgX, bgY)
+      
+      // Идем по верхней стороне
+      ctx.lineTo(bgX + bgWidth, bgY)
+      
+      // Идем по правой стороне
+      ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+      
+      // Идем по нижней стороне
+      ctx.lineTo(bgX, bgY + bgHeight)
+      
+      // Идем по левой стороне до первой точки хвоста
+      ctx.lineTo(point1X, point1Y)
+      
+      // Идем к острой вершине хвоста
+      ctx.lineTo(sharpPointX, sharpPointY)
+      
+      // Идем ко второй точке хвоста
+      ctx.lineTo(point2X, point2Y)
+      
+      // Продолжаем по левой стороне до верхнего угла
+      ctx.lineTo(bgX, bgY)
     },
     
     // Добавление хвоста к существующему пути (для объединенной фигуры)
@@ -4930,18 +5215,11 @@ export default {
     
     // Обводка объединенной фигуры (подложка + хвост) как единое целое
     strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
-      // Создаем путь для объединенной фигуры
+      // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
-      // Позиция подложки
-      const bgX = centerX - bgWidth / 2
-      const bgY = centerY - bgHeight / 2
-      
-      // Рисуем подложку как часть пути
-      ctx.rect(bgX, bgY, bgWidth, bgHeight)
-      
-      // Добавляем хвост к тому же пути
-      this.addTailToPath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      // Строим объединенную фигуру как единый путь
+      this.buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
       
       // Обводим объединенную фигуру
       ctx.stroke()

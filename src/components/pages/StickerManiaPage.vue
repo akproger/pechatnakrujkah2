@@ -5209,7 +5209,8 @@ export default {
       
       if (isTopLeft) {
         // Хвост точно из левого верхнего угла
-        // Точки на верхней и левой сторонах
+        // Точка1 на центральной линии хвоста (место пересечения с гранью)
+        // Точка2 на левой грани со смещением от пересечения
         const point1X = bgX + tailWidthPixels
         const point1Y = bgY
         const point2X = bgX
@@ -5222,62 +5223,61 @@ export default {
         ctx.lineTo(point2X, point2Y)
         ctx.lineTo(bgX, bgY + bgHeight)
         ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(bgX + bgWidth, bgY)
         ctx.lineTo(bgX, bgY)
         
       } else if (isTopRight) {
         // Хвост точно из правого верхнего угла
-        // Точки на верхней и правой сторонах
+        // Точка1 на центральной линии хвоста (место пересечения с гранью)
+        // Точка2 на правой грани со смещением от пересечения
         const point1X = bgX + bgWidth - tailWidthPixels
         const point1Y = bgY
         const point2X = bgX + bgWidth
         const point2Y = bgY + tailWidthPixels
         
-        // Строим путь: левый верхний угол → правый верхний угол → точка1 → острая вершина → точка2 → правая сторона → остальные стороны
-        ctx.moveTo(bgX, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY)
+        // Строим путь: правый верхний угол → точка1 → острая вершина → точка2 → правая сторона → остальные стороны
+        ctx.moveTo(bgX + bgWidth, bgY)
         ctx.lineTo(point1X, point1Y)
         ctx.lineTo(sharpPointX, sharpPointY)
         ctx.lineTo(point2X, point2Y)
         ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
         ctx.lineTo(bgX, bgY + bgHeight)
-        ctx.lineTo(bgX, bgY)
+        ctx.lineTo(bgX + bgWidth, bgY)
         
       } else if (isBottomRight) {
         // Хвост точно из правого нижнего угла
-        // Точки на правой и нижней сторонах
+        // Точка1 на центральной линии хвоста (место пересечения с гранью)
+        // Точка2 на нижней грани со смещением от пересечения
         const point1X = bgX + bgWidth
         const point1Y = bgY + bgHeight - tailWidthPixels
         const point2X = bgX + bgWidth - tailWidthPixels
         const point2Y = bgY + bgHeight
         
-        // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → точка1 → острая вершина → точка2 → нижняя сторона → остальные стороны
-        ctx.moveTo(bgX, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+        // Строим путь: правый нижний угол → точка1 → острая вершина → точка2 → нижняя сторона → остальные стороны
+        ctx.moveTo(bgX + bgWidth, bgY + bgHeight)
         ctx.lineTo(point1X, point1Y)
         ctx.lineTo(sharpPointX, sharpPointY)
         ctx.lineTo(point2X, point2Y)
         ctx.lineTo(bgX, bgY + bgHeight)
         ctx.lineTo(bgX, bgY)
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
         
       } else if (isBottomLeft) {
         // Хвост точно из левого нижнего угла
-        // Точки на левой и нижней сторонах
+        // Точка1 на центральной линии хвоста (место пересечения с гранью)
+        // Точка2 на нижней грани со смещением от пересечения
         const point1X = bgX
         const point1Y = bgY + bgHeight - tailWidthPixels
         const point2X = bgX + tailWidthPixels
         const point2Y = bgY + bgHeight
         
-        // Строим путь: левый верхний угол → верхняя сторона → правый верхний угол → правая сторона → нижняя сторона → точка1 → острая вершина → точка2 → левая сторона
-        ctx.moveTo(bgX, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(bgX, bgY + bgHeight)
+        // Строим путь: левый нижний угол → точка1 → острая вершина → точка2 → нижняя сторона → остальные стороны
+        ctx.moveTo(bgX, bgY + bgHeight)
         ctx.lineTo(point1X, point1Y)
         ctx.lineTo(sharpPointX, sharpPointY)
         ctx.lineTo(point2X, point2Y)
-        ctx.lineTo(bgX, bgY)
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+        ctx.lineTo(bgX + bgWidth, bgY)
+        ctx.lineTo(bgX, bgY + bgHeight)
       }
     },
     

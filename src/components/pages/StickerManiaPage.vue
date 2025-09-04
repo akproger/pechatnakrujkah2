@@ -5084,15 +5084,8 @@ export default {
     drawThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true) {
       console.log('🧠 Отрисовка режима "Мысли" - овальная подложка с множественными хвостами')
       
-      // Создаем путь для объединенной фигуры
-      ctx.beginPath()
-      
-      // Строим путь для режима "Мысли" (БЕЗ треугольного хвоста!)
-      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail)
-      
-      // Заполняем объединенную фигуру
-      ctx.fillStyle = backgroundColor
-      ctx.fill()
+      // Рисуем каждый овал отдельно, чтобы избежать создания общего пути
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail, backgroundColor)
       
       console.log('✅ Режим "Мысли" отрисован - только овалы, без треугольников!')
     },
@@ -5156,7 +5149,7 @@ export default {
       })
       
       // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
-      this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
+      this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true, true)
       
       // Рисуем текст
       ctx.fillStyle = textColor
@@ -5211,9 +5204,12 @@ export default {
     },
     
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
-    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true) {
-      // 1️⃣ Рисуем основной овал (подложка)
+    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor) {
+      // 1️⃣ Рисуем основной овал (подложка) с собственным заполнением
+      ctx.beginPath()
       this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
+      ctx.fillStyle = this.textDialogData.backgroundColor
+      ctx.fill()
       
       // Если не нужно рисовать хвост (для дефолтной подложки), выходим
       if (!drawTail) {
@@ -5286,8 +5282,11 @@ export default {
           position: { x: ovalX.toFixed(1), y: ovalY.toFixed(1) }
         })
         
-        // Рисуем овал хвоста
+        // Рисуем овал хвоста с собственным заполнением
+        ctx.beginPath()
         this.drawOval(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
+        ctx.fillStyle = this.textDialogData.backgroundColor
+        ctx.fill()
         
         // Добавляем обводку для лучшей видимости
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'
@@ -5312,7 +5311,7 @@ export default {
       ctx.beginPath()
       
       // Строим путь для режима "Мысли"
-      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, true, this.textDialogData.backgroundColor)
       
       // Обводим фигуру
       ctx.stroke()

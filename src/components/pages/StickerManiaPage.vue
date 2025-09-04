@@ -4871,11 +4871,14 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
+      // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
-      // Строим объединенную фигуру как единый путь
-      this.buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      // Строим объединенную фигуру как единый путь с кэшированной точкой
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
       
       // Заполняем объединенную фигуру
       ctx.fillStyle = backgroundColor
@@ -4932,6 +4935,9 @@ export default {
         { x1: bgX, y1: bgY + bgHeight, x2: bgX, y2: bgY }
       ]
       
+      // Собираем ВСЕ пересечения
+      const allIntersections = []
+      
       for (const side of sides) {
         const intersection = this.getLineIntersection(
           lineStartX, lineStartY, lineEndX, lineEndY,
@@ -4941,9 +4947,42 @@ export default {
         if (intersection) {
           // Проверяем, что точка пересечения находится на стороне подложки
           if (this.isPointOnLineSegment(intersection.x, intersection.y, side.x1, side.y1, side.x2, side.y2)) {
-            return intersection
+            allIntersections.push(intersection)
           }
         }
+      }
+      
+      if (allIntersections.length > 0) {
+        // ВЫБИРАЕМ БЛИЖАЙШУЮ К УГЛУ ТОЧКУ ПЕРЕСЕЧЕНИЯ
+        let selectedIntersection = allIntersections[0]
+        let minDistance = Infinity
+        
+        // Вычисляем расстояния до всех углов
+        const corners = [
+          { name: 'Левый верхний', x: bgX, y: bgY },
+          { name: 'Правый верхний', x: bgX + bgWidth, y: bgY },
+          { name: 'Правый нижний', x: bgX + bgWidth, y: bgY + bgHeight },
+          { name: 'Левый нижний', x: bgX, y: bgY + bgHeight }
+        ]
+        
+        for (const intersection of allIntersections) {
+          for (const corner of corners) {
+            const distance = Math.sqrt(
+              Math.pow(intersection.x - corner.x, 2) +
+              Math.pow(intersection.y - corner.y, 2)
+            )
+            if (distance < minDistance) {
+              minDistance = distance
+              selectedIntersection = intersection
+            }
+          }
+        }
+        
+        console.log('🎯 Выбрана БЛИЖАЙШАЯ К УГЛУ точка пересечения:', selectedIntersection)
+        console.log('📍 Минимальное расстояние до угла:', minDistance.toFixed(2))
+        console.log('📍 Все найденные пересечения:', allIntersections)
+        console.log('---')
+        return selectedIntersection
       }
       
       return null
@@ -5216,14 +5255,22 @@ export default {
         const point2X = bgX
         const point2Y = bgY + tailWidthPixels
         
-        // Строим путь: левый верхний угол → точка1 → острая вершина → точка2 → левая сторона → остальные стороны
-        ctx.moveTo(bgX, bgY)
-        ctx.lineTo(point1X, point1Y)
-        ctx.lineTo(sharpPointX, sharpPointY)
-        ctx.lineTo(point2X, point2Y)
-        ctx.lineTo(bgX, bgY + bgHeight)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(bgX, bgY)
+        console.log('🔺 isTopLeft - Точки:')
+        console.log('  A (угол):', {x: bgX, y: bgY})
+        console.log('  D (угол):', {x: bgX, y: bgY + bgHeight})
+        console.log('  point1 (HR):', {x: point1X, y: point1Y})
+        console.log('  HE (вершина):', {x: sharpPointX, y: sharpPointY})
+        console.log('  point2 (HL):', {x: point2X, y: point2Y})
+        
+        // Строим путь: левый верхний угол A → точка1 (HR) → острая вершина HE → точка2 (HL) → левая сторона → остальные стороны
+        ctx.moveTo(bgX, bgY)  // A
+        ctx.lineTo(point1X, point1Y)  // HR (на центральной линии)
+        ctx.lineTo(sharpPointX, sharpPointY)  // HE
+        ctx.lineTo(point2X, point2Y)  // HL
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX, bgY)  // A (замыкаем)
         
       } else if (isTopRight) {
         // Хвост точно из правого верхнего угла
@@ -5234,14 +5281,22 @@ export default {
         const point2X = bgX + bgWidth
         const point2Y = bgY + tailWidthPixels
         
-        // Строим путь: правый верхний угол → точка1 → острая вершина → точка2 → правая сторона → остальные стороны
-        ctx.moveTo(bgX + bgWidth, bgY)
-        ctx.lineTo(point1X, point1Y)
-        ctx.lineTo(sharpPointX, sharpPointY)
-        ctx.lineTo(point2X, point2Y)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(bgX, bgY + bgHeight)
-        ctx.lineTo(bgX + bgWidth, bgY)
+        console.log('🔺 isTopRight - Точки:')
+        console.log('  B (угол):', {x: bgX + bgWidth, y: bgY})
+        console.log('  C (угол):', {x: bgX + bgWidth, y: bgY + bgHeight})
+        console.log('  point1 (HR):', {x: point1X, y: point1Y})
+        console.log('  HE (вершина):', {x: sharpPointX, y: sharpPointY})
+        console.log('  point2 (HL):', {x: point2X, y: point2Y})
+        
+        // Строим путь: правый верхний угол B → точка1 (HR) → острая вершина HE → точка2 (HL) → правая сторона → остальные стороны
+        ctx.moveTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(point1X, point1Y)  // HR (на центральной линии)
+        ctx.lineTo(sharpPointX, sharpPointY)  // HE
+        ctx.lineTo(point2X, point2Y)  // HL
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
         
       } else if (isBottomRight) {
         // Хвост точно из правого нижнего угла
@@ -5252,14 +5307,22 @@ export default {
         const point2X = bgX + bgWidth - tailWidthPixels
         const point2Y = bgY + bgHeight
         
-        // Строим путь: правый нижний угол → точка1 → острая вершина → точка2 → нижняя сторона → остальные стороны
-        ctx.moveTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(point1X, point1Y)
-        ctx.lineTo(sharpPointX, sharpPointY)
-        ctx.lineTo(point2X, point2Y)
-        ctx.lineTo(bgX, bgY + bgHeight)
-        ctx.lineTo(bgX, bgY)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
+        console.log('🔺 isBottomRight - Точки:')
+        console.log('  C (угол):', {x: bgX + bgWidth, y: bgY + bgHeight})
+        console.log('  B (угол):', {x: bgX + bgWidth, y: bgY})
+        console.log('  point1 (HR):', {x: point1X, y: point1Y})
+        console.log('  HE (вершина):', {x: sharpPointX, y: sharpPointY})
+        console.log('  point2 (HL):', {x: point2X, y: point2Y})
+        
+        // Строим путь: правый нижний угол C → точка1 (HR) → острая вершина HE → точка2 (HL) → нижняя сторона → остальные стороны
+        ctx.moveTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(point1X, point1Y)  // HR (на центральной линии)
+        ctx.lineTo(sharpPointX, sharpPointY)  // HE
+        ctx.lineTo(point2X, point2Y)  // HL
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
         
       } else if (isBottomLeft) {
         // Хвост точно из левого нижнего угла
@@ -5270,14 +5333,22 @@ export default {
         const point2X = bgX + tailWidthPixels
         const point2Y = bgY + bgHeight
         
-        // Строим путь: левый нижний угол → точка1 → острая вершина → точка2 → нижняя сторона → остальные стороны
-        ctx.moveTo(bgX, bgY + bgHeight)
-        ctx.lineTo(point1X, point1Y)
-        ctx.lineTo(sharpPointX, sharpPointY)
-        ctx.lineTo(point2X, point2Y)
-        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)
-        ctx.lineTo(bgX + bgWidth, bgY)
-        ctx.lineTo(bgX, bgY + bgHeight)
+        console.log('🔺 isBottomLeft - Точки:')
+        console.log('  A (угол):', {x: bgX, y: bgY})
+        console.log('  D (угол):', {x: bgX, y: bgY + bgHeight})
+        console.log('  point1 (HR):', {x: point1X, y: point1Y})
+        console.log('  HE (вершина):', {x: sharpPointX, y: sharpPointY})
+        console.log('  point2 (HL):', {x: point2X, y: point2Y})
+        
+        // Строим путь: левый нижний угол D → точка1 (HR) → острая вершина HE → точка2 (HL) → нижняя сторона → остальные стороны
+        ctx.moveTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(point1X, point1Y)     // HR (на центральной линии)
+        ctx.lineTo(sharpPointX, sharpPointY)  // HE
+        ctx.lineTo(point2X, point2Y)     // HL
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
       }
     },
     
@@ -5457,14 +5528,60 @@ export default {
     
     // Обводка объединенной фигуры (подложка + хвост) как единое целое
     strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // ИСПОЛЬЗУЕМ КЭШИРОВАННУЮ точку пересечения
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
-      // Строим объединенную фигуру как единый путь
-      this.buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      // Строим объединенную фигуру как единый путь с кэшированной точкой
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
       
       // Обводим объединенную фигуру
       ctx.stroke()
+    },
+    
+    // КЭШИРОВАНИЕ точки пересечения для стабильности
+    getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight) {
+      // Параметры хвоста
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      // Вычисляем точку пересечения ОДИН РАЗ
+      const intersectionPoint = this.getTailIntersectionWithBackground(
+        centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight
+      )
+      
+      console.log('🎯 КЭШИРОВАННАЯ точка пересечения:', intersectionPoint)
+      return intersectionPoint
+    },
+    
+    // Построение пути для суперподложки с кэшированной точкой пересечения
+    buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection) {
+      // Параметры хвоста
+      const tailSize = Number(this.textDialogData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // От 40% до 100%
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (125% от минимального размера - увеличен в 2.5 раза)
+      
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      if (cachedIntersection) {
+        // Создаем суперподложку с хвостом используя КЭШИРОВАННУЮ точку
+        this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
+                                   cachedIntersection, tailAngle, tailLength, tailWidth)
+      } else {
+        // Если нет пересечения, рисуем обычную подложку
+        this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
+      }
     },
     
     // Обводка хвоста

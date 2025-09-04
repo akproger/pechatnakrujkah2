@@ -110,13 +110,25 @@
             <!-- Вкладки -->
             <ul class="nav nav-tabs text-dialog-tabs" role="tablist">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active" type="button" role="tab">
+                <button 
+                  class="nav-link" 
+                  :class="{ 'active': textDialogActiveTab === 'conversation' }"
+                  type="button" 
+                  role="tab"
+                  @click="textDialogActiveTab = 'conversation'"
+                >
                   <i class="bi bi-chat-dots me-2"></i>
                   Разговор
                 </button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" type="button" role="tab" disabled>
+                <button 
+                  class="nav-link" 
+                  :class="{ 'active': textDialogActiveTab === 'thoughts' }"
+                  type="button" 
+                  role="tab"
+                  @click="textDialogActiveTab = 'thoughts'"
+                >
                   <i class="bi bi-lightbulb me-2"></i>
                   Мысли
                 </button>
@@ -135,9 +147,10 @@
               </li>
             </ul>
             
-            <!-- Содержимое вкладки "Разговор" -->
+            <!-- Содержимое вкладок -->
             <div class="tab-content">
-              <div class="tab-pane active">
+              <!-- Вкладка "Разговор" -->
+              <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'conversation' }">
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
                   <!-- Поле ввода текста (слева) -->
@@ -414,6 +427,296 @@
                         <input 
                           type="range" 
                           id="shadowBlur" 
+                          v-model="textDialogData.shadowBlur" 
+                          class="form-range" 
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Вкладка "Мысли" -->
+              <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'thoughts' }">
+                <!-- Область с полем ввода и превью (закреплена) -->
+                <div class="text-input-preview-area">
+                  <!-- Поле ввода текста (слева) -->
+                  <div class="text-input-section">
+                    <textarea 
+                      id="textInputThoughts"
+                      v-model="textDialogData.text"
+                      class="form-control"
+                      rows="6"
+                      placeholder="Введите мысли..."
+                    ></textarea>
+                  </div>
+                  
+                  <!-- Превью текста с подложкой (справа) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvasThoughts" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Кнопка параметров -->
+                <div class="mb-3">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    @click="toggleParameters"
+                  >
+                    <i class="bi bi-gear me-2"></i>
+                    Параметры
+                  </button>
+                </div>
+                
+                <!-- Блок параметров (скрыт по умолчанию) -->
+                <div v-show="showParameters" class="parameters-block">
+                  
+                  <!-- Выбор шрифта -->
+                  <div class="form-group mb-3">
+                    <label for="fontSelectThoughts" class="form-label">Шрифт:</label>
+                    <select id="fontSelectThoughts" v-model="textDialogData.font" class="form-select">
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Настройки шрифта -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Стиль шрифта:</label>
+                    <div class="btn-group" role="group">
+                      <input type="radio" class="btn-check" id="normalThoughts" value="normal" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="normalThoughts">Обычный</label>
+                      
+                      <input type="radio" class="btn-check" id="boldThoughts" value="bold" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="boldThoughts">Жирный</label>
+                      
+                      <input type="radio" class="btn-check" id="bolderThoughts" value="bolder" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="bolderThoughts">Полужирный</label>
+                      
+                      <input type="radio" class="btn-check" id="italicThoughts" value="italic" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="italicThoughts">Курсив</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Размер текста -->
+                  <div class="form-group mb-3">
+                    <label for="fontSizeThoughts" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
+                    <input 
+                      type="range" 
+                      id="fontSizeThoughts" 
+                      v-model="textDialogData.fontSize" 
+                      class="form-range" 
+                      min="12" 
+                      max="72" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Цвет текста -->
+                  <div class="form-group mb-3">
+                    <label for="textColorThoughts" class="form-label">Цвет текста:</label>
+                    <input type="color" id="textColorThoughts" v-model="textDialogData.textColor" class="form-control form-control-color">
+                  </div>
+                  
+                  <!-- Цвет подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundColorThoughts" class="form-label">Цвет подложки:</label>
+                    <input type="color" id="backgroundColorThoughts" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
+                  </div>
+                  
+                  <!-- Размер хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailSizeThoughts" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
+                    <input 
+                      type="range" 
+                      id="tailSizeThoughts" 
+                      v-model="textDialogData.tailSize" 
+                      class="form-range" 
+                      min="100" 
+                      max="750" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Ширина хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailWidthThoughts" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
+                    <input 
+                      type="range" 
+                      id="tailWidthThoughts" 
+                      v-model="textDialogData.tailWidth" 
+                      class="form-range" 
+                      min="40" 
+                      max="100" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Угол хвоста -->
+                  <div class="form-group mb-3">
+                    <label for="tailAngleThoughts" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
+                    <input 
+                      type="range" 
+                      id="tailAngleThoughts" 
+                      v-model="textDialogData.tailAngle" 
+                      class="form-range" 
+                      min="0" 
+                      max="359" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Ширина подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundWidthThoughts" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundWidthThoughts" 
+                      v-model="textDialogData.backgroundWidth" 
+                      class="form-range" 
+                      min="100" 
+                      max="400" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Высота подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundHeightThoughts" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundHeightThoughts" 
+                      v-model="textDialogData.backgroundHeight" 
+                      class="form-range" 
+                      min="50" 
+                      max="200" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Отступ от краев -->
+                  <div class="form-group mb-3">
+                    <label for="paddingThoughts" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
+                    <input 
+                      type="range" 
+                      id="paddingThoughts" 
+                      v-model="textDialogData.padding" 
+                      class="form-range" 
+                      min="5" 
+                      max="30" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Обводка -->
+                  <div class="form-group mb-3">
+                    <div class="form-check mb-2">
+                      <input type="checkbox" id="strokeThoughts" v-model="textDialogData.stroke" class="form-check-input">
+                      <label for="strokeThoughts" class="form-check-label">Обводка</label>
+                    </div>
+                    
+                    <!-- Параметры обводки (показываются только если обводка включена) -->
+                    <div v-if="textDialogData.stroke" class="ms-4">
+                      <!-- Толщина обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeWidthThoughts" class="form-label">Толщина обводки: {{ textDialogData.strokeWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="strokeWidthThoughts" 
+                          v-model="textDialogData.strokeWidth" 
+                          class="form-range" 
+                          min="1" 
+                          max="10" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Цвет обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeColorThoughts" class="form-label">Цвет обводки:</label>
+                        <input type="color" id="strokeColorThoughts" v-model="textDialogData.strokeColor" class="form-control form-control-color">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Тень -->
+                  <div class="form-group mb-3">
+                    <div class="form-check mb-2">
+                      <input type="checkbox" id="shadowThoughts" v-model="textDialogData.shadow" class="form-check-input">
+                      <label for="shadowThoughts" class="form-check-label">Тень</label>
+                    </div>
+                    
+                    <!-- Параметры тени (показываются только если тень включена) -->
+                    <div v-if="textDialogData.shadow" class="ms-4">
+                      <!-- Цвет тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowColorThoughts" class="form-label">Цвет тени:</label>
+                        <input type="color" id="shadowColorThoughts" v-model="textDialogData.shadowColor" class="form-control form-control-color">
+                      </div>
+                      
+                      <!-- Прозрачность тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOpacityThoughts" class="form-label">Прозрачность тени: {{ textDialogData.shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          id="shadowOpacityThoughts" 
+                          v-model="textDialogData.shadowOpacity" 
+                          class="form-range" 
+                          min="10" 
+                          max="100" 
+                          step="5"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по X -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetXThoughts" class="form-label">Смещение по X: {{ textDialogData.shadowOffsetX }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetXThoughts" 
+                          v-model="textDialogData.shadowOffsetX" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по Y -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetYThoughts" class="form-label">Смещение по Y: {{ textDialogData.shadowOffsetY }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetYThoughts" 
+                          v-model="textDialogData.shadowOffsetY" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Размытие тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowBlurThoughts" class="form-label">Размытие тени: {{ textDialogData.shadowBlur }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowBlurThoughts" 
                           v-model="textDialogData.shadowBlur" 
                           class="form-range" 
                           min="0" 
@@ -822,6 +1125,7 @@ export default {
       showTextDialog: false, // Показать ли диалог добавления текста
       textDialogPosition: null, // Позиция для размещения текста
       showParameters: false, // Показать ли блок параметров
+      textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
       textDialogData: {
         text: '',
         font: 'Arial',
@@ -973,6 +1277,14 @@ export default {
       })
     },
     'textDialogData.tailAngle'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    
+    // Вотчер для переключения вкладок
+    'textDialogActiveTab'() {
+      console.log('🔄 Переключение вкладки на:', this.textDialogActiveTab)
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
@@ -4590,7 +4902,13 @@ export default {
     
     // Обновление превью канваса
     updatePreviewCanvas() {
-      const previewCanvas = this.$refs.previewCanvas
+      // Обновляем оба превью канваса
+      this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
+      this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+    },
+    
+    // Обновление одного превью канваса
+    updateSinglePreviewCanvas(previewCanvas) {
       const mainCanvas = this.$refs.testCanvas
       
       if (!previewCanvas || !mainCanvas) {
@@ -4634,7 +4952,7 @@ export default {
       })
       
       // Конвертируем координаты клика в координаты превью канваса
-      // Используем соотношение сторон 19:9 для корректного масштабирования
+      // Используем динамическое масштабирование для точной синхронизации - МЕТОД 1
       const mainCanvas = this.$refs.testCanvas
       const mainWidth = mainCanvas.width
       const mainHeight = mainCanvas.height
@@ -4646,10 +4964,19 @@ export default {
       const previewX = this.textDialogPosition.x * scaleX
       const previewY = this.textDialogPosition.y * scaleY
       
-      // Адаптируем размеры для превью (учитываем увеличенное разрешение в 3 раза)
-      const previewScale = 1.2 // Масштаб 120% от оригинальных размеров (0.4 * 3)
+      // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 1
+      const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
       
-      // Настройки текста (адаптированные под превью)
+      // ЛОГИРОВАНИЕ масштаба для отладки - МЕТОД 1
+      console.log('🎨 МАСШТАБ ОТРИСОВКИ МЕТОД 1:', {
+        scaleX: scaleX.toFixed(3),
+        scaleY: scaleY.toFixed(3),
+        previewScale: previewScale.toFixed(3),
+        mainCanvas: `${mainWidth}x${mainHeight}`,
+        previewCanvas: `${canvas.width}x${canvas.height}`
+      })
+      
+      // Настройки текста (адаптированные под превью) - МЕТОД 1
       const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
@@ -4720,7 +5047,7 @@ export default {
       
       console.log('🎨 Отрисовка дефолтного текста на превью')
       
-      // Конвертируем координаты клика в координаты превью канваса
+      // Конвертируем координаты клика в координаты превью канваса - МЕТОД 2
       const mainCanvas = this.$refs.testCanvas
       const mainWidth = mainCanvas.width
       const mainHeight = mainCanvas.height
@@ -4732,8 +5059,17 @@ export default {
       const previewX = this.textDialogPosition.x * scaleX
       const previewY = this.textDialogPosition.y * scaleY
       
-      // Адаптируем размеры для превью (учитываем увеличенное разрешение в 3 раза)
-      const previewScale = 1.2 // Масштаб 120% от оригинальных размеров (0.4 * 3)
+      // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 2
+      const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
+      
+      // ЛОГИРОВАНИЕ масштаба для отладки - МЕТОД 2
+      console.log('🎨 МАСШТАБ ОТРИСОВКИ МЕТОД 2:', {
+        scaleX: scaleX.toFixed(3),
+        scaleY: scaleY.toFixed(3),
+        previewScale: previewScale.toFixed(3),
+        mainCanvas: `${mainWidth}x${mainHeight}`,
+        previewCanvas: `${canvas.width}x${canvas.height}`
+      })
       
       // Настройки текста (адаптированные под превью)
       const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
@@ -5708,8 +6044,10 @@ export default {
     handleDragMove(event) {
       if (!this.isDragging || !this.dragStartPosition) return
       
-      // Получаем ссылку на канвас из ref
-      const canvas = this.$refs.previewCanvas
+      // Получаем ссылку на активный канвас
+      const canvas = this.textDialogActiveTab === 'conversation' 
+        ? this.$refs.previewCanvas 
+        : this.$refs.previewCanvasThoughts
       if (!canvas) return
       
       const rect = canvas.getBoundingClientRect()
@@ -5720,12 +6058,12 @@ export default {
       this.dragOffset.x = currentX - this.dragStartPosition.x
       this.dragOffset.y = currentY - this.dragStartPosition.y
       
-      // УПРОЩЕННАЯ ЛОГИКА: используем фиксированный масштаб как в отрисовке
-      const previewScale = 1.2 // Тот же масштаб, что и в отрисовке
+            // КООРДИНАТЫ ПЕРЕТАСКИВАНИЯ: увеличиваем масштаб для синхронизации скорости
+      const dragScale = 2.0 // Увеличенный масштаб для синхронизации скорости
       
-      // МАСШТАБИРУЕМ смещение обратно к основному канвасу
-      const scaledOffsetX = this.dragOffset.x / previewScale
-      const scaledOffsetY = this.dragOffset.y / previewScale
+      // МАСШТАБИРУЕМ смещение: умножаем на увеличенный масштаб
+      const scaledOffsetX = this.dragOffset.x * dragScale
+      const scaledOffsetY = this.dragOffset.y * dragScale
       
       // Обновляем позицию текста с МАСШТАБИРОВАННЫМ смещением
       this.textDialogPosition.x = this.originalTextPosition.x + scaledOffsetX
@@ -5739,7 +6077,7 @@ export default {
         scaledOffset: { x: scaledOffsetX, y: scaledOffsetY },
         newPosition: { x: this.textDialogPosition.x, y: this.textDialogPosition.y },
         originalPosition: this.originalTextPosition,
-        previewScale
+        dragScale: dragScale
       })
       
       // Добавляем mouseup только после первого движения
@@ -5767,10 +6105,12 @@ export default {
       this.canStopDragging = false
       this.mouseUpAdded = false
       
-      // Возвращаем курсор на канвас
-      const canvas = this.$refs.previewCanvas
-      if (canvas) {
-        canvas.style.cursor = 'default'
+      // Возвращаем курсор на активный канвас
+      const activeCanvas = this.textDialogActiveTab === 'conversation' 
+        ? this.$refs.previewCanvas 
+        : this.$refs.previewCanvasThoughts
+      if (activeCanvas) {
+        activeCanvas.style.cursor = 'default'
       }
       
       console.log('🎯 Перетаскивание завершено')
@@ -5787,10 +6127,26 @@ export default {
       const bgWidth = this.textDialogData.backgroundWidth
       const bgHeight = this.textDialogData.backgroundHeight
       
-      // УПРОЩЕННАЯ ЛОГИКА: используем фиксированный масштаб как везде
-      const previewScale = 1.2 // Тот же масштаб, что и в отрисовке и перетаскивании
+      // ДИНАМИЧЕСКИЙ МАСШТАБ: используем тот же подход, что и в отрисовке
+      const mainCanvas = this.$refs.testCanvas
+      const activePreviewCanvas = this.textDialogActiveTab === 'conversation' 
+        ? this.$refs.previewCanvas 
+        : this.$refs.previewCanvasThoughts
       
-      // Масштабированные размеры подложки
+      if (!mainCanvas || !activePreviewCanvas) {
+        console.log('❌ Канвасы не найдены для вычисления масштаба')
+        return false
+      }
+      
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      const scaleX = activePreviewCanvas.width / mainWidth
+      const scaleY = activePreviewCanvas.height / mainHeight
+      
+      // ВРЕМЕННО используем тот же фиксированный масштаб, что и в отрисовке
+      const previewScale = 1.2
+      
+      // Масштабированные размеры подложки (используем тот же масштаб)
       const scaledBgWidth = Math.round(bgWidth * previewScale)
       const scaledBgHeight = Math.round(bgHeight * previewScale)
       
@@ -5803,13 +6159,15 @@ export default {
       // Проверяем, находится ли клик в пределах суперподложки
       const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
       
-      // Упрощенная отладка
-      console.log('🎯 Проверка клика по суперподложке - УПРОЩЕННАЯ:')
+      // Детальная отладка
+      console.log('🎯 Проверка клика по суперподложке - ЕДИНЫЙ МАСШТАБ:')
       console.log('  clickX:', clickX, 'clickY:', clickY)
       console.log('  left:', left, 'top:', top, 'right:', right, 'bottom:', bottom)
       console.log('  bgWidth:', bgWidth, 'bgHeight:', bgHeight)
       console.log('  scaledBgWidth:', scaledBgWidth, 'scaledBgHeight:', scaledBgHeight)
       console.log('  previewScale:', previewScale)
+      console.log('  mainCanvas:', mainWidth, 'x', mainHeight)
+      console.log('  previewCanvas:', activePreviewCanvas.width, 'x', activePreviewCanvas.height)
       console.log('  X проверка:', `${clickX} >= ${left} && ${clickX} <= ${right} =`, clickX >= left && clickX <= right)
       console.log('  Y проверка:', `${clickY} >= ${top} && ${clickY} <= ${bottom} =`, clickY >= top && clickY <= bottom)
       console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)

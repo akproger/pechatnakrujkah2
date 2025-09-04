@@ -5259,14 +5259,26 @@ export default {
       // 3️⃣ Отступ от основного овала (минимальный, чтобы не соприкасались)
       const offsetFromMain = maxTailWidth * 0.1 // Уменьшаем отступ для лучшей видимости
       
-      // 4️⃣ Рисуем овалы хвоста равномерно распределенные
+      // 4️⃣ Рисуем овалы хвоста с улучшенными размерами и расположением
       for (let i = 0; i < tailCount; i++) {
-        // Позиция овала (равномерно распределена по длине хвоста)
+        // Позиция овала (собираем ближе к самому маленькому)
         const progress = (i + 1) / (tailCount + 1) // От 0.25 до 1.0
-        const distanceFromCenter = offsetFromMain + progress * (tailLength - offsetFromMain)
+        // Уменьшаем отступы между овалами - собираем их ближе
+        const distanceFromCenter = offsetFromMain + progress * (tailLength - offsetFromMain) * 0.7
         
-        // Размер овала (уменьшается от большого к маленькому)
-        const sizeMultiplier = 1.0 - progress * 0.5 // От 1.0 до 0.5 (более заметные)
+        // Размер овала (улучшенная динамика размеров)
+        let sizeMultiplier
+        if (i === 0) {
+          // Самый большой овал (первый) - увеличиваем на 120%
+          sizeMultiplier = 2.2 // 1.0 + 120% = 2.2
+        } else if (i === 1) {
+          // Средний овал - увеличиваем на 60%
+          sizeMultiplier = 1.6 // 1.0 + 60% = 1.6
+        } else {
+          // Самый маленький овал (последний) - оставляем как есть
+          sizeMultiplier = 1.0
+        }
+        
         const ovalWidth = maxTailWidth * sizeMultiplier
         const ovalHeight = ovalWidth * 0.7 // Увеличиваем соотношение сторон для лучшей видимости
         

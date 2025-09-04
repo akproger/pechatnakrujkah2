@@ -159,6 +159,7 @@
                         class="preview-canvas"
                         :width="previewCanvasWidth"
                         :height="previewCanvasHeight"
+                        @mousedown="startDragging"
                       ></canvas>
                     </div>
                   </div>
@@ -843,7 +844,15 @@ export default {
         shadowOffsetX: 4,
         shadowOffsetY: 4,
         shadowBlur: 8
-      }
+      },
+      
+      // Свойства для перетаскивания
+      isDragging: false, // Активно ли перетаскивание
+      dragStartPosition: null, // Начальная позиция перетаскивания
+      dragOffset: { x: 0, y: 0 }, // Смещение при перетаскивании
+      originalTextPosition: null, // Оригинальная позиция текста
+      canStopDragging: false, // Можно ли остановить перетаскивание
+      mouseUpAdded: false // Добавлен ли обработчик mouseup
     }
   },
   computed: {
@@ -5636,6 +5645,176 @@ export default {
       // TODO: Создание текста с составной подложкой
       // Пока просто закрываем диалог
       this.closeTextDialog()
+    },
+    
+    // === МЕТОДЫ ПЕРЕТАСКИВАНИЯ ===
+    
+    // Начало/остановка перетаскивания по клику
+    startDragging(event) {
+      if (!this.textDialogPosition) {
+        console.log('❌ textDialogPosition не определен')
+        return
+      }
+      
+      // Получаем координаты клика относительно канваса
+      const canvas = event.target
+      const rect = canvas.getBoundingClientRect()
+      const clickX = event.clientX - rect.left
+      const clickY = event.clientY - rect.top
+      
+      // Детальная отладка всех значений
+      console.log('🎯 Клик по канвасу - ДЕТАЛЬНО:')
+      console.log('  clickX:', clickX)
+      console.log('  clickY:', clickY)
+      console.log('  textDialogPosition.x:', this.textDialogPosition.x)
+      console.log('  textDialogPosition.y:', this.textDialogPosition.y)
+      console.log('  textDialogData.backgroundWidth:', this.textDialogData.backgroundWidth)
+      console.log('  textDialogData.backgroundHeight:', this.textDialogData.backgroundHeight)
+      
+      // Проверяем, кликнули ли мы по суперподложке или тексту
+      if (this.isClickOnSuperBackground(clickX, clickY)) {
+        if (!this.isDragging) {
+          // НАЧАЛО перетаскивания
+          console.log('🎯 НАЧАЛО перетаскивания')
+          this.isDragging = true
+          this.dragStartPosition = { x: clickX, y: clickY }
+          this.originalTextPosition = { ...this.textDialogPosition }
+          this.dragOffset = { x: 0, y: 0 }
+          
+          // Добавляем только mousemove, mouseup добавим после первого движения
+          document.addEventListener('mousemove', this.handleDragMove.bind(this))
+          
+          // Изменяем курсор
+          canvas.style.cursor = 'grabbing'
+          
+          console.log('🎯 Перетаскивание АКТИВИРОВАНО')
+          
+          // Добавляем задержку перед возможностью остановки
+          setTimeout(() => {
+            this.canStopDragging = true
+            console.log('🎯 Теперь можно остановить перетаскивание')
+          }, 300)
+        } else if (this.canStopDragging) {
+          // ОСТАНОВКА перетаскивания (только после задержки)
+          console.log('🎯 ОСТАНОВКА перетаскивания по клику')
+          this.handleDragEnd()
+        }
+      } else {
+        console.log('❌ Клик НЕ по суперподложке')
+      }
+    },
+    
+    // Обработка движения мыши при перетаскивании
+    handleDragMove(event) {
+      if (!this.isDragging || !this.dragStartPosition) return
+      
+      // Получаем ссылку на канвас из ref
+      const canvas = this.$refs.previewCanvas
+      if (!canvas) return
+      
+      const rect = canvas.getBoundingClientRect()
+      const currentX = event.clientX - rect.left
+      const currentY = event.clientY - rect.top
+      
+      // Вычисляем смещение от начальной позиции
+      this.dragOffset.x = currentX - this.dragStartPosition.x
+      this.dragOffset.y = currentY - this.dragStartPosition.y
+      
+      // УПРОЩЕННАЯ ЛОГИКА: используем фиксированный масштаб как в отрисовке
+      const previewScale = 1.2 // Тот же масштаб, что и в отрисовке
+      
+      // МАСШТАБИРУЕМ смещение обратно к основному канвасу
+      const scaledOffsetX = this.dragOffset.x / previewScale
+      const scaledOffsetY = this.dragOffset.y / previewScale
+      
+      // Обновляем позицию текста с МАСШТАБИРОВАННЫМ смещением
+      this.textDialogPosition.x = this.originalTextPosition.x + scaledOffsetX
+      this.textDialogPosition.y = this.originalTextPosition.y + scaledOffsetY
+      
+      // Обновляем превью
+      this.updatePreviewCanvas()
+      
+      console.log('🎯 Перетаскивание:', {
+        dragOffset: this.dragOffset,
+        scaledOffset: { x: scaledOffsetX, y: scaledOffsetY },
+        newPosition: { x: this.textDialogPosition.x, y: this.textDialogPosition.y },
+        originalPosition: this.originalTextPosition,
+        previewScale
+      })
+      
+      // Добавляем mouseup только после первого движения
+      if (!this.mouseUpAdded) {
+        document.addEventListener('mouseup', this.handleDragEnd.bind(this))
+        this.mouseUpAdded = true
+        console.log('🎯 Добавлен обработчик mouseup')
+      }
+    },
+    
+    // Завершение перетаскивания
+    handleDragEnd(event = null) {
+      if (!this.isDragging) return
+      
+      console.log('🎯 Завершение перетаскивания')
+      
+      // Убираем обработчики событий с document
+      document.removeEventListener('mousemove', this.handleDragMove.bind(this))
+      document.removeEventListener('mouseup', this.handleDragEnd.bind(this))
+      
+      // Сбрасываем состояние
+      this.isDragging = false
+      this.dragStartPosition = null
+      this.dragOffset = { x: 0, y: 0 }
+      this.canStopDragging = false
+      this.mouseUpAdded = false
+      
+      // Возвращаем курсор на канвас
+      const canvas = this.$refs.previewCanvas
+      if (canvas) {
+        canvas.style.cursor = 'default'
+      }
+      
+      console.log('🎯 Перетаскивание завершено')
+    },
+    
+    // Проверка, кликнули ли мы по суперподложке или тексту
+    isClickOnSuperBackground(clickX, clickY) {
+      if (!this.textDialogPosition) {
+        console.log('❌ textDialogPosition не определен в isClickOnSuperBackground')
+        return false
+      }
+      
+      // Получаем размеры суперподложки
+      const bgWidth = this.textDialogData.backgroundWidth
+      const bgHeight = this.textDialogData.backgroundHeight
+      
+      // УПРОЩЕННАЯ ЛОГИКА: используем фиксированный масштаб как везде
+      const previewScale = 1.2 // Тот же масштаб, что и в отрисовке и перетаскивании
+      
+      // Масштабированные размеры подложки
+      const scaledBgWidth = Math.round(bgWidth * previewScale)
+      const scaledBgHeight = Math.round(bgHeight * previewScale)
+      
+      // Прямое вычисление границ суперподложки в координатах превью
+      const left = clickX - scaledBgWidth / 2
+      const top = clickY - scaledBgHeight / 2
+      const right = left + scaledBgWidth
+      const bottom = top + scaledBgHeight
+      
+      // Проверяем, находится ли клик в пределах суперподложки
+      const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      
+      // Упрощенная отладка
+      console.log('🎯 Проверка клика по суперподложке - УПРОЩЕННАЯ:')
+      console.log('  clickX:', clickX, 'clickY:', clickY)
+      console.log('  left:', left, 'top:', top, 'right:', right, 'bottom:', bottom)
+      console.log('  bgWidth:', bgWidth, 'bgHeight:', bgHeight)
+      console.log('  scaledBgWidth:', scaledBgWidth, 'scaledBgHeight:', scaledBgHeight)
+      console.log('  previewScale:', previewScale)
+      console.log('  X проверка:', `${clickX} >= ${left} && ${clickX} <= ${right} =`, clickX >= left && clickX <= right)
+      console.log('  Y проверка:', `${clickY} >= ${top} && ${clickY} <= ${bottom} =`, clickY >= top && clickY <= bottom)
+      console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
+      
+      return isInside
     }
   }
 }

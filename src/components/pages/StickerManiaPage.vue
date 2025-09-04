@@ -1285,8 +1285,19 @@ export default {
     // Вотчер для переключения вкладок
     'textDialogActiveTab'() {
       console.log('🔄 Переключение вкладки на:', this.textDialogActiveTab)
+      
+      // Принудительно обновляем превью при переключении
       this.$nextTick(() => {
+        console.log('🔄 Принудительное обновление после переключения вкладки')
         this.updatePreviewCanvas()
+        
+        // Дополнительное обновление для режима "Мысли"
+        if (this.textDialogActiveTab === 'thoughts') {
+          console.log('🧠 Дополнительное обновление режима "Мысли"')
+          this.$nextTick(() => {
+            this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+          })
+        }
       })
     }
   },
@@ -4902,9 +4913,19 @@ export default {
     
     // Обновление превью канваса
     updatePreviewCanvas() {
+      console.log('🔄 Обновление превью канваса, активная вкладка:', this.textDialogActiveTab)
+      
       // Обновляем оба превью канваса
       this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
       this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+      
+      // Принудительно обновляем активную вкладку
+      if (this.textDialogActiveTab === 'thoughts') {
+        console.log('🧠 Принудительное обновление режима "Мысли"')
+        this.$nextTick(() => {
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+        })
+      }
     },
     
     // Обновление одного превью канваса
@@ -4929,12 +4950,29 @@ export default {
       // Копируем содержимое основного канваса в превью
       previewCtx.drawImage(mainCanvas, 0, 0, previewCanvas.width, previewCanvas.height)
       
-      // Добавляем текст с базовой подложкой в месте клика или дефолтный текст
+      // Добавляем текст с подложкой в зависимости от активной вкладки
+      console.log('🎯 updateSinglePreviewCanvas - активная вкладка:', this.textDialogActiveTab)
+      
       if (this.textDialogPosition && this.textDialogData.text) {
-        this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+        if (this.textDialogActiveTab === 'thoughts') {
+          // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
+          console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
+          this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+        } else {
+          // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
+          console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
+          this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+        }
       } else if (this.textDialogPosition) {
         // Показываем дефолтный текст "Текст" на дефолтной подложке
-        this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+        console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ')
+        if (this.textDialogActiveTab === 'thoughts') {
+          // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
+          this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+        } else {
+          // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
+          this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+        }
       }
       
       console.log('✅ Превью канваса обновлено')
@@ -5039,6 +5077,245 @@ export default {
       ctx.fillText(this.textDialogData.text, previewX, previewY)
       
       console.log('✅ Текст с подложкой отрисован на превью')
+    },
+    
+    // 🧠 РЕЖИМ "МЫСЛИ" - новая архитектура суперподложки
+    // Отрисовка овальной подложки с множественными овальными хвостами
+    drawThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true) {
+      console.log('🧠 Отрисовка режима "Мысли" - овальная подложка с множественными хвостами')
+      
+      // Создаем путь для объединенной фигуры
+      ctx.beginPath()
+      
+      // Строим путь для режима "Мысли" (БЕЗ треугольного хвоста!)
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail)
+      
+      // Заполняем объединенную фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+      
+      console.log('✅ Режим "Мысли" отрисован - только овалы, без треугольников!')
+    },
+    
+    // Метод для режима "Мысли" - овальная подложка с множественными хвостами
+    drawTextPreviewOnCanvasThoughtsMode(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      console.log('🧠 ТЕСТИРОВАНИЕ РЕЖИМА "МЫСЛИ" - овальная подложка')
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Настройки текста
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры текста
+      const textMetrics = ctx.measureText(this.textDialogData.text)
+      const textWidth = textMetrics.width
+      const textHeight = fontSize
+      
+      // Размеры подложки - используем тот же подход, что и в режиме "Разговор"
+      const backgroundWidth = Math.max(
+        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        textHeight + padding * 2
+      )
+      
+      console.log('🧠 Размеры подложки режима "Мысли":', {
+        backgroundWidth: backgroundWidth,
+        backgroundHeight: backgroundHeight,
+        textWidth: textWidth,
+        textHeight: textHeight,
+        padding: padding,
+        previewScale: previewScale
+      })
+      
+      // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
+      this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.fillText(this.textDialogData.text, previewX, previewY)
+      
+      console.log('✅ Режим "Мысли" отрисован на превью')
+    },
+    
+    // Дефолтная подложка для режима "Мысли" - без треугольника
+    drawDefaultTextPreviewOnCanvasThoughtsMode(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      console.log('🧠 ДЕФОЛТНАЯ подложка режима "Мысли" - овальная без треугольника')
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Размеры дефолтной подложки - увеличиваем для лучшей видимости
+      const backgroundWidth = Math.round(200 * previewScale)
+      const backgroundHeight = Math.round(100 * previewScale)
+      
+      console.log('🧠 Дефолтная подложка - параметры:', {
+        backgroundWidth: backgroundWidth,
+        backgroundHeight: backgroundHeight,
+        previewScale: previewScale,
+        drawTail: true
+      })
+      
+      // Рисуем режим "Мысли" - основной овал + хвост (всегда показываем хвост в режиме "Мысли")
+      this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, '#f0f0f0', false, true)
+      
+      // Рисуем дефолтный текст "Текст"
+      ctx.font = `400 ${Math.round(24 * previewScale)}px Arial`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#333'
+      ctx.fillText('Текст', previewX, previewY)
+      
+      console.log('✅ Дефолтная подложка режима "Мысли" отрисована')
+    },
+    
+    // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
+    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true) {
+      // 1️⃣ Рисуем основной овал (подложка)
+      this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
+      
+      // Если не нужно рисовать хвост (для дефолтной подложки), выходим
+      if (!drawTail) {
+        console.log('🧠 Режим "Мысли" - только основной овал, хвост не рисуем')
+        return
+      }
+      
+      // Параметры хвоста из настроек
+      const tailSize = Number(this.textDialogData.tailSize) / 100 // Длина хвоста (от 100% до 300%)
+      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize // Длина хвоста
+      const maxTailWidth = minDimension * tailWidth // Максимальная ширина хвоста
+      
+      console.log('🧠 Параметры хвоста:', {
+        tailSize: this.textDialogData.tailSize,
+        tailWidth: this.textDialogData.tailWidth,
+        tailAngle: this.textDialogData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailAngleDeg: (tailAngle * 180 / Math.PI).toFixed(1),
+        tailLength: tailLength.toFixed(1),
+        maxTailWidth: maxTailWidth.toFixed(1),
+        minDimension: minDimension.toFixed(1)
+      })
+      
+      // Проверяем, что параметры хвоста не слишком маленькие
+      if (tailLength < 10 || maxTailWidth < 5) {
+        console.log('⚠️ Параметры хвоста слишком маленькие, используем минимальные значения')
+        const minTailLength = Math.max(10, minDimension * 0.3)
+        const minTailWidth = Math.max(5, minDimension * 0.2)
+        console.log('🧠 Скорректированные параметры:', {
+          tailLength: minTailLength.toFixed(1),
+          maxTailWidth: minTailWidth.toFixed(1)
+        })
+      }
+      
+      // 2️⃣ ПРОСТАЯ ЛОГИКА: рисуем овалы хвоста по прямой линии от центра
+      // Упрощенная логика: всегда рисуем 3 овала для лучшей видимости
+      const tailCount = 3
+      
+      console.log('🧠 Количество овалов хвоста:', tailCount)
+      
+      // 3️⃣ Отступ от основного овала (минимальный, чтобы не соприкасались)
+      const offsetFromMain = maxTailWidth * 0.1 // Уменьшаем отступ для лучшей видимости
+      
+      // 4️⃣ Рисуем овалы хвоста равномерно распределенные
+      for (let i = 0; i < tailCount; i++) {
+        // Позиция овала (равномерно распределена по длине хвоста)
+        const progress = (i + 1) / (tailCount + 1) // От 0.25 до 1.0
+        const distanceFromCenter = offsetFromMain + progress * (tailLength - offsetFromMain)
+        
+        // Размер овала (уменьшается от большого к маленькому)
+        const sizeMultiplier = 1.0 - progress * 0.5 // От 1.0 до 0.5 (более заметные)
+        const ovalWidth = maxTailWidth * sizeMultiplier
+        const ovalHeight = ovalWidth * 0.7 // Увеличиваем соотношение сторон для лучшей видимости
+        
+        // Позиция овала (центр совпадает с линией хвоста)
+        const ovalX = centerX + Math.cos(tailAngle) * distanceFromCenter
+        const ovalY = centerY + Math.sin(tailAngle) * distanceFromCenter
+        
+        console.log(`🧠 Овал ${i + 1}:`, {
+          progress: progress.toFixed(2),
+          distanceFromCenter: distanceFromCenter.toFixed(1),
+          sizeMultiplier: sizeMultiplier.toFixed(2),
+          ovalSize: `${ovalWidth.toFixed(1)}x${ovalHeight.toFixed(1)}`,
+          position: { x: ovalX.toFixed(1), y: ovalY.toFixed(1) }
+        })
+        
+        // Рисуем овал хвоста
+        this.drawOval(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
+        
+        // Добавляем обводку для лучшей видимости
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+      
+      console.log('🧠 Режим "Мысли" - хвост отрисован успешно!')
+    },
+    
+    // Упрощенный метод для режима "Мысли" - без сложной математики
+    
+    // Вспомогательный метод для отрисовки овала
+    drawOval(ctx, centerX, centerY, width, height) {
+      // Используем эллипс для отрисовки овала
+      ctx.ellipse(centerX, centerY, width / 2, height / 2, 0, 0, 2 * Math.PI)
+    },
+    
+    // Обводка режима "Мысли"
+    strokeThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+      // Создаем путь для обводки
+      ctx.beginPath()
+      
+      // Строим путь для режима "Мысли"
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale)
+      
+      // Обводим фигуру
+      ctx.stroke()
     },
     
     // Отрисовка дефолтного текста "Текст" на превью канвасе

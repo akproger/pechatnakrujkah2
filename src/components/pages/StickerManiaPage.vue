@@ -194,16 +194,31 @@
                 <!-- Блок параметров (скрыт по умолчанию) -->
                 <div class="parameters-block">
                   
-                  <!-- Выбор шрифта -->
+                  <!-- Шрифт и размер -->
                   <div class="form-group mb-3">
-                    <label for="fontSelect" class="form-label">Шрифт:</label>
-                    <select id="fontSelect" v-model="textDialogData.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <select id="fontSelect" v-model="textDialogData.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Courier New">Courier New</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <input 
+                          type="range" 
+                          id="fontSize" 
+                          v-model="textDialogData.fontSize" 
+                          class="form-range" 
+                          min="12" 
+                          max="72" 
+                          step="1"
+                          :title="`Размер: ${textDialogData.fontSize}px`"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Настройки шрифта -->
@@ -249,20 +264,6 @@
                         <i class="bi bi-type-italic"></i>
                       </button>
                     </div>
-                  </div>
-                  
-                  <!-- Размер текста -->
-                  <div class="form-group mb-3">
-                    <label for="fontSize" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
-                    <input 
-                      type="range" 
-                      id="fontSize" 
-                      v-model="textDialogData.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
                   </div>
                   
                   <!-- Выравнивание текста -->
@@ -560,16 +561,31 @@
                 <!-- Блок параметров (скрыт по умолчанию) -->
                 <div class="parameters-block">
                   
-                  <!-- Выбор шрифта -->
+                  <!-- Шрифт и размер -->
                   <div class="form-group mb-3">
-                    <label for="fontSelectStandard" class="form-label">Шрифт:</label>
-                    <select id="fontSelectStandard" v-model="textDialogData.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <select id="fontSelectStandard" v-model="textDialogData.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Courier New">Courier New</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <input 
+                          type="range" 
+                          id="fontSizeStandard" 
+                          v-model="textDialogData.fontSize" 
+                          class="form-range" 
+                          min="12" 
+                          max="72" 
+                          step="1"
+                          :title="`Размер: ${textDialogData.fontSize}px`"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Настройки шрифта -->
@@ -615,20 +631,6 @@
                         <i class="bi bi-type-italic"></i>
                       </button>
                     </div>
-                  </div>
-                  
-                  <!-- Размер текста -->
-                  <div class="form-group mb-3">
-                    <label for="fontSizeStandard" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
-                    <input 
-                      type="range" 
-                      id="fontSizeStandard" 
-                      v-model="textDialogData.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
                   </div>
                   
                   <!-- Выравнивание текста -->
@@ -885,16 +887,31 @@
                 <!-- Блок параметров (скрыт по умолчанию) -->
                 <div class="parameters-block">
                   
-                  <!-- Выбор шрифта -->
+                  <!-- Шрифт и размер -->
                   <div class="form-group mb-3">
-                    <label for="fontSelectImageText" class="form-label">Шрифт:</label>
-                    <select id="fontSelectImageText" v-model="textDialogData.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <select id="fontSelectImageText" v-model="textDialogData.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Courier New">Courier New</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <input 
+                          type="range" 
+                          id="fontSizeImageText" 
+                          v-model="textDialogData.fontSize" 
+                          class="form-range" 
+                          min="12" 
+                          max="200" 
+                          step="1"
+                          :title="`Размер: ${textDialogData.fontSize}px`"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Настройки шрифта -->
@@ -940,20 +957,6 @@
                         <i class="bi bi-type-italic"></i>
                       </button>
                     </div>
-                  </div>
-                  
-                  <!-- Размер текста -->
-                  <div class="form-group mb-3">
-                    <label for="fontSizeImageText" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
-                    <input 
-                      type="range" 
-                      id="fontSizeImageText" 
-                      v-model="textDialogData.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="200" 
-                      step="1"
-                    >
                   </div>
                   
                   <!-- Выравнивание текста -->
@@ -1177,16 +1180,31 @@
                 <!-- Блок параметров (скрыт по умолчанию) -->
                 <div class="parameters-block">
                   
-                  <!-- Выбор шрифта -->
+                  <!-- Шрифт и размер -->
                   <div class="form-group mb-3">
-                    <label for="fontSelectThoughts" class="form-label">Шрифт:</label>
-                    <select id="fontSelectThoughts" v-model="textDialogData.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <select id="fontSelectThoughts" v-model="textDialogData.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Courier New">Courier New</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <input 
+                          type="range" 
+                          id="fontSizeThoughts" 
+                          v-model="textDialogData.fontSize" 
+                          class="form-range" 
+                          min="12" 
+                          max="72" 
+                          step="1"
+                          :title="`Размер: ${textDialogData.fontSize}px`"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Настройки шрифта -->
@@ -1232,20 +1250,6 @@
                         <i class="bi bi-type-italic"></i>
                       </button>
                     </div>
-                  </div>
-                  
-                  <!-- Размер текста -->
-                  <div class="form-group mb-3">
-                    <label for="fontSizeThoughts" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
-                    <input 
-                      type="range" 
-                      id="fontSizeThoughts" 
-                      v-model="textDialogData.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
                   </div>
                   
                   <!-- Выравнивание текста -->
@@ -1903,15 +1907,15 @@ export default {
         padding: 4,
         textAlign: 'center',
         lineHeight: 1.2,
-        stroke: false,
-        strokeWidth: 2,
+        stroke: true,
+        strokeWidth: 3,
         strokeColor: '#000000',
-        shadow: false,
+        shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 30,
-        shadowOffsetX: 4,
-        shadowOffsetY: 4,
-        shadowBlur: 8
+        shadowOpacity: 40,
+        shadowOffsetX: 8,
+        shadowOffsetY: 8,
+        shadowBlur: 1
       },
       
       textDialogDataThoughts: {
@@ -1929,15 +1933,15 @@ export default {
         padding: 4,
         textAlign: 'center',
         lineHeight: 1.2,
-        stroke: false,
-        strokeWidth: 2,
+        stroke: true,
+        strokeWidth: 3,
         strokeColor: '#000000',
-        shadow: false,
+        shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 30,
-        shadowOffsetX: 4,
-        shadowOffsetY: 4,
-        shadowBlur: 8
+        shadowOpacity: 40,
+        shadowOffsetX: 8,
+        shadowOffsetY: 8,
+        shadowBlur: 1
       },
       
       textDialogDataStandard: {
@@ -1952,15 +1956,15 @@ export default {
         padding: 4,
         textAlign: 'center',
         lineHeight: 1.2,
-        stroke: false,
-        strokeWidth: 2,
+        stroke: true,
+        strokeWidth: 3,
         strokeColor: '#000000',
-        shadow: false,
+        shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 30,
-        shadowOffsetX: 4,
-        shadowOffsetY: 4,
-        shadowBlur: 8
+        shadowOpacity: 40,
+        shadowOffsetX: 8,
+        shadowOffsetY: 8,
+        shadowBlur: 1
       },
       
       textDialogDataImageText: {

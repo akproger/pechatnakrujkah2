@@ -320,88 +320,88 @@
                     </div>
                   </div>
                   
-                  <!-- Размер хвоста -->
+                  <!-- Настройки хвоста -->
                   <div class="form-group mb-3">
-                    <label for="tailSize" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailSize" 
-                      v-model="textDialogData.tailSize" 
-                      class="form-range" 
-                      min="100" 
-                      max="750" 
-                      step="1"
-                    >
+                    <div class="row g-2">
+                      <div class="col-4">
+                        <label for="tailSize" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
+                        <input 
+                          type="range" 
+                          id="tailSize" 
+                          v-model="textDialogData.tailSize" 
+                          class="form-range" 
+                          min="100" 
+                          max="750" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="tailWidth" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
+                        <input 
+                          type="range" 
+                          id="tailWidth" 
+                          v-model="textDialogData.tailWidth" 
+                          class="form-range" 
+                          min="40" 
+                          max="100" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="tailAngle" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
+                        <input 
+                          type="range" 
+                          id="tailAngle" 
+                          v-model="textDialogData.tailAngle" 
+                          class="form-range" 
+                          min="0" 
+                          max="359" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
-                  <!-- Ширина хвоста -->
+                  <!-- Настройки подложки -->
                   <div class="form-group mb-3">
-                    <label for="tailWidth" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailWidth" 
-                      v-model="textDialogData.tailWidth" 
-                      class="form-range" 
-                      min="40" 
-                      max="100" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Угол хвоста -->
-                  <div class="form-group mb-3">
-                    <label for="tailAngle" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
-                    <input 
-                      type="range" 
-                      id="tailAngle" 
-                      v-model="textDialogData.tailAngle" 
-                      class="form-range" 
-                      min="0" 
-                      max="359" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Ширина подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundWidth" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundWidth" 
-                      v-model="textDialogData.backgroundWidth" 
-                      class="form-range" 
-                      min="100" 
-                      max="400" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Высота подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundHeight" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundHeight" 
-                      v-model="textDialogData.backgroundHeight" 
-                      class="form-range" 
-                      min="50" 
-                      max="200" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Отступ от краев -->
-                  <div class="form-group mb-3">
-                    <label for="padding" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
-                    <input 
-                      type="range" 
-                      id="padding" 
-                      v-model="textDialogData.padding" 
-                      class="form-range" 
-                      min="15" 
-                      max="40" 
-                      step="1"
-                    >
+                    <div class="row g-2">
+                      <div class="col-4">
+                        <label for="backgroundWidth" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundWidth" 
+                          v-model="textDialogData.backgroundWidth" 
+                          class="form-range" 
+                          min="100" 
+                          max="400" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="backgroundHeight" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundHeight" 
+                          v-model="textDialogData.backgroundHeight" 
+                          class="form-range" 
+                          min="50" 
+                          max="200" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="padding" class="form-label">Отступ в подложке: {{ textDialogData.padding }}px</label>
+                        <input 
+                          type="range" 
+                          id="padding" 
+                          v-model="textDialogData.padding" 
+                          class="form-range" 
+                          min="15" 
+                          max="40" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Межстрочный интервал -->
@@ -695,46 +695,46 @@
                   </div>
                   
                   
-                  <!-- Ширина подложки -->
+                  <!-- Настройки подложки -->
                   <div class="form-group mb-3">
-                    <label for="backgroundWidthStandard" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundWidthStandard" 
-                      v-model="textDialogData.backgroundWidth" 
-                      class="form-range" 
-                      min="100" 
-                      max="400" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Высота подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundHeightStandard" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundHeightStandard" 
-                      v-model="textDialogData.backgroundHeight" 
-                      class="form-range" 
-                      min="50" 
-                      max="200" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Отступ от краев -->
-                  <div class="form-group mb-3">
-                    <label for="paddingStandard" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
-                    <input 
-                      type="range" 
-                      id="paddingStandard" 
-                      v-model="textDialogData.padding" 
-                      class="form-range" 
-                      min="15" 
-                      max="40" 
-                      step="1"
-                    >
+                    <div class="row g-2">
+                      <div class="col-4">
+                        <label for="backgroundWidthStandard" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundWidthStandard" 
+                          v-model="textDialogData.backgroundWidth" 
+                          class="form-range" 
+                          min="100" 
+                          max="400" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="backgroundHeightStandard" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundHeightStandard" 
+                          v-model="textDialogData.backgroundHeight" 
+                          class="form-range" 
+                          min="50" 
+                          max="200" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="paddingStandard" class="form-label">Отступ в подложке: {{ textDialogData.padding }}px</label>
+                        <input 
+                          type="range" 
+                          id="paddingStandard" 
+                          v-model="textDialogData.padding" 
+                          class="form-range" 
+                          min="15" 
+                          max="40" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Межстрочный интервал -->
@@ -1321,88 +1321,88 @@
                     </div>
                   </div>
                   
-                  <!-- Размер хвоста -->
+                  <!-- Настройки хвоста -->
                   <div class="form-group mb-3">
-                    <label for="tailSizeThoughts" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailSizeThoughts" 
-                      v-model="textDialogData.tailSize" 
-                      class="form-range" 
-                      min="100" 
-                      max="750" 
-                      step="1"
-                    >
+                    <div class="row g-2">
+                      <div class="col-4">
+                        <label for="tailSizeThoughts" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
+                        <input 
+                          type="range" 
+                          id="tailSizeThoughts" 
+                          v-model="textDialogData.tailSize" 
+                          class="form-range" 
+                          min="100" 
+                          max="750" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="tailWidthThoughts" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
+                        <input 
+                          type="range" 
+                          id="tailWidthThoughts" 
+                          v-model="textDialogData.tailWidth" 
+                          class="form-range" 
+                          min="40" 
+                          max="100" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="tailAngleThoughts" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
+                        <input 
+                          type="range" 
+                          id="tailAngleThoughts" 
+                          v-model="textDialogData.tailAngle" 
+                          class="form-range" 
+                          min="0" 
+                          max="359" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
-                  <!-- Ширина хвоста -->
+                  <!-- Настройки подложки -->
                   <div class="form-group mb-3">
-                    <label for="tailWidthThoughts" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailWidthThoughts" 
-                      v-model="textDialogData.tailWidth" 
-                      class="form-range" 
-                      min="40" 
-                      max="100" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Угол хвоста -->
-                  <div class="form-group mb-3">
-                    <label for="tailAngleThoughts" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
-                    <input 
-                      type="range" 
-                      id="tailAngleThoughts" 
-                      v-model="textDialogData.tailAngle" 
-                      class="form-range" 
-                      min="0" 
-                      max="359" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Ширина подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundWidthThoughts" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundWidthThoughts" 
-                      v-model="textDialogData.backgroundWidth" 
-                      class="form-range" 
-                      min="100" 
-                      max="400" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Высота подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundHeightThoughts" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundHeightThoughts" 
-                      v-model="textDialogData.backgroundHeight" 
-                      class="form-range" 
-                      min="50" 
-                      max="200" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Отступ от краев -->
-                  <div class="form-group mb-3">
-                    <label for="paddingThoughts" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
-                    <input 
-                      type="range" 
-                      id="paddingThoughts" 
-                      v-model="textDialogData.padding" 
-                      class="form-range" 
-                      min="15" 
-                      max="40" 
-                      step="1"
-                    >
+                    <div class="row g-2">
+                      <div class="col-4">
+                        <label for="backgroundWidthThoughts" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundWidthThoughts" 
+                          v-model="textDialogData.backgroundWidth" 
+                          class="form-range" 
+                          min="100" 
+                          max="400" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="backgroundHeightThoughts" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                        <input 
+                          type="range" 
+                          id="backgroundHeightThoughts" 
+                          v-model="textDialogData.backgroundHeight" 
+                          class="form-range" 
+                          min="50" 
+                          max="200" 
+                          step="10"
+                        >
+                      </div>
+                      <div class="col-4">
+                        <label for="paddingThoughts" class="form-label">Отступ в подложке: {{ textDialogData.padding }}px</label>
+                        <input 
+                          type="range" 
+                          id="paddingThoughts" 
+                          v-model="textDialogData.padding" 
+                          class="form-range" 
+                          min="15" 
+                          max="40" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Межстрочный интервал -->
@@ -8249,6 +8249,11 @@ export default {
   width: 1px;
   height: 24px;
   background-color: #dee2e6;
+}
+
+/* Скрываем настройки межстрочного интервала */
+.form-group:has(label[for*="lineHeight"]) {
+  display: none !important;
 }
 
 /* Стили для кнопок цветов */

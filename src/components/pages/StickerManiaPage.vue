@@ -208,19 +208,46 @@
                   
                   <!-- Настройки шрифта -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Стиль шрифта:</label>
-                    <div class="btn-group" role="group">
-                      <input type="radio" class="btn-check" id="normal" value="normal" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="normal">Обычный</label>
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                        @click="textDialogData.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="bold" value="bold" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="bold">Жирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                        @click="textDialogData.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="bolder" value="bolder" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="bolder">Полужирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
+                        @click="textDialogData.fontWeight = 'bolder'"
+                        title="Полужирный"
+                      >
+                        <i class="bi bi-type-h1"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="italic" value="italic" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="italic">Курсив</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                        @click="textDialogData.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -240,16 +267,36 @@
                   
                   <!-- Выравнивание текста -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Выравнивание текста</label>
-                    <div class="btn-group w-100" role="group">
-                      <input type="radio" class="btn-check" id="alignLeft" v-model="textDialogData.textAlign" value="left">
-                      <label class="btn btn-outline-secondary" for="alignLeft">←</label>
+                    <div class="text-align-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'left' }"
+                        @click="textDialogData.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignCenter" v-model="textDialogData.textAlign" value="center">
-                      <label class="btn btn-outline-secondary" for="alignCenter">↔</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'center' }"
+                        @click="textDialogData.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignRight" v-model="textDialogData.textAlign" value="right">
-                      <label class="btn btn-outline-secondary" for="alignRight">→</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'right' }"
+                        @click="textDialogData.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -527,19 +574,46 @@
                   
                   <!-- Настройки шрифта -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Стиль шрифта:</label>
-                    <div class="btn-group" role="group">
-                      <input type="radio" class="btn-check" id="normalStandard" value="normal" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="normalStandard">Обычный</label>
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                        @click="textDialogData.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="boldStandard" value="bold" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="boldStandard">Жирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                        @click="textDialogData.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="bolderStandard" value="bolder" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="bolderStandard">Полужирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
+                        @click="textDialogData.fontWeight = 'bolder'"
+                        title="Полужирный"
+                      >
+                        <i class="bi bi-type-h1"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="italicStandard" value="italic" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="italicStandard">Курсив</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                        @click="textDialogData.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -559,16 +633,36 @@
                   
                   <!-- Выравнивание текста -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Выравнивание текста</label>
-                    <div class="btn-group w-100" role="group">
-                      <input type="radio" class="btn-check" id="alignLeftStandard" v-model="textDialogData.textAlign" value="left">
-                      <label class="btn btn-outline-secondary" for="alignLeftStandard">←</label>
+                    <div class="text-align-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'left' }"
+                        @click="textDialogData.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignCenterStandard" v-model="textDialogData.textAlign" value="center">
-                      <label class="btn btn-outline-secondary" for="alignCenterStandard">↔</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'center' }"
+                        @click="textDialogData.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignRightStandard" v-model="textDialogData.textAlign" value="right">
-                      <label class="btn btn-outline-secondary" for="alignRightStandard">→</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'right' }"
+                        @click="textDialogData.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -805,19 +899,46 @@
                   
                   <!-- Настройки шрифта -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Стиль шрифта:</label>
-                    <div class="btn-group" role="group">
-                      <input type="radio" class="btn-check" id="normalImageText" value="normal" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="normalImageText">Обычный</label>
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                        @click="textDialogData.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="boldImageText" value="bold" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="boldImageText">Жирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                        @click="textDialogData.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="bolderImageText" value="bolder" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="bolderImageText">Полужирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
+                        @click="textDialogData.fontWeight = 'bolder'"
+                        title="Полужирный"
+                      >
+                        <i class="bi bi-type-h1"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="italicImageText" value="italic" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="italicImageText">Курсив</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                        @click="textDialogData.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -837,16 +958,36 @@
                   
                   <!-- Выравнивание текста -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Выравнивание текста</label>
-                    <div class="btn-group w-100" role="group">
-                      <input type="radio" class="btn-check" id="alignLeftImageText" v-model="textDialogData.textAlign" value="left">
-                      <label class="btn btn-outline-secondary" for="alignLeftImageText">←</label>
+                    <div class="text-align-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'left' }"
+                        @click="textDialogData.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignCenterImageText" v-model="textDialogData.textAlign" value="center">
-                      <label class="btn btn-outline-secondary" for="alignCenterImageText">↔</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'center' }"
+                        @click="textDialogData.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignRightImageText" v-model="textDialogData.textAlign" value="right">
-                      <label class="btn btn-outline-secondary" for="alignRightImageText">→</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'right' }"
+                        @click="textDialogData.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -1050,19 +1191,46 @@
                   
                   <!-- Настройки шрифта -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Стиль шрифта:</label>
-                    <div class="btn-group" role="group">
-                      <input type="radio" class="btn-check" id="normalThoughts" value="normal" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="normalThoughts">Обычный</label>
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                        @click="textDialogData.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="boldThoughts" value="bold" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="boldThoughts">Жирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                        @click="textDialogData.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="bolderThoughts" value="bolder" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="bolderThoughts">Полужирный</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
+                        @click="textDialogData.fontWeight = 'bolder'"
+                        title="Полужирный"
+                      >
+                        <i class="bi bi-type-h1"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="italicThoughts" value="italic" v-model="textDialogData.fontWeight">
-                      <label class="btn btn-outline-secondary" for="italicThoughts">Курсив</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                        @click="textDialogData.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -1082,16 +1250,36 @@
                   
                   <!-- Выравнивание текста -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Выравнивание текста</label>
-                    <div class="btn-group w-100" role="group">
-                      <input type="radio" class="btn-check" id="alignLeftThoughts" v-model="textDialogData.textAlign" value="left">
-                      <label class="btn btn-outline-secondary" for="alignLeftThoughts">←</label>
+                    <div class="text-align-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'left' }"
+                        @click="textDialogData.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignCenterThoughts" v-model="textDialogData.textAlign" value="center">
-                      <label class="btn btn-outline-secondary" for="alignCenterThoughts">↔</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'center' }"
+                        @click="textDialogData.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
                       
-                      <input type="radio" class="btn-check" id="alignRightThoughts" v-model="textDialogData.textAlign" value="right">
-                      <label class="btn btn-outline-secondary" for="alignRightThoughts">→</label>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogData.textAlign === 'right' }"
+                        @click="textDialogData.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
                     </div>
                   </div>
                   
@@ -8023,6 +8211,68 @@ export default {
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Стили для кнопок стилей шрифта */
+.font-weight-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.font-weight-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.font-weight-btn:hover {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd !important;
+}
+
+.font-weight-btn.active {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+}
+
+.font-weight-btn i {
+  font-size: 16px;
+}
+
+/* Стили для кнопок выравнивания текста */
+.text-align-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.text-align-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.text-align-btn:hover {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd !important;
+}
+
+.text-align-btn.active {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+}
+
+.text-align-btn i {
+  font-size: 16px;
+}
+
 .text-dialog-body {
   padding: 0;
   overflow-y: auto;
@@ -8186,6 +8436,24 @@ export default {
   .text-dialog-mode-btn {
     padding: 6px 12px !important;
     font-size: 12px !important;
+  }
+  
+  .font-weight-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .font-weight-btn i {
+    font-size: 14px;
+  }
+  
+  .text-align-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .text-align-btn i {
+    font-size: 14px;
   }
   
   .text-dialog-footer {

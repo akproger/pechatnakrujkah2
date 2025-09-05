@@ -867,54 +867,6 @@
                     <input type="color" id="textColorImageText" v-model="textDialogData.textColor" class="form-control form-control-color">
                   </div>
                   
-                  <!-- Цвет подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundColorImageText" class="form-label">Цвет подложки:</label>
-                    <input type="color" id="backgroundColorImageText" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
-                  </div>
-                  
-                  
-                  <!-- Ширина подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundWidthImageText" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundWidthImageText" 
-                      v-model="textDialogData.backgroundWidth" 
-                      class="form-range" 
-                      min="100" 
-                      max="400" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Высота подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundHeightImageText" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
-                    <input 
-                      type="range" 
-                      id="backgroundHeightImageText" 
-                      v-model="textDialogData.backgroundHeight" 
-                      class="form-range" 
-                      min="50" 
-                      max="200" 
-                      step="10"
-                    >
-                  </div>
-                  
-                  <!-- Отступ от краев -->
-                  <div class="form-group mb-3">
-                    <label for="paddingImageText" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
-                    <input 
-                      type="range" 
-                      id="paddingImageText" 
-                      v-model="textDialogData.padding" 
-                      class="form-range" 
-                      min="2" 
-                      max="15" 
-                      step="1"
-                    >
-                  </div>
                   
                   <!-- Межстрочный интервал -->
                   <div class="form-group mb-3">
@@ -6172,6 +6124,49 @@ export default {
       })
     },
     
+    // Отрисовка обводки многострочного текста
+    drawMultilineTextStroke(ctx, text, x, y, fontSize, lineHeight = 1.2) {
+      // Разбиваем текст на строки по символу \n
+      const lines = text.split('\n')
+      
+      // Устанавливаем размер шрифта
+      ctx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
+      
+      // Устанавливаем выравнивание текста
+      ctx.textAlign = this.textDialogData.textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Вычисляем межстрочный интервал
+      const lineSpacing = fontSize * lineHeight
+      
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      const totalTextHeight = (lines.length - 1) * lineSpacing
+      const startY = y - totalTextHeight / 2
+      
+      // Вычисляем максимальную ширину текста для центрирования по горизонтали
+      let maxTextWidth = 0
+      lines.forEach(line => {
+        const textMetrics = ctx.measureText(line)
+        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
+      })
+      
+      // Рисуем обводку каждой строки
+      lines.forEach((line, index) => {
+        const lineY = startY + (index * lineSpacing)
+        
+        // Вычисляем позицию X в зависимости от выравнивания
+        let lineX = x
+        if (this.textDialogData.textAlign === 'left') {
+          lineX = x - maxTextWidth / 2
+        } else if (this.textDialogData.textAlign === 'right') {
+          lineX = x + maxTextWidth / 2
+        }
+        // Для 'center' lineX остается x
+        
+        ctx.strokeText(line, lineX, lineY)
+      })
+    },
+    
     // Обводка режима "Мысли"
     strokeThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
       // Создаем путь для обводки
@@ -6342,11 +6337,11 @@ export default {
       console.log('✅ Дефолтный текст в режиме "Стандарт" отрисован без хвоста')
     },
     
-    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - отрисовка без хвоста
+    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - отрисовка без подложки, тень и обводка к тексту
     drawTextPreviewOnCanvasImageTextMode(ctx, canvas) {
       if (!this.textDialogPosition || !this.textDialogData.text) return
       
-      console.log('🖼️ Отрисовка текста в режиме "Текст с изображением" без хвоста:', this.textDialogData.text)
+      console.log('🖼️ Отрисовка текста в режиме "Текст с изображением" без подложки:', this.textDialogData.text)
       
       // Конвертируем координаты клика в координаты превью канваса
       const mainCanvas = this.$refs.testCanvas
@@ -6368,29 +6363,42 @@ export default {
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
-      const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем размеры многострочного текста
-      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
-      
-      // Размеры подложки (адаптированные под превью)
-      const bgWidth = Math.round(this.textDialogData.backgroundWidth * previewScale)
-      const bgHeight = Math.round(this.textDialogData.backgroundHeight * previewScale)
-      
-      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
-      this.drawImageTextModeShape(ctx, previewX, previewY, bgWidth, bgHeight, previewScale, backgroundColor)
+      // Применяем тень к тексту если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor
+        ctx.shadowBlur = this.textDialogData.shadowBlur * previewScale
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
+        ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
+      }
       
       // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
       this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
       
-      console.log('✅ Текст в режиме "Текст с изображением" отрисован без хвоста')
+      // Сбрасываем настройки тени
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.globalAlpha = 1
+      }
+      
+      // Применяем обводку к тексту если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = this.textDialogData.strokeWidth * previewScale
+        this.drawMultilineTextStroke(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      }
+      
+      console.log('✅ Текст в режиме "Текст с изображением" отрисован без подложки')
     },
     
     // Отрисовка формы для режима "Текст с изображением" (только прямоугольник, без хвоста)
@@ -6431,11 +6439,11 @@ export default {
       console.log('✅ Форма "Текст с изображением" отрисована - только прямоугольник')
     },
     
-    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтный текст без хвоста
+    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтный текст без подложки
     drawDefaultTextPreviewOnCanvasImageTextMode(ctx, canvas) {
       if (!this.textDialogPosition) return
       
-      console.log('🖼️ Отрисовка дефолтного текста в режиме "Текст с изображением" без хвоста')
+      console.log('🖼️ Отрисовка дефолтного текста в режиме "Текст с изображением" без подложки')
       
       // Конвертируем координаты клика в координаты превью канваса
       const mainCanvas = this.$refs.testCanvas
@@ -6457,37 +6465,42 @@ export default {
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
-      const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем размеры многострочного текста
-      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
-      const textWidth = textSize.width
-      const textHeight = textSize.height
-      
-      // Размеры подложки (адаптированные под превью)
-      const backgroundWidth = Math.max(
-        Math.round(this.textDialogData.backgroundWidth * previewScale), 
-        textWidth + padding * 2
-      )
-      const backgroundHeight = Math.max(
-        Math.round(this.textDialogData.backgroundHeight * previewScale), 
-        textHeight + padding * 2
-      )
-      
-      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
-      this.drawImageTextModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor)
+      // Применяем тень к тексту если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor
+        ctx.shadowBlur = this.textDialogData.shadowBlur * previewScale
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
+        ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
+      }
       
       // Рисуем текст
       ctx.fillStyle = textColor
       ctx.fillText('Текст', previewX, previewY)
       
-      console.log('✅ Дефолтный текст в режиме "Текст с изображением" отрисован без хвоста')
+      // Сбрасываем настройки тени
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.globalAlpha = 1
+      }
+      
+      // Применяем обводку к тексту если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = this.textDialogData.strokeWidth * previewScale
+        ctx.strokeText('Текст', previewX, previewY)
+      }
+      
+      console.log('✅ Дефолтный текст в режиме "Текст с изображением" отрисован без подложки')
     },
     
     // Отрисовка хвоста (острого треугольника с прямым углом)
@@ -7480,11 +7493,77 @@ export default {
       console.log('🎯 Перетаскивание завершено')
     },
     
+    // Проверка клика по тексту (для режима "Текст с изображением")
+    isClickOnText(clickX, clickY) {
+      if (!this.textDialogPosition) {
+        console.log('❌ textDialogPosition не определен в isClickOnText')
+        return false
+      }
+      
+      // Получаем активный превью канвас
+      let activePreviewCanvas
+      if (this.textDialogActiveTab === 'image-text') {
+        activePreviewCanvas = this.$refs.previewCanvasImageText
+      }
+      
+      if (!activePreviewCanvas) {
+        console.log('❌ Превью канвас не найден для режима "Текст с изображением"')
+        return false
+      }
+      
+      // Вычисляем масштаб
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      const scaleX = activePreviewCanvas.width / mainWidth
+      const scaleY = activePreviewCanvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      const previewScale = 1.2
+      
+      // Вычисляем размеры текста
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const text = this.textDialogData.text || 'Текст'
+      
+      // Создаем временный контекст для измерения текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+      tempCtx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
+      
+      // Измеряем размеры текста
+      const textSize = this.calculateMultilineTextSize(tempCtx, text, fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
+      
+      // Вычисляем границы текста
+      const left = previewX - textWidth / 2
+      const top = previewY - textHeight / 2
+      const right = left + textWidth
+      const bottom = top + textHeight
+      
+      // Проверяем, находится ли клик в пределах текста
+      const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      
+      console.log('🖼️ Проверка клика по тексту:')
+      console.log('  clickX:', clickX, 'clickY:', clickY)
+      console.log('  textBounds:', { left, top, right, bottom })
+      console.log('  textSize:', { width: textWidth, height: textHeight })
+      console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
+      
+      return isInside
+    },
+    
     // Проверка, кликнули ли мы по суперподложке или тексту
     isClickOnSuperBackground(clickX, clickY) {
       if (!this.textDialogPosition) {
         console.log('❌ textDialogPosition не определен в isClickOnSuperBackground')
         return false
+      }
+      
+      // Для режима "Текст с изображением" проверяем клик по тексту, а не по подложке
+      if (this.textDialogActiveTab === 'image-text') {
+        return this.isClickOnText(clickX, clickY)
       }
       
       // Получаем размеры суперподложки

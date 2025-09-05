@@ -237,6 +237,21 @@
                     >
                   </div>
                   
+                  <!-- Выравнивание текста -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Выравнивание текста</label>
+                    <div class="btn-group w-100" role="group">
+                      <input type="radio" class="btn-check" id="alignLeft" v-model="textDialogData.textAlign" value="left">
+                      <label class="btn btn-outline-secondary" for="alignLeft">←</label>
+                      
+                      <input type="radio" class="btn-check" id="alignCenter" v-model="textDialogData.textAlign" value="center">
+                      <label class="btn btn-outline-secondary" for="alignCenter">↔</label>
+                      
+                      <input type="radio" class="btn-check" id="alignRight" v-model="textDialogData.textAlign" value="right">
+                      <label class="btn btn-outline-secondary" for="alignRight">→</label>
+                    </div>
+                  </div>
+                  
                   <!-- Цвет текста -->
                   <div class="form-group mb-3">
                     <label for="textColor" class="form-label">Цвет текста:</label>
@@ -327,9 +342,23 @@
                       id="padding" 
                       v-model="textDialogData.padding" 
                       class="form-range" 
-                      min="5" 
-                      max="30" 
+                      min="2" 
+                      max="15" 
                       step="1"
+                    >
+                  </div>
+                  
+                  <!-- Межстрочный интервал -->
+                  <div class="form-group mb-3">
+                    <label for="lineHeight" class="form-label">Межстрочный интервал: {{ textDialogData.lineHeight }}</label>
+                    <input 
+                      type="range" 
+                      id="lineHeight" 
+                      v-model="textDialogData.lineHeight" 
+                      class="form-range" 
+                      min="1.0" 
+                      max="2.0" 
+                      step="0.1"
                     >
                   </div>
                   
@@ -527,6 +556,21 @@
                     >
                   </div>
                   
+                  <!-- Выравнивание текста -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Выравнивание текста</label>
+                    <div class="btn-group w-100" role="group">
+                      <input type="radio" class="btn-check" id="alignLeftThoughts" v-model="textDialogData.textAlign" value="left">
+                      <label class="btn btn-outline-secondary" for="alignLeftThoughts">←</label>
+                      
+                      <input type="radio" class="btn-check" id="alignCenterThoughts" v-model="textDialogData.textAlign" value="center">
+                      <label class="btn btn-outline-secondary" for="alignCenterThoughts">↔</label>
+                      
+                      <input type="radio" class="btn-check" id="alignRightThoughts" v-model="textDialogData.textAlign" value="right">
+                      <label class="btn btn-outline-secondary" for="alignRightThoughts">→</label>
+                    </div>
+                  </div>
+                  
                   <!-- Цвет текста -->
                   <div class="form-group mb-3">
                     <label for="textColorThoughts" class="form-label">Цвет текста:</label>
@@ -617,9 +661,23 @@
                       id="paddingThoughts" 
                       v-model="textDialogData.padding" 
                       class="form-range" 
-                      min="5" 
-                      max="30" 
+                      min="2" 
+                      max="15" 
                       step="1"
+                    >
+                  </div>
+                  
+                  <!-- Межстрочный интервал -->
+                  <div class="form-group mb-3">
+                    <label for="lineHeightThoughts" class="form-label">Межстрочный интервал: {{ textDialogData.lineHeight }}</label>
+                    <input 
+                      type="range" 
+                      id="lineHeightThoughts" 
+                      v-model="textDialogData.lineHeight" 
+                      class="form-range" 
+                      min="1.0" 
+                      max="2.0" 
+                      step="0.1"
                     >
                   </div>
                   
@@ -1138,7 +1196,9 @@ export default {
         tailAngle: 45,
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 12,
+        padding: 4, // Уменьшаем отступы в 3 раза (было 12)
+        textAlign: 'center', // Выравнивание текста: 'left', 'center', 'right'
+        lineHeight: 1.2, // Межстрочный интервал
         stroke: false,
         strokeWidth: 2,
         strokeColor: '#000000',
@@ -1277,6 +1337,16 @@ export default {
       })
     },
     'textDialogData.tailAngle'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.textAlign'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.lineHeight'() {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
@@ -5027,10 +5097,10 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем размеры текста
-      const textMetrics = ctx.measureText(this.textDialogData.text)
-      const textWidth = textMetrics.width
-      const textHeight = fontSize
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
       
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(
@@ -5072,9 +5142,9 @@ export default {
         this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
-      // Рисуем текст
+      // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
-      ctx.fillText(this.textDialogData.text, previewX, previewY)
+      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
       
       console.log('✅ Текст с подложкой отрисован на превью')
     },
@@ -5124,10 +5194,10 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем размеры текста
-      const textMetrics = ctx.measureText(this.textDialogData.text)
-      const textWidth = textMetrics.width
-      const textHeight = fontSize
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
       
       // Размеры подложки - используем тот же подход, что и в режиме "Разговор"
       const backgroundWidth = Math.max(
@@ -5151,9 +5221,9 @@ export default {
       // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
       this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true, true)
       
-      // Рисуем текст
+      // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
-      ctx.fillText(this.textDialogData.text, previewX, previewY)
+      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
       
       console.log('✅ Режим "Мысли" отрисован на превью')
     },
@@ -5360,6 +5430,65 @@ export default {
       ctx.ellipse(centerX, centerY, width / 2, height / 2, 0, 0, 2 * Math.PI)
     },
     
+    // Вспомогательный метод для расчета размеров многострочного текста
+    calculateMultilineTextSize(ctx, text, fontSize, lineHeight = 1.2) {
+      const lines = text.split('\n')
+      ctx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
+      
+      let maxWidth = 0
+      lines.forEach(line => {
+        const textMetrics = ctx.measureText(line)
+        maxWidth = Math.max(maxWidth, textMetrics.width)
+      })
+      
+      const totalHeight = lines.length * fontSize * lineHeight
+      
+      return { width: maxWidth, height: totalHeight }
+    },
+    
+    // Метод для отрисовки многострочного текста с поддержкой переноса строк
+    drawMultilineText(ctx, text, x, y, fontSize, lineHeight = 1.2) {
+      // Разбиваем текст на строки по символу \n
+      const lines = text.split('\n')
+      
+      // Устанавливаем размер шрифта
+      ctx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
+      
+      // Устанавливаем выравнивание текста
+      ctx.textAlign = this.textDialogData.textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Вычисляем межстрочный интервал
+      const lineSpacing = fontSize * lineHeight
+      
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      const totalTextHeight = (lines.length - 1) * lineSpacing
+      const startY = y - totalTextHeight / 2
+      
+      // Вычисляем максимальную ширину текста для центрирования по горизонтали
+      let maxTextWidth = 0
+      lines.forEach(line => {
+        const textMetrics = ctx.measureText(line)
+        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
+      })
+      
+      // Рисуем каждую строку
+      lines.forEach((line, index) => {
+        const lineY = startY + (index * lineSpacing)
+        
+        // Вычисляем позицию X в зависимости от выравнивания
+        let lineX = x
+        if (this.textDialogData.textAlign === 'left') {
+          lineX = x - maxTextWidth / 2
+        } else if (this.textDialogData.textAlign === 'right') {
+          lineX = x + maxTextWidth / 2
+        }
+        // Для 'center' lineX остается x
+        
+        ctx.fillText(line, lineX, lineY)
+      })
+    },
+    
     // Обводка режима "Мысли"
     strokeThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
       // Создаем путь для обводки
@@ -5415,10 +5544,10 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем размеры текста
-      const textMetrics = ctx.measureText('Текст')
-      const textWidth = textMetrics.width
-      const textHeight = fontSize
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
       
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(

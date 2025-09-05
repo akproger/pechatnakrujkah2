@@ -841,7 +841,7 @@
                       v-model="textDialogData.fontSize" 
                       class="form-range" 
                       min="12" 
-                      max="72" 
+                      max="200" 
                       step="1"
                     >
                   </div>
@@ -1704,7 +1704,8 @@ export default {
       textDialogPosition: null, // Позиция для размещения текста
       showParameters: false, // Показать ли блок параметров
       textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
-      textDialogData: {
+      // Данные для каждой вкладки отдельно
+      textDialogDataConversation: {
         text: '',
         font: 'Arial',
         fontWeight: 'normal',
@@ -1716,9 +1717,78 @@ export default {
         tailAngle: 45,
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 4, // Уменьшаем отступы в 3 раза (было 12)
-        textAlign: 'center', // Выравнивание текста: 'left', 'center', 'right'
-        lineHeight: 1.2, // Межстрочный интервал
+        padding: 4,
+        textAlign: 'center',
+        lineHeight: 1.2,
+        stroke: false,
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 30,
+        shadowOffsetX: 4,
+        shadowOffsetY: 4,
+        shadowBlur: 8
+      },
+      
+      textDialogDataThoughts: {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'normal',
+        fontSize: 24,
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+        tailSize: 145,
+        tailWidth: 40,
+        tailAngle: 45,
+        backgroundWidth: 200,
+        backgroundHeight: 100,
+        padding: 4,
+        textAlign: 'center',
+        lineHeight: 1.2,
+        stroke: false,
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 30,
+        shadowOffsetX: 4,
+        shadowOffsetY: 4,
+        shadowBlur: 8
+      },
+      
+      textDialogDataStandard: {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'normal',
+        fontSize: 24,
+        textColor: '#000000',
+        backgroundColor: '#ffffff',
+        backgroundWidth: 200,
+        backgroundHeight: 100,
+        padding: 4,
+        textAlign: 'center',
+        lineHeight: 1.2,
+        stroke: false,
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 30,
+        shadowOffsetX: 4,
+        shadowOffsetY: 4,
+        shadowBlur: 8
+      },
+      
+      textDialogDataImageText: {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'normal',
+        fontSize: 24,
+        textColor: '#000000',
+        padding: 4,
+        textAlign: 'center',
+        lineHeight: 1.2,
         stroke: false,
         strokeWidth: 2,
         strokeColor: '#000000',
@@ -1740,6 +1810,22 @@ export default {
     }
   },
   computed: {
+    // Получаем данные для активной вкладки
+    textDialogData() {
+      switch (this.textDialogActiveTab) {
+        case 'conversation':
+          return this.textDialogDataConversation
+        case 'thoughts':
+          return this.textDialogDataThoughts
+        case 'standard':
+          return this.textDialogDataStandard
+        case 'image-text':
+          return this.textDialogDataImageText
+        default:
+          return this.textDialogDataConversation
+      }
+    },
+    
     // Размеры для превью канваса с соотношением сторон 19:9 (разрешение увеличено в 3 раза)
     previewCanvasWidth() {
       if (!this.$refs.testCanvas) return 1200
@@ -6376,20 +6462,21 @@ export default {
         ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
         ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
         ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
-      }
-      
-      // Рисуем текст с поддержкой переноса строк
-      ctx.fillStyle = textColor
-      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
-      
-      // Сбрасываем настройки тени
-      if (this.textDialogData.shadow) {
+        
+        // Рисуем тень текста
+        this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+        
+        // Сбрасываем настройки тени
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 0
         ctx.globalAlpha = 1
       }
+      
+      // Рисуем основной текст с поддержкой переноса строк
+      ctx.fillStyle = textColor
+      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
       
       // Применяем обводку к тексту если включена
       if (this.textDialogData.stroke) {
@@ -6478,20 +6565,21 @@ export default {
         ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
         ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
         ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
-      }
-      
-      // Рисуем текст
-      ctx.fillStyle = textColor
-      ctx.fillText('Текст', previewX, previewY)
-      
-      // Сбрасываем настройки тени
-      if (this.textDialogData.shadow) {
+        
+        // Рисуем тень текста
+        ctx.fillText('Текст', previewX, previewY)
+        
+        // Сбрасываем настройки тени
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 0
         ctx.globalAlpha = 1
       }
+      
+      // Рисуем основной текст
+      ctx.fillStyle = textColor
+      ctx.fillText('Текст', previewX, previewY)
       
       // Применяем обводку к тексту если включена
       if (this.textDialogData.stroke) {

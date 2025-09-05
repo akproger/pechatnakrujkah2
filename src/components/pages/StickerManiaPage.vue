@@ -867,6 +867,21 @@
                     <input type="color" id="textColorImageText" v-model="textDialogData.textColor" class="form-control form-control-color">
                   </div>
                   
+                  <!-- Изображение для текста -->
+                  <div class="form-group mb-3">
+                    <label for="textImageImageText" class="form-label">Изображение для текста:</label>
+                    <input 
+                      type="file" 
+                      id="textImageImageText" 
+                      @change="handleTextImageUpload" 
+                      accept="image/*" 
+                      class="form-control"
+                    >
+                    <div v-if="textDialogData.textImage" class="mt-2">
+                      <img :src="textDialogData.textImage" alt="Предпросмотр" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc;">
+                      <button type="button" @click="clearTextImage" class="btn btn-sm btn-outline-danger ms-2">Удалить</button>
+                    </div>
+                  </div>
                   
                   <!-- Межстрочный интервал -->
                   <div class="form-group mb-3">
@@ -1786,6 +1801,8 @@ export default {
         fontWeight: 'normal',
         fontSize: 24,
         textColor: '#000000',
+        textImage: null,
+        cachedImage: null,
         padding: 4,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1953,6 +1970,11 @@ export default {
       })
     },
     'textDialogData.lineHeight'() {
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+    'textDialogData.textImage'() {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
@@ -6475,8 +6497,59 @@ export default {
       }
       
       // Рисуем основной текст с поддержкой переноса строк
-      ctx.fillStyle = textColor
-      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      if (this.textDialogData.textImage && this.textDialogDataImageText.cachedImage) {
+        // Если есть изображение, используем его как маску для заливки текста
+        const img = this.textDialogDataImageText.cachedImage
+        
+        // Создаем временный канвас для маски
+        const maskCanvas = document.createElement('canvas')
+        maskCanvas.width = canvas.width
+        maskCanvas.height = canvas.height
+        const maskCtx = maskCanvas.getContext('2d')
+        
+        // Рисуем текст как маску на временном канвасе
+        maskCtx.font = ctx.font
+        maskCtx.textAlign = ctx.textAlign
+        maskCtx.textBaseline = ctx.textBaseline
+        maskCtx.fillStyle = 'white'
+        this.drawMultilineText(maskCtx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+        
+        // Вычисляем размеры текста для правильного позиционирования изображения
+        const textWidth = ctx.measureText(this.textDialogData.text).width
+        const textHeight = this.textDialogData.fontSize * previewScale * this.textDialogData.lineHeight
+        
+        // Вычисляем правильные пропорции изображения
+        const imgAspectRatio = img.width / img.height
+        const textAspectRatio = textWidth / textHeight
+        
+        let drawWidth, drawHeight, drawX, drawY
+        
+        if (imgAspectRatio > textAspectRatio) {
+          // Изображение шире - подгоняем по высоте
+          drawHeight = textHeight
+          drawWidth = drawHeight * imgAspectRatio
+          drawX = previewX - drawWidth / 2
+          drawY = previewY - textHeight / 2
+        } else {
+          // Изображение выше - подгоняем по ширине
+          drawWidth = textWidth
+          drawHeight = drawWidth / imgAspectRatio
+          drawX = previewX - textWidth / 2
+          drawY = previewY - drawHeight / 2
+        }
+        
+        // Рисуем изображение на основном канвасе
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        
+        // Применяем маску
+        ctx.globalCompositeOperation = 'destination-in'
+        ctx.drawImage(maskCanvas, 0, 0)
+        ctx.globalCompositeOperation = 'source-over'
+      } else {
+        // Если нет изображения, используем обычную заливку цветом
+        ctx.fillStyle = textColor
+        this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      }
       
       // Применяем обводку к тексту если включена
       if (this.textDialogData.stroke) {
@@ -6578,8 +6651,59 @@ export default {
       }
       
       // Рисуем основной текст
-      ctx.fillStyle = textColor
-      ctx.fillText('Текст', previewX, previewY)
+      if (this.textDialogData.textImage && this.textDialogDataImageText.cachedImage) {
+        // Если есть изображение, используем его как маску для заливки текста
+        const img = this.textDialogDataImageText.cachedImage
+        
+        // Создаем временный канвас для маски
+        const maskCanvas = document.createElement('canvas')
+        maskCanvas.width = canvas.width
+        maskCanvas.height = canvas.height
+        const maskCtx = maskCanvas.getContext('2d')
+        
+        // Рисуем текст как маску на временном канвасе
+        maskCtx.font = ctx.font
+        maskCtx.textAlign = ctx.textAlign
+        maskCtx.textBaseline = ctx.textBaseline
+        maskCtx.fillStyle = 'white'
+        maskCtx.fillText('Текст', previewX, previewY)
+        
+        // Вычисляем размеры текста для правильного позиционирования изображения
+        const textWidth = ctx.measureText('Текст').width
+        const textHeight = this.textDialogData.fontSize * previewScale
+        
+        // Вычисляем правильные пропорции изображения
+        const imgAspectRatio = img.width / img.height
+        const textAspectRatio = textWidth / textHeight
+        
+        let drawWidth, drawHeight, drawX, drawY
+        
+        if (imgAspectRatio > textAspectRatio) {
+          // Изображение шире - подгоняем по высоте
+          drawHeight = textHeight
+          drawWidth = drawHeight * imgAspectRatio
+          drawX = previewX - drawWidth / 2
+          drawY = previewY - textHeight / 2
+        } else {
+          // Изображение выше - подгоняем по ширине
+          drawWidth = textWidth
+          drawHeight = drawWidth / imgAspectRatio
+          drawX = previewX - textWidth / 2
+          drawY = previewY - drawHeight / 2
+        }
+        
+        // Рисуем изображение на основном канвасе
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        
+        // Применяем маску
+        ctx.globalCompositeOperation = 'destination-in'
+        ctx.drawImage(maskCanvas, 0, 0)
+        ctx.globalCompositeOperation = 'source-over'
+      } else {
+        // Если нет изображения, используем обычную заливку цветом
+        ctx.fillStyle = textColor
+        ctx.fillText('Текст', previewX, previewY)
+      }
       
       // Применяем обводку к тексту если включена
       if (this.textDialogData.stroke) {
@@ -7711,6 +7835,36 @@ export default {
       console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
       
       return isInside
+    },
+    
+    // Обработка загрузки изображения для текста
+    handleTextImageUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.textDialogData.textImage = e.target.result
+          // Предварительно загружаем изображение для кэширования
+          const img = new Image()
+          img.onload = () => {
+            this.textDialogDataImageText.cachedImage = img
+            this.$nextTick(() => {
+              this.updatePreviewCanvas()
+            })
+          }
+          img.src = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    
+    // Удаление изображения для текста
+    clearTextImage() {
+      this.textDialogData.textImage = null
+      this.textDialogDataImageText.cachedImage = null
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
     }
   }
 }

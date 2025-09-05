@@ -7910,7 +7910,7 @@ export default {
         return false
       }
       
-      // Вычисляем масштаб
+      // Вычисляем масштаб точно так же, как в отрисовке
       const mainCanvas = this.$refs.testCanvas
       const mainWidth = mainCanvas.width
       const mainHeight = mainCanvas.height
@@ -7921,7 +7921,7 @@ export default {
       const previewY = this.textDialogPosition.y * scaleY
       const previewScale = 1.2
       
-      // Вычисляем размеры текста
+      // Вычисляем размеры текста точно так же, как в отрисовке
       const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
       const text = this.textDialogData.text || 'Текст'
       
@@ -7930,24 +7930,41 @@ export default {
       const tempCtx = tempCanvas.getContext('2d')
       tempCtx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
       
-      // Измеряем размеры текста
+      // Измеряем размеры многострочного текста точно так же, как в отрисовке
       const textSize = this.calculateMultilineTextSize(tempCtx, text, fontSize, this.textDialogData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
-      // Вычисляем границы текста
-      const left = previewX - textWidth / 2
-      const top = previewY - textHeight / 2
-      const right = left + textWidth
-      const bottom = top + textHeight
+      // Вычисляем границы текста с учетом выравнивания
+      // В отрисовке используется textAlign = 'center' и textBaseline = 'middle'
+      let left, right, top, bottom
+      
+      if (this.textDialogData.textAlign === 'left') {
+        left = previewX - textWidth / 2
+        right = left + textWidth
+      } else if (this.textDialogData.textAlign === 'right') {
+        right = previewX + textWidth / 2
+        left = right - textWidth
+      } else {
+        // center (по умолчанию)
+        left = previewX - textWidth / 2
+        right = previewX + textWidth / 2
+      }
+      
+      // textBaseline = 'middle' означает, что Y - это центр текста
+      top = previewY - textHeight / 2
+      bottom = previewY + textHeight / 2
       
       // Проверяем, находится ли клик в пределах текста
       const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
       
       console.log('🖼️ Проверка клика по тексту:')
       console.log('  clickX:', clickX, 'clickY:', clickY)
+      console.log('  previewX:', previewX, 'previewY:', previewY)
+      console.log('  textAlign:', this.textDialogData.textAlign)
       console.log('  textBounds:', { left, top, right, bottom })
       console.log('  textSize:', { width: textWidth, height: textHeight })
+      console.log('  fontSize:', fontSize, 'previewScale:', previewScale)
       console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
       
       return isInside

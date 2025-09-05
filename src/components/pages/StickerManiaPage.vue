@@ -146,7 +146,13 @@
                 </button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" type="button" role="tab" disabled>
+                <button 
+                  class="nav-link" 
+                  :class="{ 'active': textDialogActiveTab === 'image-text' }"
+                  type="button" 
+                  role="tab" 
+                  @click="textDialogActiveTab = 'image-text'"
+                >
                   <i class="bi bi-image me-2"></i>
                   Текст с изображением
                 </button>
@@ -740,6 +746,284 @@
                         <input 
                           type="range" 
                           id="shadowBlurStandard" 
+                          v-model="textDialogData.shadowBlur" 
+                          class="form-range" 
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Вкладка "Текст с изображением" -->
+              <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'image-text' }">
+                <!-- Область с полем ввода и превью (закреплена) -->
+                <div class="text-input-preview-area">
+                  <!-- Поле ввода текста (слева) -->
+                  <div class="text-input-section">
+                    <textarea 
+                      id="textInputImageText"
+                      v-model="textDialogData.text"
+                      class="form-control"
+                      rows="6"
+                      placeholder="Введите текст..."
+                    ></textarea>
+                  </div>
+                  
+                  <!-- Превью текста с подложкой (справа) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvasImageText" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Кнопка параметров -->
+                <div class="mb-3">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary"
+                    @click="toggleParameters"
+                  >
+                    <i class="bi bi-gear me-2"></i>
+                    Параметры
+                  </button>
+                </div>
+                
+                <!-- Блок параметров (скрыт по умолчанию) -->
+                <div v-show="showParameters" class="parameters-block">
+                  
+                  <!-- Выбор шрифта -->
+                  <div class="form-group mb-3">
+                    <label for="fontSelectImageText" class="form-label">Шрифт:</label>
+                    <select id="fontSelectImageText" v-model="textDialogData.font" class="form-select">
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                    </select>
+                  </div>
+                  
+                  <!-- Настройки шрифта -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Стиль шрифта:</label>
+                    <div class="btn-group" role="group">
+                      <input type="radio" class="btn-check" id="normalImageText" value="normal" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="normalImageText">Обычный</label>
+                      
+                      <input type="radio" class="btn-check" id="boldImageText" value="bold" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="boldImageText">Жирный</label>
+                      
+                      <input type="radio" class="btn-check" id="bolderImageText" value="bolder" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="bolderImageText">Полужирный</label>
+                      
+                      <input type="radio" class="btn-check" id="italicImageText" value="italic" v-model="textDialogData.fontWeight">
+                      <label class="btn btn-outline-secondary" for="italicImageText">Курсив</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Размер текста -->
+                  <div class="form-group mb-3">
+                    <label for="fontSizeImageText" class="form-label">Размер текста: {{ textDialogData.fontSize }}px</label>
+                    <input 
+                      type="range" 
+                      id="fontSizeImageText" 
+                      v-model="textDialogData.fontSize" 
+                      class="form-range" 
+                      min="12" 
+                      max="72" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Выравнивание текста -->
+                  <div class="form-group mb-3">
+                    <label class="form-label">Выравнивание текста</label>
+                    <div class="btn-group w-100" role="group">
+                      <input type="radio" class="btn-check" id="alignLeftImageText" v-model="textDialogData.textAlign" value="left">
+                      <label class="btn btn-outline-secondary" for="alignLeftImageText">←</label>
+                      
+                      <input type="radio" class="btn-check" id="alignCenterImageText" v-model="textDialogData.textAlign" value="center">
+                      <label class="btn btn-outline-secondary" for="alignCenterImageText">↔</label>
+                      
+                      <input type="radio" class="btn-check" id="alignRightImageText" v-model="textDialogData.textAlign" value="right">
+                      <label class="btn btn-outline-secondary" for="alignRightImageText">→</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Цвет текста -->
+                  <div class="form-group mb-3">
+                    <label for="textColorImageText" class="form-label">Цвет текста:</label>
+                    <input type="color" id="textColorImageText" v-model="textDialogData.textColor" class="form-control form-control-color">
+                  </div>
+                  
+                  <!-- Цвет подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundColorImageText" class="form-label">Цвет подложки:</label>
+                    <input type="color" id="backgroundColorImageText" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
+                  </div>
+                  
+                  
+                  <!-- Ширина подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundWidthImageText" class="form-label">Ширина подложки: {{ textDialogData.backgroundWidth }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundWidthImageText" 
+                      v-model="textDialogData.backgroundWidth" 
+                      class="form-range" 
+                      min="100" 
+                      max="400" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Высота подложки -->
+                  <div class="form-group mb-3">
+                    <label for="backgroundHeightImageText" class="form-label">Высота подложки: {{ textDialogData.backgroundHeight }}px</label>
+                    <input 
+                      type="range" 
+                      id="backgroundHeightImageText" 
+                      v-model="textDialogData.backgroundHeight" 
+                      class="form-range" 
+                      min="50" 
+                      max="200" 
+                      step="10"
+                    >
+                  </div>
+                  
+                  <!-- Отступ от краев -->
+                  <div class="form-group mb-3">
+                    <label for="paddingImageText" class="form-label">Отступ от краев: {{ textDialogData.padding }}px</label>
+                    <input 
+                      type="range" 
+                      id="paddingImageText" 
+                      v-model="textDialogData.padding" 
+                      class="form-range" 
+                      min="2" 
+                      max="15" 
+                      step="1"
+                    >
+                  </div>
+                  
+                  <!-- Межстрочный интервал -->
+                  <div class="form-group mb-3">
+                    <label for="lineHeightImageText" class="form-label">Межстрочный интервал: {{ textDialogData.lineHeight }}</label>
+                    <input 
+                      type="range" 
+                      id="lineHeightImageText" 
+                      v-model="textDialogData.lineHeight" 
+                      class="form-range" 
+                      min="1.0" 
+                      max="2.0" 
+                      step="0.1"
+                    >
+                  </div>
+                  
+                  <!-- Обводка -->
+                  <div class="form-group mb-3">
+                    <div class="form-check mb-2">
+                      <input type="checkbox" id="strokeImageText" v-model="textDialogData.stroke" class="form-check-input">
+                      <label for="strokeImageText" class="form-check-label">Обводка</label>
+                    </div>
+                    
+                    <!-- Параметры обводки (показываются только если обводка включена) -->
+                    <div v-if="textDialogData.stroke" class="ms-4">
+                      <!-- Толщина обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeWidthImageText" class="form-label">Толщина обводки: {{ textDialogData.strokeWidth }}px</label>
+                        <input 
+                          type="range" 
+                          id="strokeWidthImageText" 
+                          v-model="textDialogData.strokeWidth" 
+                          class="form-range" 
+                          min="1" 
+                          max="10" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Цвет обводки -->
+                      <div class="form-group mb-3">
+                        <label for="strokeColorImageText" class="form-label">Цвет обводки:</label>
+                        <input type="color" id="strokeColorImageText" v-model="textDialogData.strokeColor" class="form-control form-control-color">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Тень -->
+                  <div class="form-group mb-3">
+                    <div class="form-check mb-2">
+                      <input type="checkbox" id="shadowImageText" v-model="textDialogData.shadow" class="form-check-input">
+                      <label for="shadowImageText" class="form-check-label">Тень</label>
+                    </div>
+                    
+                    <!-- Параметры тени (показываются только если тень включена) -->
+                    <div v-if="textDialogData.shadow" class="ms-4">
+                      <!-- Цвет тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowColorImageText" class="form-label">Цвет тени:</label>
+                        <input type="color" id="shadowColorImageText" v-model="textDialogData.shadowColor" class="form-control form-control-color">
+                      </div>
+                      
+                      <!-- Прозрачность тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOpacityImageText" class="form-label">Прозрачность тени: {{ textDialogData.shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          id="shadowOpacityImageText" 
+                          v-model="textDialogData.shadowOpacity" 
+                          class="form-range" 
+                          min="0" 
+                          max="100" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по X -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetXImageText" class="form-label">Смещение тени по X: {{ textDialogData.shadowOffsetX }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetXImageText" 
+                          v-model="textDialogData.shadowOffsetX" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Смещение тени по Y -->
+                      <div class="form-group mb-3">
+                        <label for="shadowOffsetYImageText" class="form-label">Смещение тени по Y: {{ textDialogData.shadowOffsetY }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowOffsetYImageText" 
+                          v-model="textDialogData.shadowOffsetY" 
+                          class="form-range" 
+                          min="-20" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                      
+                      <!-- Размытие тени -->
+                      <div class="form-group mb-3">
+                        <label for="shadowBlurImageText" class="form-label">Размытие тени: {{ textDialogData.shadowBlur }}px</label>
+                        <input 
+                          type="range" 
+                          id="shadowBlurImageText" 
                           v-model="textDialogData.shadowBlur" 
                           class="form-range" 
                           min="0" 
@@ -5269,10 +5553,11 @@ export default {
     updatePreviewCanvas() {
       console.log('🔄 Обновление превью канваса, активная вкладка:', this.textDialogActiveTab)
       
-      // Обновляем все превью канвасы
-      this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
-      this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-      this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+                // Обновляем все превью канвасы
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
       
       // Принудительно обновляем активную вкладку
       if (this.textDialogActiveTab === 'thoughts') {
@@ -5284,6 +5569,11 @@ export default {
         console.log('⭐ Принудительное обновление режима "Стандарт"')
         this.$nextTick(() => {
           this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+        })
+      } else if (this.textDialogActiveTab === 'image-text') {
+        console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
+        this.$nextTick(() => {
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
         })
       }
     },
@@ -5322,6 +5612,10 @@ export default {
           // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
           console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
           this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
+          console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ"')
+          this.drawTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
         } else {
           // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
           console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
@@ -5336,6 +5630,9 @@ export default {
         } else if (this.textDialogActiveTab === 'standard') {
           // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
           this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтная подложка без хвоста
+          this.drawDefaultTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
         } else {
           // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
           this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
@@ -6043,6 +6340,154 @@ export default {
       ctx.fillText('Текст', previewX, previewY)
       
       console.log('✅ Дефолтный текст в режиме "Стандарт" отрисован без хвоста')
+    },
+    
+    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - отрисовка без хвоста
+    drawTextPreviewOnCanvasImageTextMode(ctx, canvas) {
+      if (!this.textDialogPosition || !this.textDialogData.text) return
+      
+      console.log('🖼️ Отрисовка текста в режиме "Текст с изображением" без хвоста:', this.textDialogData.text)
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      
+      // Размеры подложки (адаптированные под превью)
+      const bgWidth = Math.round(this.textDialogData.backgroundWidth * previewScale)
+      const bgHeight = Math.round(this.textDialogData.backgroundHeight * previewScale)
+      
+      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
+      this.drawImageTextModeShape(ctx, previewX, previewY, bgWidth, bgHeight, previewScale, backgroundColor)
+      
+      // Рисуем текст с поддержкой переноса строк
+      ctx.fillStyle = textColor
+      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      
+      console.log('✅ Текст в режиме "Текст с изображением" отрисован без хвоста')
+    },
+    
+    // Отрисовка формы для режима "Текст с изображением" (только прямоугольник, без хвоста)
+    drawImageTextModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor) {
+      console.log('🖼️ Отрисовка формы "Текст с изображением" - только прямоугольник без хвоста')
+      
+      // Сначала рисуем тень если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor
+        ctx.shadowBlur = this.textDialogData.shadowBlur * scale
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * scale
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * scale
+        ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
+        
+        // Рисуем тень
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        // Сбрасываем настройки тени
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.globalAlpha = 1
+      }
+      
+      // Затем рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // В конце применяем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = this.textDialogData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      }
+      
+      console.log('✅ Форма "Текст с изображением" отрисована - только прямоугольник')
+    },
+    
+    // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтный текст без хвоста
+    drawDefaultTextPreviewOnCanvasImageTextMode(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      console.log('🖼️ Отрисовка дефолтного текста в режиме "Текст с изображением" без хвоста')
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
+      
+      // Размеры подложки (адаптированные под превью)
+      const backgroundWidth = Math.max(
+        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        textHeight + padding * 2
+      )
+      
+      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
+      this.drawImageTextModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor)
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.fillText('Текст', previewX, previewY)
+      
+      console.log('✅ Дефолтный текст в режиме "Текст с изображением" отрисован без хвоста')
     },
     
     // Отрисовка хвоста (острого треугольника с прямым углом)
@@ -6957,6 +7402,8 @@ export default {
         canvas = this.$refs.previewCanvasThoughts
       } else if (this.textDialogActiveTab === 'standard') {
         canvas = this.$refs.previewCanvasStandard
+      } else if (this.textDialogActiveTab === 'image-text') {
+        canvas = this.$refs.previewCanvasImageText
       }
       if (!canvas) return
       
@@ -7023,6 +7470,8 @@ export default {
         activeCanvas = this.$refs.previewCanvasThoughts
       } else if (this.textDialogActiveTab === 'standard') {
         activeCanvas = this.$refs.previewCanvasStandard
+      } else if (this.textDialogActiveTab === 'image-text') {
+        activeCanvas = this.$refs.previewCanvasImageText
       }
       if (activeCanvas) {
         activeCanvas.style.cursor = 'default'
@@ -7051,6 +7500,8 @@ export default {
         activePreviewCanvas = this.$refs.previewCanvasThoughts
       } else if (this.textDialogActiveTab === 'standard') {
         activePreviewCanvas = this.$refs.previewCanvasStandard
+      } else if (this.textDialogActiveTab === 'image-text') {
+        activePreviewCanvas = this.$refs.previewCanvasImageText
       }
       
       if (!mainCanvas || !activePreviewCanvas) {

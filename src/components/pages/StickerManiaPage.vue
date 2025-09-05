@@ -589,47 +589,6 @@
                     <input type="color" id="backgroundColorStandard" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
                   </div>
                   
-                  <!-- Размер хвоста -->
-                  <div class="form-group mb-3">
-                    <label for="tailSizeStandard" class="form-label">Размер хвоста: {{ textDialogData.tailSize }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailSizeStandard" 
-                      v-model="textDialogData.tailSize" 
-                      class="form-range" 
-                      min="100" 
-                      max="750" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Ширина хвоста -->
-                  <div class="form-group mb-3">
-                    <label for="tailWidthStandard" class="form-label">Ширина хвоста: {{ textDialogData.tailWidth }}%</label>
-                    <input 
-                      type="range" 
-                      id="tailWidthStandard" 
-                      v-model="textDialogData.tailWidth" 
-                      class="form-range" 
-                      min="40" 
-                      max="100" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <!-- Угол хвоста -->
-                  <div class="form-group mb-3">
-                    <label for="tailAngleStandard" class="form-label">Угол хвоста: {{ textDialogData.tailAngle }}°</label>
-                    <input 
-                      type="range" 
-                      id="tailAngleStandard" 
-                      v-model="textDialogData.tailAngle" 
-                      class="form-range" 
-                      min="0" 
-                      max="359" 
-                      step="1"
-                    >
-                  </div>
                   
                   <!-- Ширина подложки -->
                   <div class="form-group mb-3">
@@ -5360,9 +5319,9 @@ export default {
           console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
           this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
         } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - используем обычный метод (как разговор)
+          // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
           console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
-          this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+          this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
         } else {
           // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
           console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
@@ -5375,8 +5334,8 @@ export default {
           // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
           this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
         } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - обычная дефолтная подложка (как разговор)
-          this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+          // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
+          this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
         } else {
           // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
           this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
@@ -5485,6 +5444,94 @@ export default {
       this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
       
       console.log('✅ Текст с подложкой отрисован на превью')
+    },
+    
+    // ⭐ РЕЖИМ "СТАНДАРТ" - отрисовка без хвоста
+    drawTextPreviewOnCanvasStandardMode(ctx, canvas) {
+      if (!this.textDialogPosition || !this.textDialogData.text) return
+      
+      console.log('⭐ Отрисовка текста в режиме "Стандарт" без хвоста:', this.textDialogData.text)
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      
+      // Размеры подложки (адаптированные под превью)
+      const bgWidth = Math.round(this.textDialogData.backgroundWidth * previewScale)
+      const bgHeight = Math.round(this.textDialogData.backgroundHeight * previewScale)
+      
+      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
+      this.drawStandardModeShape(ctx, previewX, previewY, bgWidth, bgHeight, previewScale, backgroundColor)
+      
+      // Рисуем текст с поддержкой переноса строк
+      ctx.fillStyle = textColor
+      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      
+      console.log('✅ Текст в режиме "Стандарт" отрисован без хвоста')
+    },
+    
+    // Отрисовка формы для режима "Стандарт" (только прямоугольник, без хвоста)
+    drawStandardModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor) {
+      console.log('⭐ Отрисовка формы "Стандарт" - только прямоугольник без хвоста')
+      
+      // Рисуем только прямоугольник
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // Применяем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = this.textDialogData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      }
+      
+      // Применяем тень если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor
+        ctx.shadowBlur = this.textDialogData.shadowBlur * scale
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX * scale
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY * scale
+        ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
+        
+        // Рисуем тень
+        ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        // Сбрасываем настройки тени
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.globalAlpha = 1
+      }
+      
+      console.log('✅ Форма "Стандарт" отрисована - только прямоугольник')
     },
     
     // 🧠 РЕЖИМ "МЫСЛИ" - новая архитектура суперподложки
@@ -5936,6 +5983,65 @@ export default {
       ctx.fillText('Текст', previewX, previewY)
       
       console.log('✅ Дефолтный текст с подложкой отрисован на превью')
+    },
+    
+    // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтный текст без хвоста
+    drawDefaultTextPreviewOnCanvasStandardMode(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      console.log('⭐ Отрисовка дефолтного текста в режиме "Стандарт" без хвоста')
+      
+      // Конвертируем координаты клика в координаты превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Вычисляем масштаб с учетом соотношения сторон
+      const scaleX = canvas.width / mainWidth
+      const scaleY = canvas.height / mainHeight
+      
+      const previewX = this.textDialogPosition.x * scaleX
+      const previewY = this.textDialogPosition.y * scaleY
+      
+      // Используем фиксированный масштаб для стабильности размеров
+      const previewScale = 1.2
+      
+      // Настройки текста (адаптированные под превью)
+      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontFamily = this.textDialogData.font
+      const fontWeight = this.textDialogData.fontWeight
+      const textColor = this.textDialogData.textColor
+      const backgroundColor = this.textDialogData.backgroundColor
+      const padding = Math.round(this.textDialogData.padding * previewScale)
+      
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
+      
+      // Размеры подложки (адаптированные под превью)
+      const backgroundWidth = Math.max(
+        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        textHeight + padding * 2
+      )
+      
+      // Рисуем подложку БЕЗ хвоста (только прямоугольник)
+      this.drawStandardModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor)
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.fillText('Текст', previewX, previewY)
+      
+      console.log('✅ Дефолтный текст в режиме "Стандарт" отрисован без хвоста')
     },
     
     // Отрисовка хвоста (острого треугольника с прямым углом)

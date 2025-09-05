@@ -7990,34 +7990,37 @@ export default {
 /* Стили для кнопок-табов в заголовке */
 .text-dialog-mode-tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   margin-left: 15px;
+  align-self: flex-end;
+  margin-bottom: -21px;
 }
 
 .text-dialog-mode-btn {
-  background: white !important;
-  color: #333 !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  padding: 6px 12px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  padding: 8px 16px !important;
   font-size: 15px !important;
   font-weight: 500 !important;
-  border-radius: 4px !important;
+  border-radius: 4px 4px 0 0 !important;
   transition: all 0.2s ease !important;
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .text-dialog-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.9) !important;
-  color: #333 !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
 }
 
 .text-dialog-mode-btn.active {
-  background: rgba(255, 255, 255, 0.95) !important;
+  background: white !important;
   color: #333 !important;
-  border-color: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border-bottom-color: white !important;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .text-dialog-body {
@@ -8181,7 +8184,7 @@ export default {
   }
   
   .text-dialog-mode-btn {
-    padding: 4px 8px !important;
+    padding: 6px 12px !important;
     font-size: 12px !important;
   }
   

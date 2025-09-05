@@ -5205,11 +5205,33 @@ export default {
     
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
     buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor) {
-      // 1️⃣ Рисуем основной овал (подложка) с собственным заполнением
+      // 1️⃣ Рисуем основной овал (подложка) с тенью если включена
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+      }
+      
       ctx.beginPath()
       this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
       ctx.fillStyle = this.textDialogData.backgroundColor
       ctx.fill()
+      
+      // Сбрасываем тень
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Добавляем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+        ctx.stroke()
+      }
       
       // Если не нужно рисовать хвост (для дефолтной подложки), выходим
       if (!drawTail) {
@@ -5251,31 +5273,35 @@ export default {
       }
       
       // 2️⃣ ПРОСТАЯ ЛОГИКА: рисуем овалы хвоста по прямой линии от центра
-      // Упрощенная логика: всегда рисуем 3 овала для лучшей видимости
-      const tailCount = 3
+      // Упрощенная логика: рисуем только 2 овала (большой и маленький)
+      const tailCount = 2
       
       console.log('🧠 Количество овалов хвоста:', tailCount)
       
       // 3️⃣ Отступ от основного овала (минимальный, чтобы не соприкасались)
       const offsetFromMain = maxTailWidth * 0.1 // Уменьшаем отступ для лучшей видимости
       
-      // 4️⃣ Рисуем овалы хвоста с улучшенными размерами и расположением
+      // 4️⃣ Рисуем овалы хвоста с правильным расположением (2 овала)
       for (let i = 0; i < tailCount; i++) {
-        // Позиция овала (собираем ближе к самому маленькому)
-        const progress = (i + 1) / (tailCount + 1) // От 0.25 до 1.0
-        // Уменьшаем отступы между овалами - собираем их ближе
-        const distanceFromCenter = offsetFromMain + progress * (tailLength - offsetFromMain) * 0.7
+        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького
+        let distanceFromCenter
+        if (i === 0) {
+          // Первый овал (большой) - на 35% длины хвоста от маленького овала
+          const smallOvalDistance = offsetFromMain + (tailLength - offsetFromMain) // Маленький в конце
+          const distanceFromSmall = (tailLength - offsetFromMain) * 0.35 // 35% длины хвоста
+          distanceFromCenter = smallOvalDistance - distanceFromSmall
+        } else {
+          // Второй овал (маленький) - в конце хвоста
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain)
+        }
         
-        // Размер овала (улучшенная динамика размеров)
+        // Размер овала (только 2 овала)
         let sizeMultiplier
         if (i === 0) {
-          // Самый большой овал (первый) - увеличиваем на 120%
-          sizeMultiplier = 2.2 // 1.0 + 120% = 2.2
-        } else if (i === 1) {
-          // Средний овал - увеличиваем на 60%
+          // Первый овал (большой) - увеличиваем на 60%
           sizeMultiplier = 1.6 // 1.0 + 60% = 1.6
         } else {
-          // Самый маленький овал (последний) - оставляем как есть
+          // Второй овал (маленький) - базовый размер
           sizeMultiplier = 1.0
         }
         
@@ -5287,12 +5313,19 @@ export default {
         const ovalY = centerY + Math.sin(tailAngle) * distanceFromCenter
         
         console.log(`🧠 Овал ${i + 1}:`, {
-          progress: progress.toFixed(2),
           distanceFromCenter: distanceFromCenter.toFixed(1),
           sizeMultiplier: sizeMultiplier.toFixed(2),
           ovalSize: `${ovalWidth.toFixed(1)}x${ovalHeight.toFixed(1)}`,
           position: { x: ovalX.toFixed(1), y: ovalY.toFixed(1) }
         })
+        
+        // Рисуем овал хвоста с тенью если включена
+        if (this.textDialogData.shadow) {
+          ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
+          ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
+          ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+        }
         
         // Рисуем овал хвоста с собственным заполнением
         ctx.beginPath()
@@ -5300,10 +5333,20 @@ export default {
         ctx.fillStyle = this.textDialogData.backgroundColor
         ctx.fill()
         
-        // Добавляем обводку для лучшей видимости
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'
-        ctx.lineWidth = 1
-        ctx.stroke()
+        // Сбрасываем тень
+        if (this.textDialogData.shadow) {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена
+        if (this.textDialogData.stroke) {
+          ctx.strokeStyle = this.textDialogData.strokeColor
+          ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+          ctx.stroke()
+        }
       }
       
       console.log('🧠 Режим "Мысли" - хвост отрисован успешно!')

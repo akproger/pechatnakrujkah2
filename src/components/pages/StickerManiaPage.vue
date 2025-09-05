@@ -221,7 +221,7 @@
                     </div>
                   </div>
                   
-                  <!-- Настройки шрифта и выравнивания -->
+                  <!-- Настройки шрифта, выравнивания и цветов -->
                   <div class="form-group mb-3">
                     <div class="font-style-align-container">
                       <div class="font-weight-buttons">
@@ -289,19 +289,35 @@
                           <i class="bi bi-text-right"></i>
                         </button>
                       </div>
+                      
+                      <div class="style-align-divider"></div>
+                      
+                      <div class="color-buttons">
+                        <div class="color-button-group">
+                          <i class="bi bi-brush color-icon" title="Цвет текста"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет текста"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.textColor }"></div>
+                            <input type="color" v-model="textDialogData.textColor" class="color-input">
+                          </button>
+                        </div>
+                        
+                        <div class="color-button-group">
+                          <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет подложки"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.backgroundColor }"></div>
+                            <input type="color" v-model="textDialogData.backgroundColor" class="color-input">
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <!-- Цвет текста -->
-                  <div class="form-group mb-3">
-                    <label for="textColor" class="form-label">Цвет текста:</label>
-                    <input type="color" id="textColor" v-model="textDialogData.textColor" class="form-control form-control-color">
-                  </div>
-                  
-                  <!-- Цвет подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundColor" class="form-label">Цвет подложки:</label>
-                    <input type="color" id="backgroundColor" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
                   </div>
                   
                   <!-- Размер хвоста -->
@@ -647,19 +663,35 @@
                           <i class="bi bi-text-right"></i>
                         </button>
                       </div>
+                      
+                      <div class="style-align-divider"></div>
+                      
+                      <div class="color-buttons">
+                        <div class="color-button-group">
+                          <i class="bi bi-brush color-icon" title="Цвет текста"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет текста"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.textColor }"></div>
+                            <input type="color" v-model="textDialogData.textColor" class="color-input">
+                          </button>
+                        </div>
+                        
+                        <div class="color-button-group">
+                          <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет подложки"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.backgroundColor }"></div>
+                            <input type="color" v-model="textDialogData.backgroundColor" class="color-input">
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <!-- Цвет текста -->
-                  <div class="form-group mb-3">
-                    <label for="textColorStandard" class="form-label">Цвет текста:</label>
-                    <input type="color" id="textColorStandard" v-model="textDialogData.textColor" class="form-control form-control-color">
-                  </div>
-                  
-                  <!-- Цвет подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundColorStandard" class="form-label">Цвет подложки:</label>
-                    <input type="color" id="backgroundColorStandard" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
                   </div>
                   
                   
@@ -964,13 +996,23 @@
                           <i class="bi bi-text-right"></i>
                         </button>
                       </div>
+                      
+                      <div class="style-align-divider"></div>
+                      
+                      <div class="color-buttons">
+                        <div class="color-button-group">
+                          <i class="bi bi-brush color-icon" title="Цвет текста"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет текста"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.textColor }"></div>
+                            <input type="color" v-model="textDialogData.textColor" class="color-input">
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <!-- Цвет текста -->
-                  <div class="form-group mb-3">
-                    <label for="textColorImageText" class="form-label">Цвет текста:</label>
-                    <input type="color" id="textColorImageText" v-model="textDialogData.textColor" class="form-control form-control-color">
                   </div>
                   
                   <!-- Изображение для текста -->
@@ -1248,19 +1290,35 @@
                           <i class="bi bi-text-right"></i>
                         </button>
                       </div>
+                      
+                      <div class="style-align-divider"></div>
+                      
+                      <div class="color-buttons">
+                        <div class="color-button-group">
+                          <i class="bi bi-brush color-icon" title="Цвет текста"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет текста"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.textColor }"></div>
+                            <input type="color" v-model="textDialogData.textColor" class="color-input">
+                          </button>
+                        </div>
+                        
+                        <div class="color-button-group">
+                          <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет подложки"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogData.backgroundColor }"></div>
+                            <input type="color" v-model="textDialogData.backgroundColor" class="color-input">
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <!-- Цвет текста -->
-                  <div class="form-group mb-3">
-                    <label for="textColorThoughts" class="form-label">Цвет текста:</label>
-                    <input type="color" id="textColorThoughts" v-model="textDialogData.textColor" class="form-control form-control-color">
-                  </div>
-                  
-                  <!-- Цвет подложки -->
-                  <div class="form-group mb-3">
-                    <label for="backgroundColorThoughts" class="form-label">Цвет подложки:</label>
-                    <input type="color" id="backgroundColorThoughts" v-model="textDialogData.backgroundColor" class="form-control form-control-color">
                   </div>
                   
                   <!-- Размер хвоста -->
@@ -8193,6 +8251,61 @@ export default {
   background-color: #dee2e6;
 }
 
+/* Стили для кнопок цветов */
+.color-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.color-button-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.color-icon {
+  font-size: 16px;
+  color: #6c757d;
+  width: 16px;
+  text-align: center;
+}
+
+.color-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+  padding: 0;
+}
+
+.color-btn:hover {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd !important;
+}
+
+.color-preview {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid #dee2e6;
+  z-index: 2;
+}
+
+.color-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+
 /* Стили для кнопок стилей шрифта */
 .font-weight-buttons {
   display: flex;
@@ -8462,6 +8575,29 @@ export default {
   .style-align-divider {
     width: 100%;
     height: 1px;
+  }
+  
+  .color-buttons {
+    gap: 6px;
+  }
+  
+  .color-button-group {
+    gap: 3px;
+  }
+  
+  .color-icon {
+    font-size: 14px;
+    width: 14px;
+  }
+  
+  .color-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .color-preview {
+    width: 10px;
+    height: 10px;
   }
   
   .text-dialog-footer {

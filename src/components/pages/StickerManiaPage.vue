@@ -6501,18 +6501,11 @@ export default {
         // Если есть изображение, используем его как маску для заливки текста
         const img = this.textDialogDataImageText.cachedImage
         
-        // Создаем временный канвас для маски
-        const maskCanvas = document.createElement('canvas')
-        maskCanvas.width = canvas.width
-        maskCanvas.height = canvas.height
-        const maskCtx = maskCanvas.getContext('2d')
-        
-        // Рисуем текст как маску на временном канвасе
-        maskCtx.font = ctx.font
-        maskCtx.textAlign = ctx.textAlign
-        maskCtx.textBaseline = ctx.textBaseline
-        maskCtx.fillStyle = 'white'
-        this.drawMultilineText(maskCtx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+        // Создаем временный канвас для текста с изображением
+        const textCanvas = document.createElement('canvas')
+        textCanvas.width = canvas.width
+        textCanvas.height = canvas.height
+        const textCtx = textCanvas.getContext('2d')
         
         // Вычисляем размеры текста для правильного позиционирования изображения
         const textWidth = ctx.measureText(this.textDialogData.text).width
@@ -6538,13 +6531,19 @@ export default {
           drawY = previewY - drawHeight / 2
         }
         
-        // Рисуем изображение на основном канвасе
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        // Рисуем изображение на временном канвасе
+        textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
         
-        // Применяем маску
-        ctx.globalCompositeOperation = 'destination-in'
-        ctx.drawImage(maskCanvas, 0, 0)
-        ctx.globalCompositeOperation = 'source-over'
+        // Создаем маску из текста
+        textCtx.globalCompositeOperation = 'destination-in'
+        textCtx.font = ctx.font
+        textCtx.textAlign = ctx.textAlign
+        textCtx.textBaseline = ctx.textBaseline
+        textCtx.fillStyle = 'white'
+        this.drawMultilineText(textCtx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+        
+        // Рисуем результат на основном канвасе
+        ctx.drawImage(textCanvas, 0, 0)
       } else {
         // Если нет изображения, используем обычную заливку цветом
         ctx.fillStyle = textColor
@@ -6655,18 +6654,11 @@ export default {
         // Если есть изображение, используем его как маску для заливки текста
         const img = this.textDialogDataImageText.cachedImage
         
-        // Создаем временный канвас для маски
-        const maskCanvas = document.createElement('canvas')
-        maskCanvas.width = canvas.width
-        maskCanvas.height = canvas.height
-        const maskCtx = maskCanvas.getContext('2d')
-        
-        // Рисуем текст как маску на временном канвасе
-        maskCtx.font = ctx.font
-        maskCtx.textAlign = ctx.textAlign
-        maskCtx.textBaseline = ctx.textBaseline
-        maskCtx.fillStyle = 'white'
-        maskCtx.fillText('Текст', previewX, previewY)
+        // Создаем временный канвас для текста с изображением
+        const textCanvas = document.createElement('canvas')
+        textCanvas.width = canvas.width
+        textCanvas.height = canvas.height
+        const textCtx = textCanvas.getContext('2d')
         
         // Вычисляем размеры текста для правильного позиционирования изображения
         const textWidth = ctx.measureText('Текст').width
@@ -6692,13 +6684,19 @@ export default {
           drawY = previewY - drawHeight / 2
         }
         
-        // Рисуем изображение на основном канвасе
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        // Рисуем изображение на временном канвасе
+        textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
         
-        // Применяем маску
-        ctx.globalCompositeOperation = 'destination-in'
-        ctx.drawImage(maskCanvas, 0, 0)
-        ctx.globalCompositeOperation = 'source-over'
+        // Создаем маску из текста
+        textCtx.globalCompositeOperation = 'destination-in'
+        textCtx.font = ctx.font
+        textCtx.textAlign = ctx.textAlign
+        textCtx.textBaseline = ctx.textBaseline
+        textCtx.fillStyle = 'white'
+        textCtx.fillText('Текст', previewX, previewY)
+        
+        // Рисуем результат на основном канвасе
+        ctx.drawImage(textCanvas, 0, 0)
       } else {
         // Если нет изображения, используем обычную заливку цветом
         ctx.fillStyle = textColor

@@ -154,7 +154,20 @@
               <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'conversation' }">
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
-                  <!-- Поле ввода текста (слева) -->
+                  <!-- Превью текста с подложкой (слева) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvas" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                  
+                  <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
                     <textarea 
                       id="textInput"
@@ -172,19 +185,6 @@
                       <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
                         Применить
                       </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Превью текста с подложкой (справа) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvas" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
                     </div>
                   </div>
                 </div>
@@ -391,8 +391,8 @@
                       id="padding" 
                       v-model="textDialogData.padding" 
                       class="form-range" 
-                      min="2" 
-                      max="15" 
+                      min="15" 
+                      max="40" 
                       step="1"
                     >
                   </div>
@@ -521,7 +521,20 @@
               <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'standard' }">
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
-                  <!-- Поле ввода текста (слева) -->
+                  <!-- Превью текста с подложкой (слева) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvasStandard" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                  
+                  <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
                     <textarea 
                       id="textInputStandard"
@@ -539,19 +552,6 @@
                       <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
                         Применить
                       </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Превью текста с подложкой (справа) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasStandard" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
                     </div>
                   </div>
                 </div>
@@ -717,8 +717,8 @@
                       id="paddingStandard" 
                       v-model="textDialogData.padding" 
                       class="form-range" 
-                      min="2" 
-                      max="15" 
+                      min="15" 
+                      max="40" 
                       step="1"
                     >
                   </div>
@@ -847,7 +847,20 @@
               <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'image-text' }">
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
-                  <!-- Поле ввода текста (слева) -->
+                  <!-- Превью текста с подложкой (слева) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvasImageText" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                  
+                  <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
                     <textarea 
                       id="textInputImageText"
@@ -865,19 +878,6 @@
                       <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
                         Применить
                       </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Превью текста с подложкой (справа) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasImageText" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
                     </div>
                   </div>
                 </div>
@@ -1140,7 +1140,20 @@
               <div class="tab-pane" :class="{ 'active': textDialogActiveTab === 'thoughts' }">
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
-                  <!-- Поле ввода текста (слева) -->
+                  <!-- Превью текста с подложкой (слева) -->
+                  <div class="text-preview-section">
+                    <div class="text-preview">
+                      <canvas 
+                        ref="previewCanvasThoughts" 
+                        class="preview-canvas"
+                        :width="previewCanvasWidth"
+                        :height="previewCanvasHeight"
+                        @mousedown="startDragging"
+                      ></canvas>
+                    </div>
+                  </div>
+                  
+                  <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
                     <textarea 
                       id="textInputThoughts"
@@ -1158,19 +1171,6 @@
                       <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
                         Применить
                       </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Превью текста с подложкой (справа) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasThoughts" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
                     </div>
                   </div>
                 </div>
@@ -1377,8 +1377,8 @@
                       id="paddingThoughts" 
                       v-model="textDialogData.padding" 
                       class="form-range" 
-                      min="2" 
-                      max="15" 
+                      min="15" 
+                      max="40" 
                       step="1"
                     >
                   </div>
@@ -1904,7 +1904,7 @@ export default {
         tailAngle: 45,
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 4,
+        padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
         stroke: true,
@@ -1930,7 +1930,7 @@ export default {
         tailAngle: 45,
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 4,
+        padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
         stroke: true,
@@ -1953,7 +1953,7 @@ export default {
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 4,
+        padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
         stroke: true,
@@ -1975,7 +1975,7 @@ export default {
         textColor: '#FFFFFF',
         textImage: null,
         cachedImage: null,
-        padding: 4,
+        padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
         stroke: true,
@@ -8347,6 +8347,15 @@ export default {
 .text-input-section {
   flex: 0 0 300px;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.text-input-section textarea {
+  flex: 1;
+  resize: none;
+  min-height: calc(20em + .75rem + calc(var(--bs-border-width) * 2));
 }
 
 /* Секция превью */
@@ -8398,15 +8407,15 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 0;
-  margin-top: 16px;
-  border-top: 1px solid #e9ecef;
+  padding: 16px 0 0;
+  width: 100%;
 }
 
 .text-dialog-footer .btn {
   padding: 10px 24px;
   font-weight: 500;
   border-radius: 6px;
+  width: 50%;
 }
 
 .form-control-color {
@@ -8414,6 +8423,11 @@ export default {
   height: 38px;
   padding: 4px;
   border-radius: 4px;
+}
+
+.form-range {
+  position: relative;
+  bottom: -7px;
 }
 
 /* Адаптивность для мобильных устройств */
@@ -8462,7 +8476,6 @@ export default {
   
   .text-dialog-footer {
     padding: 12px 0;
-    margin-top: 12px;
   }
   
   /* На мобильных устройствах элементы располагаются вертикально */
@@ -8478,6 +8491,7 @@ export default {
     flex: none;
     width: 100%;
     min-width: auto;
+    height: auto;
   }
   
   .text-preview-section {

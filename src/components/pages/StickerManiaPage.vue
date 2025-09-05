@@ -174,6 +174,16 @@
                       rows="6"
                       placeholder="Введите текст..."
                     ></textarea>
+                    
+                    <!-- Кнопки управления -->
+                    <div class="text-dialog-footer">
+                      <button type="button" class="btn btn-secondary" @click="closeTextDialog">
+                        Отмена
+                      </button>
+                      <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
+                        Применить
+                      </button>
+                    </div>
                   </div>
                   
                   <!-- Превью текста с подложкой (справа) -->
@@ -493,6 +503,16 @@
                       rows="6"
                       placeholder="Введите текст..."
                     ></textarea>
+                    
+                    <!-- Кнопки управления -->
+                    <div class="text-dialog-footer">
+                      <button type="button" class="btn btn-secondary" @click="closeTextDialog">
+                        Отмена
+                      </button>
+                      <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
+                        Применить
+                      </button>
+                    </div>
                   </div>
                   
                   <!-- Превью текста с подложкой (справа) -->
@@ -771,6 +791,16 @@
                       rows="6"
                       placeholder="Введите текст..."
                     ></textarea>
+                    
+                    <!-- Кнопки управления -->
+                    <div class="text-dialog-footer">
+                      <button type="button" class="btn btn-secondary" @click="closeTextDialog">
+                        Отмена
+                      </button>
+                      <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
+                        Применить
+                      </button>
+                    </div>
                   </div>
                   
                   <!-- Превью текста с подложкой (справа) -->
@@ -1016,6 +1046,16 @@
                       rows="6"
                       placeholder="Введите мысли..."
                     ></textarea>
+                    
+                    <!-- Кнопки управления -->
+                    <div class="text-dialog-footer">
+                      <button type="button" class="btn btn-secondary" @click="closeTextDialog">
+                        Отмена
+                      </button>
+                      <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
+                        Применить
+                      </button>
+                    </div>
                   </div>
                   
                   <!-- Превью текста с подложкой (справа) -->
@@ -1324,14 +1364,6 @@
             </div>
           </div>
           
-          <div class="text-dialog-footer">
-            <button type="button" class="btn btn-secondary" @click="closeTextDialog">
-              Отмена
-            </button>
-            <button type="button" class="btn btn-primary" @click="applyTextToCanvas">
-              Применить
-            </button>
-          </div>
         </div>
       </div>
       
@@ -8133,9 +8165,9 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px 24px;
+  padding: 16px 0;
+  margin-top: 16px;
   border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
 }
 
 .text-dialog-footer .btn {
@@ -8162,9 +8194,13 @@ export default {
     padding: 16px;
   }
   
-  .text-dialog-header,
-  .text-dialog-footer {
+  .text-dialog-header {
     padding: 16px 20px;
+  }
+  
+  .text-dialog-footer {
+    padding: 12px 0;
+    margin-top: 12px;
   }
   
   /* На мобильных устройствах элементы располагаются вертикально */

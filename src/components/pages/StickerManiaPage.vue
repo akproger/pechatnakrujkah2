@@ -221,83 +221,74 @@
                     </div>
                   </div>
                   
-                  <!-- Настройки шрифта -->
+                  <!-- Настройки шрифта и выравнивания -->
                   <div class="form-group mb-3">
-                    <div class="font-weight-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
-                        @click="textDialogData.fontWeight = 'normal'"
-                        title="Обычный"
-                      >
-                        <i class="bi bi-type"></i>
-                      </button>
+                    <div class="font-style-align-container">
+                      <div class="font-weight-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                          @click="textDialogData.fontWeight = 'normal'"
+                          title="Обычный"
+                        >
+                          <i class="bi bi-type"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                          @click="textDialogData.fontWeight = 'bold'"
+                          title="Жирный"
+                        >
+                          <i class="bi bi-type-bold"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                          @click="textDialogData.fontWeight = 'italic'"
+                          title="Курсив"
+                        >
+                          <i class="bi bi-type-italic"></i>
+                        </button>
+                      </div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
-                        @click="textDialogData.fontWeight = 'bold'"
-                        title="Жирный"
-                      >
-                        <i class="bi bi-type-bold"></i>
-                      </button>
+                      <div class="style-align-divider"></div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
-                        @click="textDialogData.fontWeight = 'bolder'"
-                        title="Полужирный"
-                      >
-                        <i class="bi bi-type-h1"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
-                        @click="textDialogData.fontWeight = 'italic'"
-                        title="Курсив"
-                      >
-                        <i class="bi bi-type-italic"></i>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Выравнивание текста -->
-                  <div class="form-group mb-3">
-                    <div class="text-align-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'left' }"
-                        @click="textDialogData.textAlign = 'left'"
-                        title="По левому краю"
-                      >
-                        <i class="bi bi-text-left"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'center' }"
-                        @click="textDialogData.textAlign = 'center'"
-                        title="По центру"
-                      >
-                        <i class="bi bi-text-center"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'right' }"
-                        @click="textDialogData.textAlign = 'right'"
-                        title="По правому краю"
-                      >
-                        <i class="bi bi-text-right"></i>
-                      </button>
+                      <div class="text-align-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'left' }"
+                          @click="textDialogData.textAlign = 'left'"
+                          title="По левому краю"
+                        >
+                          <i class="bi bi-text-left"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'center' }"
+                          @click="textDialogData.textAlign = 'center'"
+                          title="По центру"
+                        >
+                          <i class="bi bi-text-center"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'right' }"
+                          @click="textDialogData.textAlign = 'right'"
+                          title="По правому краю"
+                        >
+                          <i class="bi bi-text-right"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -588,83 +579,74 @@
                     </div>
                   </div>
                   
-                  <!-- Настройки шрифта -->
+                  <!-- Настройки шрифта и выравнивания -->
                   <div class="form-group mb-3">
-                    <div class="font-weight-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
-                        @click="textDialogData.fontWeight = 'normal'"
-                        title="Обычный"
-                      >
-                        <i class="bi bi-type"></i>
-                      </button>
+                    <div class="font-style-align-container">
+                      <div class="font-weight-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                          @click="textDialogData.fontWeight = 'normal'"
+                          title="Обычный"
+                        >
+                          <i class="bi bi-type"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                          @click="textDialogData.fontWeight = 'bold'"
+                          title="Жирный"
+                        >
+                          <i class="bi bi-type-bold"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                          @click="textDialogData.fontWeight = 'italic'"
+                          title="Курсив"
+                        >
+                          <i class="bi bi-type-italic"></i>
+                        </button>
+                      </div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
-                        @click="textDialogData.fontWeight = 'bold'"
-                        title="Жирный"
-                      >
-                        <i class="bi bi-type-bold"></i>
-                      </button>
+                      <div class="style-align-divider"></div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
-                        @click="textDialogData.fontWeight = 'bolder'"
-                        title="Полужирный"
-                      >
-                        <i class="bi bi-type-h1"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
-                        @click="textDialogData.fontWeight = 'italic'"
-                        title="Курсив"
-                      >
-                        <i class="bi bi-type-italic"></i>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Выравнивание текста -->
-                  <div class="form-group mb-3">
-                    <div class="text-align-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'left' }"
-                        @click="textDialogData.textAlign = 'left'"
-                        title="По левому краю"
-                      >
-                        <i class="bi bi-text-left"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'center' }"
-                        @click="textDialogData.textAlign = 'center'"
-                        title="По центру"
-                      >
-                        <i class="bi bi-text-center"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'right' }"
-                        @click="textDialogData.textAlign = 'right'"
-                        title="По правому краю"
-                      >
-                        <i class="bi bi-text-right"></i>
-                      </button>
+                      <div class="text-align-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'left' }"
+                          @click="textDialogData.textAlign = 'left'"
+                          title="По левому краю"
+                        >
+                          <i class="bi bi-text-left"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'center' }"
+                          @click="textDialogData.textAlign = 'center'"
+                          title="По центру"
+                        >
+                          <i class="bi bi-text-center"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'right' }"
+                          @click="textDialogData.textAlign = 'right'"
+                          title="По правому краю"
+                        >
+                          <i class="bi bi-text-right"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -914,83 +896,74 @@
                     </div>
                   </div>
                   
-                  <!-- Настройки шрифта -->
+                  <!-- Настройки шрифта и выравнивания -->
                   <div class="form-group mb-3">
-                    <div class="font-weight-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
-                        @click="textDialogData.fontWeight = 'normal'"
-                        title="Обычный"
-                      >
-                        <i class="bi bi-type"></i>
-                      </button>
+                    <div class="font-style-align-container">
+                      <div class="font-weight-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                          @click="textDialogData.fontWeight = 'normal'"
+                          title="Обычный"
+                        >
+                          <i class="bi bi-type"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                          @click="textDialogData.fontWeight = 'bold'"
+                          title="Жирный"
+                        >
+                          <i class="bi bi-type-bold"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                          @click="textDialogData.fontWeight = 'italic'"
+                          title="Курсив"
+                        >
+                          <i class="bi bi-type-italic"></i>
+                        </button>
+                      </div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
-                        @click="textDialogData.fontWeight = 'bold'"
-                        title="Жирный"
-                      >
-                        <i class="bi bi-type-bold"></i>
-                      </button>
+                      <div class="style-align-divider"></div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
-                        @click="textDialogData.fontWeight = 'bolder'"
-                        title="Полужирный"
-                      >
-                        <i class="bi bi-type-h1"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
-                        @click="textDialogData.fontWeight = 'italic'"
-                        title="Курсив"
-                      >
-                        <i class="bi bi-type-italic"></i>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Выравнивание текста -->
-                  <div class="form-group mb-3">
-                    <div class="text-align-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'left' }"
-                        @click="textDialogData.textAlign = 'left'"
-                        title="По левому краю"
-                      >
-                        <i class="bi bi-text-left"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'center' }"
-                        @click="textDialogData.textAlign = 'center'"
-                        title="По центру"
-                      >
-                        <i class="bi bi-text-center"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'right' }"
-                        @click="textDialogData.textAlign = 'right'"
-                        title="По правому краю"
-                      >
-                        <i class="bi bi-text-right"></i>
-                      </button>
+                      <div class="text-align-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'left' }"
+                          @click="textDialogData.textAlign = 'left'"
+                          title="По левому краю"
+                        >
+                          <i class="bi bi-text-left"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'center' }"
+                          @click="textDialogData.textAlign = 'center'"
+                          title="По центру"
+                        >
+                          <i class="bi bi-text-center"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'right' }"
+                          @click="textDialogData.textAlign = 'right'"
+                          title="По правому краю"
+                        >
+                          <i class="bi bi-text-right"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -1207,83 +1180,74 @@
                     </div>
                   </div>
                   
-                  <!-- Настройки шрифта -->
+                  <!-- Настройки шрифта и выравнивания -->
                   <div class="form-group mb-3">
-                    <div class="font-weight-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'normal' }"
-                        @click="textDialogData.fontWeight = 'normal'"
-                        title="Обычный"
-                      >
-                        <i class="bi bi-type"></i>
-                      </button>
+                    <div class="font-style-align-container">
+                      <div class="font-weight-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'normal' }"
+                          @click="textDialogData.fontWeight = 'normal'"
+                          title="Обычный"
+                        >
+                          <i class="bi bi-type"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'bold' }"
+                          @click="textDialogData.fontWeight = 'bold'"
+                          title="Жирный"
+                        >
+                          <i class="bi bi-type-bold"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogData.fontWeight === 'italic' }"
+                          @click="textDialogData.fontWeight = 'italic'"
+                          title="Курсив"
+                        >
+                          <i class="bi bi-type-italic"></i>
+                        </button>
+                      </div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bold' }"
-                        @click="textDialogData.fontWeight = 'bold'"
-                        title="Жирный"
-                      >
-                        <i class="bi bi-type-bold"></i>
-                      </button>
+                      <div class="style-align-divider"></div>
                       
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'bolder' }"
-                        @click="textDialogData.fontWeight = 'bolder'"
-                        title="Полужирный"
-                      >
-                        <i class="bi bi-type-h1"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary font-weight-btn" 
-                        :class="{ 'active': textDialogData.fontWeight === 'italic' }"
-                        @click="textDialogData.fontWeight = 'italic'"
-                        title="Курсив"
-                      >
-                        <i class="bi bi-type-italic"></i>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Выравнивание текста -->
-                  <div class="form-group mb-3">
-                    <div class="text-align-buttons">
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'left' }"
-                        @click="textDialogData.textAlign = 'left'"
-                        title="По левому краю"
-                      >
-                        <i class="bi bi-text-left"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'center' }"
-                        @click="textDialogData.textAlign = 'center'"
-                        title="По центру"
-                      >
-                        <i class="bi bi-text-center"></i>
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary text-align-btn" 
-                        :class="{ 'active': textDialogData.textAlign === 'right' }"
-                        @click="textDialogData.textAlign = 'right'"
-                        title="По правому краю"
-                      >
-                        <i class="bi bi-text-right"></i>
-                      </button>
+                      <div class="text-align-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'left' }"
+                          @click="textDialogData.textAlign = 'left'"
+                          title="По левому краю"
+                        >
+                          <i class="bi bi-text-left"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'center' }"
+                          @click="textDialogData.textAlign = 'center'"
+                          title="По центру"
+                        >
+                          <i class="bi bi-text-center"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogData.textAlign === 'right' }"
+                          @click="textDialogData.textAlign = 'right'"
+                          title="По правому краю"
+                        >
+                          <i class="bi bi-text-right"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -8215,6 +8179,20 @@ export default {
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Контейнер для стилей шрифта и выравнивания */
+.font-style-align-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Разделитель между стилями и выравниванием */
+.style-align-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #dee2e6;
+}
+
 /* Стили для кнопок стилей шрифта */
 .font-weight-buttons {
   display: flex;
@@ -8472,6 +8450,18 @@ export default {
   
   .text-align-btn i {
     font-size: 14px;
+  }
+  
+  /* На мобильных устройствах элементы располагаются вертикально */
+  .font-style-align-container {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .style-align-divider {
+    width: 100%;
+    height: 1px;
   }
   
   .text-dialog-footer {

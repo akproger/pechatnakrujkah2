@@ -99,65 +99,54 @@
       <div v-if="showTextDialog" class="text-dialog-overlay" @click="closeTextDialog">
         <div class="text-dialog" @click.stop>
           <div class="text-dialog-header">
-            <h5 class="text-dialog-title">
-              <i class="bi bi-type me-2"></i>
-              Добавить текст
-            </h5>
-            <button type="button" class="btn-close" @click="closeTextDialog"></button>
+            <div class="d-flex align-items-center w-100">
+              <h5 class="text-dialog-title mb-0">
+                Добавить текст
+              </h5>
+              
+              <!-- Табы-переключатели режимов -->
+              <div class="text-dialog-mode-tabs">
+                <button 
+                  class="btn btn-sm text-dialog-mode-btn" 
+                  :class="{ 'active': textDialogActiveTab === 'conversation' }"
+                  @click="textDialogActiveTab = 'conversation'"
+                >
+                  <i class="bi bi-chat-dots me-1"></i>
+                  Разговор
+                </button>
+                <button 
+                  class="btn btn-sm text-dialog-mode-btn" 
+                  :class="{ 'active': textDialogActiveTab === 'thoughts' }"
+                  @click="textDialogActiveTab = 'thoughts'"
+                >
+                  <i class="bi bi-lightbulb me-1"></i>
+                  Мысли
+                </button>
+                <button 
+                  class="btn btn-sm text-dialog-mode-btn" 
+                  :class="{ 'active': textDialogActiveTab === 'standard' }"
+                  @click="textDialogActiveTab = 'standard'"
+                >
+                  <i class="bi bi-square me-1"></i>
+                  Стандарт
+                </button>
+                <button 
+                  class="btn btn-sm text-dialog-mode-btn" 
+                  :class="{ 'active': textDialogActiveTab === 'image-text' }"
+                  @click="textDialogActiveTab = 'image-text'"
+                >
+                  <i class="bi bi-image me-1"></i>
+                  Текст с изображением
+                </button>
+              </div>
+              
+              <div class="ms-auto">
+                <button type="button" class="btn-close" @click="closeTextDialog"></button>
+              </div>
+            </div>
           </div>
           
           <div class="text-dialog-body">
-            <!-- Вкладки -->
-            <ul class="nav nav-tabs text-dialog-tabs" role="tablist">
-              <li class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ 'active': textDialogActiveTab === 'conversation' }"
-                  type="button" 
-                  role="tab"
-                  @click="textDialogActiveTab = 'conversation'"
-                >
-                  <i class="bi bi-chat-dots me-2"></i>
-                  Разговор
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ 'active': textDialogActiveTab === 'thoughts' }"
-                  type="button" 
-                  role="tab"
-                  @click="textDialogActiveTab = 'thoughts'"
-                >
-                  <i class="bi bi-lightbulb me-2"></i>
-                  Мысли
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ 'active': textDialogActiveTab === 'standard' }"
-                  type="button" 
-                  role="tab" 
-                  @click="textDialogActiveTab = 'standard'"
-                >
-                  <i class="bi bi-star me-2"></i>
-                  Стандарт
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ 'active': textDialogActiveTab === 'image-text' }"
-                  type="button" 
-                  role="tab" 
-                  @click="textDialogActiveTab = 'image-text'"
-                >
-                  <i class="bi bi-image me-2"></i>
-                  Текст с изображением
-                </button>
-              </li>
-            </ul>
             
             <!-- Содержимое вкладок -->
             <div class="tab-content">
@@ -201,19 +190,9 @@
                 </div>
                 
                 <!-- Кнопка параметров -->
-                <div class="mb-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="toggleParameters"
-                  >
-                    <i class="bi bi-gear me-2"></i>
-                    Параметры
-                  </button>
-                </div>
                 
                 <!-- Блок параметров (скрыт по умолчанию) -->
-                <div v-show="showParameters" class="parameters-block">
+                <div class="parameters-block">
                   
                   <!-- Выбор шрифта -->
                   <div class="form-group mb-3">
@@ -530,19 +509,9 @@
                 </div>
                 
                 <!-- Кнопка параметров -->
-                <div class="mb-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="toggleParameters"
-                  >
-                    <i class="bi bi-gear me-2"></i>
-                    Параметры
-                  </button>
-                </div>
                 
                 <!-- Блок параметров (скрыт по умолчанию) -->
-                <div v-show="showParameters" class="parameters-block">
+                <div class="parameters-block">
                   
                   <!-- Выбор шрифта -->
                   <div class="form-group mb-3">
@@ -818,19 +787,9 @@
                 </div>
                 
                 <!-- Кнопка параметров -->
-                <div class="mb-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="toggleParameters"
-                  >
-                    <i class="bi bi-gear me-2"></i>
-                    Параметры
-                  </button>
-                </div>
                 
                 <!-- Блок параметров (скрыт по умолчанию) -->
-                <div v-show="showParameters" class="parameters-block">
+                <div class="parameters-block">
                   
                   <!-- Выбор шрифта -->
                   <div class="form-group mb-3">
@@ -1073,19 +1032,9 @@
                 </div>
                 
                 <!-- Кнопка параметров -->
-                <div class="mb-3">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="toggleParameters"
-                  >
-                    <i class="bi bi-gear me-2"></i>
-                    Параметры
-                  </button>
-                </div>
                 
                 <!-- Блок параметров (скрыт по умолчанию) -->
-                <div v-show="showParameters" class="parameters-block">
+                <div class="parameters-block">
                   
                   <!-- Выбор шрифта -->
                   <div class="form-group mb-3">
@@ -1749,7 +1698,6 @@ export default {
       isTextModeActive: false, // Активен ли режим добавления текста
       showTextDialog: false, // Показать ли диалог добавления текста
       textDialogPosition: null, // Позиция для размещения текста
-      showParameters: false, // Показать ли блок параметров
       textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
       // Данные для каждой вкладки отдельно
       textDialogDataConversation: {
@@ -5635,11 +5583,6 @@ export default {
       }
     },
     
-    // Переключение показа параметров
-    toggleParameters() {
-      this.showParameters = !this.showParameters
-      console.log('🔄 Параметры текста:', this.showParameters ? 'показаны' : 'скрыты')
-    },
     
     // Обновление превью канваса
     updatePreviewCanvas() {
@@ -8044,6 +7987,39 @@ export default {
   opacity: 1;
 }
 
+/* Стили для кнопок-табов в заголовке */
+.text-dialog-mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: 15px;
+}
+
+.text-dialog-mode-btn {
+  background: white !important;
+  color: #333 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  padding: 6px 12px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  display: flex;
+  align-items: center;
+}
+
+.text-dialog-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #333 !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.text-dialog-mode-btn.active {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #333 !important;
+  border-color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
 .text-dialog-body {
   padding: 0;
   overflow-y: auto;
@@ -8196,6 +8172,17 @@ export default {
   
   .text-dialog-header {
     padding: 16px 20px;
+  }
+  
+  .text-dialog-mode-tabs {
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-left: 10px;
+  }
+  
+  .text-dialog-mode-btn {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
   }
   
   .text-dialog-footer {

@@ -5501,18 +5501,7 @@ export default {
     drawStandardModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor) {
       console.log('⭐ Отрисовка формы "Стандарт" - только прямоугольник без хвоста')
       
-      // Рисуем только прямоугольник
-      ctx.fillStyle = backgroundColor
-      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
-      
-      // Применяем обводку если включена
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = this.textDialogData.strokeWidth * scale
-        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
-      }
-      
-      // Применяем тень если включена
+      // Сначала рисуем тень если включена
       if (this.textDialogData.shadow) {
         ctx.shadowColor = this.textDialogData.shadowColor
         ctx.shadowBlur = this.textDialogData.shadowBlur * scale
@@ -5521,6 +5510,7 @@ export default {
         ctx.globalAlpha = this.textDialogData.shadowOpacity / 100
         
         // Рисуем тень
+        ctx.fillStyle = backgroundColor
         ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
         
         // Сбрасываем настройки тени
@@ -5529,6 +5519,17 @@ export default {
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 0
         ctx.globalAlpha = 1
+      }
+      
+      // Затем рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // В конце применяем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = this.textDialogData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
       }
       
       console.log('✅ Форма "Стандарт" отрисована - только прямоугольник')

@@ -1950,7 +1950,7 @@ export default {
         strokeColor: '#000000',
         shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 40,
+        shadowOpacity: 85,
         shadowOffsetX: 8,
         shadowOffsetY: 8,
         shadowBlur: 1
@@ -1976,7 +1976,7 @@ export default {
         strokeColor: '#000000',
         shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 40,
+        shadowOpacity: 85,
         shadowOffsetX: 8,
         shadowOffsetY: 8,
         shadowBlur: 1
@@ -1999,7 +1999,7 @@ export default {
         strokeColor: '#000000',
         shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 40,
+        shadowOpacity: 85,
         shadowOffsetX: 8,
         shadowOffsetY: 8,
         shadowBlur: 1
@@ -5740,9 +5740,9 @@ export default {
         strokeColor: '#000000',
         shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 50,
-        shadowOffsetX: 2,
-        shadowOffsetY: 2,
+        shadowOpacity: 85,
+        shadowOffsetX: 8,
+        shadowOffsetY: 8,
         shadowBlur: 1
       }
       
@@ -5768,9 +5768,9 @@ export default {
         strokeColor: '#000000',
         shadow: true,
         shadowColor: '#000000',
-        shadowOpacity: 50,
-        shadowOffsetX: 2,
-        shadowOffsetY: 2,
+        shadowOpacity: 85,
+        shadowOffsetX: 8,
+        shadowOffsetY: 8,
         shadowBlur: 1
       })
       

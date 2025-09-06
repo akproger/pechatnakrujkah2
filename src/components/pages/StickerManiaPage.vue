@@ -1582,7 +1582,7 @@
                 @click="activeTab = 'text'"
               >
                 <i class="bi bi-type me-2"></i>
-                Текст
+                Тексты
               </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -1707,18 +1707,37 @@
           </div>
         </div>
 
-        <!-- Таб "Текст" -->
+        <!-- Таб "Тексты" -->
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'text' }" id="text" role="tabpanel" aria-labelledby="text-tab">
           <div class="row mt-3">
             <div class="col-12">
               <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Добавленные тексты</h5>
+                </div>
                 <div class="card-body">
-                  <TextEditor 
-                    v-model="texts"
-                    @texts-changed="handleTextsChanged"
-                    @text-visibility-changed="handleTextVisibilityChanged"
-                    @text-deleted="handleTextDeleted"
-                  />
+                  <div v-if="createdTexts.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p>Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
+                  </div>
+                  <div v-else>
+                    <div v-for="(text, index) in createdTexts" :key="index" class="border-bottom pb-3 mb-3">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1">{{ text.text || 'Пустой текст' }}</h6>
+                          <small class="text-muted">
+                            Шрифт: {{ text.font || 'Arial' }} | 
+                            Размер: {{ text.fontSize || 16 }}px |
+                            <span v-if="text.color">Цвет: {{ text.color }}</span>
+                          </small>
+                        </div>
+                        <div class="text-end">
+                          <small class="text-muted">#{{ index + 1 }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1828,7 +1847,6 @@ import paper from 'paper'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import StickerSelectionModal from '../StickerSelectionModal.vue'
-import TextEditor from '../TextEditor.vue'
 import heartMask from '/src/assets/masks/heart.svg'
 import rocketMask from '/src/assets/masks/rocket.svg'
 import blabMask from '/src/assets/masks/blab.svg'
@@ -1848,8 +1866,7 @@ export default {
   name: 'StickerManiaPage',
   components: {
     ThreeDRenderer,
-    StickerSelectionModal,
-    TextEditor
+    StickerSelectionModal
   },
   data() {
     return {
@@ -4178,57 +4195,6 @@ export default {
       })
     },
     
-    // Обработка изменения текстов
-    handleTextsChanged(texts) {
-      console.log('🔄 handleTextsChanged вызван с текстами:', texts)
-      this.texts = texts
-      console.log('📝 Массив текстов обновлен, вызываем updateCanvasWithTexts')
-      this.updateCanvasWithTexts()
-      
-      // Дополнительно обновляем 3D текстуру
-      this.forceUpdate3DTexture()
-    },
-    
-    // Обработка изменения видимости текста
-    handleTextVisibilityChanged(text) {
-      // Обновляем канвас с текстами
-      this.updateCanvasWithTexts()
-      
-      // Принудительно обновляем 3D текстуру
-      this.forceUpdate3DTexture()
-    },
-    
-    // Обработка удаления текста
-    handleTextDeleted(deletedText) {
-      // Находим и удаляем HTML элемент с канваса
-      const textElement = this.htmlTextElements.find(el => {
-        return el.textContent === deletedText.content
-      })
-      
-      if (textElement) {
-        // Удаляем элемент из DOM
-        if (textElement.parentNode) {
-          textElement.parentNode.removeChild(textElement)
-        }
-        
-        // Удаляем из массива отслеживания
-        const index = this.htmlTextElements.indexOf(textElement)
-        if (index > -1) {
-          this.htmlTextElements.splice(index, 1)
-        }
-        
-        // Удаляем состояние управления
-        const textId = textElement.dataset.textId
-        if (textId && this.textControlStates[textId]) {
-          delete this.textControlStates[textId]
-        }
-        
-        console.log('🗑️ Текст удален с канваса:', deletedText.content)
-      }
-      
-      // Обновляем канвас
-      this.updateCanvasWithTexts()
-    },
     
     // Обновление канваса с текстами
     updateCanvasWithTexts() {

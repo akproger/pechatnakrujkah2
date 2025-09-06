@@ -1884,6 +1884,7 @@ export default {
       activeTextElement: null, // Активный текстовый элемент для редактирования
       textControlStates: {}, // Состояния управления для каждого текста
       textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
+      createdTexts: [], // Массив добавленных текстов для отображения во вкладке "Тексты"
       
       // Маски стикеров
       stickerMasks: [
@@ -7705,6 +7706,20 @@ export default {
       if (!this.textDialogPosition || !this.paperScope) return
       
       console.log('✅ Применение текста на канвас:', this.textDialogData)
+      
+      // Добавляем текст в массив созданных текстов
+      const newText = {
+        text: this.textDialogData.text || 'Пустой текст',
+        font: this.textDialogData.font || 'Arial',
+        fontSize: this.textDialogData.fontSize || 16,
+        color: this.textDialogData.color || '#000000',
+        fontWeight: this.textDialogData.fontWeight || 'normal',
+        textAlign: this.textDialogData.textAlign || 'left',
+        createdAt: new Date().toISOString()
+      }
+      
+      this.createdTexts.push(newText)
+      console.log('📝 Текст добавлен в список:', newText)
       
       // TODO: Создание текста с составной подложкой
       // Пока просто закрываем диалог

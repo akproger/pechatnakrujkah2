@@ -38,13 +38,12 @@
                 <!-- Кнопка добавления текста -->
                 <div class="col" style="padding: 0;">
                   <button 
-                    @click="activateTextMode" 
+                    @click="openTextDialogInCenter" 
                     class="btn btn-success"
-                    :class="{ 'btn-warning': isTextModeActive }"
                     style="background-color: #28a745; border-color: #28a745;"
                   >
                     <i class="bi bi-type me-2"></i>
-                    {{ isTextModeActive ? 'Отменить' : 'Текст' }}
+                    Текст
                   </button>
                 </div>
                 
@@ -1927,7 +1926,6 @@ export default {
       overlapThreshold: 0.05, // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
       
       // Режим добавления текста
-      isTextModeActive: false, // Активен ли режим добавления текста
       showTextDialog: false, // Показать ли диалог добавления текста
       textDialogPosition: null, // Позиция для размещения текста
       textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
@@ -2270,8 +2268,6 @@ export default {
         }, 100)
       })
       
-      // Добавляем обработчик клика по канвасу для режима текста
-      canvas.addEventListener('click', this.handleCanvasClick)
       
       console.log('✅ Paper.js инициализирован')
     },
@@ -5680,61 +5676,33 @@ export default {
     
     // === РЕЖИМ ДОБАВЛЕНИЯ ТЕКСТА ===
     
-    // Активация режима добавления текста
-    activateTextMode() {
-      this.isTextModeActive = !this.isTextModeActive
-      console.log('🔄 Режим добавления текста:', this.isTextModeActive ? 'активирован' : 'деактивирован')
-      
-      if (this.isTextModeActive) {
-        // Добавляем курсор-указатель для канваса
-        const canvas = this.$refs.testCanvas
-        if (canvas) {
-          canvas.style.cursor = 'crosshair'
-        }
-      } else {
-        // Возвращаем обычный курсор
-        const canvas = this.$refs.testCanvas
-        if (canvas) {
-          canvas.style.cursor = 'default'
-        }
-        
-        // Закрываем диалог если он открыт
-        this.showTextDialog = false
-        this.textDialogPosition = null
-      }
-    },
     
-    // Обработчик клика по канвасу в режиме текста
-    handleCanvasClick(event) {
-      if (!this.isTextModeActive) return
+    
+    // Открытие диалога добавления текста с размещением по центру
+    openTextDialogInCenter() {
+      console.log('🔄 Открываем диалог добавления текста в центре')
       
-      console.log('🖱️ Клик по канвасу в режиме текста')
+      // Устанавливаем позицию по центру превью канваса
+      const previewCanvas = this.$refs.previewCanvas
+      if (previewCanvas) {
+        const centerX = previewCanvas.width / 2
+        const centerY = previewCanvas.height / 2
+        this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
+      } else {
+        // Если превью канвас не найден, используем основной канвас
+        const mainCanvas = this.$refs.testCanvas
+        if (mainCanvas) {
+          const centerX = mainCanvas.width / 2
+          const centerY = mainCanvas.height / 2
+          this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
+        }
+      }
       
-      // Получаем позицию клика относительно канваса
-      const canvas = this.$refs.testCanvas
-      const rect = canvas.getBoundingClientRect()
-      const x = event.clientX - rect.left
-      const y = event.clientY - rect.top
-      
-      // Конвертируем в координаты Paper.js
-      const point = new this.paperScope.Point(x, y)
-      
-      console.log('📍 Позиция клика:', { x, y, point })
-      
-      // Сохраняем позицию и открываем диалог
-      this.textDialogPosition = point
+      // Открываем диалог
       this.showTextDialog = true
+      this.resetTextDialogData()
       
-      // Деактивируем режим текста
-      this.isTextModeActive = false
-      
-      // Возвращаем обычный курсор
-      canvas.style.cursor = 'default'
-      
-      // Обновляем превью сразу после открытия диалога
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      console.log('✅ Диалог открыт, позиция текста:', this.textDialogPosition)
     },
     
     // Закрытие диалога добавления текста

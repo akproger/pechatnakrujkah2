@@ -5702,6 +5702,11 @@ export default {
       this.showTextDialog = true
       this.resetTextDialogData()
       
+      // Обновляем превью канвас после открытия диалога
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+      
       console.log('✅ Диалог открыт, позиция текста:', this.textDialogPosition)
     },
     
@@ -5714,7 +5719,8 @@ export default {
     
     // Сброс данных диалога
     resetTextDialogData() {
-      this.textDialogData = {
+      // Сбрасываем данные для всех вкладок
+      const resetData = {
         text: '',
         font: 'Arial',
         fontWeight: 'normal',
@@ -5726,10 +5732,49 @@ export default {
         tailAngle: 45,
         backgroundWidth: 200,
         backgroundHeight: 100,
-        padding: 12,
+        padding: 15,
+        textAlign: 'center',
+        lineHeight: 1.2,
         stroke: false,
-        shadow: false
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 50,
+        shadowOffsetX: 2,
+        shadowOffsetY: 2,
+        shadowBlur: 1
       }
+      
+      // Сбрасываем данные для каждой вкладки
+      Object.assign(this.textDialogDataConversation, resetData)
+      Object.assign(this.textDialogDataThoughts, resetData)
+      Object.assign(this.textDialogDataStandard, resetData)
+      
+      // Для вкладки "Текст с изображением" используем другие значения по умолчанию
+      Object.assign(this.textDialogDataImageText, {
+        text: '',
+        font: 'Arial',
+        fontWeight: 'bold',
+        fontSize: 135,
+        textColor: '#FFFFFF',
+        textImage: null,
+        cachedImage: null,
+        padding: 15,
+        textAlign: 'center',
+        lineHeight: 1.2,
+        stroke: false,
+        strokeWidth: 2,
+        strokeColor: '#000000',
+        shadow: false,
+        shadowColor: '#000000',
+        shadowOpacity: 50,
+        shadowOffsetX: 2,
+        shadowOffsetY: 2,
+        shadowBlur: 1
+      })
+      
+      console.log('🔄 Данные диалога сброшены для всех вкладок')
     },
     
     

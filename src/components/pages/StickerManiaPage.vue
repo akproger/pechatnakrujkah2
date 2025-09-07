@@ -8175,15 +8175,16 @@ export default {
 
 .text-dialog-overlay {
   position: fixed;
-  top: 0;
+  bottom: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 56vh;
   background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  overflow-y: auto;
   padding: 20px;
   box-sizing: border-box;
 }
@@ -8786,7 +8787,7 @@ export default {
 /* Стили для режима редактирования текста */
 .text-edit-mode {
   position: fixed !important;
-  top: 20px !important;
+  top: 100px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 100 !important;

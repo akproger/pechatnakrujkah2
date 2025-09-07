@@ -63,6 +63,9 @@
                 <canvas 
                   ref="testCanvas"
                   class="test-canvas"
+                  @mousedown="startDragging"
+                  @mousemove="onMouseMove"
+                  @mouseup="stopDragging"
                 ></canvas>
                 
                 <!-- Прелоадер -->
@@ -154,17 +157,7 @@
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
                   <!-- Превью текста с подложкой (слева) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvas" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
-                    </div>
-                  </div>
+                  <!-- Превью-канвас удален - работаем напрямую с основным канвасом -->
                   
                   <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
@@ -528,17 +521,7 @@
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
                   <!-- Превью текста с подложкой (слева) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasStandard" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
-                    </div>
-                  </div>
+                  <!-- Превью-канвас удален - работаем напрямую с основным канвасом -->
                   
                   <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
@@ -861,17 +844,7 @@
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
                   <!-- Превью текста с подложкой (слева) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasImageText" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
-                    </div>
-                  </div>
+                  <!-- Превью-канвас удален - работаем напрямую с основным канвасом -->
                   
                   <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
@@ -1155,17 +1128,7 @@
                 <!-- Область с полем ввода и превью (закреплена) -->
                 <div class="text-input-preview-area">
                   <!-- Превью текста с подложкой (слева) -->
-                  <div class="text-preview-section">
-                    <div class="text-preview">
-                      <canvas 
-                        ref="previewCanvasThoughts" 
-                        class="preview-canvas"
-                        :width="previewCanvasWidth"
-                        :height="previewCanvasHeight"
-                        @mousedown="startDragging"
-                      ></canvas>
-                    </div>
-                  </div>
+                  <!-- Превью-канвас удален - работаем напрямую с основным канвасом -->
                   
                   <!-- Поле ввода текста (справа) -->
                   <div class="text-input-section">
@@ -2072,122 +2035,122 @@ export default {
     // Автоматически обновляем превью при изменении любых параметров текста
     'textDialogData.text'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.fontSize'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.fontWeight'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.font'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.textColor'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.backgroundColor'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.backgroundWidth'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.backgroundHeight'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.padding'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.stroke'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadow'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.strokeWidth'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.strokeColor'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadowColor'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadowOpacity'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadowOffsetX'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadowOffsetY'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.shadowBlur'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.tailSize'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.tailWidth'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.tailAngle'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.textAlign'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.lineHeight'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     'textDialogData.textImage'() {
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     },
     
@@ -2198,7 +2161,7 @@ export default {
       // Принудительно обновляем превью при переключении
       this.$nextTick(() => {
         console.log('🔄 Принудительное обновление после переключения вкладки')
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
         
         // Дополнительное обновление для режима "Мысли"
         if (this.textDialogActiveTab === 'thoughts') {
@@ -5689,29 +5652,23 @@ export default {
       // Добавляем класс на body для стилизации диалога
       document.body.classList.add('text-edit-mode-active')
       
-      // Устанавливаем позицию по центру превью канваса
-      const previewCanvas = this.$refs.previewCanvas
-      if (previewCanvas) {
-        const centerX = previewCanvas.width / 2
-        const centerY = previewCanvas.height / 2
+      // Устанавливаем позицию по центру основного канваса
+      const mainCanvas = this.$refs.testCanvas
+      if (mainCanvas) {
+        // Используем размеры канваса в CSS пикселях для правильного позиционирования
+        const centerX = mainCanvas.clientWidth / 2
+        const centerY = mainCanvas.clientHeight / 2
         this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
-      } else {
-        // Если превью канвас не найден, используем основной канвас
-        const mainCanvas = this.$refs.testCanvas
-        if (mainCanvas) {
-          const centerX = mainCanvas.width / 2
-          const centerY = mainCanvas.height / 2
-          this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
-        }
+        console.log('🎯 Позиция текста установлена:', { centerX, centerY, canvasWidth: mainCanvas.clientWidth, canvasHeight: mainCanvas.clientHeight })
       }
       
       // Открываем диалог
       this.showTextDialog = true
       this.resetTextDialogData()
       
-      // Обновляем превью канвас после открытия диалога
+      // Обновляем основной канвас после открытия диалога
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
       
       console.log('✅ Диалог открыт, позиция текста:', this.textDialogPosition)
@@ -5789,33 +5746,453 @@ export default {
     },
     
     
-    // Обновление превью канваса
-    updatePreviewCanvas() {
-      console.log('🔄 Обновление превью канваса, активная вкладка:', this.textDialogActiveTab)
+    // Обновление основного канваса с текстом
+    updateMainCanvas() {
+      console.log('🔄 Обновление основного канваса, активная вкладка:', this.textDialogActiveTab)
       
-                // Обновляем все превью канвасы
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-      
-      // Принудительно обновляем активную вкладку
-      if (this.textDialogActiveTab === 'thoughts') {
-        console.log('🧠 Принудительное обновление режима "Мысли"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-        })
-      } else if (this.textDialogActiveTab === 'standard') {
-        console.log('⭐ Принудительное обновление режима "Стандарт"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-        })
-      } else if (this.textDialogActiveTab === 'image-text') {
-        console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-        })
+      const mainCanvas = this.$refs.testCanvas
+      if (!mainCanvas) {
+        console.log('⚠️ Основной канвас не найден')
+        return
       }
+      
+      const ctx = mainCanvas.getContext('2d')
+      
+      // Перерисовываем все стикеры (Paper.js рисует в своем контексте)
+      this.redrawAllStickers()
+      
+      // Очищаем область текста перед отрисовкой нового
+      if (this.textDialogPosition) {
+        this.clearTextArea(ctx, mainCanvas)
+      }
+      
+      // Добавляем текст с подложкой в зависимости от активной вкладки
+      if (this.textDialogPosition) {
+        const displayText = this.textDialogData.text || 'Демо текст'
+        console.log('🎯 Рисуем текст на основном канвасе:', displayText)
+        
+        if (this.textDialogActiveTab === 'thoughts') {
+          // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
+          console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ" на основном канвасе')
+          this.drawTextOnMainCanvasThoughtsMode(ctx, mainCanvas, displayText)
+        } else if (this.textDialogActiveTab === 'standard') {
+          // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
+          console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ" на основном канвасе')
+          this.drawTextOnMainCanvasStandardMode(ctx, mainCanvas, displayText)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
+          console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" на основном канвасе')
+          this.drawTextOnMainCanvasImageTextMode(ctx, mainCanvas, displayText)
+        } else {
+          // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
+          console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР" на основном канвасе')
+          this.drawTextOnMainCanvas(ctx, mainCanvas, displayText)
+        }
+      } else if (this.textDialogPosition) {
+        // Показываем дефолтный текст "Текст" на дефолтной подложке
+        console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ на основном канвасе')
+        if (this.textDialogActiveTab === 'thoughts') {
+          // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
+          this.drawDefaultTextOnMainCanvasThoughtsMode(ctx, mainCanvas)
+        } else if (this.textDialogActiveTab === 'standard') {
+          // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
+          this.drawDefaultTextOnMainCanvasStandardMode(ctx, mainCanvas)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтная подложка без хвоста
+          this.drawDefaultTextOnMainCanvasImageTextMode(ctx, mainCanvas)
+        } else {
+          // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
+          this.drawDefaultTextOnMainCanvas(ctx, mainCanvas)
+        }
+      }
+    },
+    
+    // Очистка области текста на канвасе
+    clearTextArea(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      // Получаем размеры подложки
+      const bgWidth = this.textDialogData.backgroundWidth || 200
+      const bgHeight = this.textDialogData.backgroundHeight || 100
+      const tailSize = this.textDialogData.tailSize || 145
+      const tailWidth = this.textDialogData.tailWidth || 40
+      
+      // Вычисляем область для очистки (с запасом для хвоста)
+      const clearMargin = Math.max(tailSize, tailWidth) + 20
+      const clearX = this.textDialogPosition.x - bgWidth / 2 - clearMargin
+      const clearY = this.textDialogPosition.y - bgHeight / 2 - clearMargin
+      const clearWidth = bgWidth + clearMargin * 2
+      const clearHeight = bgHeight + clearMargin * 2
+      
+      // Очищаем область
+      ctx.clearRect(clearX, clearY, clearWidth, clearHeight)
+      
+      console.log('🧹 Очищена область текста:', { clearX, clearY, clearWidth, clearHeight })
+    },
+    
+    // Перерисовка всех стикеров на основном канвасе
+    redrawAllStickers() {
+      console.log('🔄 Перерисовка всех стикеров на основном канвасе')
+      
+      const mainCanvas = this.$refs.testCanvas
+      if (!mainCanvas) return
+      
+      // Не очищаем канвас - стикеры уже нарисованы Paper.js
+      // Просто обновляем Paper.js view для отображения всех элементов
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.draw()
+      }
+    },
+    
+    // Рисование текста на основном канвасе - режим "Разговор"
+    drawTextOnMainCanvas(ctx, canvas, displayText) {
+      console.log('💬 Рисование текста на основном канвасе - режим "Разговор"')
+      
+      if (!this.textDialogPosition) return
+      
+      const x = this.textDialogPosition.x
+      const y = this.textDialogPosition.y
+      console.log('🎯 Координаты текста:', { x, y, canvasWidth: canvas.clientWidth, canvasHeight: canvas.clientHeight })
+      
+      // Настройки текста
+      const text = displayText || this.textDialogData.text || 'Текст'
+      const fontSize = this.textDialogData.fontSize || 24
+      const font = this.textDialogData.font || 'Arial'
+      const fontWeight = this.textDialogData.fontWeight || 'normal'
+      const textColor = this.textDialogData.textColor || '#000000'
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      const padding = this.textDialogData.padding || 15
+      const tailSize = this.textDialogData.tailSize || 145
+      const tailWidth = this.textDialogData.tailWidth || 40
+      const tailAngle = this.textDialogData.tailAngle || 45
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const textAlign = this.textDialogData.textAlign || 'center'
+      const lineHeight = this.textDialogData.lineHeight || 1.2
+      const stroke = this.textDialogData.stroke || false
+      const strokeWidth = this.textDialogData.strokeWidth || 2
+      const strokeColor = this.textDialogData.strokeColor || '#000000'
+      const shadow = this.textDialogData.shadow || false
+      const shadowColor = this.textDialogData.shadowColor || '#000000'
+      const shadowOpacity = this.textDialogData.shadowOpacity || 85
+      const shadowOffsetX = this.textDialogData.shadowOffsetX || 8
+      const shadowOffsetY = this.textDialogData.shadowOffsetY || 8
+      const shadowBlur = this.textDialogData.shadowBlur || 1
+      
+      // Настройка шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${font}`
+      ctx.textAlign = textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем текст
+      const textMetrics = ctx.measureText(text)
+      const textWidth = textMetrics.width
+      const textHeight = fontSize * lineHeight
+      
+      // Вычисляем размеры подложки
+      const bgWidth = Math.max(textWidth + padding * 2, backgroundWidth)
+      const bgHeight = Math.max(textHeight + padding * 2, backgroundHeight)
+      
+      // Вычисляем позицию подложки
+      let bgX, bgY
+      if (textAlign === 'center') {
+        bgX = x - bgWidth / 2
+        bgY = y - bgHeight / 2
+      } else if (textAlign === 'left') {
+        bgX = x
+        bgY = y - bgHeight / 2
+      } else {
+        bgX = x - bgWidth
+        bgY = y - bgHeight / 2
+      }
+      
+      // Рисуем тень
+      if (shadow) {
+        ctx.save()
+        ctx.shadowColor = shadowColor
+        ctx.shadowBlur = shadowBlur
+        ctx.shadowOffsetX = shadowOffsetX
+        ctx.shadowOffsetY = shadowOffsetY
+        ctx.globalAlpha = shadowOpacity / 100
+        
+        // Рисуем подложку с тенью
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+        
+        ctx.restore()
+      }
+      
+      // Рисуем обводку
+      if (stroke) {
+        ctx.save()
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.globalAlpha = 1
+        
+        // Рисуем подложку с обводкой
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+        
+        ctx.restore()
+      }
+      
+      // Рисуем основную подложку
+      if (!shadow && !stroke) {
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.globalAlpha = 1
+      ctx.fillText(text, x, y)
+    },
+    
+    // Рисование дефолтного текста на основном канвасе - режим "Разговор"
+    drawDefaultTextOnMainCanvas(ctx, canvas) {
+      console.log('💬 Рисование дефолтного текста на основном канвасе - режим "Разговор"')
+      
+      if (!this.textDialogPosition) return
+      
+      const x = this.textDialogPosition.x
+      const y = this.textDialogPosition.y
+      
+      // Дефолтные настройки
+      const text = 'Текст'
+      const fontSize = 24
+      const font = 'Arial'
+      const fontWeight = 'normal'
+      const textColor = '#000000'
+      const backgroundColor = '#ffffff'
+      const padding = 15
+      const tailSize = 145
+      const tailWidth = 40
+      const tailAngle = 45
+      const backgroundWidth = 200
+      const backgroundHeight = 100
+      const textAlign = 'center'
+      const lineHeight = 1.2
+      const stroke = true
+      const strokeWidth = 3
+      const strokeColor = '#000000'
+      const shadow = true
+      const shadowColor = '#000000'
+      const shadowOpacity = 85
+      const shadowOffsetX = 8
+      const shadowOffsetY = 8
+      const shadowBlur = 1
+      
+      // Настройка шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${font}`
+      ctx.textAlign = textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Измеряем текст
+      const textMetrics = ctx.measureText(text)
+      const textWidth = textMetrics.width
+      const textHeight = fontSize * lineHeight
+      
+      // Вычисляем размеры подложки
+      const bgWidth = Math.max(textWidth + padding * 2, backgroundWidth)
+      const bgHeight = Math.max(textHeight + padding * 2, backgroundHeight)
+      
+      // Вычисляем позицию подложки
+      let bgX, bgY
+      if (textAlign === 'center') {
+        bgX = x - bgWidth / 2
+        bgY = y - bgHeight / 2
+      } else if (textAlign === 'left') {
+        bgX = x
+        bgY = y - bgHeight / 2
+      } else {
+        bgX = x - bgWidth
+        bgY = y - bgHeight / 2
+      }
+      
+      // Рисуем тень
+      if (shadow) {
+        ctx.save()
+        ctx.shadowColor = shadowColor
+        ctx.shadowBlur = shadowBlur
+        ctx.shadowOffsetX = shadowOffsetX
+        ctx.shadowOffsetY = shadowOffsetY
+        ctx.globalAlpha = shadowOpacity / 100
+        
+        // Рисуем подложку с тенью
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+        
+        ctx.restore()
+      }
+      
+      // Рисуем обводку
+      if (stroke) {
+        ctx.save()
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.globalAlpha = 1
+        
+        // Рисуем подложку с обводкой
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+        
+        ctx.restore()
+      }
+      
+      // Рисуем основную подложку
+      if (!shadow && !stroke) {
+        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textColor
+      ctx.globalAlpha = 1
+      ctx.fillText(text, x, y)
+    },
+    
+    // Рисование подложки для режима "Разговор" с хвостом
+    drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor) {
+      console.log('💬 Рисование подложки для режима "Разговор"', { bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth })
+      
+      // Создаем единый path для прямоугольника и хвоста
+      ctx.beginPath()
+      
+      // Рисуем прямоугольник
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Вычисляем позицию хвоста - хвост снизу по центру
+      const tailCenterX = bgX + bgWidth / 2
+      const tailCenterY = bgY + bgHeight / 2
+      
+      // Параметры хвоста - делаем хвост больше и видимым
+      const tailHeight = Math.max(20, tailSize) // Минимум 20px
+      const tailBaseWidth = Math.max(30, tailWidth) // Минимум 30px
+      
+      // Конвертируем угол в радианы (tailAngle в градусах от 0 до 360)
+      const angleRad = (tailAngle || 270) * Math.PI / 180
+      
+      // Точки треугольника хвоста с учетом угла поворота
+      // Вершина хвоста (направление по углу)
+      const tailTopX = tailCenterX + Math.cos(angleRad) * tailHeight
+      const tailTopY = tailCenterY + Math.sin(angleRad) * tailHeight
+      
+      // Базовые точки хвоста (перпендикулярно направлению)
+      const perpAngle1 = angleRad + Math.PI / 2
+      const perpAngle2 = angleRad - Math.PI / 2
+      const tailLeftX = tailCenterX + Math.cos(perpAngle1) * (tailBaseWidth / 2)
+      const tailLeftY = tailCenterY + Math.sin(perpAngle1) * (tailBaseWidth / 2)
+      const tailRightX = tailCenterX + Math.cos(perpAngle2) * (tailBaseWidth / 2)
+      const tailRightY = tailCenterY + Math.sin(perpAngle2) * (tailBaseWidth / 2)
+      
+      // Добавляем треугольник хвоста к тому же path
+      ctx.moveTo(tailTopX, tailTopY)
+      ctx.lineTo(tailLeftX, tailLeftY)
+      ctx.lineTo(tailRightX, tailRightY)
+      ctx.closePath()
+      
+      // Заливаем единую фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+      
+      // Рисуем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
+        ctx.lineWidth = this.textDialogData.strokeWidth || 2
+        ctx.stroke()
+      }
+      
+      console.log('💬 Суперподложка нарисована:', { tailTopX, tailTopY, tailLeftX, tailLeftY, tailRightX, tailRightY })
+    },
+    
+    // Рисование подложки с обводкой для режима "Разговор"
+    drawConversationBackgroundWithStroke(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor, stroke, strokeColor, strokeWidth) {
+      console.log('💬 Рисование подложки с обводкой для режима "Разговор"', { bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth })
+      
+      // Создаем единый path для прямоугольника и хвоста
+      ctx.beginPath()
+      
+      // Рисуем прямоугольник
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Вычисляем позицию хвоста - хвост снизу по центру
+      const tailCenterX = bgX + bgWidth / 2
+      const tailCenterY = bgY + bgHeight / 2
+      
+      // Параметры хвоста - делаем хвост больше и видимым
+      const tailHeight = Math.max(20, tailSize) // Минимум 20px
+      const tailBaseWidth = Math.max(30, tailWidth) // Минимум 30px
+      
+      // Конвертируем угол в радианы (tailAngle в градусах от 0 до 360)
+      const angleRad = (tailAngle || 270) * Math.PI / 180
+      
+      // Точки треугольника хвоста с учетом угла поворота
+      // Вершина хвоста (направление по углу)
+      const tailTopX = tailCenterX + Math.cos(angleRad) * tailHeight
+      const tailTopY = tailCenterY + Math.sin(angleRad) * tailHeight
+      
+      // Базовые точки хвоста (перпендикулярно направлению)
+      const perpAngle1 = angleRad + Math.PI / 2
+      const perpAngle2 = angleRad - Math.PI / 2
+      const tailLeftX = tailCenterX + Math.cos(perpAngle1) * (tailBaseWidth / 2)
+      const tailLeftY = tailCenterY + Math.sin(perpAngle1) * (tailBaseWidth / 2)
+      const tailRightX = tailCenterX + Math.cos(perpAngle2) * (tailBaseWidth / 2)
+      const tailRightY = tailCenterY + Math.sin(perpAngle2) * (tailBaseWidth / 2)
+      
+      // Добавляем треугольник хвоста к тому же path
+      ctx.moveTo(tailTopX, tailTopY)
+      ctx.lineTo(tailLeftX, tailLeftY)
+      ctx.lineTo(tailRightX, tailRightY)
+      ctx.closePath()
+      
+      // Заливаем единую фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+      
+      // Рисуем обводку если нужно
+      if (stroke) {
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.stroke()
+      }
+      
+      console.log('💬 Суперподложка с обводкой нарисована:', { tailTopX, tailTopY, tailLeftX, tailLeftY, tailRightX, tailRightY })
+    },
+    
+    // Рисование текста на основном канвасе - режим "Стандарт"
+    drawTextOnMainCanvasStandardMode(ctx, canvas, displayText) {
+      console.log('⭐ Рисование текста на основном канвасе - режим "Стандарт"')
+      // TODO: Реализовать режим "Стандарт" без хвоста
+      this.drawTextOnMainCanvas(ctx, canvas, displayText)
+    },
+    
+    // Рисование дефолтного текста на основном канвасе - режим "Стандарт"
+    drawDefaultTextOnMainCanvasStandardMode(ctx, canvas) {
+      console.log('⭐ Рисование дефолтного текста на основном канвасе - режим "Стандарт"')
+      // TODO: Реализовать дефолтный режим "Стандарт" без хвоста
+      this.drawDefaultTextOnMainCanvas(ctx, canvas)
+    },
+    
+    // Рисование текста на основном канвасе - режим "Мысли"
+    drawTextOnMainCanvasThoughtsMode(ctx, canvas, displayText) {
+      console.log('🧠 Рисование текста на основном канвасе - режим "Мысли"')
+      // TODO: Реализовать режим "Мысли" с овальной подложкой
+      this.drawTextOnMainCanvas(ctx, canvas, displayText)
+    },
+    
+    // Рисование дефолтного текста на основном канвасе - режим "Мысли"
+    drawDefaultTextOnMainCanvasThoughtsMode(ctx, canvas) {
+      console.log('🧠 Рисование дефолтного текста на основном канвасе - режим "Мысли"')
+      // TODO: Реализовать дефолтный режим "Мысли" с овальной подложкой
+      this.drawDefaultTextOnMainCanvas(ctx, canvas)
+    },
+    
+    // Рисование текста на основном канвасе - режим "Текст с изображением"
+    drawTextOnMainCanvasImageTextMode(ctx, canvas, displayText) {
+      console.log('🖼️ Рисование текста на основном канвасе - режим "Текст с изображением"')
+      // TODO: Реализовать режим "Текст с изображением"
+      this.drawTextOnMainCanvas(ctx, canvas, displayText)
+    },
+    
+    // Рисование дефолтного текста на основном канвасе - режим "Текст с изображением"
+    drawDefaultTextOnMainCanvasImageTextMode(ctx, canvas) {
+      console.log('🖼️ Рисование дефолтного текста на основном канвасе - режим "Текст с изображением"')
+      // TODO: Реализовать дефолтный режим "Текст с изображением"
+      this.drawDefaultTextOnMainCanvas(ctx, canvas)
     },
     
     // Обновление одного превью канваса
@@ -7728,29 +8105,49 @@ export default {
     // Применение текста на канвас
     applyTextToCanvas() {
       if (!this.textDialogPosition || !this.paperScope) return
-      
-      console.log('✅ Применение текста на канвас:', this.textDialogData)
-      
+
+      console.log('✅ Применение текста на основной канвас:', this.textDialogData)
+
       // Добавляем текст в массив созданных текстов
       const newText = {
         text: this.textDialogData.text || 'Пустой текст',
         font: this.textDialogData.font || 'Arial',
         fontSize: this.textDialogData.fontSize || 16,
-        color: this.textDialogData.color || '#000000',
+        color: this.textDialogData.textColor || '#000000',
         fontWeight: this.textDialogData.fontWeight || 'normal',
         textAlign: this.textDialogData.textAlign || 'left',
+        backgroundColor: this.textDialogData.backgroundColor || '#ffffff',
+        padding: this.textDialogData.padding || 15,
+        tailSize: this.textDialogData.tailSize || 145,
+        tailWidth: this.textDialogData.tailWidth || 40,
+        tailAngle: this.textDialogData.tailAngle || 45,
+        backgroundWidth: this.textDialogData.backgroundWidth || 200,
+        backgroundHeight: this.textDialogData.backgroundHeight || 100,
+        stroke: this.textDialogData.stroke || false,
+        strokeWidth: this.textDialogData.strokeWidth || 3,
+        strokeColor: this.textDialogData.strokeColor || '#000000',
+        shadow: this.textDialogData.shadow || false,
+        shadowColor: this.textDialogData.shadowColor || '#000000',
+        shadowOpacity: this.textDialogData.shadowOpacity || 85,
+        shadowOffsetX: this.textDialogData.shadowOffsetX || 8,
+        shadowOffsetY: this.textDialogData.shadowOffsetY || 8,
+        shadowBlur: this.textDialogData.shadowBlur || 1,
+        position: {
+          x: this.textDialogPosition.x,
+          y: this.textDialogPosition.y
+        },
+        mode: this.textDialogActiveTab,
         createdAt: new Date().toISOString()
       }
-      
+
       this.createdTexts.push(newText)
       console.log('📝 Текст добавлен в список:', newText)
-      
+
       // Активируем вкладку "Тексты" для показа добавленного текста
       this.activeTab = 'text'
       console.log('🔄 Активирована вкладка "Тексты"')
-      
-      // TODO: Создание текста с составной подложкой
-      // Пока просто закрываем диалог
+
+      // Закрываем диалог
       this.closeTextDialog()
     },
     
@@ -7758,8 +8155,9 @@ export default {
     
     // Начало/остановка перетаскивания по клику
     startDragging(event) {
-      if (!this.textDialogPosition) {
-        console.log('❌ textDialogPosition не определен')
+      // Перетаскивание работает только в режиме редактирования текста
+      if (!this.isTextEditMode || !this.textDialogPosition) {
+        console.log('❌ Перетаскивание недоступно - не в режиме редактирования текста')
         return
       }
       
@@ -7811,21 +8209,26 @@ export default {
       }
     },
     
+    // Обработка движения мыши (для основного канваса)
+    onMouseMove(event) {
+      if (this.isDragging) {
+        this.handleDragMove(event)
+      }
+    },
+    
+    // Остановка перетаскивания (для основного канваса)
+    stopDragging(event) {
+      if (this.isDragging && this.canStopDragging) {
+        this.handleDragEnd()
+      }
+    },
+    
     // Обработка движения мыши при перетаскивании
     handleDragMove(event) {
       if (!this.isDragging || !this.dragStartPosition) return
       
-      // Получаем ссылку на активный канвас
-      let canvas
-      if (this.textDialogActiveTab === 'conversation') {
-        canvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        canvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        canvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        canvas = this.$refs.previewCanvasImageText
-      }
+      // Получаем ссылку на основной канвас
+      const canvas = this.$refs.testCanvas
       if (!canvas) return
       
       const rect = canvas.getBoundingClientRect()
@@ -7847,8 +8250,8 @@ export default {
       this.textDialogPosition.x = this.originalTextPosition.x + scaledOffsetX
       this.textDialogPosition.y = this.originalTextPosition.y + scaledOffsetY
       
-      // Обновляем превью
-      this.updatePreviewCanvas()
+      // Обновляем основной канвас
+      this.updateMainCanvas()
       
       console.log('🎯 Перетаскивание:', {
         dragOffset: this.dragOffset,
@@ -7883,17 +8286,8 @@ export default {
       this.canStopDragging = false
       this.mouseUpAdded = false
       
-      // Возвращаем курсор на активный канвас
-      let activeCanvas
-      if (this.textDialogActiveTab === 'conversation') {
-        activeCanvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        activeCanvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        activeCanvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        activeCanvas = this.$refs.previewCanvasImageText
-      }
+      // Возвращаем курсор на основной канвас
+      const activeCanvas = this.$refs.testCanvas
       if (activeCanvas) {
         activeCanvas.style.cursor = 'default'
       }
@@ -7995,44 +8389,59 @@ export default {
       const bgWidth = this.textDialogData.backgroundWidth
       const bgHeight = this.textDialogData.backgroundHeight
       
-      // ДИНАМИЧЕСКИЙ МАСШТАБ: используем тот же подход, что и в отрисовке
+      // Для основного канваса используем прямые размеры без масштабирования
       const mainCanvas = this.$refs.testCanvas
-      let activePreviewCanvas
-      if (this.textDialogActiveTab === 'conversation') {
-        activePreviewCanvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        activePreviewCanvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        activePreviewCanvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        activePreviewCanvas = this.$refs.previewCanvasImageText
-      }
-      
-      if (!mainCanvas || !activePreviewCanvas) {
-        console.log('❌ Канвасы не найдены для вычисления масштаба')
+      if (!mainCanvas) {
+        console.log('❌ Основной канвас не найден')
         return false
       }
       
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      const scaleX = activePreviewCanvas.width / mainWidth
-      const scaleY = activePreviewCanvas.height / mainHeight
+      // Используем размеры подложки напрямую (без масштабирования для основного канваса)
+      const scaledBgWidth = bgWidth
+      const scaledBgHeight = bgHeight
       
-      // ВРЕМЕННО используем тот же фиксированный масштаб, что и в отрисовке
-      const previewScale = 1.2
-      
-      // Масштабированные размеры подложки (используем тот же масштаб)
-      const scaledBgWidth = Math.round(bgWidth * previewScale)
-      const scaledBgHeight = Math.round(bgHeight * previewScale)
-      
-      // Прямое вычисление границ суперподложки в координатах превью
-      const left = clickX - scaledBgWidth / 2
-      const top = clickY - scaledBgHeight / 2
+      // Вычисляем границы суперподложки относительно позиции текста
+      const left = this.textDialogPosition.x - scaledBgWidth / 2
+      const top = this.textDialogPosition.y - scaledBgHeight / 2
       const right = left + scaledBgWidth
       const bottom = top + scaledBgHeight
       
-      // Проверяем, находится ли клик в пределах суперподложки
-      const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      // Проверяем клик по основной подложке
+      let isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      
+      // Если не попали в основную подложку, проверяем клик по хвосту (только для режима "Разговор")
+      if (!isInside && this.textDialogActiveTab === 'conversation') {
+        const tailSize = this.textDialogData.tailSize || 20
+        const tailWidth = this.textDialogData.tailWidth || 30
+        const tailAngle = this.textDialogData.tailAngle || 270
+        
+        // Вычисляем позицию хвоста
+        const tailCenterX = this.textDialogPosition.x
+        const tailCenterY = this.textDialogPosition.y + scaledBgHeight / 2
+        
+        // Конвертируем угол в радианы
+        const angleRad = tailAngle * Math.PI / 180
+        const tailHeight = Math.max(20, tailSize)
+        const tailBaseWidth = Math.max(30, tailWidth)
+        
+        // Точки треугольника хвоста
+        const tailTopX = tailCenterX + Math.cos(angleRad) * tailHeight
+        const tailTopY = tailCenterY + Math.sin(angleRad) * tailHeight
+        const perpAngle1 = angleRad + Math.PI / 2
+        const perpAngle2 = angleRad - Math.PI / 2
+        const tailLeftX = tailCenterX + Math.cos(perpAngle1) * (tailBaseWidth / 2)
+        const tailLeftY = tailCenterY + Math.sin(perpAngle1) * (tailBaseWidth / 2)
+        const tailRightX = tailCenterX + Math.cos(perpAngle2) * (tailBaseWidth / 2)
+        const tailRightY = tailCenterY + Math.sin(perpAngle2) * (tailBaseWidth / 2)
+        
+        // Проверяем, находится ли точка внутри треугольника (простая проверка по бауднинг боксу)
+        const tailLeft = Math.min(tailTopX, tailLeftX, tailRightX)
+        const tailRight = Math.max(tailTopX, tailLeftX, tailRightX)
+        const tailTop = Math.min(tailTopY, tailLeftY, tailRightY)
+        const tailBottom = Math.max(tailTopY, tailLeftY, tailRightY)
+        
+        isInside = clickX >= tailLeft && clickX <= tailRight && clickY >= tailTop && clickY <= tailBottom
+      }
       
       // Детальная отладка
       console.log('🎯 Проверка клика по суперподложке - ЕДИНЫЙ МАСШТАБ:')
@@ -8062,7 +8471,7 @@ export default {
           img.onload = () => {
             this.textDialogDataImageText.cachedImage = img
             this.$nextTick(() => {
-              this.updatePreviewCanvas()
+              this.updateMainCanvas()
             })
           }
           img.src = e.target.result
@@ -8076,7 +8485,7 @@ export default {
       this.textDialogData.textImage = null
       this.textDialogDataImageText.cachedImage = null
       this.$nextTick(() => {
-        this.updatePreviewCanvas()
+        this.updateMainCanvas()
       })
     }
   }
@@ -8175,10 +8584,10 @@ export default {
 
 .text-dialog-overlay {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
   width: 100vw;
-  height: 56vh;
+  height: 100vh;
   background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
@@ -8478,7 +8887,7 @@ export default {
 .text-input-section textarea {
   flex: 1;
   resize: none;
-  min-height: calc(20em + .75rem + calc(var(--bs-border-width) * 2));
+  min-height: calc(2em + .75rem + calc(var(--bs-border-width) * 2));
 }
 
 /* Секция превью */
@@ -8802,39 +9211,31 @@ export default {
 }
 
 /* Ограничение высоты диалога в режиме редактирования */
-body:has(.text-edit-mode) .modal {
+body:has(.text-edit-mode) .text-dialog-overlay {
   top: auto !important;
   bottom: 0 !important;
+  height: calc(100vh - 530px) !important;
   transform: none !important;
 }
 
-body:has(.text-edit-mode) .modal .modal-dialog {
+body:has(.text-edit-mode) .text-dialog-overlay .text-dialog {
   margin: 0 !important;
-  max-height: calc(100vh - 420px) !important;
-  height: calc(100vh - 420px) !important;
-}
-
-body:has(.text-edit-mode) .modal .modal-content {
+  max-height: 100% !important;
   height: 100% !important;
-  border-radius: 0 !important;
 }
 
 /* Альтернативный способ для браузеров без поддержки :has() */
-.text-edit-mode-active .modal {
+.text-edit-mode-active .text-dialog-overlay {
   top: auto !important;
   bottom: 0 !important;
+  height: calc(100vh - 420px) !important;
   transform: none !important;
 }
 
-.text-edit-mode-active .modal .modal-dialog {
+.text-edit-mode-active .text-dialog-overlay .text-dialog {
   margin: 0 !important;
-  max-height: calc(100vh - 420px) !important;
-  height: calc(100vh - 420px) !important;
-}
-
-.text-edit-mode-active .modal .modal-content {
+  max-height: 100% !important;
   height: 100% !important;
-  border-radius: 0 !important;
 }
 
 </style>

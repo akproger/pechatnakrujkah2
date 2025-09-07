@@ -5686,6 +5686,9 @@ export default {
       // Включаем режим редактирования текста
       this.isTextEditMode = true
       
+      // Добавляем класс на body для стилизации диалога
+      document.body.classList.add('text-edit-mode-active')
+      
       // Устанавливаем позицию по центру превью канваса
       const previewCanvas = this.$refs.previewCanvas
       if (previewCanvas) {
@@ -5720,6 +5723,9 @@ export default {
       this.textDialogPosition = null
       this.resetTextDialogData()
       this.isTextEditMode = false
+      
+      // Удаляем класс с body
+      document.body.classList.remove('text-edit-mode-active')
     },
     
     // Сброс данных диалога
@@ -8781,11 +8787,13 @@ export default {
 .text-edit-mode {
   position: fixed !important;
   top: 20px !important;
-  left: 0 !important;
-  right: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
   z-index: 100 !important;
   padding: 0 20px !important;
   margin: 0 !important;
+  width: 100% !important;
+  max-width: 1200px !important;
 }
 
 .text-edit-mode .card {
@@ -8793,19 +8801,37 @@ export default {
 }
 
 /* Ограничение высоты диалога в режиме редактирования */
-.text-edit-mode + .modal {
+body:has(.text-edit-mode) .modal {
   top: auto !important;
   bottom: 0 !important;
   transform: none !important;
 }
 
-.text-edit-mode + .modal .modal-dialog {
+body:has(.text-edit-mode) .modal .modal-dialog {
   margin: 0 !important;
-  max-height: calc(100vh - 400px) !important;
-  height: calc(100vh - 400px) !important;
+  max-height: calc(100vh - 420px) !important;
+  height: calc(100vh - 420px) !important;
 }
 
-.text-edit-mode + .modal .modal-content {
+body:has(.text-edit-mode) .modal .modal-content {
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* Альтернативный способ для браузеров без поддержки :has() */
+.text-edit-mode-active .modal {
+  top: auto !important;
+  bottom: 0 !important;
+  transform: none !important;
+}
+
+.text-edit-mode-active .modal .modal-dialog {
+  margin: 0 !important;
+  max-height: calc(100vh - 420px) !important;
+  height: calc(100vh - 420px) !important;
+}
+
+.text-edit-mode-active .modal .modal-content {
   height: 100% !important;
   border-radius: 0 !important;
 }

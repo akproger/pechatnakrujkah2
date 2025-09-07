@@ -9,7 +9,7 @@
     />
     <div class="container">
       <!-- Заголовок страницы -->
-      <div class="row">
+      <div class="row" :class="{ 'd-none': isTextEditMode }">
         <div class="col">
           <h2 class="page-title">Стикермания</h2>
           <p class="text-muted">Инструмент для создания стикеров с случайным размещением</p>
@@ -17,7 +17,7 @@
       </div>
       
       <!-- Кнопки управления -->
-      <div class="row mb-2">
+      <div class="row mb-2" :class="{ 'd-none': isTextEditMode }">
         <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
             <div class="card-body" style="padding-left: 10px;">
@@ -55,7 +55,7 @@
       </div>
       
       <!-- Canvas область и 3D превью -->
-      <div class="row">
+      <div class="row" :class="{ 'text-edit-mode': isTextEditMode }">
         <div class="col-md-8">
           <div class="card">
             <div class="card-body p-0">
@@ -1530,7 +1530,7 @@
       </div>
       
       <!-- Табы управления -->
-      <div class="row mt-4">
+      <div class="row mt-4" :class="{ 'd-none': isTextEditMode }">
         <div class="col-12">
           <ul class="nav nav-tabs" id="stickerTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -1606,7 +1606,7 @@
       </div>
       
       <!-- Контент табов -->
-      <div class="tab-content" id="stickerTabContent">
+      <div class="tab-content" id="stickerTabContent" :class="{ 'd-none': isTextEditMode }">
         <!-- Таб "Формы стикеров" -->
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'shapes' }" id="shapes" role="tabpanel" aria-labelledby="shapes-tab">
           <div class="row mt-3">
@@ -1884,6 +1884,7 @@ export default {
       textControlStates: {}, // Состояния управления для каждого текста
       textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
       createdTexts: [], // Массив добавленных текстов для отображения во вкладке "Тексты"
+      isTextEditMode: false, // Режим редактирования текста
       
       // Маски стикеров
       stickerMasks: [
@@ -5682,6 +5683,9 @@ export default {
     openTextDialogInCenter() {
       console.log('🔄 Открываем диалог добавления текста в центре')
       
+      // Включаем режим редактирования текста
+      this.isTextEditMode = true
+      
       // Устанавливаем позицию по центру превью канваса
       const previewCanvas = this.$refs.previewCanvas
       if (previewCanvas) {
@@ -5715,6 +5719,7 @@ export default {
       this.showTextDialog = false
       this.textDialogPosition = null
       this.resetTextDialogData()
+      this.isTextEditMode = false
     },
     
     // Сброс данных диалога
@@ -8770,6 +8775,39 @@ export default {
 }
 .control-icon:before {
   display: none !important;
+}
+
+/* Стили для режима редактирования текста */
+.text-edit-mode {
+  position: fixed !important;
+  top: 20px !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  padding: 0 20px !important;
+  margin: 0 !important;
+}
+
+.text-edit-mode .card {
+  margin-bottom: 20px !important;
+}
+
+/* Ограничение высоты диалога в режиме редактирования */
+.text-edit-mode + .modal {
+  top: auto !important;
+  bottom: 0 !important;
+  transform: none !important;
+}
+
+.text-edit-mode + .modal .modal-dialog {
+  margin: 0 !important;
+  max-height: calc(100vh - 400px) !important;
+  height: calc(100vh - 400px) !important;
+}
+
+.text-edit-mode + .modal .modal-content {
+  height: 100% !important;
+  border-radius: 0 !important;
 }
 
 </style>

@@ -1848,6 +1848,7 @@ export default {
       textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
       createdTexts: [], // Массив добавленных текстов для отображения во вкладке "Тексты"
       isTextEditMode: false, // Режим редактирования текста
+      stickersSnapshot: null, // Скриншот стикеров для режима редактирования текста
       
       // Маски стикеров
       stickerMasks: [
@@ -5662,6 +5663,9 @@ export default {
         console.log('🎯 Позиция текста установлена:', { centerX, centerY, canvasWidth: mainCanvas.clientWidth, canvasHeight: mainCanvas.clientHeight })
       }
       
+      // Создаем скриншот стикеров перед открытием диалога
+      this.createStickersSnapshot()
+      
       // Открываем диалог
       this.showTextDialog = true
       this.resetTextDialogData()
@@ -5680,6 +5684,9 @@ export default {
       this.textDialogPosition = null
       this.resetTextDialogData()
       this.isTextEditMode = false
+      
+      // Удаляем скриншот стикеров
+      this.clearStickersSnapshot()
       
       // Удаляем класс с body
       document.body.classList.remove('text-edit-mode-active')
@@ -5758,46 +5765,63 @@ export default {
       
       const ctx = mainCanvas.getContext('2d')
       
-      // Перерисовываем все стикеры (Paper.js рисует в своем контексте)
-      this.redrawAllStickers()
+      // Очищаем канвас
+      ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height)
       
-      // Добавляем текст с подложкой в зависимости от активной вкладки
-      if (this.textDialogPosition) {
-        const displayText = this.textDialogData.text || 'Демо текст'
-        console.log('🎯 Рисуем текст на основном канвасе:', displayText)
+      // Отрисовываем скриншот стикеров как фон
+      console.log('🔍 Проверка условий:', {
+        hasPosition: !!this.textDialogPosition,
+        hasSnapshot: !!this.stickersSnapshot,
+        snapshotLength: this.stickersSnapshot ? this.stickersSnapshot.length : 0
+      })
+      
+      if (this.textDialogPosition && this.stickersSnapshot) {
+        console.log('📸 Отрисовываем скриншот стикеров')
+        this.drawStickersSnapshot(ctx, mainCanvas)
+        // Текст будет отрисован после загрузки скриншота в drawStickersSnapshot
+      } else {
+        console.log('🔄 Перерисовываем стикеры обычным способом')
+        // Если нет скриншота, перерисовываем стикеры обычным способом
+        this.redrawAllStickers()
         
-        if (this.textDialogActiveTab === 'thoughts') {
-          // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
-          console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ" на основном канвасе')
-          this.drawTextOnMainCanvasThoughtsMode(ctx, mainCanvas, displayText)
-        } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
-          console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ" на основном канвасе')
-          this.drawTextOnMainCanvasStandardMode(ctx, mainCanvas, displayText)
-        } else if (this.textDialogActiveTab === 'image-text') {
-          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
-          console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" на основном канвасе')
-          this.drawTextOnMainCanvasImageTextMode(ctx, mainCanvas, displayText)
-        } else {
-          // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
-          console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР" на основном канвасе')
-          this.drawTextOnMainCanvas(ctx, mainCanvas, displayText)
-        }
-      } else if (this.textDialogPosition) {
-        // Показываем дефолтный текст "Текст" на дефолтной подложке
-        console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ на основном канвасе')
-        if (this.textDialogActiveTab === 'thoughts') {
-          // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
-          this.drawDefaultTextOnMainCanvasThoughtsMode(ctx, mainCanvas)
-        } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
-          this.drawDefaultTextOnMainCanvasStandardMode(ctx, mainCanvas)
-        } else if (this.textDialogActiveTab === 'image-text') {
-          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтная подложка без хвоста
-          this.drawDefaultTextOnMainCanvasImageTextMode(ctx, mainCanvas)
-        } else {
-          // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
-          this.drawDefaultTextOnMainCanvas(ctx, mainCanvas)
+        // Добавляем текст с подложкой в зависимости от активной вкладки
+        if (this.textDialogPosition) {
+          const displayText = this.textDialogData.text || 'Демо текст'
+          console.log('🎯 Рисуем текст на основном канвасе:', displayText)
+          
+          if (this.textDialogActiveTab === 'thoughts') {
+            // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
+            console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ" на основном канвасе')
+            this.drawTextOnMainCanvasThoughtsMode(ctx, mainCanvas, displayText)
+          } else if (this.textDialogActiveTab === 'standard') {
+            // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
+            console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ" на основном канвасе')
+            this.drawTextOnMainCanvasStandardMode(ctx, mainCanvas, displayText)
+          } else if (this.textDialogActiveTab === 'image-text') {
+            // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
+            console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" на основном канвасе')
+            this.drawTextOnMainCanvasImageTextMode(ctx, mainCanvas, displayText)
+          } else {
+            // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
+            console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР" на основном канвасе')
+            this.drawTextOnMainCanvas(ctx, mainCanvas, displayText)
+          }
+        } else if (this.textDialogPosition) {
+          // Показываем дефолтный текст "Текст" на дефолтной подложке
+          console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ на основном канвасе')
+          if (this.textDialogActiveTab === 'thoughts') {
+            // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
+            this.drawDefaultTextOnMainCanvasThoughtsMode(ctx, mainCanvas)
+          } else if (this.textDialogActiveTab === 'standard') {
+            // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
+            this.drawDefaultTextOnMainCanvasStandardMode(ctx, mainCanvas)
+          } else if (this.textDialogActiveTab === 'image-text') {
+            // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтная подложка без хвоста
+            this.drawDefaultTextOnMainCanvasImageTextMode(ctx, mainCanvas)
+          } else {
+            // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
+            this.drawDefaultTextOnMainCanvas(ctx, mainCanvas)
+          }
         }
       }
     },
@@ -5814,6 +5838,156 @@ export default {
       if (this.paperScope && this.paperScope.view) {
         this.paperScope.view.draw()
       }
+    },
+    
+    // Очистка области подложки текста
+    clearTextBackgroundArea(ctx, canvas) {
+      if (!this.textDialogPosition) return
+      
+      const x = this.textDialogPosition.x
+      const y = this.textDialogPosition.y
+      
+      // Вычисляем размеры области для очистки
+      const fontSize = this.textDialogData.fontSize || 24
+      const padding = this.textDialogData.padding || 15
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      
+      // Измеряем текст для точного расчета
+      ctx.font = `${this.textDialogData.fontWeight || 'normal'} ${fontSize}px ${this.textDialogData.font || 'Arial'}`
+      const textMetrics = ctx.measureText(this.textDialogData.text || 'Текст')
+      const textWidth = textMetrics.width
+      const textHeight = fontSize * (this.textDialogData.lineHeight || 1.2)
+      
+      // Размеры подложки
+      const bgWidth = Math.max(textWidth + padding * 2, backgroundWidth)
+      const bgHeight = Math.max(textHeight + padding * 2, backgroundHeight)
+      
+      // Добавляем запас для хвоста (примерно 150% от размера подложки)
+      const tailSize = this.textDialogData.tailSize || 145
+      const tailWidth = this.textDialogData.tailWidth || 40
+      const maxTailLength = Math.max(bgWidth, bgHeight) * 1.5
+      const maxTailWidth = Math.max(bgWidth, bgHeight) * 0.5
+      
+      // Область для очистки (с запасом для хвоста)
+      const clearWidth = bgWidth + maxTailLength + maxTailWidth
+      const clearHeight = bgHeight + maxTailLength + maxTailWidth
+      
+      // Позиция области очистки (центрируем относительно точки клика)
+      const clearX = x - clearWidth / 2
+      const clearY = y - clearHeight / 2
+      
+      console.log('🧹 Очищаем область подложки:', { clearX, clearY, clearWidth, clearHeight })
+      
+      // Очищаем область
+      ctx.clearRect(clearX, clearY, clearWidth, clearHeight)
+      
+      // Перерисовываем стикеры в очищенной области
+      this.redrawAllStickers()
+    },
+    
+    // Создание скриншота стикеров для режима редактирования текста
+    createStickersSnapshot() {
+      console.log('📸 Создание скриншота стикеров')
+      
+      const mainCanvas = this.$refs.testCanvas
+      if (!mainCanvas) {
+        console.log('⚠️ Основной канвас не найден для скриншота')
+        return
+      }
+      
+      console.log('🔍 Размеры основного канваса:', {
+        width: mainCanvas.width,
+        height: mainCanvas.height,
+        clientWidth: mainCanvas.clientWidth,
+        clientHeight: mainCanvas.clientHeight
+      })
+      
+      // Сначала убеждаемся, что стикеры отрисованы
+      this.redrawAllStickers()
+      
+      // Создаем временный канвас для скриншота с правильными размерами
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = mainCanvas.clientWidth
+      tempCanvas.height = mainCanvas.clientHeight
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      console.log('🔍 Размеры временного канваса:', {
+        width: tempCanvas.width,
+        height: tempCanvas.height
+      })
+      
+      // Копируем содержимое основного канваса (стикеры) с правильным масштабированием
+      tempCtx.drawImage(mainCanvas, 0, 0, tempCanvas.width, tempCanvas.height)
+      
+      // Сохраняем скриншот как dataURL
+      this.stickersSnapshot = tempCanvas.toDataURL()
+      console.log('✅ Скриншот стикеров создан, размер:', this.stickersSnapshot.length, 'разрешение:', tempCanvas.width + 'x' + tempCanvas.height)
+    },
+    
+    // Отрисовка скриншота стикеров поверх основного канваса
+    drawStickersSnapshot(ctx, canvas) {
+      if (!this.stickersSnapshot) {
+        console.log('⚠️ Скриншот стикеров отсутствует')
+        return
+      }
+      
+      console.log('🖼️ Отрисовка скриншота стикеров, размер:', this.stickersSnapshot.length)
+      
+      // Создаем изображение из dataURL
+      const img = new Image()
+      img.onload = () => {
+        try {
+          // Отрисовываем скриншот только в области стикеров (не поверх всего канваса)
+          ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight)
+          console.log('✅ Скриншот стикеров отрисован в области:', canvas.clientWidth + 'x' + canvas.clientHeight)
+          
+          // После отрисовки скриншота, перерисовываем текст с подложкой
+          this.$nextTick(() => {
+            this.drawTextOnMainCanvasAfterSnapshot(ctx, canvas)
+          })
+        } catch (error) {
+          console.error('❌ Ошибка при отрисовке скриншота:', error)
+        }
+      }
+      img.onerror = (error) => {
+        console.error('❌ Ошибка загрузки изображения скриншота:', error)
+      }
+      img.src = this.stickersSnapshot
+    },
+    
+    // Отрисовка текста после загрузки скриншота стикеров
+    drawTextOnMainCanvasAfterSnapshot(ctx, canvas) {
+      console.log('📝 Отрисовка текста после скриншота стикеров')
+      
+      if (!this.textDialogPosition) return
+      
+      const displayText = this.textDialogData.text || 'Демо текст'
+      console.log('🎯 Рисуем текст на основном канвасе после скриншота:', displayText)
+      
+      if (this.textDialogActiveTab === 'thoughts') {
+        // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
+        console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ" на основном канвасе после скриншота')
+        this.drawTextOnMainCanvasThoughtsMode(ctx, canvas, displayText)
+      } else if (this.textDialogActiveTab === 'standard') {
+        // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
+        console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ" на основном канвасе после скриншота')
+        this.drawTextOnMainCanvasStandardMode(ctx, canvas, displayText)
+      } else if (this.textDialogActiveTab === 'image-text') {
+        // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
+        console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" на основном канвасе после скриншота')
+        this.drawTextOnMainCanvasImageTextMode(ctx, canvas, displayText)
+      } else {
+        // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
+        console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР" на основном канвасе после скриншота')
+        this.drawTextOnMainCanvas(ctx, canvas, displayText)
+      }
+    },
+    
+    // Удаление скриншота стикеров
+    clearStickersSnapshot() {
+      console.log('🗑️ Удаление скриншота стикеров')
+      this.stickersSnapshot = null
     },
     
     // Рисование текста на основном канвасе - режим "Разговор"

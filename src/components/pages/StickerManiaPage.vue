@@ -5761,11 +5761,6 @@ export default {
       // Перерисовываем все стикеры (Paper.js рисует в своем контексте)
       this.redrawAllStickers()
       
-      // Очищаем область текста перед отрисовкой нового
-      if (this.textDialogPosition) {
-        this.clearTextArea(ctx, mainCanvas)
-      }
-      
       // Добавляем текст с подложкой в зависимости от активной вкладки
       if (this.textDialogPosition) {
         const displayText = this.textDialogData.text || 'Демо текст'
@@ -5807,29 +5802,6 @@ export default {
       }
     },
     
-    // Очистка области текста на канвасе
-    clearTextArea(ctx, canvas) {
-      if (!this.textDialogPosition) return
-      
-      // Получаем размеры подложки
-      const bgWidth = this.textDialogData.backgroundWidth || 200
-      const bgHeight = this.textDialogData.backgroundHeight || 100
-      const tailSize = this.textDialogData.tailSize || 145
-      const tailWidth = this.textDialogData.tailWidth || 40
-      
-      // Вычисляем область для очистки (с запасом для хвоста)
-      const clearMargin = Math.max(tailSize, tailWidth) + 20
-      const clearX = this.textDialogPosition.x - bgWidth / 2 - clearMargin
-      const clearY = this.textDialogPosition.y - bgHeight / 2 - clearMargin
-      const clearWidth = bgWidth + clearMargin * 2
-      const clearHeight = bgHeight + clearMargin * 2
-      
-      // Очищаем область
-      ctx.clearRect(clearX, clearY, clearWidth, clearHeight)
-      
-      console.log('🧹 Очищена область текста:', { clearX, clearY, clearWidth, clearHeight })
-    },
-    
     // Перерисовка всех стикеров на основном канвасе
     redrawAllStickers() {
       console.log('🔄 Перерисовка всех стикеров на основном канвасе')
@@ -5854,95 +5826,77 @@ export default {
       const y = this.textDialogPosition.y
       console.log('🎯 Координаты текста:', { x, y, canvasWidth: canvas.clientWidth, canvasHeight: canvas.clientHeight })
       
+      // Используем рабочую логику из превью канваса
+      const mainCanvas = this.$refs.testCanvas
+      const mainWidth = mainCanvas.width
+      const mainHeight = mainCanvas.height
+      
+      // Масштаб для основного канваса (без масштабирования)
+      const mainScale = 1.0
+      
       // Настройки текста
-      const text = displayText || this.textDialogData.text || 'Текст'
       const fontSize = this.textDialogData.fontSize || 24
-      const font = this.textDialogData.font || 'Arial'
+      const fontFamily = this.textDialogData.font || 'Arial'
       const fontWeight = this.textDialogData.fontWeight || 'normal'
       const textColor = this.textDialogData.textColor || '#000000'
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       const padding = this.textDialogData.padding || 15
-      const tailSize = this.textDialogData.tailSize || 145
-      const tailWidth = this.textDialogData.tailWidth || 40
-      const tailAngle = this.textDialogData.tailAngle || 45
-      const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
-      const textAlign = this.textDialogData.textAlign || 'center'
-      const lineHeight = this.textDialogData.lineHeight || 1.2
-      const stroke = this.textDialogData.stroke || false
-      const strokeWidth = this.textDialogData.strokeWidth || 2
-      const strokeColor = this.textDialogData.strokeColor || '#000000'
-      const shadow = this.textDialogData.shadow || false
-      const shadowColor = this.textDialogData.shadowColor || '#000000'
-      const shadowOpacity = this.textDialogData.shadowOpacity || 85
-      const shadowOffsetX = this.textDialogData.shadowOffsetX || 8
-      const shadowOffsetY = this.textDialogData.shadowOffsetY || 8
-      const shadowBlur = this.textDialogData.shadowBlur || 1
       
-      // Настройка шрифта
-      ctx.font = `${fontWeight} ${fontSize}px ${font}`
-      ctx.textAlign = textAlign
+      // Устанавливаем стиль шрифта
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Измеряем текст
-      const textMetrics = ctx.measureText(text)
-      const textWidth = textMetrics.width
-      const textHeight = fontSize * lineHeight
+      // Измеряем размеры многострочного текста
+      const textSize = this.calculateMultilineTextSize(ctx, displayText || this.textDialogData.text || 'Текст', fontSize, this.textDialogData.lineHeight || 1.2)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
       
-      // Вычисляем размеры подложки
-      const bgWidth = Math.max(textWidth + padding * 2, backgroundWidth)
-      const bgHeight = Math.max(textHeight + padding * 2, backgroundHeight)
+      // Размеры подложки
+      const backgroundWidth = Math.max(
+        this.textDialogData.backgroundWidth || 200, 
+        textWidth + padding * 2
+      )
+      const backgroundHeight = Math.max(
+        this.textDialogData.backgroundHeight || 100, 
+        textHeight + padding * 2
+      )
       
-      // Вычисляем позицию подложки
-      let bgX, bgY
-      if (textAlign === 'center') {
-        bgX = x - bgWidth / 2
-        bgY = y - bgHeight / 2
-      } else if (textAlign === 'left') {
-        bgX = x
-        bgY = y - bgHeight / 2
-      } else {
-        bgX = x - bgWidth
-        bgY = y - bgHeight / 2
+      // Позиция подложки (центрируем относительно точки клика)
+      const bgX = x - backgroundWidth / 2
+      const bgY = y - backgroundHeight / 2
+      
+      // Сначала рисуем тень если включена (применяется к объединенной фигуре)
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, this.textDialogData.shadowBlur || 1)
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX || 8
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY || 8
       }
       
-      // Рисуем тень
-      if (shadow) {
-        ctx.save()
-        ctx.shadowColor = shadowColor
-        ctx.shadowBlur = shadowBlur
-        ctx.shadowOffsetX = shadowOffsetX
-        ctx.shadowOffsetY = shadowOffsetY
-        ctx.globalAlpha = shadowOpacity / 100
-        
-        // Рисуем подложку с тенью
-        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
-        
-        ctx.restore()
+      // Рисуем объединенную фигуру (подложка + хвост) с тенью
+      this.drawCombinedShape(ctx, x, y, backgroundWidth, backgroundHeight, mainScale, backgroundColor, true)
+      
+      // Сбрасываем тень
+      if (this.textDialogData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
       
-      // Рисуем обводку
-      if (stroke) {
-        ctx.save()
-        ctx.strokeStyle = strokeColor
-        ctx.lineWidth = strokeWidth
-        ctx.globalAlpha = 1
-        
-        // Рисуем подложку с обводкой
-        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
-        
-        ctx.restore()
+      // Добавляем обводку если включена (применяется к объединенной фигуре)
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor
+        ctx.lineWidth = Math.max(1, this.textDialogData.strokeWidth || 2)
+        this.strokeCombinedShape(ctx, x, y, backgroundWidth, backgroundHeight, mainScale)
       }
       
-      // Рисуем основную подложку
-      if (!shadow && !stroke) {
-        this.drawConversationBackground(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor)
-      }
-      
-      // Рисуем текст
+      // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
-      ctx.globalAlpha = 1
-      ctx.fillText(text, x, y)
+      this.drawMultilineText(ctx, displayText || this.textDialogData.text || 'Текст', x, y, fontSize, this.textDialogData.lineHeight || 1.2)
+      
+      console.log('✅ Текст с подложкой отрисован на основном канвасе')
     },
     
     // Рисование дефолтного текста на основном канвасе - режим "Разговор"
@@ -6099,6 +6053,76 @@ export default {
       console.log('💬 Суперподложка нарисована:', { tailTopX, tailTopY, tailLeftX, tailLeftY, tailRightX, tailRightY })
     },
     
+    // Рисование полной подложки с тенью и обводкой
+    drawConversationBackgroundComplete(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor, shadow, shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, shadowOpacity, stroke, strokeColor, strokeWidth) {
+      console.log('💬 Рисование полной подложки с тенью и обводкой')
+      
+      // Создаем единый path для прямоугольника и хвоста
+      ctx.beginPath()
+      
+      // Рисуем прямоугольник
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Вычисляем позицию хвоста - хвост снизу по центру
+      const tailCenterX = bgX + bgWidth / 2
+      const tailCenterY = bgY + bgHeight / 2
+      
+      // Параметры хвоста - делаем хвост больше и видимым
+      const tailHeight = Math.max(20, tailSize) // Минимум 20px
+      const tailBaseWidth = Math.max(30, tailWidth) // Минимум 30px
+      
+      // Конвертируем угол в радианы (tailAngle в градусах от 0 до 360)
+      const angleRad = (tailAngle || 270) * Math.PI / 180
+      
+      // Точки треугольника хвоста с учетом угла поворота
+      // Вершина хвоста (направление по углу)
+      const tailTopX = tailCenterX + Math.cos(angleRad) * tailHeight
+      const tailTopY = tailCenterY + Math.sin(angleRad) * tailHeight
+      
+      // Базовые точки хвоста (перпендикулярно направлению)
+      const perpAngle1 = angleRad + Math.PI / 2
+      const perpAngle2 = angleRad - Math.PI / 2
+      const tailLeftX = tailCenterX + Math.cos(perpAngle1) * (tailBaseWidth / 2)
+      const tailLeftY = tailCenterY + Math.sin(perpAngle1) * (tailBaseWidth / 2)
+      const tailRightX = tailCenterX + Math.cos(perpAngle2) * (tailBaseWidth / 2)
+      const tailRightY = tailCenterY + Math.sin(perpAngle2) * (tailBaseWidth / 2)
+      
+      // Добавляем треугольник хвоста к тому же path
+      ctx.moveTo(tailTopX, tailTopY)
+      ctx.lineTo(tailLeftX, tailLeftY)
+      ctx.lineTo(tailRightX, tailRightY)
+      ctx.closePath()
+      
+      // Рисуем тень если включена
+      if (shadow) {
+        ctx.save()
+        ctx.shadowColor = shadowColor
+        ctx.shadowBlur = shadowBlur
+        ctx.shadowOffsetX = shadowOffsetX
+        ctx.shadowOffsetY = shadowOffsetY
+        ctx.globalAlpha = shadowOpacity / 100
+        
+        // Заливаем единую фигуру с тенью
+        ctx.fillStyle = backgroundColor
+        ctx.fill()
+        
+        ctx.restore()
+      }
+      
+      // Заливаем единую фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+      
+      // Рисуем обводку если включена
+      if (stroke) {
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.stroke()
+      }
+      
+      console.log('💬 Полная суперподложка нарисована:', { tailTopX, tailTopY, tailLeftX, tailLeftY, tailRightX, tailRightY })
+    },
+    
     // Рисование подложки с обводкой для режима "Разговор"
     drawConversationBackgroundWithStroke(ctx, bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth, tailAngle, backgroundColor, stroke, strokeColor, strokeWidth) {
       console.log('💬 Рисование подложки с обводкой для режима "Разговор"', { bgX, bgY, bgWidth, bgHeight, tailSize, tailWidth })
@@ -6143,10 +6167,10 @@ export default {
       ctx.fillStyle = backgroundColor
       ctx.fill()
       
-      // Рисуем обводку если нужно
-      if (stroke) {
-        ctx.strokeStyle = strokeColor
-        ctx.lineWidth = strokeWidth
+      // Рисуем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
+        ctx.lineWidth = this.textDialogData.strokeWidth || 2
         ctx.stroke()
       }
       

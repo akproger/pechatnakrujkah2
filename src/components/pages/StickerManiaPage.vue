@@ -2106,129 +2106,193 @@ export default {
   watch: {
     // Автоматически обновляем превью при изменении любых параметров текста
     'textDialogData.text'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.fontSize'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.fontWeight'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.font'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.textColor'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.backgroundColor'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.backgroundWidth'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.backgroundHeight'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.padding'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.stroke'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadow'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.strokeWidth'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.strokeColor'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadowColor'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadowOpacity'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadowOffsetX'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadowOffsetY'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.shadowBlur'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.tailSize'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.tailWidth'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.tailAngle'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.textAlign'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.lineHeight'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     'textDialogData.textImage'() {
-      this.$nextTick(() => {
-        this.updatePreviewCanvas()
-      })
+      if (this.showTextDialog) {
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
     
     // Вотчер для переключения вкладок
     'textDialogActiveTab'() {
       console.log('🔄 Переключение вкладки на:', this.textDialogActiveTab)
+      console.log('🎯 Доступные канвасы:', {
+        conversation: !!this.$refs.previewCanvas,
+        thoughts: !!this.$refs.previewCanvasThoughts,
+        standard: !!this.$refs.previewCanvasStandard,
+        imageText: !!this.$refs.previewCanvasImageText
+      })
+      
+      // Дополнительная проверка для режима "Текст с изображением"
+      if (this.textDialogActiveTab === 'image-text') {
+        console.log('🔍 Детальная проверка previewCanvasImageText:', {
+          ref: this.$refs.previewCanvasImageText,
+          exists: !!this.$refs.previewCanvasImageText,
+          element: this.$refs.previewCanvasImageText,
+          display: this.$refs.previewCanvasImageText ? window.getComputedStyle(this.$refs.previewCanvasImageText).display : 'N/A'
+        })
+      }
       
       // Принудительно обновляем превью при переключении
       this.$nextTick(() => {
@@ -5725,15 +5789,38 @@ export default {
     // Открытие диалога добавления текста с размещением по центру
     openTextDialogInCenter() {
       console.log('🔄 Открываем диалог добавления текста в центре')
+      console.log('🎯 Текущая активная вкладка:', this.textDialogActiveTab)
       
       // Устанавливаем позицию по центру канваса (используем логические размеры)
-      const previewCanvas = this.$refs.previewCanvas
+      // Сначала пробуем получить размеры из активного превью канваса
+      let previewCanvas = null
+      
+      // Определяем активный превью канвас в зависимости от вкладки
+      if (this.textDialogActiveTab === 'thoughts') {
+        previewCanvas = this.$refs.previewCanvasThoughts
+        console.log('🧠 Ищем канвас для режима "Мысли":', previewCanvas)
+      } else if (this.textDialogActiveTab === 'standard') {
+        previewCanvas = this.$refs.previewCanvasStandard
+        console.log('⭐ Ищем канвас для режима "Стандарт":', previewCanvas)
+      } else if (this.textDialogActiveTab === 'image-text') {
+        previewCanvas = this.$refs.previewCanvasImageText
+        console.log('🖼️ Ищем канвас для режима "Текст с изображением":', previewCanvas)
+      } else {
+        previewCanvas = this.$refs.previewCanvas // Режим "Разговор"
+        console.log('💬 Ищем канвас для режима "Разговор":', previewCanvas)
+      }
+      
       if (previewCanvas) {
         const rect = previewCanvas.getBoundingClientRect()
         const centerX = rect.width / 2
         const centerY = rect.height / 2
         this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
-        console.log('📍 Позиция из превью канваса:', { centerX, centerY, logicalSize: `${rect.width}x${rect.height}` })
+        console.log('📍 Позиция из активного превью канваса:', { 
+          centerX, 
+          centerY, 
+          logicalSize: `${rect.width}x${rect.height}`,
+          activeTab: this.textDialogActiveTab
+        })
       } else {
         // Если превью канвас не найден, используем основной канвас
         const mainCanvas = this.$refs.testCanvas
@@ -5837,28 +5924,37 @@ export default {
     updatePreviewCanvas() {
       console.log('🔄 Обновление превью канваса, активная вкладка:', this.textDialogActiveTab)
       
-                // Обновляем все превью канвасы
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-      
-      // Принудительно обновляем активную вкладку
-      if (this.textDialogActiveTab === 'thoughts') {
-        console.log('🧠 Принудительное обновление режима "Мысли"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-        })
-      } else if (this.textDialogActiveTab === 'standard') {
-        console.log('⭐ Принудительное обновление режима "Стандарт"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-        })
-      } else if (this.textDialogActiveTab === 'image-text') {
-        console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
-        this.$nextTick(() => {
-          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-        })
+      // Обновляем превью канвасы только если диалог открыт
+      if (this.showTextDialog) {
+        // Обновляем все превью канвасы
+        this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
+        this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+        this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+        this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+        
+        // Принудительно обновляем активную вкладку
+        if (this.textDialogActiveTab === 'thoughts') {
+          console.log('🧠 Принудительное обновление режима "Мысли"')
+          this.$nextTick(() => {
+            this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+          })
+        } else if (this.textDialogActiveTab === 'standard') {
+          console.log('⭐ Принудительное обновление режима "Стандарт"')
+          this.$nextTick(() => {
+            this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+          })
+        } else if (this.textDialogActiveTab === 'image-text') {
+          console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
+          console.log('🔍 Проверка ref previewCanvasImageText:', {
+            ref: this.$refs.previewCanvasImageText,
+            exists: !!this.$refs.previewCanvasImageText
+          })
+          this.$nextTick(() => {
+            this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+          })
+        }
+      } else {
+        console.log('⚠️ Диалог закрыт, пропускаем обновление превью канвасов')
       }
     },
     
@@ -5867,7 +5963,22 @@ export default {
       if (!previewCanvas) return
       
       const dpr = window.devicePixelRatio || 1
-      const rect = previewCanvas.getBoundingClientRect()
+      let rect = previewCanvas.getBoundingClientRect()
+      
+      // Если канвас имеет нулевые размеры, используем размеры основного канваса
+      if (rect.width === 0 || rect.height === 0) {
+        console.log('⚠️ Канвас имеет нулевые размеры, используем размеры основного канваса')
+        const mainCanvas = this.$refs.testCanvas
+        if (mainCanvas) {
+          const container = mainCanvas.parentElement
+          if (container) {
+            const containerWidth = container.clientWidth
+            const containerHeight = (containerWidth * 9) / 19
+            rect = { width: containerWidth, height: containerHeight }
+            console.log('📏 Используем размеры основного канваса:', rect)
+          }
+        }
+      }
       
       // Устанавливаем физические размеры с учетом HiDPI
       previewCanvas.width = rect.width * dpr
@@ -5884,7 +5995,8 @@ export default {
       console.log('🖥️ Настройка HiDPI для превью канваса:', {
         logicalSize: `${rect.width}x${rect.height}`,
         physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
-        dpr: dpr
+        dpr: dpr,
+        wasZeroSize: rect.width === 0 || rect.height === 0
       })
     },
     
@@ -5893,7 +6005,12 @@ export default {
       const mainCanvas = this.$refs.testCanvas
       
       if (!previewCanvas || !mainCanvas) {
-        console.log('⚠️ Канвасы не найдены для превью')
+        console.log('⚠️ Канвасы не найдены для превью', {
+          previewCanvas: !!previewCanvas,
+          mainCanvas: !!mainCanvas,
+          previewCanvasRef: previewCanvas,
+          mainCanvasRef: mainCanvas
+        })
         return
       }
       
@@ -5907,49 +6024,76 @@ export default {
       // Получаем контекст превью канваса
       const previewCtx = previewCanvas.getContext('2d')
       
-      // Очищаем превью (логические размеры)
-      const rect = previewCanvas.getBoundingClientRect()
-      previewCtx.clearRect(0, 0, rect.width, rect.height)
+      // Получаем размеры канваса (используем стили, так как getBoundingClientRect может вернуть 0)
+      let canvasWidth = parseFloat(previewCanvas.style.width) || previewCanvas.width / (window.devicePixelRatio || 1)
+      let canvasHeight = parseFloat(previewCanvas.style.height) || previewCanvas.height / (window.devicePixelRatio || 1)
       
-      // Копируем содержимое основного канваса в превью (логические размеры)
-      previewCtx.drawImage(mainCanvas, 0, 0, rect.width, rect.height)
-      
-      // Добавляем текст с подложкой в зависимости от активной вкладки
-      console.log('🎯 updateSinglePreviewCanvas - активная вкладка:', this.textDialogActiveTab)
-      
-      if (this.textDialogPosition && this.textDialogData.text) {
-        if (this.textDialogActiveTab === 'thoughts') {
-          // 🧠 РЕЖИМ "МЫСЛИ" - используем специальный метод
-          console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
-          this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
-        } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - используем специальный метод без хвоста
-          console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
-          this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
-        } else if (this.textDialogActiveTab === 'image-text') {
-          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - используем специальный метод без хвоста
-          console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ"')
-          this.drawTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
-        } else {
-          // 💬 РЕЖИМ "РАЗГОВОР" - используем обычный метод
-          console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
-          this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+      // Если размеры все еще нулевые, используем размеры основного канваса
+      if (canvasWidth === 0 || canvasHeight === 0) {
+        const container = mainCanvas.parentElement
+        if (container) {
+          canvasWidth = container.clientWidth
+          canvasHeight = (canvasWidth * 9) / 19
         }
-      } else if (this.textDialogPosition) {
-        // Показываем дефолтный текст "Текст" на дефолтной подложке
-        console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ')
-        if (this.textDialogActiveTab === 'thoughts') {
-          // 🧠 РЕЖИМ "МЫСЛИ" - дефолтная подложка без треугольника
-          this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
-        } else if (this.textDialogActiveTab === 'standard') {
-          // ⭐ РЕЖИМ "СТАНДАРТ" - дефолтная подложка без хвоста
-          this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
-        } else if (this.textDialogActiveTab === 'image-text') {
-          // 🖼️ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ" - дефолтная подложка без хвоста
-          this.drawDefaultTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
+      }
+      
+      // Очищаем превью
+      previewCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+      
+      // Копируем содержимое основного канваса в превью
+      previewCtx.drawImage(mainCanvas, 0, 0, canvasWidth, canvasHeight)
+      
+      // Определяем, какой это канвас и соответствует ли он активной вкладке
+      let currentCanvasTab = null
+      if (previewCanvas === this.$refs.previewCanvas) {
+        currentCanvasTab = 'conversation'
+      } else if (previewCanvas === this.$refs.previewCanvasThoughts) {
+        currentCanvasTab = 'thoughts'
+      } else if (previewCanvas === this.$refs.previewCanvasStandard) {
+        currentCanvasTab = 'standard'
+      } else if (previewCanvas === this.$refs.previewCanvasImageText) {
+        currentCanvasTab = 'image-text'
+      }
+      
+      console.log('🎯 updateSinglePreviewCanvas:', {
+        activeTab: this.textDialogActiveTab,
+        currentCanvasTab: currentCanvasTab,
+        shouldUpdate: currentCanvasTab === this.textDialogActiveTab,
+        hasPosition: !!this.textDialogPosition,
+        position: this.textDialogPosition ? `${this.textDialogPosition.x}, ${this.textDialogPosition.y}` : 'null',
+        hasText: !!this.textDialogData.text,
+        text: this.textDialogData.text || 'empty'
+      })
+      
+      // Обновляем только соответствующий активной вкладке канвас
+      if (currentCanvasTab === this.textDialogActiveTab && this.textDialogPosition) {
+        if (this.textDialogData.text) {
+          // Показываем введенный текст
+          if (this.textDialogActiveTab === 'thoughts') {
+            console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
+            this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+          } else if (this.textDialogActiveTab === 'standard') {
+            console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
+            this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+          } else if (this.textDialogActiveTab === 'image-text') {
+            console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ"')
+            this.drawTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
+          } else {
+            console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
+            this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+          }
         } else {
-          // 💬 РЕЖИМ "РАЗГОВОР" - обычная дефолтная подложка
-          this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+          // Показываем дефолтный текст "Текст" на дефолтной подложке
+          console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ')
+          if (this.textDialogActiveTab === 'thoughts') {
+            this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+          } else if (this.textDialogActiveTab === 'standard') {
+            this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+          } else if (this.textDialogActiveTab === 'image-text') {
+            this.drawDefaultTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
+          } else {
+            this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+          }
         }
       }
       
@@ -7878,14 +8022,23 @@ export default {
       let backgroundItem = null
       
       if (this.textDialogActiveTab === 'conversation') {
-        backgroundItem = this.createConversationBackgroundPaperJS(layer, x, y, layerIndex)
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
       } else if (this.textDialogActiveTab === 'standard') {
-        backgroundItem = this.createStandardBackgroundPaperJS(layer, x, y, layerIndex)
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
       } else if (this.textDialogActiveTab === 'thoughts') {
-        backgroundItem = this.createThoughtsBackgroundPaperJS(layer, x, y, layerIndex)
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
       } else if (this.textDialogActiveTab === 'image-text') {
-        // В режиме "Текст с изображением" подложка не создается
-        return null
+        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
+      }
+      
+      // Добавляем подложку на слой если она создана
+      if (backgroundItem) {
+        backgroundItem.data = {
+          isTextBackground: true,
+          layerIndex: layerIndex,
+          mode: this.textDialogActiveTab
+        }
+        layer.addChild(backgroundItem)
       }
       
       console.log('✅ Подложка создана через Paper.js:', {
@@ -8133,6 +8286,322 @@ export default {
         
       } catch (error) {
         console.error('❌ Ошибка создания стандартной подложки из логики превью:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
+      }
+    },
+    
+    // Создание подложки "Мысли" используя существующую логику из превью
+    createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+      try {
+        // Создаем временный Canvas с таким же разрешением как основной канвас
+        const mainCanvas = this.$refs.testCanvas
+        const container = mainCanvas ? mainCanvas.parentElement : null
+        const containerWidth = container ? container.clientWidth : 600
+        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        const dpr = window.devicePixelRatio || 1
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = containerHeight * dpr
+        tempCanvas.style.width = containerWidth + 'px' // Логический размер
+        tempCanvas.style.height = containerHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
+        
+        // Очищаем канвас
+        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const canvasCenterX = containerWidth / 2
+        const canvasCenterY = containerHeight / 2
+        
+        // Применяем тень если включена (точно как в превью)
+        if (this.textDialogData.shadow) {
+          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
+          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        }
+        
+        // Рисуем режим "Мысли" в центре временного Canvas
+        this.drawThoughtsModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true)
+        
+        // Сбрасываем тень
+        if (this.textDialogData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена
+        if (this.textDialogData.stroke) {
+          tempCtx.strokeStyle = this.textDialogData.strokeColor
+          tempCtx.lineWidth = this.textDialogData.strokeWidth
+          // Для режима "Мысли" обводка применяется к основному овалу
+          tempCtx.beginPath()
+          this.drawOval(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+          tempCtx.stroke()
+        }
+        
+        // Добавляем текст в Raster (как в превью)
+        if (this.textDialogData.text) {
+          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
+        raster.position = new this.paperScope.Point(x, y)
+        
+        // Масштабируем Raster чтобы сохранить тот же логический размер
+        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('✅ Подложка "Мысли" создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${containerWidth}x${containerHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`
+        })
+        
+        return raster
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки "Мысли" из логики превью:', error)
+        // Fallback на простой овал
+        const ellipse = new this.paperScope.Path.Ellipse({
+          center: [x, y],
+          size: [backgroundWidth, backgroundHeight]
+        })
+        ellipse.fillColor = backgroundColor
+        return ellipse
+      }
+    },
+    
+    // Создание подложки "Текст с изображением" используя существующую логику из превью
+    createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+      try {
+        // Создаем временный Canvas с таким же разрешением как основной канвас
+        const mainCanvas = this.$refs.testCanvas
+        const container = mainCanvas ? mainCanvas.parentElement : null
+        const containerWidth = container ? container.clientWidth : 600
+        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        const dpr = window.devicePixelRatio || 1
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = containerHeight * dpr
+        tempCanvas.style.width = containerWidth + 'px' // Логический размер
+        tempCanvas.style.height = containerHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
+        
+        // Очищаем канвас
+        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const canvasCenterX = containerWidth / 2
+        const canvasCenterY = containerHeight / 2
+        
+        // Устанавливаем стиль шрифта (как в превью)
+        const fontSize = this.textDialogData.fontSize
+        const fontFamily = this.textDialogData.font
+        const fontWeight = this.textDialogData.fontWeight
+        const textColor = this.textDialogData.textColor
+        
+        tempCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        tempCtx.textAlign = 'center'
+        tempCtx.textBaseline = 'middle'
+        
+        // 1. СНАЧАЛА рисуем тень (если включена) - она должна быть под основным текстом
+        if (this.textDialogData.shadow) {
+          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
+          tempCtx.shadowColor = this.textDialogData.shadowColor
+          tempCtx.shadowBlur = this.textDialogData.shadowBlur * previewScale
+          tempCtx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
+          tempCtx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
+          tempCtx.globalAlpha = this.textDialogData.shadowOpacity / 100
+          
+          // Рисуем тень текста
+          this.drawMultilineText(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+          
+          // Сбрасываем настройки тени
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+          tempCtx.globalAlpha = 1
+        }
+        
+        // 2. ЗАТЕМ рисуем основной текст с поддержкой изображения (как в превью)
+        if (this.textDialogData.textImage && this.textDialogDataImageText.cachedImage) {
+          console.log('🖼️ Рисуем текст с изображением:', {
+            text: this.textDialogData.text,
+            hasImage: true,
+            imageSize: `${this.textDialogDataImageText.cachedImage.width}x${this.textDialogDataImageText.cachedImage.height}`
+          })
+          // Если есть изображение, используем его как маску для заливки текста
+          const img = this.textDialogDataImageText.cachedImage
+          
+          // Создаем временный канвас для текста с изображением с ЛОГИЧЕСКИМИ размерами
+          const textCanvas = document.createElement('canvas')
+          textCanvas.width = containerWidth // Логический размер (без HiDPI!)
+          textCanvas.height = containerHeight
+          textCanvas.style.width = containerWidth + 'px' // Логический размер
+          textCanvas.style.height = containerHeight + 'px'
+          const textCtx = textCanvas.getContext('2d')
+          // НЕ масштабируем контекст - работаем в логических координатах!
+          
+          // Вычисляем размеры текста для правильного позиционирования изображения (логические координаты)
+          const textWidth = tempCtx.measureText(this.textDialogData.text).width
+          const textHeight = this.textDialogData.fontSize * 1 * this.textDialogData.lineHeight
+          
+          // Используем точные размеры текста для изображения
+          // Изображение должно точно заполнить область текста
+          const drawWidth = textWidth
+          const drawHeight = textHeight
+          
+          // ВАЖНО: Координаты должны быть относительно временного канваса, а не основного!
+          // Временный канвас имеет размеры containerWidth x containerHeight
+          const textCanvasCenterX = containerWidth / 2
+          const textCanvasCenterY = containerHeight / 2
+          const drawX = textCanvasCenterX - drawWidth / 2
+          const drawY = textCanvasCenterY - drawHeight / 2
+          
+          console.log('🖼️ Позиционирование изображения в маске (ИСПРАВЛЕНО):', {
+            textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+            imageSize: `${img.width}x${img.height}`,
+            drawArea: {
+              width: drawWidth.toFixed(1),
+              height: drawHeight.toFixed(1),
+              x: drawX.toFixed(1),
+              y: drawY.toFixed(1)
+            },
+            canvasCenter: `${canvasCenterX}, ${canvasCenterY}`,
+            containerSize: `${containerWidth}x${containerHeight}`,
+            dpr: dpr,
+            fontSize: this.textDialogData.fontSize,
+            lineHeight: this.textDialogData.lineHeight
+          })
+          
+          console.log('🖼️ ПОЛНЫЕ ДЕТАЛИ drawArea (ИСПРАВЛЕНО):', {
+            drawWidth: drawWidth,
+            drawHeight: drawHeight,
+            drawX: drawX,
+            drawY: drawY,
+            textWidth: textWidth,
+            textHeight: textHeight,
+            textCanvasCenterX: textCanvasCenterX,
+            textCanvasCenterY: textCanvasCenterY,
+            containerSize: `${containerWidth}x${containerHeight}`,
+            calculation: {
+              drawX_calc: `${textCanvasCenterX} - ${drawWidth} / 2 = ${drawX}`,
+              drawY_calc: `${textCanvasCenterY} - ${drawHeight} / 2 = ${drawY}`,
+              note: 'Координаты теперь относительно временного канваса!'
+            }
+          })
+          
+          console.log('🖼️ Детали позиционирования (ИСПРАВЛЕНО):', {
+            textWidth: textWidth,
+            textHeight: textHeight,
+            drawWidth: drawWidth,
+            drawHeight: drawHeight,
+            drawX: drawX,
+            drawY: drawY,
+            canvasCenterX: canvasCenterX,
+            canvasCenterY: canvasCenterY,
+            note: 'Изображение теперь точно соответствует размерам текста'
+          })
+          
+          // Рисуем изображение на временном канвасе (логические координаты)
+          console.log('🖼️ Рисуем изображение на textCanvas (ЛОГИЧЕСКИЕ размеры):', {
+            img: `${img.width}x${img.height}`,
+            drawTo: `${drawX.toFixed(1)}, ${drawY.toFixed(1)}, ${drawWidth.toFixed(1)}, ${drawHeight.toFixed(1)}`,
+            textCanvas: `${textCanvas.width}x${textCanvas.height}`,
+            textCanvasLogical: `${textCanvas.style.width}x${textCanvas.style.height}`,
+            note: 'Теперь используем логические размеры для временного канваса!'
+          })
+          textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+          
+          // Создаем маску из текста (логические координаты относительно временного канваса)
+          textCtx.globalCompositeOperation = 'destination-in'
+          textCtx.font = tempCtx.font
+          textCtx.textAlign = tempCtx.textAlign
+          textCtx.textBaseline = tempCtx.textBaseline
+          textCtx.fillStyle = 'white'
+          this.drawMultilineText(textCtx, this.textDialogData.text, textCanvasCenterX, textCanvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+          
+          // Рисуем результат на основном канвасе (полный размер)
+          tempCtx.drawImage(textCanvas, 0, 0)
+          
+          console.log('🖼️ Маска с изображением нарисована (ЛОГИЧЕСКИЕ размеры):', {
+            textCanvasSize: `${textCanvas.width}x${textCanvas.height}`,
+            tempCanvasSize: `${tempCanvas.width}x${tempCanvas.height}`,
+            tempCanvasLogicalSize: `${containerWidth}x${containerHeight}`,
+            dpr: dpr,
+            note: 'Временный канвас теперь использует логические размеры - растр будет правильного размера!'
+          })
+        } else {
+          // Если нет изображения, используем обычную заливку цветом
+          console.log('🖼️ Рисуем текст без изображения:', {
+            text: this.textDialogData.text,
+            textColor: textColor,
+            fontSize: this.textDialogData.fontSize,
+            position: `${canvasCenterX}, ${canvasCenterY}`
+          })
+          tempCtx.fillStyle = textColor
+          this.drawMultilineText(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+        }
+        
+        // 3. НАКОНЕЦ применяем обводку к тексту если включена (поверх всего)
+        if (this.textDialogData.stroke) {
+          tempCtx.strokeStyle = this.textDialogData.strokeColor
+          tempCtx.lineWidth = this.textDialogData.strokeWidth * 1 // previewScale = 1
+          this.drawMultilineTextStroke(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
+        raster.position = new this.paperScope.Point(x, y)
+        
+        // Масштабируем Raster чтобы сохранить тот же логический размер
+        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('✅ Подложка "Текст с изображением" создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${containerWidth}x${containerHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`,
+          textData: {
+            text: this.textDialogData.text,
+            fontSize: this.textDialogData.fontSize,
+            textColor: this.textDialogData.textColor,
+            fontWeight: this.textDialogData.fontWeight,
+            font: this.textDialogData.font,
+            hasImage: !!(this.textDialogData.textImage && this.textDialogDataImageText.cachedImage),
+            shadow: this.textDialogData.shadow,
+            stroke: this.textDialogData.stroke
+          }
+        })
+        
+        return raster
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки "Текст с изображением" из логики превью:', error)
         // Fallback на простой прямоугольник
         const rect = new this.paperScope.Path.Rectangle(
           new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),

@@ -1721,7 +1721,7 @@
                     <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
                   </div>
                   <div v-else>
-                    <div v-for="(text, index) in createdTexts" :key="index" class="border-bottom pb-3 mb-3">
+                    <div v-for="(text, index) in createdTexts" :key="text.id || index" class="border-bottom pb-3 mb-3">
                       <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
                           <h6 class="mb-1">{{ text.text || 'Пустой текст' }}</h6>
@@ -1729,10 +1729,39 @@
                             Шрифт: {{ text.font || 'Arial' }} | 
                             Размер: {{ text.fontSize || 16 }}px |
                             <span v-if="text.color">Цвет: {{ text.color }}</span>
+                            <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
                           </small>
+                          <div class="mt-1">
+                            <small class="badge bg-secondary">Слой #{{ text.layerIndex || (index + 1) }}</small>
+                          </div>
                         </div>
                         <div class="text-end">
-                          <small class="text-muted">#{{ index + 1 }}</small>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-primary btn-sm"
+                              @click="editTextLayer(text.layerIndex || (index + 1))"
+                              title="Редактировать"
+                            >
+                              <i class="bi bi-pencil"></i>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary btn-sm"
+                              @click="toggleTextLayerVisibility(text.layerIndex || (index + 1))"
+                              title="Показать/скрыть"
+                            >
+                              <i class="bi bi-eye"></i>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-danger btn-sm"
+                              @click="removeTextLayer(text.layerIndex || (index + 1))"
+                              title="Удалить"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1884,6 +1913,10 @@ export default {
       textControlStates: {}, // Состояния управления для каждого текста
       textBackgroundMap: {}, // ГЛОБАЛЬНАЯ КАРТА: textItem.id -> background
       createdTexts: [], // Массив добавленных текстов для отображения во вкладке "Тексты"
+      
+      // Система слоев для текстов
+      textLayers: [], // Массив слоев с текстами
+      nextLayerIndex: 200, // Следующий индекс слоя (кратный 10, начиная с 200)
       
       // Маски стикеров
       stickerMasks: [
@@ -2053,16 +2086,21 @@ export default {
       }
     },
     
-    // Размеры для превью канваса - точно такие же, как у основного канваса
+    // Размеры для превью канваса - логические размеры (без HiDPI)
     previewCanvasWidth() {
       if (!this.$refs.testCanvas) return 400
-      // Используем точно такие же размеры, как у основного канваса
-      return this.$refs.testCanvas.width || 400
+      // Используем логические размеры (стилевые), а не физические (canvas.width)
+      const canvas = this.$refs.testCanvas
+      const containerWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 400
+      return containerWidth
     },
     previewCanvasHeight() {
       if (!this.$refs.testCanvas) return 300
-      // Используем точно такие же размеры, как у основного канваса
-      return this.$refs.testCanvas.height || 300
+      // Используем логические размеры (стилевые), а не физические (canvas.height)
+      const canvas = this.$refs.testCanvas
+      const containerWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 400
+      const containerHeight = (containerWidth * 9) / 19
+      return containerHeight
     }
   },
   watch: {
@@ -2306,15 +2344,23 @@ export default {
       
       console.log('📏 Размеры контейнера:', containerWidth, 'x', containerHeight)
       
-      // Устанавливаем размеры канваса
-      canvas.width = containerWidth
-      canvas.height = containerHeight
-      canvas.style.width = '100%'
-      canvas.style.height = '100%'
+      // Получаем devicePixelRatio для HiDPI поддержки
+      const dpr = window.devicePixelRatio || 1
+      console.log('🖥️ Device Pixel Ratio:', dpr)
+      
+      // Устанавливаем размеры канваса с учетом HiDPI
+      canvas.width = containerWidth * dpr
+      canvas.height = containerHeight * dpr
+      canvas.style.width = containerWidth + 'px'
+      canvas.style.height = containerHeight + 'px'
+      
+      // Масштабируем контекст для HiDPI
+      const ctx = canvas.getContext('2d')
+      ctx.scale(dpr, dpr)
       
 
       
-      // Обновляем размер view в Paper.js
+      // Обновляем размер view в Paper.js (логические размеры, не физические)
       this.paperScope.view.viewSize = new this.paperScope.Size(containerWidth, containerHeight)
       
       console.log('📐 Канвас изменен:', containerWidth, 'x', containerHeight)
@@ -5680,19 +5726,24 @@ export default {
     openTextDialogInCenter() {
       console.log('🔄 Открываем диалог добавления текста в центре')
       
-      // Устанавливаем позицию по центру превью канваса
+      // Устанавливаем позицию по центру канваса (используем логические размеры)
       const previewCanvas = this.$refs.previewCanvas
       if (previewCanvas) {
-        const centerX = previewCanvas.width / 2
-        const centerY = previewCanvas.height / 2
+        const rect = previewCanvas.getBoundingClientRect()
+        const centerX = rect.width / 2
+        const centerY = rect.height / 2
         this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
+        console.log('📍 Позиция из превью канваса:', { centerX, centerY, logicalSize: `${rect.width}x${rect.height}` })
       } else {
         // Если превью канвас не найден, используем основной канвас
         const mainCanvas = this.$refs.testCanvas
         if (mainCanvas) {
-          const centerX = mainCanvas.width / 2
-          const centerY = mainCanvas.height / 2
+          const containerWidth = mainCanvas.parentElement ? mainCanvas.parentElement.clientWidth : 400
+          const containerHeight = (containerWidth * 9) / 19
+          const centerX = containerWidth / 2
+          const centerY = containerHeight / 2
           this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
+          console.log('📍 Позиция из основного канваса:', { centerX, centerY, logicalSize: `${containerWidth}x${containerHeight}` })
         }
       }
       
@@ -5702,6 +5753,12 @@ export default {
       
       // Обновляем превью канвас после открытия диалога
       this.$nextTick(() => {
+        // Настраиваем HiDPI для всех превью канвасов
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvas)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasThoughts)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasStandard)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasImageText)
+        
         this.updatePreviewCanvas()
       })
       
@@ -5805,6 +5862,32 @@ export default {
       }
     },
     
+    // Настройка HiDPI для превью канваса
+    setupPreviewCanvasHiDPI(previewCanvas) {
+      if (!previewCanvas) return
+      
+      const dpr = window.devicePixelRatio || 1
+      const rect = previewCanvas.getBoundingClientRect()
+      
+      // Устанавливаем физические размеры с учетом HiDPI
+      previewCanvas.width = rect.width * dpr
+      previewCanvas.height = rect.height * dpr
+      
+      // Устанавливаем логические размеры
+      previewCanvas.style.width = rect.width + 'px'
+      previewCanvas.style.height = rect.height + 'px'
+      
+      // Масштабируем контекст
+      const ctx = previewCanvas.getContext('2d')
+      ctx.scale(dpr, dpr)
+      
+      console.log('🖥️ Настройка HiDPI для превью канваса:', {
+        logicalSize: `${rect.width}x${rect.height}`,
+        physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
+        dpr: dpr
+      })
+    },
+    
     // Обновление одного превью канваса
     updateSinglePreviewCanvas(previewCanvas) {
       const mainCanvas = this.$refs.testCanvas
@@ -5814,6 +5897,9 @@ export default {
         return
       }
       
+      // Настраиваем HiDPI для превью канваса
+      this.setupPreviewCanvasHiDPI(previewCanvas)
+      
       console.log('🔄 Обновление превью канваса')
       console.log('🎯 textDialogPosition:', this.textDialogPosition)
       console.log('🎯 textDialogData.text:', this.textDialogData.text)
@@ -5821,11 +5907,12 @@ export default {
       // Получаем контекст превью канваса
       const previewCtx = previewCanvas.getContext('2d')
       
-      // Очищаем превью
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+      // Очищаем превью (логические размеры)
+      const rect = previewCanvas.getBoundingClientRect()
+      previewCtx.clearRect(0, 0, rect.width, rect.height)
       
-      // Копируем содержимое основного канваса в превью
-      previewCtx.drawImage(mainCanvas, 0, 0, previewCanvas.width, previewCanvas.height)
+      // Копируем содержимое основного канваса в превью (логические размеры)
+      previewCtx.drawImage(mainCanvas, 0, 0, rect.width, rect.height)
       
       // Добавляем текст с подложкой в зависимости от активной вкладки
       console.log('🎯 updateSinglePreviewCanvas - активная вкладка:', this.textDialogActiveTab)
@@ -5884,23 +5971,25 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 1
-      const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1 // Убираем масштабирование
       
       // ЛОГИРОВАНИЕ для отладки - МЕТОД 1
+      const rect = canvas.getBoundingClientRect()
       console.log('🎨 ОТРИСОВКА МЕТОД 1:', {
         previewScale: previewScale.toFixed(3),
-        previewCanvas: `${canvas.width}x${canvas.height}`,
+        previewCanvasPhysical: `${canvas.width}x${canvas.height}`,
+        previewCanvasLogical: `${rect.width}x${rect.height}`,
         position: `${previewX}, ${previewY}`
       })
       
-      // Настройки текста (адаптированные под превью) - МЕТОД 1
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      // Настройки текста БЕЗ масштабирования - МЕТОД 1
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
       const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
+      const padding = this.textDialogData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -5914,11 +6003,11 @@ export default {
       
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(
-        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        this.textDialogData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        this.textDialogData.backgroundHeight, 
         textHeight + padding * 2
       )
       
@@ -5929,9 +6018,9 @@ export default {
       // Сначала рисуем тень если включена (применяется к объединенной фигуре)
       if (this.textDialogData.shadow) {
         ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
-        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
-        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        ctx.shadowBlur = this.textDialogData.shadowBlur
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY
       }
       
       // Рисуем объединенную фигуру (подложка + хвост) с тенью
@@ -5948,7 +6037,7 @@ export default {
       // Добавляем обводку если включена (применяется к объединенной фигуре)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
+        ctx.lineWidth = this.textDialogData.strokeWidth
         this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
@@ -5969,16 +6058,16 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
       const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
+      const padding = this.textDialogData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -5989,8 +6078,8 @@ export default {
       const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
       
       // Размеры подложки (адаптированные под превью)
-      const bgWidth = Math.round(this.textDialogData.backgroundWidth * previewScale)
-      const bgHeight = Math.round(this.textDialogData.backgroundHeight * previewScale)
+      const bgWidth = this.textDialogData.backgroundWidth
+      const bgHeight = this.textDialogData.backgroundHeight
       
       // Рисуем подложку БЕЗ хвоста (только прямоугольник)
       this.drawStandardModeShape(ctx, previewX, previewY, bgWidth, bgHeight, previewScale, backgroundColor)
@@ -6061,16 +6150,16 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Настройки текста
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
       const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
+      const padding = this.textDialogData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -6084,11 +6173,11 @@ export default {
       
       // Размеры подложки - используем тот же подход, что и в режиме "Разговор"
       const backgroundWidth = Math.max(
-        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        this.textDialogData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        this.textDialogData.backgroundHeight, 
         textHeight + padding * 2
       )
       
@@ -6121,12 +6210,12 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Размеры дефолтной подложки - увеличиваем для лучшей видимости
-      const backgroundWidth = Math.round(200 * previewScale)
-      const backgroundHeight = Math.round(100 * previewScale)
+      const backgroundWidth = 200
+      const backgroundHeight = 100
       
       console.log('🧠 Дефолтная подложка - параметры:', {
         backgroundWidth: backgroundWidth,
@@ -6139,7 +6228,7 @@ export default {
       this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, '#f0f0f0', false, true)
       
       // Рисуем дефолтный текст "Текст"
-      ctx.font = `400 ${Math.round(24 * previewScale)}px Arial`
+      ctx.font = `400 24px Arial`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = '#333'
@@ -6429,23 +6518,25 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 2
-      const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
+      // БЕЗ масштабирования - размеры канвасов одинаковые - МЕТОД 2
+      const previewScale = 1 // Убираем масштабирование
       
       // ЛОГИРОВАНИЕ для отладки - МЕТОД 2
+      const rect = canvas.getBoundingClientRect()
       console.log('🎨 ОТРИСОВКА МЕТОД 2:', {
         previewScale: previewScale.toFixed(3),
-        previewCanvas: `${canvas.width}x${canvas.height}`,
+        previewCanvasPhysical: `${canvas.width}x${canvas.height}`,
+        previewCanvasLogical: `${rect.width}x${rect.height}`,
         position: `${previewX}, ${previewY}`
       })
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
       const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
+      const padding = this.textDialogData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -6459,11 +6550,11 @@ export default {
       
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(
-        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        this.textDialogData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        this.textDialogData.backgroundHeight, 
         textHeight + padding * 2
       )
       
@@ -6478,9 +6569,9 @@ export default {
       // Сначала рисуем тень если включена (применяется к объединенной фигуре)
       if (this.textDialogData.shadow) {
         ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
-        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
-        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        ctx.shadowBlur = this.textDialogData.shadowBlur
+        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX
+        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY
       }
       
       // Рисуем объединенную фигуру (подложка + хвост) с тенью
@@ -6497,7 +6588,7 @@ export default {
       // Добавляем обводку если включена (применяется к объединенной фигуре)
       if (this.textDialogData.stroke) {
         ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * previewScale))
+        ctx.lineWidth = this.textDialogData.strokeWidth
         this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
@@ -6518,16 +6609,16 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
       const backgroundColor = this.textDialogData.backgroundColor
-      const padding = Math.round(this.textDialogData.padding * previewScale)
+      const padding = this.textDialogData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -6541,11 +6632,11 @@ export default {
       
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(
-        Math.round(this.textDialogData.backgroundWidth * previewScale), 
+        this.textDialogData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        Math.round(this.textDialogData.backgroundHeight * previewScale), 
+        this.textDialogData.backgroundHeight, 
         textHeight + padding * 2
       )
       
@@ -6569,11 +6660,11 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
@@ -6714,11 +6805,11 @@ export default {
       const previewX = this.textDialogPosition.x
       const previewY = this.textDialogPosition.y
       
-      // Используем фиксированный масштаб для стабильности размеров
-      const previewScale = 1.2
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const fontFamily = this.textDialogData.font
       const fontWeight = this.textDialogData.fontWeight
       const textColor = this.textDialogData.textColor
@@ -7643,33 +7734,739 @@ export default {
       ctx.stroke()
     },
     
-    // Применение текста на канвас
+    // Применение текста на канвас с созданием слоя
     applyTextToCanvas() {
       if (!this.textDialogPosition || !this.paperScope) return
       
-      console.log('✅ Применение текста на канвас:', this.textDialogData)
+      console.log('✅ Применение текста на канвас с созданием слоя:', this.textDialogData)
+      console.log('🎯 Координаты для применения:', {
+        x: this.textDialogPosition.x,
+        y: this.textDialogPosition.y,
+        mode: this.textDialogActiveTab
+      })
       
-      // Добавляем текст в массив созданных текстов
-      const newText = {
-        text: this.textDialogData.text || 'Пустой текст',
-        font: this.textDialogData.font || 'Arial',
-        fontSize: this.textDialogData.fontSize || 16,
-        color: this.textDialogData.color || '#000000',
-        fontWeight: this.textDialogData.fontWeight || 'normal',
-        textAlign: this.textDialogData.textAlign || 'left',
+      // Создаем новый слой с уникальным индексом
+      const layerIndex = this.nextLayerIndex
+      this.nextLayerIndex += 10 // Следующий слой будет на 10 больше
+      
+      // Создаем слой в Paper.js
+      const textLayer = new this.paperScope.Layer()
+      textLayer.name = `textLayer_${layerIndex}`
+      
+      // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
+      textLayer.data = { layerIndex: layerIndex }
+      
+      // Создаем подложку с включенным текстом на слое
+      const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex)
+      
+      // Текст уже включен в Raster подложки, отдельный текстовый элемент не нужен
+      const textItem = null // Текст включен в backgroundItem
+      
+      console.log('✅ Создана подложка с включенным текстом:', {
+        backgroundType: backgroundItem ? backgroundItem.type : 'none',
+        hasText: !!this.textDialogData.text
+      })
+      
+      // Сохраняем информацию о слое
+      const layerInfo = {
+        id: layerIndex,
+        layer: textLayer,
+        textItem: textItem,
+        backgroundItem: backgroundItem,
+        textData: { ...this.textDialogData },
+        position: { ...this.textDialogPosition },
+        mode: this.textDialogActiveTab,
         createdAt: new Date().toISOString()
       }
       
+      this.textLayers.push(layerInfo)
+      
+      // Добавляем в список созданных текстов для отображения во вкладке
+      const newText = {
+        id: layerIndex,
+        text: this.textDialogData.text || 'Пустой текст',
+        font: this.textDialogData.font || 'Arial',
+        fontSize: this.textDialogData.fontSize || 16,
+        color: this.textDialogData.textColor || '#000000',
+        fontWeight: this.textDialogData.fontWeight || 'normal',
+        textAlign: this.textDialogData.textAlign || 'left',
+        mode: this.textDialogActiveTab,
+        layerIndex: layerIndex,
+        createdAt: new Date().toISOString(),
+        hasTextInRaster: !!this.textDialogData.text // Флаг что текст включен в Raster
+      }
+      
       this.createdTexts.push(newText)
-      console.log('📝 Текст добавлен в список:', newText)
+      console.log('📝 Текст добавлен в слой:', layerInfo)
+      
+      // Обновляем 3D модель
+      this.update3DModel()
       
       // Активируем вкладку "Тексты" для показа добавленного текста
       this.activeTab = 'text'
       console.log('🔄 Активирована вкладка "Тексты"')
       
-      // TODO: Создание текста с составной подложкой
-      // Пока просто закрываем диалог
+      // Закрываем диалог
       this.closeTextDialog()
+    },
+    
+    // Создание текстового элемента на слое
+    createTextItemOnLayer(layer, layerIndex) {
+      if (!this.textDialogPosition || !this.paperScope) return null
+      
+      console.log('📝 Создание текстового элемента на слое:', layerIndex)
+      
+      const x = this.textDialogPosition.x
+      const y = this.textDialogPosition.y
+      
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
+      
+      // Создаем текстовый элемент БЕЗ масштабирования
+      const textItem = new this.paperScope.PointText(new this.paperScope.Point(x, y))
+      
+      // Настройки текста БЕЗ масштабирования
+      textItem.content = this.textDialogData.text || 'Текст'
+      textItem.fontSize = this.textDialogData.fontSize || 24
+      textItem.fontFamily = this.textDialogData.font || 'Arial'
+      textItem.fillColor = this.textDialogData.textColor || '#000000'
+      textItem.justification = this.getJustificationFromAlign(this.textDialogData.textAlign || 'center')
+      
+      // Центрируем текст точно по координатам подложки (как в превью)
+      textItem.point = new this.paperScope.Point(x, y)
+      
+      console.log('📝 Создание текстового элемента БЕЗ масштабирования:', {
+        previewScale,
+        fontSize: textItem.fontSize,
+        position: `${x}, ${y}`,
+        content: textItem.content,
+        justification: textItem.justification,
+        textAlign: this.textDialogData.textAlign || 'center'
+      })
+      
+      // Метаданные
+      textItem.data = {
+        isTextOverlay: true,
+        layerIndex: layerIndex,
+        mode: this.textDialogActiveTab
+      }
+      
+      // Убеждаемся, что текст видим
+      textItem.visible = true
+      textItem.opacity = 1
+      
+      // Добавляем на слой
+      layer.addChild(textItem)
+      
+      // Принудительно перемещаем текст на передний план слоя
+      textItem.bringToFront()
+      
+      console.log('✅ Текстовый элемент создан:', textItem)
+      return textItem
+    },
+    
+    // Создание подложки на слое (используем Paper.js напрямую для точного контроля размеров)
+    createBackgroundItemOnLayer(layer, layerIndex) {
+      if (!this.textDialogPosition || !this.paperScope) return null
+      
+      console.log('🎨 Создание подложки на слое через Paper.js:', layerIndex)
+      
+      const x = this.textDialogPosition.x
+      const y = this.textDialogPosition.y
+      
+      // Создаем подложку в зависимости от режима
+      let backgroundItem = null
+      
+      if (this.textDialogActiveTab === 'conversation') {
+        backgroundItem = this.createConversationBackgroundPaperJS(layer, x, y, layerIndex)
+      } else if (this.textDialogActiveTab === 'standard') {
+        backgroundItem = this.createStandardBackgroundPaperJS(layer, x, y, layerIndex)
+      } else if (this.textDialogActiveTab === 'thoughts') {
+        backgroundItem = this.createThoughtsBackgroundPaperJS(layer, x, y, layerIndex)
+      } else if (this.textDialogActiveTab === 'image-text') {
+        // В режиме "Текст с изображением" подложка не создается
+        return null
+      }
+      
+      console.log('✅ Подложка создана через Paper.js:', {
+        backgroundItem: backgroundItem,
+        position: `${x}, ${y}`,
+        mode: this.textDialogActiveTab
+      })
+      return backgroundItem
+    },
+    
+    // Создание подложки "Разговор" напрямую в Paper.js
+    createConversationBackgroundPaperJS(layer, x, y, layerIndex) {
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
+      
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Создание подложки "Разговор" в Paper.js С масштабированием:', {
+        previewScale,
+        originalWidth: this.textDialogData.backgroundWidth || 200,
+        scaledWidth: backgroundWidth,
+        originalHeight: this.textDialogData.backgroundHeight || 100,
+        scaledHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Используем существующие методы из превью для создания суперподложки
+      const backgroundItem = this.createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor)
+      
+      if (!backgroundItem) {
+        console.error('❌ Не удалось создать подложку из логики превью')
+        return null
+      }
+      
+      // Метаданные
+      backgroundItem.data = {
+        isTextBackground: true,
+        layerIndex: layerIndex,
+        mode: this.textDialogActiveTab
+      }
+      
+      layer.addChild(backgroundItem)
+      
+      return backgroundItem
+    },
+    
+    // Создание подложки используя существующую логику из превью
+    createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+      try {
+        // Создаем временный Canvas с таким же разрешением как основной канвас
+        const mainCanvas = this.$refs.testCanvas
+        const container = mainCanvas ? mainCanvas.parentElement : null
+        const containerWidth = container ? container.clientWidth : 600
+        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        const dpr = window.devicePixelRatio || 1
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = containerHeight * dpr
+        tempCanvas.style.width = containerWidth + 'px' // Логический размер
+        tempCanvas.style.height = containerHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
+        
+        // Очищаем канвас
+        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const canvasCenterX = containerWidth / 2
+        const canvasCenterY = containerHeight / 2
+        
+        // Применяем тень если включена (точно как в превью)
+        if (this.textDialogData.shadow) {
+          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
+          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        }
+        
+        // Рисуем объединенную фигуру в центре временного Canvas (размеры остаются теми же)
+        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true)
+        
+        // Сбрасываем тень
+        if (this.textDialogData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена (размеры остаются теми же)
+        if (this.textDialogData.stroke) {
+          tempCtx.strokeStyle = this.textDialogData.strokeColor
+          tempCtx.lineWidth = this.textDialogData.strokeWidth
+          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1)
+        }
+        
+        // Добавляем текст в Raster (размеры остаются теми же)
+        if (this.textDialogData.text) {
+          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
+        raster.position = new this.paperScope.Point(x, y)
+        
+        // Масштабируем Raster чтобы сохранить тот же логический размер
+        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('✅ Подложка создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          mode: this.textDialogActiveTab,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${containerWidth}x${containerHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`
+        })
+        
+        return raster
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки из логики превью:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
+      }
+    },
+    
+    // Отрисовка текста в Raster (точно как в превью)
+    drawTextInRaster(ctx, x, y, backgroundWidth, backgroundHeight) {
+      try {
+        // Настройки текста (точно как в превью)
+        const fontSize = this.textDialogData.fontSize
+        const fontFamily = this.textDialogData.font
+        const fontWeight = this.textDialogData.fontWeight
+        const textColor = this.textDialogData.textColor
+        
+        // Устанавливаем стиль шрифта (точно как в превью)
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = textColor
+        
+        // Рисуем текст с поддержкой переноса строк (точно как в превью)
+        this.drawMultilineText(ctx, this.textDialogData.text, x, y, fontSize, this.textDialogData.lineHeight)
+        
+        console.log('✅ Текст добавлен в Raster:', {
+          position: `${x}, ${y}`,
+          content: this.textDialogData.text,
+          fontSize: fontSize,
+          fontFamily: fontFamily
+        })
+        
+      } catch (error) {
+        console.error('❌ Ошибка добавления текста в Raster:', error)
+      }
+    },
+    
+    // Создание стандартной подложки используя логику из превью
+    createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+      try {
+        // Создаем временный Canvas с таким же разрешением как основной канвас
+        const mainCanvas = this.$refs.testCanvas
+        const container = mainCanvas ? mainCanvas.parentElement : null
+        const containerWidth = container ? container.clientWidth : 600
+        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        const dpr = window.devicePixelRatio || 1
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = containerHeight * dpr
+        tempCanvas.style.width = containerWidth + 'px' // Логический размер
+        tempCanvas.style.height = containerHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
+        
+        // Очищаем канвас
+        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const canvasCenterX = containerWidth / 2
+        const canvasCenterY = containerHeight / 2
+        
+        // Применяем тень если включена (точно как в превью)
+        if (this.textDialogData.shadow) {
+          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
+          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+        }
+        
+        // Рисуем стандартную подложку в центре временного Canvas
+        this.drawStandardModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor)
+        
+        // Сбрасываем тень
+        if (this.textDialogData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена
+        if (this.textDialogData.stroke) {
+          tempCtx.strokeStyle = this.textDialogData.strokeColor
+          tempCtx.lineWidth = this.textDialogData.strokeWidth
+          tempCtx.strokeRect(canvasCenterX - backgroundWidth / 2, canvasCenterY - backgroundHeight / 2, backgroundWidth, backgroundHeight)
+        }
+        
+        // Добавляем текст в Raster (как в превью)
+        if (this.textDialogData.text) {
+          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
+        raster.position = new this.paperScope.Point(x, y)
+        
+        // Масштабируем Raster чтобы сохранить тот же логический размер
+        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('✅ Стандартная подложка создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${containerWidth}x${containerHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`
+        })
+        
+        return raster
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания стандартной подложки из логики превью:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
+      }
+    },
+    
+    // Создание объединенного пути для подложки "Разговор" (подложка + хвост как единая фигура)
+    createUnifiedConversationPath(centerX, centerY, bgWidth, bgHeight) {
+      try {
+        // Параметры хвоста (используем ту же логику, что и в превью)
+        const tailSize = Number(this.textDialogData.tailSize) / 100 // От 100% до 300%
+        const tailWidth = Number(this.textDialogData.tailWidth) / 100 // От 40% до 100%
+        const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+        
+        // Размеры хвоста
+        const minDimension = Math.min(bgWidth, bgHeight)
+        const tailLength = minDimension * 1.25 // Базовая длина хвоста
+        
+        // Позиция подложки
+        const bgX = centerX - bgWidth / 2
+        const bgY = centerY - bgHeight / 2
+        
+        // Вычисляем точку пересечения линии хвоста с границей подложки
+        const intersectionPoint = this.getTailIntersectionWithBackgroundPaperJS(
+          centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight
+        )
+        
+        if (!intersectionPoint) {
+          // Если нет пересечения, создаем простую прямоугольную подложку
+          return new this.paperScope.Path.Rectangle(
+            new this.paperScope.Point(bgX, bgY),
+            new this.paperScope.Point(bgX + bgWidth, bgY + bgHeight)
+          )
+        }
+        
+        // Создаем объединенный путь
+        const path = new this.paperScope.Path()
+        
+        // Вычисляем параметры хвоста
+        const tailWidthPercent = Number(this.textDialogData.tailWidth) / 100
+        const tailSizePercent = Number(this.textDialogData.tailSize) / 100
+        
+        // Острая вершина хвоста
+        const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+        const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+        
+        // Определяем, с какой стороны подложки выходит хвост
+        const tailSide = this.getTailSideFromIntersectionPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+        
+        // Проверяем, находится ли точка пересечения в углу подложки
+        const isCorner = this.isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+        
+        if (isCorner) {
+          // Если хвост выходит из угла, строим специальный путь
+          this.buildCornerTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                            intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent)
+        } else {
+          // Обычный путь для стороны
+          this.buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent)
+        }
+        
+        path.closed = true
+        return path
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания объединенного пути:', error)
+        // Fallback на простой прямоугольник
+        return new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(centerX - bgWidth / 2, centerY - bgHeight / 2),
+          new this.paperScope.Point(centerX + bgWidth / 2, centerY + bgHeight / 2)
+        )
+      }
+    },
+    
+    // Создание подложки "Стандарт" напрямую в Paper.js
+    createStandardBackgroundPaperJS(layer, x, y, layerIndex) {
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
+      
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Создание подложки "Стандарт" в Paper.js С масштабированием:', {
+        previewScale,
+        originalWidth: this.textDialogData.backgroundWidth || 200,
+        scaledWidth: backgroundWidth,
+        originalHeight: this.textDialogData.backgroundHeight || 100,
+        scaledHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Используем существующие методы из превью для создания подложки
+      const backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor)
+      
+      if (!backgroundItem) {
+        console.error('❌ Не удалось создать стандартную подложку из логики превью')
+        return null
+      }
+      
+      // Метаданные
+      backgroundItem.data = {
+        isTextBackground: true,
+        layerIndex: layerIndex,
+        mode: this.textDialogActiveTab
+      }
+      
+      layer.addChild(backgroundItem)
+      
+      return backgroundItem
+    },
+    
+    // Создание подложки "Мысли" напрямую в Paper.js
+    createThoughtsBackgroundPaperJS(layer, x, y, layerIndex) {
+      // БЕЗ масштабирования - размеры канвасов одинаковые
+      const previewScale = 1
+      
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Создание подложки "Мысли" в Paper.js С масштабированием:', {
+        previewScale,
+        originalWidth: this.textDialogData.backgroundWidth || 200,
+        scaledWidth: backgroundWidth,
+        originalHeight: this.textDialogData.backgroundHeight || 100,
+        scaledHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Создаем эллипс
+      const ellipse = new this.paperScope.Path.Ellipse({
+        center: new this.paperScope.Point(x, y),
+        size: new this.paperScope.Size(backgroundWidth, backgroundHeight)
+      })
+      ellipse.fillColor = backgroundColor
+      
+      // Применяем тень если включена (с масштабированием)
+      if (this.textDialogData.shadow) {
+        ellipse.shadowColor = this.textDialogData.shadowColor || '#000000'
+        ellipse.shadowBlur = Math.max(1, Math.round((this.textDialogData.shadowBlur || 1) * previewScale))
+        ellipse.shadowOffset = new this.paperScope.Point(
+          Math.round((this.textDialogData.shadowOffsetX || 8) * previewScale),
+          Math.round((this.textDialogData.shadowOffsetY || 8) * previewScale)
+        )
+      }
+      
+      // Применяем обводку если включена (с масштабированием)
+      if (this.textDialogData.stroke) {
+        ellipse.strokeColor = this.textDialogData.strokeColor || '#000000'
+        ellipse.strokeWidth = Math.max(1, Math.round((this.textDialogData.strokeWidth || 2) * previewScale))
+      }
+      
+      // Метаданные
+      ellipse.data = {
+        isTextBackground: true,
+        layerIndex: layerIndex,
+        mode: this.textDialogActiveTab
+      }
+      
+      // Добавляем на слой
+      layer.addChild(ellipse)
+      
+      return ellipse
+    },
+    
+    // Отрисовка подложки "Разговор" на Canvas API (точная копия логики превью)
+    drawConversationBackgroundOnCanvas(ctx, x, y) {
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Отрисовка подложки "Разговор" на Canvas API БЕЗ масштабирования:', {
+        originalWidth: backgroundWidth,
+        originalHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Рисуем объединенную фигуру (подложка + хвост) БЕЗ масштабирования
+      this.drawCombinedShape(ctx, x, y, backgroundWidth, backgroundHeight, 1, backgroundColor, true)
+      
+      // Добавляем обводку если включена
+      if (this.textDialogData.stroke) {
+        ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
+        ctx.lineWidth = this.textDialogData.strokeWidth || 2
+        this.strokeCombinedShape(ctx, x, y, backgroundWidth, backgroundHeight, 1)
+      }
+    },
+    
+    // Отрисовка подложки "Стандарт" на Canvas API (точная копия логики превью)
+    drawStandardBackgroundOnCanvas(ctx, x, y) {
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Отрисовка подложки "Стандарт" на Canvas API БЕЗ масштабирования:', {
+        originalWidth: backgroundWidth,
+        originalHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Рисуем подложку БЕЗ хвоста (только прямоугольник) БЕЗ масштабирования
+      this.drawStandardModeShape(ctx, x, y, backgroundWidth, backgroundHeight, 1, backgroundColor)
+    },
+    
+    // Отрисовка подложки "Мысли" на Canvas API (точная копия логики превью)
+    drawThoughtsBackgroundOnCanvas(ctx, x, y) {
+      const backgroundWidth = this.textDialogData.backgroundWidth || 200
+      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
+      
+      console.log('🎨 Отрисовка подложки "Мысли" на Canvas API БЕЗ масштабирования:', {
+        originalWidth: backgroundWidth,
+        originalHeight: backgroundHeight,
+        position: `${x}, ${y}`
+      })
+      
+      // Рисуем режим "Мысли" - овальная подложка с множественными хвостами БЕЗ масштабирования
+      this.drawThoughtsModeShape(ctx, x, y, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true)
+    },
+    
+    
+    // Конвертация выравнивания текста в Paper.js justification
+    getJustificationFromAlign(align) {
+      switch (align) {
+        case 'left': return 'left'
+        case 'center': return 'center'
+        case 'right': return 'right'
+        case 'justify': return 'left' // Paper.js не поддерживает justify
+        default: return 'center'
+      }
+    },
+    
+    // Обновление 3D модели
+    update3DModel() {
+      if (this.$refs.threeRenderer) {
+        this.$refs.threeRenderer.forceUpdate()
+        console.log('🔄 3D модель обновлена')
+      }
+    },
+    
+    // Удаление текстового слоя
+    removeTextLayer(layerIndex) {
+      console.log('🗑️ Удаление текстового слоя:', layerIndex)
+      
+      // Находим слой в массиве
+      const layerIndex_inArray = this.textLayers.findIndex(layer => layer.id === layerIndex)
+      if (layerIndex_inArray === -1) {
+        console.log('❌ Слой не найден:', layerIndex)
+        return
+      }
+      
+      const layerInfo = this.textLayers[layerIndex_inArray]
+      
+      // Удаляем слой из Paper.js
+      if (layerInfo.layer) {
+        layerInfo.layer.remove()
+        console.log('✅ Слой удален из Paper.js')
+      }
+      
+      // Удаляем из массива слоев
+      this.textLayers.splice(layerIndex_inArray, 1)
+      
+      // Удаляем из списка созданных текстов
+      const textIndex = this.createdTexts.findIndex(text => text.layerIndex === layerIndex)
+      if (textIndex !== -1) {
+        this.createdTexts.splice(textIndex, 1)
+        console.log('✅ Текст удален из списка')
+      }
+      
+      // Обновляем 3D модель
+      this.update3DModel()
+      
+      console.log('✅ Текстовый слой полностью удален')
+    },
+    
+    // Редактирование текстового слоя
+    editTextLayer(layerIndex) {
+      console.log('✏️ Редактирование текстового слоя:', layerIndex)
+      
+      // Находим слой
+      const layerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+      if (!layerInfo) {
+        console.log('❌ Слой не найден:', layerIndex)
+        return
+      }
+      
+      // Заполняем данные диалога
+      this.textDialogData = { ...layerInfo.textData }
+      this.textDialogPosition = { ...layerInfo.position }
+      this.textDialogActiveTab = layerInfo.mode
+      
+      // Активируем режим редактирования
+      this.isTextModeActive = true
+      this.showTextDialog = true
+      
+      console.log('✅ Режим редактирования активирован')
+    },
+    
+    // Переключение видимости текстового слоя
+    toggleTextLayerVisibility(layerIndex) {
+      console.log('👁️ Переключение видимости слоя:', layerIndex)
+      
+      // Находим слой
+      const layerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+      if (!layerInfo) {
+        console.log('❌ Слой не найден:', layerIndex)
+        return
+      }
+      
+      // Переключаем видимость
+      if (layerInfo.layer) {
+        layerInfo.layer.visible = !layerInfo.layer.visible
+        console.log('✅ Видимость слоя изменена:', layerInfo.layer.visible)
+      }
+      
+      // Обновляем 3D модель
+      this.update3DModel()
+    },
+    
+    // Получение отображаемого имени режима
+    getModeDisplayName(mode) {
+      const modeNames = {
+        'conversation': 'Разговор',
+        'standard': 'Стандарт',
+        'thoughts': 'Мысли',
+        'image-text': 'Текст с изображением'
+      }
+      return modeNames[mode] || mode
     },
     
     // === МЕТОДЫ ПЕРЕТАСКИВАНИЯ ===
@@ -7828,7 +8625,7 @@ export default {
       const previewScale = 1.2
       
       // Вычисляем размеры текста точно так же, как в отрисовке
-      const fontSize = Math.round(this.textDialogData.fontSize * previewScale)
+      const fontSize = this.textDialogData.fontSize
       const text = this.textDialogData.text || 'Текст'
       
       // Создаем временный контекст для измерения текста
@@ -7952,6 +8749,188 @@ export default {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
       })
+    },
+    
+    // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ДЛЯ PAPER.JS ===
+    
+    // Вычисление точки пересечения линии хвоста с границей подложки (Paper.js версия)
+    getTailIntersectionWithBackgroundPaperJS(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight) {
+      // Линия хвоста: от центра подложки под углом tailAngle
+      const lineStartX = centerX
+      const lineStartY = centerY
+      const lineEndX = centerX + 1000 * Math.cos(tailAngle) // Достаточно длинная линия
+      const lineEndY = centerY + 1000 * Math.sin(tailAngle)
+      
+      // Проверяем пересечение с каждой стороной подложки
+      const sides = [
+        // Верхняя сторона
+        { x1: bgX, y1: bgY, x2: bgX + bgWidth, y2: bgY },
+        // Правая сторона
+        { x1: bgX + bgWidth, y1: bgY, x2: bgX + bgWidth, y2: bgY + bgHeight },
+        // Нижняя сторона
+        { x1: bgX + bgWidth, y1: bgY + bgHeight, x2: bgX, y2: bgY + bgHeight },
+        // Левая сторона
+        { x1: bgX, y1: bgY + bgHeight, x2: bgX, y2: bgY }
+      ]
+      
+      // Собираем ВСЕ пересечения
+      const allIntersections = []
+      
+      for (const side of sides) {
+        const intersection = this.getLineIntersectionPaperJS(
+          lineStartX, lineStartY, lineEndX, lineEndY,
+          side.x1, side.y1, side.x2, side.y2
+        )
+        
+        if (intersection) {
+          // Проверяем, что точка пересечения находится на стороне подложки
+          if (this.isPointOnLineSegmentPaperJS(intersection.x, intersection.y, side.x1, side.y1, side.x2, side.y2)) {
+            allIntersections.push(intersection)
+          }
+        }
+      }
+      
+      if (allIntersections.length > 0) {
+        // ВЫБИРАЕМ БЛИЖАЙШУЮ К УГЛУ ТОЧКУ ПЕРЕСЕЧЕНИЯ
+        let selectedIntersection = allIntersections[0]
+        let minDistance = Infinity
+        
+        // Вычисляем расстояния до всех углов
+        const corners = [
+          { name: 'Левый верхний', x: bgX, y: bgY },
+          { name: 'Правый верхний', x: bgX + bgWidth, y: bgY },
+          { name: 'Правый нижний', x: bgX + bgWidth, y: bgY + bgHeight },
+          { name: 'Левый нижний', x: bgX, y: bgY + bgHeight }
+        ]
+        
+        for (const intersection of allIntersections) {
+          for (const corner of corners) {
+            const distance = Math.sqrt(
+              Math.pow(intersection.x - corner.x, 2) +
+              Math.pow(intersection.y - corner.y, 2)
+            )
+            if (distance < minDistance) {
+              minDistance = distance
+              selectedIntersection = intersection
+            }
+          }
+        }
+        
+        return selectedIntersection
+      }
+      
+      return null
+    },
+    
+    // Вычисление пересечения двух линий (Paper.js версия)
+    getLineIntersectionPaperJS(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(denom) < 1e-10) return null // Линии параллельны
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+      
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
+      }
+      
+      return null
+    },
+    
+    // Проверка, находится ли точка на отрезке (Paper.js версия)
+    isPointOnLineSegmentPaperJS(px, py, x1, y1, x2, y2) {
+      const crossProduct = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1)
+      if (Math.abs(crossProduct) > 1e-10) return false
+      
+      const dotProduct = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)
+      const squaredLength = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+      
+      return dotProduct >= 0 && dotProduct <= squaredLength
+    },
+    
+    // Определение стороны подложки, с которой выходит хвост (Paper.js версия)
+    getTailSideFromIntersectionPaperJS(intersection, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 1
+      
+      if (Math.abs(intersection.y - bgY) < tolerance) return 'top'
+      if (Math.abs(intersection.y - (bgY + bgHeight)) < tolerance) return 'bottom'
+      if (Math.abs(intersection.x - bgX) < tolerance) return 'left'
+      if (Math.abs(intersection.x - (bgX + bgWidth)) < tolerance) return 'right'
+      
+      return 'unknown'
+    },
+    
+    // Проверка, находится ли точка пересечения в углу (Paper.js версия)
+    isIntersectionAtCornerPaperJS(intersection, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 5
+      
+      const corners = [
+        { x: bgX, y: bgY }, // Левый верхний
+        { x: bgX + bgWidth, y: bgY }, // Правый верхний
+        { x: bgX + bgWidth, y: bgY + bgHeight }, // Правый нижний
+        { x: bgX, y: bgY + bgHeight } // Левый нижний
+      ]
+      
+      for (const corner of corners) {
+        const distance = Math.sqrt(
+          Math.pow(intersection.x - corner.x, 2) +
+          Math.pow(intersection.y - corner.y, 2)
+        )
+        if (distance < tolerance) return true
+      }
+      
+      return false
+    },
+    
+    // Построение пути для углового хвоста (Paper.js версия)
+    buildCornerTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, intersection, sharpPointX, sharpPointY, tailSide, tailWidthPercent) {
+      // Простая реализация для углового хвоста
+      const baseWidth = Math.min(bgWidth, bgHeight) * tailWidthPercent * 0.3
+      
+      // Точки основания хвоста
+      const basePoint1X = intersection.x - baseWidth / 2
+      const basePoint1Y = intersection.y
+      const basePoint2X = intersection.x + baseWidth / 2
+      const basePoint2Y = intersection.y
+      
+      // Строим путь
+      path.moveTo(bgX, bgY)
+      path.lineTo(bgX + bgWidth, bgY)
+      path.lineTo(bgX + bgWidth, bgY + bgHeight)
+      path.lineTo(bgX, bgY + bgHeight)
+      path.lineTo(bgX, bgY)
+      
+      // Добавляем хвост
+      path.moveTo(basePoint1X, basePoint1Y)
+      path.lineTo(sharpPointX, sharpPointY)
+      path.lineTo(basePoint2X, basePoint2Y)
+    },
+    
+    // Построение пути для бокового хвоста (Paper.js версия)
+    buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, intersection, sharpPointX, sharpPointY, tailSide, tailWidthPercent) {
+      // Простая реализация для бокового хвоста
+      const baseWidth = Math.min(bgWidth, bgHeight) * tailWidthPercent * 0.3
+      
+      // Точки основания хвоста
+      const basePoint1X = intersection.x - baseWidth / 2
+      const basePoint1Y = intersection.y
+      const basePoint2X = intersection.x + baseWidth / 2
+      const basePoint2Y = intersection.y
+      
+      // Строим путь
+      path.moveTo(bgX, bgY)
+      path.lineTo(bgX + bgWidth, bgY)
+      path.lineTo(bgX + bgWidth, bgY + bgHeight)
+      path.lineTo(bgX, bgY + bgHeight)
+      path.lineTo(bgX, bgY)
+      
+      // Добавляем хвост
+      path.moveTo(basePoint1X, basePoint1Y)
+      path.lineTo(sharpPointX, sharpPointY)
+      path.lineTo(basePoint2X, basePoint2Y)
     }
   }
 }

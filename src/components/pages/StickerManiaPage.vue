@@ -5963,40 +5963,29 @@ export default {
       if (!previewCanvas) return
       
       const dpr = window.devicePixelRatio || 1
-      let rect = previewCanvas.getBoundingClientRect()
       
-      // Если канвас имеет нулевые размеры, используем размеры основного канваса
-      if (rect.width === 0 || rect.height === 0) {
-        console.log('⚠️ Канвас имеет нулевые размеры, используем размеры основного канваса')
-        const mainCanvas = this.$refs.testCanvas
-        if (mainCanvas) {
-          const container = mainCanvas.parentElement
-          if (container) {
-            const containerWidth = container.clientWidth
-            const containerHeight = (containerWidth * 9) / 19
-            rect = { width: containerWidth, height: containerHeight }
-            console.log('📏 Используем размеры основного канваса:', rect)
-          }
-        }
-      }
+      // ИСПРАВЛЕНИЕ: Используем фиксированные размеры из computed свойств
+      // Это предотвращает изменение размеров при переключении вкладок
+      const fixedWidth = this.previewCanvasWidth
+      const fixedHeight = this.previewCanvasHeight
       
       // Устанавливаем физические размеры с учетом HiDPI
-      previewCanvas.width = rect.width * dpr
-      previewCanvas.height = rect.height * dpr
+      previewCanvas.width = fixedWidth * dpr
+      previewCanvas.height = fixedHeight * dpr
       
-      // Устанавливаем логические размеры
-      previewCanvas.style.width = rect.width + 'px'
-      previewCanvas.style.height = rect.height + 'px'
+      // Устанавливаем логические размеры (фиксированные)
+      previewCanvas.style.width = fixedWidth + 'px'
+      previewCanvas.style.height = fixedHeight + 'px'
       
       // Масштабируем контекст
       const ctx = previewCanvas.getContext('2d')
       ctx.scale(dpr, dpr)
       
-      console.log('🖥️ Настройка HiDPI для превью канваса:', {
-        logicalSize: `${rect.width}x${rect.height}`,
+      console.log('🖥️ Настройка HiDPI для превью канваса (ФИКСИРОВАННЫЕ размеры):', {
+        logicalSize: `${fixedWidth}x${fixedHeight}`,
         physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
         dpr: dpr,
-        wasZeroSize: rect.width === 0 || rect.height === 0
+        note: 'Используем фиксированные размеры для предотвращения изменений при переключении вкладок'
       })
     },
     
@@ -7943,8 +7932,13 @@ export default {
       this.createdTexts.push(newText)
       console.log('📝 Текст добавлен в слой:', layerInfo)
       
-      // Обновляем 3D модель
-      this.update3DModel()
+      // Обновляем 3D модель с небольшой задержкой для корректного отображения
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена с задержкой для корректного отображения')
+        }, 100)
+      })
       
       // Активируем вкладку "Тексты" для показа добавленного текста
       this.activeTab = 'text'
@@ -8842,9 +8836,11 @@ export default {
     
     // Обновление 3D модели
     update3DModel() {
-      if (this.$refs.threeRenderer) {
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
         this.$refs.threeRenderer.forceUpdate()
         console.log('🔄 3D модель обновлена')
+      } else {
+        console.log('⚠️ ThreeDRenderer не готов для обновления')
       }
     },
     
@@ -8877,8 +8873,13 @@ export default {
         console.log('✅ Текст удален из списка')
       }
       
-      // Обновляем 3D модель
-      this.update3DModel()
+      // Обновляем 3D модель с небольшой задержкой
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена после удаления слоя')
+        }, 100)
+      })
       
       console.log('✅ Текстовый слой полностью удален')
     },
@@ -8923,8 +8924,13 @@ export default {
         console.log('✅ Видимость слоя изменена:', layerInfo.layer.visible)
       }
       
-      // Обновляем 3D модель
-      this.update3DModel()
+      // Обновляем 3D модель с небольшой задержкой
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена после изменения видимости слоя')
+        }, 100)
+      })
     },
     
     // Получение отображаемого имени режима

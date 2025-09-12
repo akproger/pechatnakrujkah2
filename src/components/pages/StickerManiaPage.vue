@@ -100,7 +100,7 @@
           <div class="text-dialog-header">
             <div class="d-flex align-items-center w-100">
               <h5 class="text-dialog-title mb-0">
-                Добавить текст
+                {{ isEditingText ? 'Редактировать текст' : 'Добавить текст' }}
               </h5>
               
               <!-- Табы-переключатели режимов -->
@@ -108,7 +108,7 @@
                 <button 
                   class="btn btn-sm text-dialog-mode-btn" 
                   :class="{ 'active': textDialogActiveTab === 'conversation' }"
-                  @click="textDialogActiveTab = 'conversation'"
+                  @click="switchTextDialogTab('conversation')"
                 >
                   <i class="bi bi-chat-dots me-1"></i>
                   Разговор
@@ -116,7 +116,7 @@
                 <button 
                   class="btn btn-sm text-dialog-mode-btn" 
                   :class="{ 'active': textDialogActiveTab === 'thoughts' }"
-                  @click="textDialogActiveTab = 'thoughts'"
+                  @click="switchTextDialogTab('thoughts')"
                 >
                   <i class="bi bi-lightbulb me-1"></i>
                   Мысли
@@ -124,7 +124,7 @@
                 <button 
                   class="btn btn-sm text-dialog-mode-btn" 
                   :class="{ 'active': textDialogActiveTab === 'standard' }"
-                  @click="textDialogActiveTab = 'standard'"
+                  @click="switchTextDialogTab('standard')"
                 >
                   <i class="bi bi-square me-1"></i>
                   Стандарт
@@ -132,7 +132,7 @@
                 <button 
                   class="btn btn-sm text-dialog-mode-btn" 
                   :class="{ 'active': textDialogActiveTab === 'image-text' }"
-                  @click="textDialogActiveTab = 'image-text'"
+                  @click="switchTextDialogTab('image-text')"
                 >
                   <i class="bi bi-image me-1"></i>
                   Текст с изображением
@@ -1962,6 +1962,10 @@ export default {
       showTextDialog: false, // Показать ли диалог добавления текста
       textDialogPosition: null, // Позиция для размещения текста
       textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
+      isEditingText: false, // Флаг режима редактирования существующего текста
+      editingLayerIndex: null, // Индекс слоя, который редактируется
+      isDragging: false, // Флаг для оптимизации производительности при перетаскивании
+      previewUpdateTimeout: null, // Таймаут для debounce обновления превью
       // Данные для каждой вкладки отдельно
       textDialogDataConversation: {
         text: '',
@@ -2108,168 +2112,168 @@ export default {
     'textDialogData.text'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.fontSize'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.fontWeight'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.font'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.textColor'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.backgroundColor'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.backgroundWidth'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.backgroundHeight'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.padding'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.stroke'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadow'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.strokeWidth'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.strokeColor'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadowColor'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadowOpacity'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadowOffsetX'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadowOffsetY'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.shadowBlur'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.tailSize'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.tailWidth'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.tailAngle'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.textAlign'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.lineHeight'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
     'textDialogData.textImage'() {
       if (this.showTextDialog) {
         this.$nextTick(() => {
-          this.updatePreviewCanvas()
+          this.updatePreviewCanvasOptimized()
         })
       }
     },
@@ -5856,7 +5860,48 @@ export default {
     closeTextDialog() {
       this.showTextDialog = false
       this.textDialogPosition = null
-      this.resetTextDialogData()
+      
+      // Сбрасываем данные только если это НЕ режим редактирования
+      if (!this.isEditingText) {
+        this.resetTextDialogData()
+        console.log('🔄 Данные диалога сброшены (режим создания)')
+      } else {
+        console.log('🔄 Данные диалога сохранены (режим редактирования)')
+      }
+      
+      // Сбрасываем флаги редактирования
+      this.isEditingText = false
+      this.editingLayerIndex = null
+      
+      console.log('🔄 Диалог закрыт, флаги редактирования сброшены')
+    },
+    
+    // Переключение вкладок в диалоге текста
+    switchTextDialogTab(tabName) {
+      this.textDialogActiveTab = tabName
+      console.log('🔄 Переключение на вкладку:', tabName)
+
+      // Принудительно обновляем превью канвасы при переключении вкладок (оптимизированно)
+      this.$nextTick(() => {
+        this.updatePreviewCanvasOptimized()
+        console.log('🔄 Превью канвасы обновлены после переключения вкладки (оптимизированно)')
+      })
+    },
+
+    // Получение текущего data-свойства для активной вкладки
+    getCurrentTextDialogDataProperty() {
+      switch (this.textDialogActiveTab) {
+        case 'conversation':
+          return this.textDialogDataConversation
+        case 'thoughts':
+          return this.textDialogDataThoughts
+        case 'standard':
+          return this.textDialogDataStandard
+        case 'image-text':
+          return this.textDialogDataImageText
+        default:
+          return this.textDialogDataConversation
+      }
     },
     
     // Сброс данных диалога
@@ -6029,8 +6074,30 @@ export default {
       // Очищаем превью
       previewCtx.clearRect(0, 0, canvasWidth, canvasHeight)
       
+      // При редактировании отключаем редактируемый слой перед скриншотом
+      let editingLayer = null
+      if (this.isEditingText && this.editingLayerIndex) {
+        editingLayer = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
+        if (editingLayer && editingLayer.layer) {
+          editingLayer.layer.visible = false
+          console.log('👁️ Отключаем редактируемый слой для скриншота:', this.editingLayerIndex)
+          
+          // Принудительно обновляем Paper.js канвас после отключения слоя
+          this.paperScope.view.draw()
+        }
+      }
+      
       // Копируем содержимое основного канваса в превью
       previewCtx.drawImage(mainCanvas, 0, 0, canvasWidth, canvasHeight)
+      
+      // Включаем обратно редактируемый слой после скриншота
+      if (editingLayer && editingLayer.layer) {
+        editingLayer.layer.visible = true
+        console.log('👁️ Включаем обратно редактируемый слой:', this.editingLayerIndex)
+        
+        // Принудительно обновляем Paper.js канвас после включения слоя
+        this.paperScope.view.draw()
+      }
       
       // Определяем, какой это канвас и соответствует ли он активной вкладке
       let currentCanvasTab = null
@@ -7871,23 +7938,58 @@ export default {
     applyTextToCanvas() {
       if (!this.textDialogPosition || !this.paperScope) return
       
-      console.log('✅ Применение текста на канвас с созданием слоя:', this.textDialogData)
+      console.log('✅ Применение текста на канвас:', this.textDialogData)
       console.log('🎯 Координаты для применения:', {
         x: this.textDialogPosition.x,
         y: this.textDialogPosition.y,
-        mode: this.textDialogActiveTab
+        mode: this.textDialogActiveTab,
+        isEditing: this.isEditingText,
+        editingLayerIndex: this.editingLayerIndex
       })
       
-      // Создаем новый слой с уникальным индексом
-      const layerIndex = this.nextLayerIndex
-      this.nextLayerIndex += 10 // Следующий слой будет на 10 больше
+      let layerIndex
+      let textLayer
       
-      // Создаем слой в Paper.js
-      const textLayer = new this.paperScope.Layer()
-      textLayer.name = `textLayer_${layerIndex}`
+      if (this.isEditingText && this.editingLayerIndex) {
+        // РЕЖИМ РЕДАКТИРОВАНИЯ: Обновляем существующий слой
+        layerIndex = this.editingLayerIndex
+        console.log('✏️ Редактирование существующего слоя:', layerIndex)
+        
+        // Находим существующий слой
+        const existingLayerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+        if (!existingLayerInfo) {
+          console.log('❌ Слой для редактирования не найден:', layerIndex)
+          return
+        }
+        
+        textLayer = existingLayerInfo.layer
+        
+      } else {
+        // РЕЖИМ СОЗДАНИЯ: Создаем новый слой
+        layerIndex = this.nextLayerIndex
+        this.nextLayerIndex += 10 // Следующий слой будет на 10 больше
+        console.log('➕ Создание нового слоя:', layerIndex)
+        
+        // Создаем новый слой в Paper.js
+        textLayer = new this.paperScope.Layer()
+        textLayer.name = `textLayer_${layerIndex}`
+        
+        // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
+        textLayer.data = { layerIndex: layerIndex }
+      }
       
-      // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
-      textLayer.data = { layerIndex: layerIndex }
+      // При редактировании убеждаемся, что textDialogData.text содержит правильный текст
+      if (this.isEditingText && this.editingLayerIndex) {
+        const existingLayerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
+        if (existingLayerInfo && existingLayerInfo.textData?.text && !this.textDialogData.text) {
+          // Восстанавливаем оригинальный текст, если текущий пустой
+          const currentDataProperty = this.getCurrentTextDialogDataProperty()
+          if (currentDataProperty) {
+            currentDataProperty.text = existingLayerInfo.textData.text
+            console.log('🔄 Восстановлен оригинальный текст для подложки:', currentDataProperty.text)
+          }
+        }
+      }
       
       // Создаем подложку с включенным текстом на слое
       const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex)
@@ -7900,37 +8002,95 @@ export default {
         hasText: !!this.textDialogData.text
       })
       
-      // Сохраняем информацию о слое
-      const layerInfo = {
-        id: layerIndex,
-        layer: textLayer,
-        textItem: textItem,
-        backgroundItem: backgroundItem,
-        textData: { ...this.textDialogData },
-        position: { ...this.textDialogPosition },
-        mode: this.textDialogActiveTab,
-        createdAt: new Date().toISOString()
+      if (this.isEditingText && this.editingLayerIndex) {
+        // РЕЖИМ РЕДАКТИРОВАНИЯ: Обновляем существующую информацию
+        const existingLayerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+        if (existingLayerInfo) {
+          // Сохраняем оригинальный текст, если текущий пустой (редактируется только подложка)
+          const originalText = existingLayerInfo.textData?.text || ''
+          const currentText = this.textDialogData.text || ''
+          const finalText = currentText || originalText // Используем текущий или оригинальный
+          
+          // Удаляем старый backgroundItem только ПОСЛЕ создания нового
+          if (existingLayerInfo.backgroundItem && existingLayerInfo.backgroundItem !== backgroundItem) {
+            existingLayerInfo.backgroundItem.remove()
+            console.log('🗑️ Удален старый backgroundItem после создания нового')
+          }
+          
+          existingLayerInfo.backgroundItem = backgroundItem
+          existingLayerInfo.textData = { 
+            ...this.textDialogData,
+            text: finalText // Убеждаемся, что текст сохраняется
+          }
+          existingLayerInfo.position = { ...this.textDialogPosition }
+          existingLayerInfo.mode = this.textDialogActiveTab
+          existingLayerInfo.updatedAt = new Date().toISOString()
+          
+          console.log('💾 Сохранение текста при редактировании:', {
+            originalText: originalText,
+            currentText: currentText,
+            finalText: finalText,
+            layerIndex: layerIndex
+          })
+        }
+        
+        // Обновляем информацию в списке созданных текстов
+        const existingTextIndex = this.createdTexts.findIndex(text => text.layerIndex === layerIndex)
+        if (existingTextIndex !== -1) {
+          // Аналогично сохраняем текст в createdTexts
+          const originalText = this.createdTexts[existingTextIndex]?.text || ''
+          const currentText = this.textDialogData.text || ''
+          const finalText = currentText || originalText
+          
+          this.createdTexts[existingTextIndex] = {
+            ...this.createdTexts[existingTextIndex],
+            text: finalText,
+            font: this.textDialogData.font || 'Arial',
+            fontSize: this.textDialogData.fontSize || 16,
+            color: this.textDialogData.textColor || '#000000',
+            fontWeight: this.textDialogData.fontWeight || 'normal',
+            textAlign: this.textDialogData.textAlign || 'left',
+            mode: this.textDialogActiveTab,
+            updatedAt: new Date().toISOString(),
+            hasTextInRaster: !!finalText
+          }
+        }
+        
+        console.log('✏️ Текст обновлен в слое:', layerIndex)
+        
+      } else {
+        // РЕЖИМ СОЗДАНИЯ: Добавляем новую информацию
+        const layerInfo = {
+          id: layerIndex,
+          layer: textLayer,
+          textItem: textItem,
+          backgroundItem: backgroundItem,
+          textData: { ...this.textDialogData },
+          position: { ...this.textDialogPosition },
+          mode: this.textDialogActiveTab,
+          createdAt: new Date().toISOString()
+        }
+        
+        this.textLayers.push(layerInfo)
+        
+        // Добавляем в список созданных текстов для отображения во вкладке
+        const newText = {
+          id: layerIndex,
+          text: this.textDialogData.text || 'Пустой текст',
+          font: this.textDialogData.font || 'Arial',
+          fontSize: this.textDialogData.fontSize || 16,
+          color: this.textDialogData.textColor || '#000000',
+          fontWeight: this.textDialogData.fontWeight || 'normal',
+          textAlign: this.textDialogData.textAlign || 'left',
+          mode: this.textDialogActiveTab,
+          layerIndex: layerIndex,
+          createdAt: new Date().toISOString(),
+          hasTextInRaster: !!this.textDialogData.text // Флаг что текст включен в Raster
+        }
+        
+        this.createdTexts.push(newText)
+        console.log('📝 Новый текст добавлен в слой:', layerInfo)
       }
-      
-      this.textLayers.push(layerInfo)
-      
-      // Добавляем в список созданных текстов для отображения во вкладке
-      const newText = {
-        id: layerIndex,
-        text: this.textDialogData.text || 'Пустой текст',
-        font: this.textDialogData.font || 'Arial',
-        fontSize: this.textDialogData.fontSize || 16,
-        color: this.textDialogData.textColor || '#000000',
-        fontWeight: this.textDialogData.fontWeight || 'normal',
-        textAlign: this.textDialogData.textAlign || 'left',
-        mode: this.textDialogActiveTab,
-        layerIndex: layerIndex,
-        createdAt: new Date().toISOString(),
-        hasTextInRaster: !!this.textDialogData.text // Флаг что текст включен в Raster
-      }
-      
-      this.createdTexts.push(newText)
-      console.log('📝 Текст добавлен в слой:', layerInfo)
       
       // Обновляем 3D модель с небольшой задержкой для корректного отображения
       this.$nextTick(() => {
@@ -8895,16 +9055,76 @@ export default {
         return
       }
       
-      // Заполняем данные диалога
-      this.textDialogData = { ...layerInfo.textData }
+      // Активируем режим редактирования ПЕРЕД заполнением данных
+      this.isEditingText = true
+      this.editingLayerIndex = layerIndex
+      
+      // Заполняем данные диалога ПОСЛЕ активации режима редактирования
       this.textDialogPosition = { ...layerInfo.position }
       this.textDialogActiveTab = layerInfo.mode
       
-      // Активируем режим редактирования
+      // Глубокое копирование всех данных в соответствующее data-свойство для активной вкладки
+      const dataCopy = JSON.parse(JSON.stringify(layerInfo.textData))
+      switch (layerInfo.mode) {
+        case 'conversation':
+          Object.assign(this.textDialogDataConversation, dataCopy)
+          break
+        case 'thoughts':
+          Object.assign(this.textDialogDataThoughts, dataCopy)
+          break
+        case 'standard':
+          Object.assign(this.textDialogDataStandard, dataCopy)
+          break
+        case 'image-text':
+          Object.assign(this.textDialogDataImageText, dataCopy)
+          break
+      }
+      
+      // Открываем диалог БЕЗ вызова resetTextDialogData
       this.isTextModeActive = true
       this.showTextDialog = true
       
-      console.log('✅ Режим редактирования активирован')
+      console.log('📝 Заполнены данные для редактирования:', {
+        text: this.textDialogData.text,
+        mode: this.textDialogActiveTab,
+        hasTextImage: !!this.textDialogData.textImage,
+        backgroundColor: this.textDialogData.backgroundColor
+      })
+      
+      console.log('✅ Режим редактирования активирован:', {
+        layerIndex: layerIndex,
+        isEditingText: this.isEditingText,
+        editingLayerIndex: this.editingLayerIndex,
+        mode: layerInfo.mode,
+        text: layerInfo.textData.text
+      })
+      
+      // Принудительно обновляем превью канвасы после открытия диалога редактирования
+      this.$nextTick(() => {
+        // Настраиваем HiDPI для всех превью канвасов
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvas)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasThoughts)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasStandard)
+        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasImageText)
+        
+        // Обновляем превью канвасы
+        this.updatePreviewCanvas()
+        console.log('🔄 Превью канвасы обновлены при открытии диалога редактирования')
+      })
+    },
+    
+    // Оптимизированное обновление превью с debounce для улучшения производительности
+    updatePreviewCanvasOptimized() {
+      // Очищаем предыдущий таймаут
+      if (this.previewUpdateTimeout) {
+        clearTimeout(this.previewUpdateTimeout)
+      }
+      
+      // Устанавливаем новый таймаут для debounce
+      this.previewUpdateTimeout = setTimeout(() => {
+        this.updatePreviewCanvas()
+        this.previewUpdateTimeout = null
+      }, 16) // ~60fps для плавности
     },
     
     // Переключение видимости текстового слоя
@@ -9208,7 +9428,7 @@ export default {
           img.onload = () => {
             this.textDialogDataImageText.cachedImage = img
             this.$nextTick(() => {
-              this.updatePreviewCanvas()
+              this.updatePreviewCanvasOptimized()
             })
           }
           img.src = e.target.result

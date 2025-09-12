@@ -161,7 +161,7 @@
                         class="preview-canvas"
                         :width="previewCanvasWidth"
                         :height="previewCanvasHeight"
-                        @mousedown="startDragging"
+                        @mousedown="startPreviewDrag"
                       ></canvas>
                     </div>
                   </div>
@@ -535,7 +535,7 @@
                         class="preview-canvas"
                         :width="previewCanvasWidth"
                         :height="previewCanvasHeight"
-                        @mousedown="startDragging"
+                        @mousedown="startPreviewDrag"
                       ></canvas>
                     </div>
                   </div>
@@ -868,7 +868,7 @@
                         class="preview-canvas"
                         :width="previewCanvasWidth"
                         :height="previewCanvasHeight"
-                        @mousedown="startDragging"
+                        @mousedown="startPreviewDrag"
                       ></canvas>
                     </div>
                   </div>
@@ -1162,7 +1162,7 @@
                         class="preview-canvas"
                         :width="previewCanvasWidth"
                         :height="previewCanvasHeight"
-                        @mousedown="startDragging"
+                        @mousedown="startPreviewDrag"
                       ></canvas>
                     </div>
                   </div>
@@ -1964,8 +1964,9 @@ export default {
       textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
       isEditingText: false, // Флаг режима редактирования существующего текста
       editingLayerIndex: null, // Индекс слоя, который редактируется
-      isDragging: false, // Флаг для оптимизации производительности при перетаскивании
       previewUpdateTimeout: null, // Таймаут для debounce обновления превью
+      tailUpdateTimeout: null, // Таймаут для debounce обновления хвоста
+      previewUpdateFrame: null, // requestAnimationFrame для throttling обновления превью
       // Данные для каждой вкладки отдельно
       textDialogDataConversation: {
         text: '',
@@ -2064,13 +2065,7 @@ export default {
         shadowBlur: 1
       },
       
-      // Свойства для перетаскивания
-      isDragging: false, // Активно ли перетаскивание
-      dragStartPosition: null, // Начальная позиция перетаскивания
-      dragOffset: { x: 0, y: 0 }, // Смещение при перетаскивании
-      originalTextPosition: null, // Оригинальная позиция текста
-      canStopDragging: false, // Можно ли остановить перетаскивание
-      mouseUpAdded: false // Добавлен ли обработчик mouseup
+      // Свойства для перетаскивания удалены - Paper.js управляет перетаскиванием автоматически
     }
   },
   computed: {
@@ -2108,175 +2103,29 @@ export default {
     }
   },
   watch: {
-    // Автоматически обновляем превью при изменении любых параметров текста
-    'textDialogData.text'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.fontSize'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.fontWeight'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.font'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.textColor'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.backgroundColor'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.backgroundWidth'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.backgroundHeight'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.padding'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.stroke'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadow'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.strokeWidth'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.strokeColor'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadowColor'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadowOpacity'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadowOffsetX'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadowOffsetY'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.shadowBlur'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.tailSize'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.tailWidth'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.tailAngle'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.textAlign'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.lineHeight'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
-    'textDialogData.textImage'() {
-      if (this.showTextDialog) {
-        this.$nextTick(() => {
-          this.updatePreviewCanvasOptimized()
-        })
-      }
-    },
+        // Единый watch-ер для всех изменений textDialogData с оптимизацией
+        textDialogData: {
+          handler(newVal, oldVal) {
+            // Обновляем превью только если диалог открыт
+            if (this.showTextDialog) {
+              // Проверяем, изменились ли параметры хвоста (они требуют более частого обновления)
+              const tailParamsChanged = oldVal && (
+                newVal.tailAngle !== oldVal.tailAngle ||
+                newVal.tailSize !== oldVal.tailSize ||
+                newVal.tailWidth !== oldVal.tailWidth
+              )
+              
+              if (tailParamsChanged) {
+                // Для параметров хвоста используем более быстрое обновление
+                this.updatePreviewCanvasTailOptimized()
+              } else {
+                // Для остальных параметров используем стандартное обновление
+                this.updatePreviewCanvasOptimized()
+              }
+            }
+          },
+          deep: true // Отслеживаем изменения во всех вложенных свойствах
+        },
     
     // Вотчер для переключения вкладок
     'textDialogActiveTab'() {
@@ -2372,6 +2221,8 @@ export default {
         }, 100)
       })
       
+      // Настраиваем инструменты Paper.js для перетаскивания
+      this.setupPaperTools()
       
       console.log('✅ Paper.js инициализирован')
     },
@@ -5888,6 +5739,82 @@ export default {
       })
     },
 
+    // Настройка инструментов Paper.js для перетаскивания
+    setupPaperTools() {
+      if (!this.paperScope) return
+      
+      // Создаем инструмент для перетаскивания
+      const dragTool = new this.paperScope.Tool()
+      
+      let dragItem = null
+      let offset = null
+      
+      dragTool.onMouseDown = (event) => {
+        // Ищем элемент под курсором
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 10
+        })
+        
+        if (hitResult && hitResult.item) {
+          const item = hitResult.item
+          
+          // Проверяем, что это текстовый элемент или подложка
+          const isTextItem = item.className === 'TextItem' || 
+                           item.className === 'Group' || 
+                           item.className === 'Raster' ||
+                           (item.parent && item.parent.className === 'Layer') ||
+                           (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
+          
+          if (isTextItem) {
+            dragItem = item
+            offset = event.point.subtract(item.position)
+            dragItem.selected = true
+            console.log('🎯 Начато перетаскивание Paper.js элемента:', dragItem.className, dragItem.data)
+          }
+        }
+      }
+      
+      dragTool.onMouseDrag = (event) => {
+        if (dragItem) {
+          dragItem.position = event.point.subtract(offset)
+          
+          // Обновляем позицию в диалоге, если элемент редактируется
+          if (this.isEditingText && this.editingLayerIndex) {
+            this.textDialogPosition = {
+              x: event.point.x,
+              y: event.point.y
+            }
+            
+            // Обновляем позицию в данных слоя
+            const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
+            if (layerInfo) {
+              layerInfo.position = { x: event.point.x, y: event.point.y }
+            }
+            
+            // Обновляем превью с throttling для визуальной обратной связи
+            this.updatePreviewCanvasThrottled()
+          }
+        }
+      }
+      
+      dragTool.onMouseUp = (event) => {
+        if (dragItem) {
+          dragItem.selected = false
+          dragItem = null
+          offset = null
+          console.log('🎯 Завершено перетаскивание Paper.js элемента')
+        }
+      }
+      
+      // Активируем инструмент
+      dragTool.activate()
+      
+      console.log('🎯 Paper.js инструменты для перетаскивания настроены')
+    },
+
     // Получение текущего data-свойства для активной вкладки
     getCurrentTextDialogDataProperty() {
       switch (this.textDialogActiveTab) {
@@ -6082,7 +6009,7 @@ export default {
           editingLayer.layer.visible = false
           console.log('👁️ Отключаем редактируемый слой для скриншота:', this.editingLayerIndex)
           
-          // Принудительно обновляем Paper.js канвас после отключения слоя
+          // Обновляем Paper.js канвас после отключения слоя
           this.paperScope.view.draw()
         }
       }
@@ -6095,7 +6022,7 @@ export default {
         editingLayer.layer.visible = true
         console.log('👁️ Включаем обратно редактируемый слой:', this.editingLayerIndex)
         
-        // Принудительно обновляем Paper.js канвас после включения слоя
+        // Обновляем Paper.js канвас после включения слоя
         this.paperScope.view.draw()
       }
       
@@ -8153,6 +8080,13 @@ export default {
       textItem.visible = true
       textItem.opacity = 1
       
+      // Добавляем свойства для перетаскивания
+      textItem.data = {
+        layerIndex: layerIndex,
+        mode: this.textDialogActiveTab,
+        isDraggable: true
+      }
+      
       // Добавляем на слой
       layer.addChild(textItem)
       
@@ -9065,6 +8999,16 @@ export default {
       
       // Глубокое копирование всех данных в соответствующее data-свойство для активной вкладки
       const dataCopy = JSON.parse(JSON.stringify(layerInfo.textData))
+      
+      // Специальная обработка для режима "Текст с изображением" - копируем cachedImage отдельно
+      if (layerInfo.mode === 'image-text' && layerInfo.textData?.cachedImage) {
+        dataCopy.cachedImage = layerInfo.textData.cachedImage
+        console.log('🖼️ Копируем cachedImage для редактирования:', {
+          hasImage: !!layerInfo.textData.cachedImage,
+          imageSize: layerInfo.textData.cachedImage ? `${layerInfo.textData.cachedImage.width}x${layerInfo.textData.cachedImage.height}` : 'none'
+        })
+      }
+      
       switch (layerInfo.mode) {
         case 'conversation':
           Object.assign(this.textDialogDataConversation, dataCopy)
@@ -9120,11 +9064,39 @@ export default {
         clearTimeout(this.previewUpdateTimeout)
       }
       
-      // Устанавливаем новый таймаут для debounce
-      this.previewUpdateTimeout = setTimeout(() => {
+        // Устанавливаем новый таймаут для debounce
+        this.previewUpdateTimeout = setTimeout(() => {
+          this.updatePreviewCanvas()
+          this.previewUpdateTimeout = null
+        }, 100) // Увеличено для лучшей производительности при перетаскивании
+    },
+    
+    // Специальное оптимизированное обновление для параметров хвоста
+    updatePreviewCanvasTailOptimized() {
+      // Очищаем предыдущий таймаут для хвоста
+      if (this.tailUpdateTimeout) {
+        clearTimeout(this.tailUpdateTimeout)
+      }
+      
+      // Устанавливаем новый таймаут с меньшей задержкой для хвоста
+      this.tailUpdateTimeout = setTimeout(() => {
         this.updatePreviewCanvas()
-        this.previewUpdateTimeout = null
-      }, 16) // ~60fps для плавности
+        this.tailUpdateTimeout = null
+      }, 16) // ~60fps для плавного изменения хвоста
+    },
+    
+    // Оптимизированное обновление превью с throttling через requestAnimationFrame
+    updatePreviewCanvasThrottled() {
+      // Отменяем предыдущий requestAnimationFrame
+      if (this.previewUpdateFrame) {
+        cancelAnimationFrame(this.previewUpdateFrame)
+      }
+      
+      // Используем requestAnimationFrame для плавного обновления
+      this.previewUpdateFrame = requestAnimationFrame(() => {
+        this.updatePreviewCanvas()
+        this.previewUpdateFrame = null
+      })
     },
     
     // Переключение видимости текстового слоя
@@ -9166,145 +9138,49 @@ export default {
     
     // === МЕТОДЫ ПЕРЕТАСКИВАНИЯ ===
     
-    // Начало/остановка перетаскивания по клику
-    startDragging(event) {
-      if (!this.textDialogPosition) {
-        console.log('❌ textDialogPosition не определен')
-        return
-      }
+    // Простое перетаскивание на превью канвасах
+    startPreviewDrag(event) {
+      if (!this.textDialogPosition) return
       
-      // Получаем координаты клика относительно канваса
       const canvas = event.target
       const rect = canvas.getBoundingClientRect()
-      const clickX = event.clientX - rect.left
-      const clickY = event.clientY - rect.top
+      const startX = event.clientX - rect.left
+      const startY = event.clientY - rect.top
       
-      // Детальная отладка всех значений
-      console.log('🎯 Клик по канвасу - ДЕТАЛЬНО:')
-      console.log('  clickX:', clickX)
-      console.log('  clickY:', clickY)
-      console.log('  textDialogPosition.x:', this.textDialogPosition.x)
-      console.log('  textDialogPosition.y:', this.textDialogPosition.y)
-      console.log('  textDialogData.backgroundWidth:', this.textDialogData.backgroundWidth)
-      console.log('  textDialogData.backgroundHeight:', this.textDialogData.backgroundHeight)
-      
-      // Упрощенная логика - перетаскивание работает в любом месте канваса
-      if (!this.isDragging) {
-        // НАЧАЛО перетаскивания - работает в любом месте канваса
-        console.log('🎯 НАЧАЛО перетаскивания')
-        this.isDragging = true
-        this.dragStartPosition = { x: clickX, y: clickY }
-        this.originalTextPosition = { ...this.textDialogPosition }
-        this.dragOffset = { x: 0, y: 0 }
+      // Проверяем, кликнули ли по тексту/подложке
+      if (this.isClickOnSuperBackground(startX, startY)) {
+        console.log('🎯 Начато перетаскивание на превью канвасе')
         
-        // Добавляем только mousemove, mouseup добавим после первого движения
-        document.addEventListener('mousemove', this.handleDragMove.bind(this))
+        // Сохраняем начальную позицию диалога
+        const startDialogX = this.textDialogPosition.x
+        const startDialogY = this.textDialogPosition.y
         
-        // Изменяем курсор
-        canvas.style.cursor = 'grabbing'
+        const handleMouseMove = (e) => {
+          const currentX = e.clientX - rect.left
+          const currentY = e.clientY - rect.top
+          
+          const deltaX = currentX - startX
+          const deltaY = currentY - startY
+          
+          // Обновляем позицию диалога относительно начальной позиции
+          this.textDialogPosition = {
+            x: startDialogX + deltaX,
+            y: startDialogY + deltaY
+          }
+          
+          // Обновляем превью с throttling для плавной визуальной обратной связи
+          this.updatePreviewCanvasThrottled()
+        }
         
-        console.log('🎯 Перетаскивание АКТИВИРОВАНО')
+        const handleMouseUp = () => {
+          document.removeEventListener('mousemove', handleMouseMove)
+          document.removeEventListener('mouseup', handleMouseUp)
+          console.log('🎯 Завершено перетаскивание на превью канвасе')
+        }
         
-        // Добавляем задержку перед возможностью остановки
-        setTimeout(() => {
-          this.canStopDragging = true
-          console.log('🎯 Теперь можно остановить перетаскивание')
-        }, 300)
-      } else if (this.canStopDragging) {
-        // ОСТАНОВКА перетаскивания (только после задержки)
-        console.log('🎯 ОСТАНОВКА перетаскивания по клику')
-        this.handleDragEnd()
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
       }
-    },
-    
-    // Обработка движения мыши при перетаскивании
-    handleDragMove(event) {
-      if (!this.isDragging || !this.dragStartPosition) return
-      
-      // Получаем ссылку на активный канвас
-      let canvas
-      if (this.textDialogActiveTab === 'conversation') {
-        canvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        canvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        canvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        canvas = this.$refs.previewCanvasImageText
-      }
-      if (!canvas) return
-      
-      const rect = canvas.getBoundingClientRect()
-      const currentX = event.clientX - rect.left
-      const currentY = event.clientY - rect.top
-      
-      // Вычисляем смещение от начальной позиции
-      this.dragOffset.x = currentX - this.dragStartPosition.x
-      this.dragOffset.y = currentY - this.dragStartPosition.y
-      
-            // КООРДИНАТЫ ПЕРЕТАСКИВАНИЯ: увеличиваем масштаб для синхронизации скорости
-      const dragScale = 2.0 // Увеличенный масштаб для синхронизации скорости
-      
-      // МАСШТАБИРУЕМ смещение: умножаем на увеличенный масштаб
-      const scaledOffsetX = this.dragOffset.x * dragScale
-      const scaledOffsetY = this.dragOffset.y * dragScale
-      
-      // Обновляем позицию текста с МАСШТАБИРОВАННЫМ смещением
-      this.textDialogPosition.x = this.originalTextPosition.x + scaledOffsetX
-      this.textDialogPosition.y = this.originalTextPosition.y + scaledOffsetY
-      
-      // Обновляем превью
-      this.updatePreviewCanvas()
-      
-      console.log('🎯 Перетаскивание:', {
-        dragOffset: this.dragOffset,
-        scaledOffset: { x: scaledOffsetX, y: scaledOffsetY },
-        newPosition: { x: this.textDialogPosition.x, y: this.textDialogPosition.y },
-        originalPosition: this.originalTextPosition,
-        dragScale: dragScale
-      })
-      
-      // Добавляем mouseup только после первого движения
-      if (!this.mouseUpAdded) {
-        document.addEventListener('mouseup', this.handleDragEnd.bind(this))
-        this.mouseUpAdded = true
-        console.log('🎯 Добавлен обработчик mouseup')
-      }
-    },
-    
-    // Завершение перетаскивания
-    handleDragEnd(event = null) {
-      if (!this.isDragging) return
-      
-      console.log('🎯 Завершение перетаскивания')
-      
-      // Убираем обработчики событий с document
-      document.removeEventListener('mousemove', this.handleDragMove.bind(this))
-      document.removeEventListener('mouseup', this.handleDragEnd.bind(this))
-      
-      // Сбрасываем состояние
-      this.isDragging = false
-      this.dragStartPosition = null
-      this.dragOffset = { x: 0, y: 0 }
-      this.canStopDragging = false
-      this.mouseUpAdded = false
-      
-      // Возвращаем курсор на активный канвас
-      let activeCanvas
-      if (this.textDialogActiveTab === 'conversation') {
-        activeCanvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        activeCanvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        activeCanvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        activeCanvas = this.$refs.previewCanvasImageText
-      }
-      if (activeCanvas) {
-        activeCanvas.style.cursor = 'default'
-      }
-      
-      console.log('🎯 Перетаскивание завершено')
     },
     
     // Проверка клика по тексту (для режима "Текст с изображением")
@@ -9407,8 +9283,6 @@ export default {
       console.log('  bgWidth:', bgWidth, 'bgHeight:', bgHeight)
       console.log('  scaledBgWidth:', scaledBgWidth, 'scaledBgHeight:', scaledBgHeight)
       console.log('  previewScale:', previewScale)
-      console.log('  mainCanvas:', mainWidth, 'x', mainHeight)
-      console.log('  previewCanvas:', activePreviewCanvas.width, 'x', activePreviewCanvas.height)
       console.log('  X проверка:', `${clickX} >= ${left} && ${clickX} <= ${right} =`, clickX >= left && clickX <= right)
       console.log('  Y проверка:', `${clickY} >= ${top} && ${clickY} <= ${bottom} =`, clickY >= top && clickY <= bottom)
       console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)

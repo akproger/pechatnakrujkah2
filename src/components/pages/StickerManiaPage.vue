@@ -2053,18 +2053,16 @@ export default {
       }
     },
     
-    // Размеры для превью канваса с соотношением сторон 19:9 (разрешение увеличено в 3 раза)
+    // Размеры для превью канваса - точно такие же, как у основного канваса
     previewCanvasWidth() {
-      if (!this.$refs.testCanvas) return 1200
-      // Ограничиваем максимальную ширину для превью (в 3 раза больше)
-      const mainWidth = this.$refs.testCanvas.width || 400
-      return Math.min(mainWidth * 3, 1200)
+      if (!this.$refs.testCanvas) return 400
+      // Используем точно такие же размеры, как у основного канваса
+      return this.$refs.testCanvas.width || 400
     },
     previewCanvasHeight() {
-      if (!this.$refs.testCanvas) return 570
-      // Вычисляем высоту на основе ширины с соотношением 19:9 (в 3 раза больше)
-      const width = this.previewCanvasWidth
-      return Math.round((width * 9) / 19)
+      if (!this.$refs.testCanvas) return 300
+      // Используем точно такие же размеры, как у основного канваса
+      return this.$refs.testCanvas.height || 300
     }
   },
   watch: {
@@ -5882,29 +5880,18 @@ export default {
         tailAngle: this.textDialogData.tailAngle
       })
       
-      // Конвертируем координаты клика в координаты превью канваса
-      // Используем динамическое масштабирование для точной синхронизации - МЕТОД 1
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 1
       const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
       
-      // ЛОГИРОВАНИЕ масштаба для отладки - МЕТОД 1
-      console.log('🎨 МАСШТАБ ОТРИСОВКИ МЕТОД 1:', {
-        scaleX: scaleX.toFixed(3),
-        scaleY: scaleY.toFixed(3),
+      // ЛОГИРОВАНИЕ для отладки - МЕТОД 1
+      console.log('🎨 ОТРИСОВКА МЕТОД 1:', {
         previewScale: previewScale.toFixed(3),
-        mainCanvas: `${mainWidth}x${mainHeight}`,
-        previewCanvas: `${canvas.width}x${canvas.height}`
+        previewCanvas: `${canvas.width}x${canvas.height}`,
+        position: `${previewX}, ${previewY}`
       })
       
       // Настройки текста (адаптированные под превью) - МЕТОД 1
@@ -5978,17 +5965,9 @@ export default {
       
       console.log('⭐ Отрисовка текста в режиме "Стандарт" без хвоста:', this.textDialogData.text)
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -6078,17 +6057,9 @@ export default {
       
       console.log('🧠 ТЕСТИРОВАНИЕ РЕЖИМА "МЫСЛИ" - овальная подложка')
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -6146,17 +6117,9 @@ export default {
       
       console.log('🧠 ДЕФОЛТНАЯ подложка режима "Мысли" - овальная без треугольника')
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -6462,28 +6425,18 @@ export default {
       
       console.log('🎨 Отрисовка дефолтного текста на превью')
       
-      // Конвертируем координаты клика в координаты превью канваса - МЕТОД 2
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // ВРЕМЕННО используем фиксированный масштаб для стабильности размеров - МЕТОД 2
       const previewScale = 1.2 // Фиксированный масштаб для стабильности размеров
       
-      // ЛОГИРОВАНИЕ масштаба для отладки - МЕТОД 2
-      console.log('🎨 МАСШТАБ ОТРИСОВКИ МЕТОД 2:', {
-        scaleX: scaleX.toFixed(3),
-        scaleY: scaleY.toFixed(3),
+      // ЛОГИРОВАНИЕ для отладки - МЕТОД 2
+      console.log('🎨 ОТРИСОВКА МЕТОД 2:', {
         previewScale: previewScale.toFixed(3),
-        mainCanvas: `${mainWidth}x${mainHeight}`,
-        previewCanvas: `${canvas.width}x${canvas.height}`
+        previewCanvas: `${canvas.width}x${canvas.height}`,
+        position: `${previewX}, ${previewY}`
       })
       
       // Настройки текста (адаптированные под превью)
@@ -6561,17 +6514,9 @@ export default {
       
       console.log('⭐ Отрисовка дефолтного текста в режиме "Стандарт" без хвоста')
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -6620,17 +6565,9 @@ export default {
       
       console.log('🖼️ Отрисовка текста в режиме "Текст с изображением" без подложки:', this.textDialogData.text)
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -6773,17 +6710,9 @@ export default {
       
       console.log('🖼️ Отрисовка дефолтного текста в режиме "Текст с изображением" без подложки')
       
-      // Конвертируем координаты клика в координаты превью канваса
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      
-      // Вычисляем масштаб с учетом соотношения сторон
-      const scaleX = canvas.width / mainWidth
-      const scaleY = canvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты клика остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       
       // Используем фиксированный масштаб для стабильности размеров
       const previewScale = 1.2
@@ -7767,36 +7696,32 @@ export default {
       console.log('  textDialogData.backgroundWidth:', this.textDialogData.backgroundWidth)
       console.log('  textDialogData.backgroundHeight:', this.textDialogData.backgroundHeight)
       
-      // Проверяем, кликнули ли мы по суперподложке или тексту
-      if (this.isClickOnSuperBackground(clickX, clickY)) {
-        if (!this.isDragging) {
-          // НАЧАЛО перетаскивания
-          console.log('🎯 НАЧАЛО перетаскивания')
-          this.isDragging = true
-          this.dragStartPosition = { x: clickX, y: clickY }
-          this.originalTextPosition = { ...this.textDialogPosition }
-          this.dragOffset = { x: 0, y: 0 }
-          
-          // Добавляем только mousemove, mouseup добавим после первого движения
-          document.addEventListener('mousemove', this.handleDragMove.bind(this))
-          
-          // Изменяем курсор
-          canvas.style.cursor = 'grabbing'
-          
-          console.log('🎯 Перетаскивание АКТИВИРОВАНО')
-          
-          // Добавляем задержку перед возможностью остановки
-          setTimeout(() => {
-            this.canStopDragging = true
-            console.log('🎯 Теперь можно остановить перетаскивание')
-          }, 300)
-        } else if (this.canStopDragging) {
-          // ОСТАНОВКА перетаскивания (только после задержки)
-          console.log('🎯 ОСТАНОВКА перетаскивания по клику')
-          this.handleDragEnd()
-        }
-      } else {
-        console.log('❌ Клик НЕ по суперподложке')
+      // Упрощенная логика - перетаскивание работает в любом месте канваса
+      if (!this.isDragging) {
+        // НАЧАЛО перетаскивания - работает в любом месте канваса
+        console.log('🎯 НАЧАЛО перетаскивания')
+        this.isDragging = true
+        this.dragStartPosition = { x: clickX, y: clickY }
+        this.originalTextPosition = { ...this.textDialogPosition }
+        this.dragOffset = { x: 0, y: 0 }
+        
+        // Добавляем только mousemove, mouseup добавим после первого движения
+        document.addEventListener('mousemove', this.handleDragMove.bind(this))
+        
+        // Изменяем курсор
+        canvas.style.cursor = 'grabbing'
+        
+        console.log('🎯 Перетаскивание АКТИВИРОВАНО')
+        
+        // Добавляем задержку перед возможностью остановки
+        setTimeout(() => {
+          this.canStopDragging = true
+          console.log('🎯 Теперь можно остановить перетаскивание')
+        }, 300)
+      } else if (this.canStopDragging) {
+        // ОСТАНОВКА перетаскивания (только после задержки)
+        console.log('🎯 ОСТАНОВКА перетаскивания по клику')
+        this.handleDragEnd()
       }
     },
     
@@ -7897,26 +7822,9 @@ export default {
         return false
       }
       
-      // Получаем активный превью канвас
-      let activePreviewCanvas
-      if (this.textDialogActiveTab === 'image-text') {
-        activePreviewCanvas = this.$refs.previewCanvasImageText
-      }
-      
-      if (!activePreviewCanvas) {
-        console.log('❌ Превью канвас не найден для режима "Текст с изображением"')
-        return false
-      }
-      
-      // Вычисляем масштаб точно так же, как в отрисовке
-      const mainCanvas = this.$refs.testCanvas
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      const scaleX = activePreviewCanvas.width / mainWidth
-      const scaleY = activePreviewCanvas.height / mainHeight
-      
-      const previewX = this.textDialogPosition.x * scaleX
-      const previewY = this.textDialogPosition.y * scaleY
+      // Координаты остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.textDialogPosition.x
+      const previewY = this.textDialogPosition.y
       const previewScale = 1.2
       
       // Вычисляем размеры текста точно так же, как в отрисовке
@@ -7984,30 +7892,7 @@ export default {
       const bgWidth = this.textDialogData.backgroundWidth
       const bgHeight = this.textDialogData.backgroundHeight
       
-      // ДИНАМИЧЕСКИЙ МАСШТАБ: используем тот же подход, что и в отрисовке
-      const mainCanvas = this.$refs.testCanvas
-      let activePreviewCanvas
-      if (this.textDialogActiveTab === 'conversation') {
-        activePreviewCanvas = this.$refs.previewCanvas
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        activePreviewCanvas = this.$refs.previewCanvasThoughts
-      } else if (this.textDialogActiveTab === 'standard') {
-        activePreviewCanvas = this.$refs.previewCanvasStandard
-      } else if (this.textDialogActiveTab === 'image-text') {
-        activePreviewCanvas = this.$refs.previewCanvasImageText
-      }
-      
-      if (!mainCanvas || !activePreviewCanvas) {
-        console.log('❌ Канвасы не найдены для вычисления масштаба')
-        return false
-      }
-      
-      const mainWidth = mainCanvas.width
-      const mainHeight = mainCanvas.height
-      const scaleX = activePreviewCanvas.width / mainWidth
-      const scaleY = activePreviewCanvas.height / mainHeight
-      
-      // ВРЕМЕННО используем тот же фиксированный масштаб, что и в отрисовке
+      // Размеры канвасов одинаковые, масштабирование не нужно
       const previewScale = 1.2
       
       // Масштабированные размеры подложки (используем тот же масштаб)
@@ -8015,8 +7900,8 @@ export default {
       const scaledBgHeight = Math.round(bgHeight * previewScale)
       
       // Прямое вычисление границ суперподложки в координатах превью
-      const left = clickX - scaledBgWidth / 2
-      const top = clickY - scaledBgHeight / 2
+      const left = this.textDialogPosition.x - scaledBgWidth / 2
+      const top = this.textDialogPosition.y - scaledBgHeight / 2
       const right = left + scaledBgWidth
       const bottom = top + scaledBgHeight
       

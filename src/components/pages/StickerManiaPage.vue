@@ -47,6 +47,18 @@
                   </button>
                 </div>
                 
+                <!-- Кнопка сохранения -->
+                <div class="col" style="padding: 0;">
+                  <button 
+                    @click="saveCanvasForPrint" 
+                    class="btn btn-info"
+                    style="background-color: #17a2b8; border-color: #17a2b8;"
+                    title="Сохранить для печати (высокое качество)"
+                  >
+                    <i class="bi bi-download me-2"></i>
+                    Сохранить
+                  </button>
+                </div>
 
               </div>
             </div>
@@ -2193,6 +2205,92 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    // Сохранение холста в высоком разрешении для печати
+    async saveCanvasForPrint() {
+      console.log('🖨️ Начинаем сохранение холста для печати')
+      
+      try {
+        const canvas = this.$refs.testCanvas
+        if (!canvas) {
+          console.error('❌ Основной холст не найден')
+          return
+        }
+
+        // Параметры для печати (300 DPI - стандарт для качественной печати)
+        const printDPI = 300
+        const screenDPI = 96 // Стандартный DPI экрана
+        
+        // Получаем размеры холста
+        const canvasWidth = canvas.width
+        const canvasHeight = canvas.height
+        
+        // Вычисляем размеры для печати (увеличиваем в 3.125 раза для 300 DPI)
+        const printWidth = Math.round(canvasWidth * (printDPI / screenDPI))
+        const printHeight = Math.round(canvasHeight * (printDPI / screenDPI))
+        
+        console.log('📏 Размеры для печати:', {
+          original: `${canvasWidth}x${canvasHeight}`,
+          print: `${printWidth}x${printHeight}`,
+          scale: (printDPI / screenDPI).toFixed(2)
+        })
+
+        // Создаем временный холст в высоком разрешении
+        const printCanvas = document.createElement('canvas')
+        printCanvas.width = printWidth
+        printCanvas.height = printHeight
+        const printCtx = printCanvas.getContext('2d')
+
+        // Устанавливаем белый фон
+        printCtx.fillStyle = '#FFFFFF'
+        printCtx.fillRect(0, 0, printWidth, printHeight)
+
+        // Простое и надежное копирование холста с масштабированием
+        // Используем imageSmoothingEnabled для лучшего качества
+        printCtx.imageSmoothingEnabled = true
+        printCtx.imageSmoothingQuality = 'high'
+        
+        // Копируем содержимое основного холста с масштабированием
+        printCtx.drawImage(
+          canvas,
+          0, 0, canvasWidth, canvasHeight,  // Исходный прямоугольник
+          0, 0, printWidth, printHeight     // Целевой прямоугольник
+        )
+
+        // Создаем ссылку для скачивания
+        const link = document.createElement('a')
+        link.download = `sticker-design-${new Date().toISOString().slice(0, 10)}.png`
+        
+        // Конвертируем в blob с высоким качеством
+        printCanvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            link.href = url
+            
+            // Запускаем скачивание
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            
+            // Очищаем URL
+            URL.revokeObjectURL(url)
+            
+            console.log('✅ Файл успешно сохранен:', link.download)
+            
+            // Показываем уведомление пользователю
+            this.$nextTick(() => {
+              // Можно добавить toast уведомление
+              console.log('🎉 Изображение сохранено в высоком качестве для печати!')
+            })
+          } else {
+            console.error('❌ Ошибка при создании blob')
+          }
+        }, 'image/png', 1.0) // Максимальное качество
+
+      } catch (error) {
+        console.error('❌ Ошибка при сохранении холста:', error)
+      }
+    },
+
     // Инициализация Paper.js
     async initPaper() {
       const canvas = this.$refs.testCanvas
@@ -10083,6 +10181,7 @@ export default {
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
+
 
 .canvas-container {
   width: 100%;

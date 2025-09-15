@@ -46,6 +46,16 @@
                     Текст
                   </button>
                 </div>
+                <div class="col" style="padding: 0;">
+                  <TextManager 
+                    :canvas="$refs.testCanvas"
+                    :paper-scope="paperScope"
+                    :text-position="textDialogPosition"
+                    @text-dialog-opened="onTextDialogOpened"
+                    @text-dialog-closed="onTextDialogClosed"
+                    @text-applied="onTextApplied"
+                  />
+                </div>
                 
                 <!-- Кнопка сохранения -->
                 <div class="col" style="padding: 0;">
@@ -1887,6 +1897,7 @@ import paper from 'paper'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import StickerSelectionModal from '../StickerSelectionModal.vue'
+import TextManager from '../TextManager.vue'
 import heartMask from '/src/assets/masks/heart.svg'
 import rocketMask from '/src/assets/masks/rocket.svg'
 import blabMask from '/src/assets/masks/blab.svg'
@@ -1906,7 +1917,8 @@ export default {
   name: 'StickerManiaPage',
   components: {
     ThreeDRenderer,
-    StickerSelectionModal
+    StickerSelectionModal,
+    TextManager
   },
   data() {
     return {
@@ -2137,7 +2149,7 @@ export default {
             }
           },
           deep: true // Отслеживаем изменения во всех вложенных свойствах
-        },
+    },
     
     // Вотчер для переключения вкладок
     'textDialogActiveTab'() {
@@ -5812,7 +5824,7 @@ export default {
       
       // Сбрасываем данные только если это НЕ режим редактирования
       if (!this.isEditingText) {
-        this.resetTextDialogData()
+      this.resetTextDialogData()
         console.log('🔄 Данные диалога сброшены (режим создания)')
       } else {
         console.log('🔄 Данные диалога сохранены (режим редактирования)')
@@ -5928,6 +5940,35 @@ export default {
           return this.textDialogDataConversation
       }
     },
+
+    // === МЕТОДЫ ОБРАБОТКИ СОБЫТИЙ TEXTMANAGER ===
+
+    // Обработчик открытия диалога TextManager
+    onTextDialogOpened() {
+      console.log('📝 TextManager: диалог открыт')
+      // Можно добавить дополнительную логику при открытии диалога
+    },
+
+    // Обработчик закрытия диалога TextManager
+    onTextDialogClosed() {
+      console.log('📝 TextManager: диалог закрыт')
+      // Можно добавить дополнительную логику при закрытии диалога
+    },
+
+    // Обработчик применения текста из TextManager
+    onTextApplied(event) {
+      console.log('📝 TextManager: применение текста', event)
+      
+      const { textData, mode, position, isEditing, editingLayerIndex } = event
+      
+      if (isEditing && editingLayerIndex !== null) {
+        // Редактирование существующего текста
+        this.editTextLayer(editingLayerIndex, textData, mode)
+      } else {
+        // Создание нового текста
+        this.applyTextToCanvas(textData, position, mode)
+      }
+    },
     
     // Сброс данных диалога
     resetTextDialogData() {
@@ -5996,32 +6037,32 @@ export default {
       
       // Обновляем превью канвасы только если диалог открыт
       if (this.showTextDialog) {
-        // Обновляем все превью канвасы
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-        
-        // Принудительно обновляем активную вкладку
-        if (this.textDialogActiveTab === 'thoughts') {
-          console.log('🧠 Принудительное обновление режима "Мысли"')
-          this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-          })
-        } else if (this.textDialogActiveTab === 'standard') {
-          console.log('⭐ Принудительное обновление режима "Стандарт"')
-          this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-          })
-        } else if (this.textDialogActiveTab === 'image-text') {
-          console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
+                // Обновляем все превью канвасы
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvas)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+      
+      // Принудительно обновляем активную вкладку
+      if (this.textDialogActiveTab === 'thoughts') {
+        console.log('🧠 Принудительное обновление режима "Мысли"')
+        this.$nextTick(() => {
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+        })
+      } else if (this.textDialogActiveTab === 'standard') {
+        console.log('⭐ Принудительное обновление режима "Стандарт"')
+        this.$nextTick(() => {
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+        })
+      } else if (this.textDialogActiveTab === 'image-text') {
+        console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
           console.log('🔍 Проверка ref previewCanvasImageText:', {
             ref: this.$refs.previewCanvasImageText,
             exists: !!this.$refs.previewCanvasImageText
           })
-          this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
-          })
+        this.$nextTick(() => {
+          this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+        })
         }
       } else {
         console.log('⚠️ Диалог закрыт, пропускаем обновление превью канвасов')
@@ -6150,30 +6191,30 @@ export default {
       if (currentCanvasTab === this.textDialogActiveTab && this.textDialogPosition) {
         if (this.textDialogData.text) {
           // Показываем введенный текст
-          if (this.textDialogActiveTab === 'thoughts') {
-            console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
-            this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
-          } else if (this.textDialogActiveTab === 'standard') {
-            console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
-            this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
-          } else if (this.textDialogActiveTab === 'image-text') {
-            console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ"')
-            this.drawTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
-          } else {
-            console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
-            this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
-          }
+        if (this.textDialogActiveTab === 'thoughts') {
+          console.log('🧠 ВЫЗЫВАЕМ РЕЖИМ "МЫСЛИ"')
+          this.drawTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'standard') {
+          console.log('⭐ ВЫЗЫВАЕМ РЕЖИМ "СТАНДАРТ"')
+          this.drawTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          console.log('🖼️ ВЫЗЫВАЕМ РЕЖИМ "ТЕКСТ С ИЗОБРАЖЕНИЕМ"')
+          this.drawTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
         } else {
-          // Показываем дефолтный текст "Текст" на дефолтной подложке
-          console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ')
-          if (this.textDialogActiveTab === 'thoughts') {
-            this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
-          } else if (this.textDialogActiveTab === 'standard') {
-            this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
-          } else if (this.textDialogActiveTab === 'image-text') {
-            this.drawDefaultTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
-          } else {
-            this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
+          console.log('💬 ВЫЗЫВАЕМ РЕЖИМ "РАЗГОВОР"')
+          this.drawTextPreviewOnCanvas(previewCtx, previewCanvas)
+        }
+        } else {
+        // Показываем дефолтный текст "Текст" на дефолтной подложке
+        console.log('📝 ВЫЗЫВАЕМ ДЕФОЛТНЫЙ ТЕКСТ')
+        if (this.textDialogActiveTab === 'thoughts') {
+          this.drawDefaultTextPreviewOnCanvasThoughtsMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'standard') {
+          this.drawDefaultTextPreviewOnCanvasStandardMode(previewCtx, previewCanvas)
+        } else if (this.textDialogActiveTab === 'image-text') {
+          this.drawDefaultTextPreviewOnCanvasImageTextMode(previewCtx, previewCanvas)
+        } else {
+          this.drawDefaultTextPreviewOnCanvas(previewCtx, previewCanvas)
           }
         }
       }
@@ -8099,21 +8140,21 @@ export default {
         this.textLayers.push(layerInfo)
         
         // Добавляем в список созданных текстов для отображения во вкладке
-        const newText = {
+      const newText = {
           id: layerIndex,
-          text: this.textDialogData.text || 'Пустой текст',
-          font: this.textDialogData.font || 'Arial',
-          fontSize: this.textDialogData.fontSize || 16,
+        text: this.textDialogData.text || 'Пустой текст',
+        font: this.textDialogData.font || 'Arial',
+        fontSize: this.textDialogData.fontSize || 16,
           color: this.textDialogData.textColor || '#000000',
-          fontWeight: this.textDialogData.fontWeight || 'normal',
-          textAlign: this.textDialogData.textAlign || 'left',
+        fontWeight: this.textDialogData.fontWeight || 'normal',
+        textAlign: this.textDialogData.textAlign || 'left',
           mode: this.textDialogActiveTab,
           layerIndex: layerIndex,
           createdAt: new Date().toISOString(),
           hasTextInRaster: !!this.textDialogData.text // Флаг что текст включен в Raster
-        }
-        
-        this.createdTexts.push(newText)
+      }
+      
+      this.createdTexts.push(newText)
         console.log('📝 Новый текст добавлен в слой:', layerInfo)
       }
       
@@ -8578,7 +8619,7 @@ export default {
     createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
       try {
         // Создаем временный Canvas с таким же разрешением как основной канвас
-        const mainCanvas = this.$refs.testCanvas
+      const mainCanvas = this.$refs.testCanvas
         const container = mainCanvas ? mainCanvas.parentElement : null
         const containerWidth = container ? container.clientWidth : 600
         const containerHeight = container ? (containerWidth * 9) / 19 : 400

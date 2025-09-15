@@ -1457,38 +1457,12 @@ export default {
       }
     },
 
-    // Размеры для превью канваса - логические размеры (без HiDPI) - ТОЧНАЯ КОПИЯ из StickerManiaPage
+    // Размеры для превью канваса - точно как основной канвас (1472x697)
     previewCanvasWidth() {
-      if (!this.canvas) return 400
-      // Используем логические размеры (стилевые), а не физические (canvas.width)
-      const canvas = this.canvas
-      const containerWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 400
-      console.log('📏 TextManager previewCanvasWidth:', {
-        canvas: !!canvas,
-        parentElement: !!canvas.parentElement,
-        clientWidth: canvas.parentElement ? canvas.parentElement.clientWidth : 'no parent',
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        result: containerWidth
-      })
-      return containerWidth
+      return 1472
     },
     previewCanvasHeight() {
-      if (!this.canvas) return 300
-      // Используем логические размеры (стилевые), а не физические (canvas.height)
-      const canvas = this.canvas
-      const containerWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 400
-      const containerHeight = (containerWidth * 9) / 19
-      console.log('📏 TextManager previewCanvasHeight:', {
-        canvas: !!canvas,
-        parentElement: !!canvas.parentElement,
-        clientWidth: canvas.parentElement ? canvas.parentElement.clientWidth : 'no parent',
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        containerHeight: containerHeight,
-        ratio: '9/19'
-      })
-      return containerHeight
+      return 697
     },
 
     // Данные текста для текущей вкладки
@@ -2702,10 +2676,20 @@ export default {
         return
       }
       
+      // Устанавливаем размеры превью канваса точно как основной канвас (1472x697)
+      const dpr = window.devicePixelRatio || 1
+      previewCanvas.width = 1472 * dpr
+      previewCanvas.height = 697 * dpr
+      previewCanvas.style.width = '1472px'
+      previewCanvas.style.height = '697px'
+      
       console.log('🔄 Обновление превью канваса:', {
         canvas: previewCanvas,
         width: previewCanvas.width,
-        height: previewCanvas.height
+        height: previewCanvas.height,
+        styleWidth: previewCanvas.style.width,
+        styleHeight: previewCanvas.style.height,
+        dpr: dpr
       })
       
       const ctx = previewCanvas.getContext('2d')
@@ -2714,16 +2698,19 @@ export default {
         return
       }
       
+      // Масштабируем контекст для HiDPI
+      ctx.scale(dpr, dpr)
+      
       // Очищаем канвас
-      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+      ctx.clearRect(0, 0, 1472, 697)
       
       // Копируем фон с основного канваса если доступен
       if (this.canvas && this.canvas.width > 0) {
         console.log('🖼️ Копируем фон с основного канваса:', {
           mainCanvasSize: `${this.canvas.width}x${this.canvas.height}`,
-          previewSize: `${previewCanvas.width}x${previewCanvas.height}`
+          previewSize: '1472x697'
         })
-        ctx.drawImage(this.canvas, 0, 0, previewCanvas.width, previewCanvas.height)
+        ctx.drawImage(this.canvas, 0, 0, 1472, 697)
       } else {
         console.log('⚠️ Основной канвас недоступен, рисуем белый фон', {
           canvas: this.canvas,
@@ -2732,7 +2719,7 @@ export default {
         })
         // Рисуем белый фон если основной канвас недоступен
         ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height)
+        ctx.fillRect(0, 0, 1472, 697)
       }
       
       // Определяем какой режим рисования использовать

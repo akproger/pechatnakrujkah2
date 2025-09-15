@@ -8001,162 +8001,75 @@ export default {
     },
     
     // Применение текста на канвас с созданием слоя
-    applyTextToCanvas() {
-      if (!this.textDialogPosition || !this.paperScope) return
+    applyTextToCanvas(textData, position, mode) {
+      if (!position || !this.paperScope) return
       
-      console.log('✅ Применение текста на канвас:', this.textDialogData)
+      console.log('✅ Применение текста на канвас:', textData)
       console.log('🎯 Координаты для применения:', {
-        x: this.textDialogPosition.x,
-        y: this.textDialogPosition.y,
-        mode: this.textDialogActiveTab,
-        isEditing: this.isEditingText,
-        editingLayerIndex: this.editingLayerIndex
+        x: position.x,
+        y: position.y,
+        mode: mode,
+        isEditing: false,
+        editingLayerIndex: null
       })
       
       let layerIndex
       let textLayer
       
-      if (this.isEditingText && this.editingLayerIndex) {
-        // РЕЖИМ РЕДАКТИРОВАНИЯ: Обновляем существующий слой
-        layerIndex = this.editingLayerIndex
-        console.log('✏️ Редактирование существующего слоя:', layerIndex)
-        
-        // Находим существующий слой
-        const existingLayerInfo = this.textLayers.find(layer => layer.id === layerIndex)
-        if (!existingLayerInfo) {
-          console.log('❌ Слой для редактирования не найден:', layerIndex)
-          return
-        }
-        
-        textLayer = existingLayerInfo.layer
-        
-      } else {
-        // РЕЖИМ СОЗДАНИЯ: Создаем новый слой
-        layerIndex = this.nextLayerIndex
-        this.nextLayerIndex += 10 // Следующий слой будет на 10 больше
-        console.log('➕ Создание нового слоя:', layerIndex)
-        
-        // Создаем новый слой в Paper.js
-        textLayer = new this.paperScope.Layer()
-        textLayer.name = `textLayer_${layerIndex}`
-        
-        // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
-        textLayer.data = { layerIndex: layerIndex }
-      }
+      // РЕЖИМ СОЗДАНИЯ: Создаем новый слой
+      layerIndex = this.nextLayerIndex
+      this.nextLayerIndex += 10 // Следующий слой будет на 10 больше
+      console.log('➕ Создание нового слоя:', layerIndex)
       
-      // При редактировании убеждаемся, что textDialogData.text содержит правильный текст
-      if (this.isEditingText && this.editingLayerIndex) {
-        const existingLayerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
-        if (existingLayerInfo && existingLayerInfo.textData?.text && !this.textDialogData.text) {
-          // Восстанавливаем оригинальный текст, если текущий пустой
-          const currentDataProperty = this.getCurrentTextDialogDataProperty()
-          if (currentDataProperty) {
-            currentDataProperty.text = existingLayerInfo.textData.text
-            console.log('🔄 Восстановлен оригинальный текст для подложки:', currentDataProperty.text)
-          }
-        }
-      }
+      // Создаем новый слой в Paper.js
+      textLayer = new this.paperScope.Layer()
+      textLayer.name = `textLayer_${layerIndex}`
+      
+      // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
+      textLayer.data = { layerIndex: layerIndex }
       
       // Создаем подложку с включенным текстом на слое
-      const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex)
+      const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex, textData, position, mode)
       
       // Текст уже включен в Raster подложки, отдельный текстовый элемент не нужен
       const textItem = null // Текст включен в backgroundItem
       
       console.log('✅ Создана подложка с включенным текстом:', {
         backgroundType: backgroundItem ? backgroundItem.type : 'none',
-        hasText: !!this.textDialogData.text
+        hasText: !!textData.text
       })
       
-      if (this.isEditingText && this.editingLayerIndex) {
-        // РЕЖИМ РЕДАКТИРОВАНИЯ: Обновляем существующую информацию
-        const existingLayerInfo = this.textLayers.find(layer => layer.id === layerIndex)
-        if (existingLayerInfo) {
-          // Сохраняем оригинальный текст, если текущий пустой (редактируется только подложка)
-          const originalText = existingLayerInfo.textData?.text || ''
-          const currentText = this.textDialogData.text || ''
-          const finalText = currentText || originalText // Используем текущий или оригинальный
-          
-          // Удаляем старый backgroundItem только ПОСЛЕ создания нового
-          if (existingLayerInfo.backgroundItem && existingLayerInfo.backgroundItem !== backgroundItem) {
-            existingLayerInfo.backgroundItem.remove()
-            console.log('🗑️ Удален старый backgroundItem после создания нового')
-          }
-          
-          existingLayerInfo.backgroundItem = backgroundItem
-          existingLayerInfo.textData = { 
-            ...this.textDialogData,
-            text: finalText // Убеждаемся, что текст сохраняется
-          }
-          existingLayerInfo.position = { ...this.textDialogPosition }
-          existingLayerInfo.mode = this.textDialogActiveTab
-          existingLayerInfo.updatedAt = new Date().toISOString()
-          
-          console.log('💾 Сохранение текста при редактировании:', {
-            originalText: originalText,
-            currentText: currentText,
-            finalText: finalText,
-            layerIndex: layerIndex
-          })
-        }
-        
-        // Обновляем информацию в списке созданных текстов
-        const existingTextIndex = this.createdTexts.findIndex(text => text.layerIndex === layerIndex)
-        if (existingTextIndex !== -1) {
-          // Аналогично сохраняем текст в createdTexts
-          const originalText = this.createdTexts[existingTextIndex]?.text || ''
-          const currentText = this.textDialogData.text || ''
-          const finalText = currentText || originalText
-          
-          this.createdTexts[existingTextIndex] = {
-            ...this.createdTexts[existingTextIndex],
-            text: finalText,
-            font: this.textDialogData.font || 'Arial',
-            fontSize: this.textDialogData.fontSize || 16,
-            color: this.textDialogData.textColor || '#000000',
-            fontWeight: this.textDialogData.fontWeight || 'normal',
-            textAlign: this.textDialogData.textAlign || 'left',
-            mode: this.textDialogActiveTab,
-            updatedAt: new Date().toISOString(),
-            hasTextInRaster: !!finalText
-          }
-        }
-        
-        console.log('✏️ Текст обновлен в слое:', layerIndex)
-        
-      } else {
-        // РЕЖИМ СОЗДАНИЯ: Добавляем новую информацию
-        const layerInfo = {
-          id: layerIndex,
-          layer: textLayer,
-          textItem: textItem,
-          backgroundItem: backgroundItem,
-          textData: { ...this.textDialogData },
-          position: { ...this.textDialogPosition },
-          mode: this.textDialogActiveTab,
-          createdAt: new Date().toISOString()
-        }
-        
-        this.textLayers.push(layerInfo)
-        
-        // Добавляем в список созданных текстов для отображения во вкладке
+      // РЕЖИМ СОЗДАНИЯ: Добавляем новую информацию
+      const layerInfo = {
+        id: layerIndex,
+        layer: textLayer,
+        textItem: textItem,
+        backgroundItem: backgroundItem,
+        textData: { ...textData }, // Используем переданные данные
+        position: { ...position }, // Используем переданную позицию
+        mode: mode, // Используем переданный режим
+        createdAt: new Date().toISOString()
+      }
+      
+      this.textLayers.push(layerInfo)
+      
+      // Добавляем в список созданных текстов для отображения во вкладке
       const newText = {
-          id: layerIndex,
-        text: this.textDialogData.text || 'Пустой текст',
-        font: this.textDialogData.font || 'Arial',
-        fontSize: this.textDialogData.fontSize || 16,
-          color: this.textDialogData.textColor || '#000000',
-        fontWeight: this.textDialogData.fontWeight || 'normal',
-        textAlign: this.textDialogData.textAlign || 'left',
-          mode: this.textDialogActiveTab,
-          layerIndex: layerIndex,
+        id: layerIndex,
+        text: textData.text || 'Пустой текст',
+        font: textData.font || 'Arial',
+        fontSize: textData.fontSize || 16,
+        color: textData.textColor || '#000000',
+        fontWeight: textData.fontWeight || 'normal',
+        textAlign: textData.textAlign || 'left',
+        mode: mode,
+        layerIndex: layerIndex,
           createdAt: new Date().toISOString(),
-          hasTextInRaster: !!this.textDialogData.text // Флаг что текст включен в Raster
+          hasTextInRaster: !!textData.text // Флаг что текст включен в Raster
       }
       
       this.createdTexts.push(newText)
-        console.log('📝 Новый текст добавлен в слой:', layerInfo)
-      }
+      console.log('📝 Новый текст добавлен в слой:', layerInfo)
       
       // Обновляем 3D модель с небольшой задержкой для корректного отображения
       this.$nextTick(() => {
@@ -8237,25 +8150,25 @@ export default {
     },
     
     // Создание подложки на слое (используем Paper.js напрямую для точного контроля размеров)
-    createBackgroundItemOnLayer(layer, layerIndex) {
-      if (!this.textDialogPosition || !this.paperScope) return null
+    createBackgroundItemOnLayer(layer, layerIndex, textData, position, mode) {
+      if (!position || !this.paperScope) return null
       
       console.log('🎨 Создание подложки на слое через Paper.js:', layerIndex)
       
-      const x = this.textDialogPosition.x
-      const y = this.textDialogPosition.y
+      const x = position.x
+      const y = position.y
       
       // Создаем подложку в зависимости от режима
       let backgroundItem = null
       
-      if (this.textDialogActiveTab === 'conversation') {
-        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
-      } else if (this.textDialogActiveTab === 'standard') {
-        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
-      } else if (this.textDialogActiveTab === 'thoughts') {
-        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
-      } else if (this.textDialogActiveTab === 'image-text') {
-        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, 200, 100, this.textDialogData.backgroundColor)
+      if (mode === 'conversation') {
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+      } else if (mode === 'standard') {
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+      } else if (mode === 'thoughts') {
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+      } else if (mode === 'image-text') {
+        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
       }
       
       // Добавляем подложку на слой если она создана
@@ -8263,7 +8176,7 @@ export default {
         backgroundItem.data = {
           isTextBackground: true,
           layerIndex: layerIndex,
-          mode: this.textDialogActiveTab
+          mode: mode
         }
         layer.addChild(backgroundItem)
       }
@@ -8271,7 +8184,7 @@ export default {
       console.log('✅ Подложка создана через Paper.js:', {
         backgroundItem: backgroundItem,
         position: `${x}, ${y}`,
-        mode: this.textDialogActiveTab
+        mode: mode
       })
       return backgroundItem
     },

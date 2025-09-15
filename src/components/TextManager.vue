@@ -1431,7 +1431,13 @@ export default {
       
       // Слои с текстами
       textLayers: [],
-      nextLayerIndex: 200
+      nextLayerIndex: 200,
+      
+      // Для throttling обновлений превью
+      previewUpdateFrame: null,
+      
+      // Текущая позиция текста для перетаскивания
+      currentDragPosition: { x: 0, y: 0 }
     }
   },
   computed: {
@@ -1490,9 +1496,13 @@ export default {
       return this.getCurrentTextDialogData()
     },
 
-    // Позиция текста (используем prop или дефолтную позицию)
+    // Позиция текста (используем currentDragPosition или дефолтную позицию)
     currentTextPosition() {
-      return this.textPosition || { x: this.previewCanvasWidth / 2, y: this.previewCanvasHeight / 2 }
+      // Если currentDragPosition не инициализирован, используем дефолтную позицию
+      if (this.currentDragPosition.x === 0 && this.currentDragPosition.y === 0) {
+        return { x: this.previewCanvasWidth / 2, y: this.previewCanvasHeight / 2 }
+      }
+      return this.currentDragPosition
     }
   },
 
@@ -1616,6 +1626,12 @@ export default {
       this.showTextDialog = true
       this.isEditingText = false
       this.editingLayerIndex = null
+      
+      // Инициализируем позицию для перетаскивания
+      this.currentDragPosition = {
+        x: this.previewCanvasWidth / 2,
+        y: this.previewCanvasHeight / 2
+      }
       this.textDialogActiveTab = 'conversation'
       this.resetAllTextDialogData()
       
@@ -3610,7 +3626,192 @@ export default {
 
     // Начало перетаскивания превью
     startPreviewDrag(event) {
-      console.log('Начало перетаскивания превью', event)
+      if (!this.currentTextPosition) return
+      
+      const canvas = event.target
+      const rect = canvas.getBoundingClientRect()
+      const startX = event.clientX - rect.left
+      const startY = event.clientY - rect.top
+      
+      // Проверяем, кликнули ли по тексту/подложке
+      if (this.isClickOnSuperBackground(startX, startY)) {
+        console.log('🎯 Начато перетаскивание на превью канвасе TextManager')
+        
+        // Инициализируем currentDragPosition если нужно
+        if (this.currentDragPosition.x === 0 && this.currentDragPosition.y === 0) {
+          this.currentDragPosition = {
+            x: this.previewCanvasWidth / 2,
+            y: this.previewCanvasHeight / 2
+          }
+        }
+        
+        // Сохраняем начальную позицию
+        const startPositionX = this.currentDragPosition.x
+        const startPositionY = this.currentDragPosition.y
+        
+        const handleMouseMove = (e) => {
+          const currentX = e.clientX - rect.left
+          const currentY = e.clientY - rect.top
+          
+          const deltaX = currentX - startX
+          const deltaY = currentY - startY
+          
+          // Обновляем позицию относительно начальной позиции
+          this.currentDragPosition = {
+            x: startPositionX + deltaX,
+            y: startPositionY + deltaY
+          }
+          
+          // Обновляем превью с throttling для плавной визуальной обратной связи
+          this.updatePreviewCanvasThrottled()
+        }
+        
+        const handleMouseUp = () => {
+          document.removeEventListener('mousemove', handleMouseMove)
+          document.removeEventListener('mouseup', handleMouseUp)
+          console.log('🎯 Завершено перетаскивание на превью канвасе TextManager')
+        }
+        
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+      }
+    },
+
+    // Проверка, кликнули ли мы по суперподложке или тексту
+    isClickOnSuperBackground(clickX, clickY) {
+      if (!this.currentTextPosition) {
+        console.log('❌ currentTextPosition не определен в isClickOnSuperBackground')
+        return false
+      }
+      
+      // Для режима "Текст с изображением" проверяем клик по тексту, а не по подложке
+      if (this.textDialogActiveTab === 'image-text') {
+        return this.isClickOnText(clickX, clickY)
+      }
+      
+      // Получаем размеры суперподложки из текущих данных
+      const textData = this.getCurrentTextDialogData()
+      const bgWidth = textData.backgroundWidth
+      const bgHeight = textData.backgroundHeight
+      
+      // Размеры канвасов одинаковые, масштабирование не нужно
+      const previewScale = 1.2
+      
+      // Масштабированные размеры подложки (используем тот же масштаб)
+      const scaledBgWidth = Math.round(bgWidth * previewScale)
+      const scaledBgHeight = Math.round(bgHeight * previewScale)
+      
+      // Прямое вычисление границ суперподложки в координатах превью
+      const left = this.currentTextPosition.x - scaledBgWidth / 2
+      const top = this.currentTextPosition.y - scaledBgHeight / 2
+      const right = left + scaledBgWidth
+      const bottom = top + scaledBgHeight
+      
+      // Проверяем, находится ли клик в пределах суперподложки
+      const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      
+      // Детальная отладка
+      console.log('🎯 TextManager: Проверка клика по суперподложке:')
+      console.log('  clickX:', clickX, 'clickY:', clickY)
+      console.log('  left:', left, 'top:', top, 'right:', right, 'bottom:', bottom)
+      console.log('  bgWidth:', bgWidth, 'bgHeight:', bgHeight)
+      console.log('  scaledBgWidth:', scaledBgWidth, 'scaledBgHeight:', scaledBgHeight)
+      console.log('  previewScale:', previewScale)
+      console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
+      
+      return isInside
+    },
+
+    // Проверка клика по тексту (для режима "Текст с изображением")
+    isClickOnText(clickX, clickY) {
+      if (!this.currentTextPosition) {
+        console.log('❌ currentTextPosition не определен в isClickOnText')
+        return false
+      }
+      
+      // Координаты остаются теми же, так как размеры канвасов одинаковые
+      const previewX = this.currentTextPosition.x
+      const previewY = this.currentTextPosition.y
+      const previewScale = 1.2
+      
+      // Получаем данные для текущего режима
+      const textData = this.getCurrentTextDialogData()
+      
+      // Вычисляем размеры текста точно так же, как в отрисовке
+      const fontSize = textData.fontSize
+      const text = textData.text || 'Текст'
+      
+      // Создаем временный контекст для измерения текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+      tempCtx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      
+      // Измеряем размеры многострочного текста точно так же, как в отрисовке
+      const textSize = this.calculateMultilineTextSize(tempCtx, text, fontSize, textData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
+      
+      // Вычисляем границы текста с учетом выравнивания
+      // В отрисовке используется textAlign = 'center' и textBaseline = 'middle'
+      let left, right, top, bottom
+      
+      if (textData.textAlign === 'left') {
+        left = previewX - textWidth / 2
+        right = left + textWidth
+      } else if (textData.textAlign === 'right') {
+        right = previewX + textWidth / 2
+        left = right - textWidth
+      } else {
+        // center (по умолчанию)
+        left = previewX - textWidth / 2
+        right = previewX + textWidth / 2
+      }
+      
+      // textBaseline = 'middle' означает, что Y - это центр текста
+      top = previewY - textHeight / 2
+      bottom = previewY + textHeight / 2
+      
+      // Проверяем, находится ли клик в пределах текста
+      const isInside = clickX >= left && clickX <= right && clickY >= top && clickY <= bottom
+      
+      console.log('🖼️ TextManager: Проверка клика по тексту:')
+      console.log('  clickX:', clickX, 'clickY:', clickY)
+      console.log('  previewX:', previewX, 'previewY:', previewY)
+      console.log('  textAlign:', textData.textAlign)
+      console.log('  textBounds:', { left, top, right, bottom })
+      console.log('  textSize:', { width: textWidth, height: textHeight })
+      console.log('  fontSize:', fontSize, 'previewScale:', previewScale)
+      console.log('  ИТОГОВЫЙ РЕЗУЛЬТАТ:', isInside)
+      
+      return isInside
+    },
+
+    // Обновление превью с throttling для плавной визуальной обратной связи
+    updatePreviewCanvasThrottled() {
+      if (this.previewUpdateFrame) {
+        cancelAnimationFrame(this.previewUpdateFrame)
+      }
+      
+      this.previewUpdateFrame = requestAnimationFrame(() => {
+        this.updatePreviewCanvas()
+        this.previewUpdateFrame = null
+      })
+    },
+
+    // Получение текущих данных для активной вкладки
+    getCurrentTextDialogData() {
+      switch (this.textDialogActiveTab) {
+        case 'conversation':
+          return this.textDialogDataConversation
+        case 'thoughts':
+          return this.textDialogDataThoughts
+        case 'standard':
+          return this.textDialogDataStandard
+        case 'image-text':
+          return this.textDialogDataImageText
+        default:
+          return this.textDialogDataConversation
+      }
     }
   }
 }

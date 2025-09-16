@@ -7329,15 +7329,18 @@ export default {
     },
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
-    drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
+    drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
-      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, currentTextData)
       
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
       // Строим объединенную фигуру как единый путь с кэшированной точкой
-      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, currentTextData)
       
       // Заполняем объединенную фигуру
       ctx.fillStyle = backgroundColor
@@ -7986,24 +7989,30 @@ export default {
     },
     
     // Обводка объединенной фигуры (подложка + хвост) как единое целое
-    strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
+    strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // ИСПОЛЬЗУЕМ КЭШИРОВАННУЮ точку пересечения
-      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, currentTextData)
       
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
       // Строим объединенную фигуру как единый путь с кэшированной точкой
-      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, currentTextData)
       
       // Обводим объединенную фигуру
       ctx.stroke()
     },
     
     // КЭШИРОВАНИЕ точки пересечения для стабильности
-    getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight) {
+    getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // Параметры хвоста
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
@@ -8019,11 +8028,14 @@ export default {
     },
     
     // Построение пути для суперподложки с кэшированной точкой пересечения
-    buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection) {
+    buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // Параметры хвоста
-      const tailSize = Number(this.textDialogData.tailSize) / 100 // От 100% до 300%
-      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // От 40% до 100%
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const tailSize = Number(currentTextData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100%
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
@@ -8344,19 +8356,19 @@ export default {
         const canvasCenterY = containerHeight / 2
         
         // Применяем тень если включена (точно как в превью)
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
-          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
         }
         
         // Рисуем объединенную фигуру в центре временного Canvas (размеры остаются теми же)
-        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true)
+        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           tempCtx.shadowColor = 'transparent'
           tempCtx.shadowBlur = 0
           tempCtx.shadowOffsetX = 0
@@ -8367,7 +8379,7 @@ export default {
         if (currentTextData.stroke) {
           tempCtx.strokeStyle = currentTextData.strokeColor
           tempCtx.lineWidth = currentTextData.strokeWidth
-          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1)
+          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, currentTextData)
         }
         
         // Добавляем текст в Raster (размеры остаются теми же)

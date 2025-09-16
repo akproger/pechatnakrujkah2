@@ -1767,13 +1767,24 @@ export default {
 
     // Применение текста
     applyText() {
-      if (!this.textDialogData.text.trim()) {
+      const currentTextData = this.getCurrentTextDialogData()
+      
+      if (!currentTextData.text.trim()) {
         alert('Пожалуйста, введите текст')
         return
       }
 
-      const textData = { ...this.textDialogData }
+      const textData = { ...currentTextData }
       const mode = this.textDialogActiveTab
+      
+      console.log('🎯 Применение текста:', {
+        textData,
+        mode,
+        position: this.currentTextPosition,
+        tailAngle: textData.tailAngle,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth
+      })
       
       this.$emit('text-applied', {
         textData,

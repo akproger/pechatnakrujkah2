@@ -79,8 +79,6 @@
                     <canvas 
                       ref="previewCanvasConversation" 
                       class="preview-canvas"
-                      :width="previewCanvasWidth"
-                      :height="previewCanvasHeight"
                       @mousedown="startPreviewDrag"
                     ></canvas>
                   </div>
@@ -405,8 +403,6 @@
                     <canvas 
                       ref="previewCanvasThoughts" 
                       class="preview-canvas"
-                      :width="previewCanvasWidth"
-                      :height="previewCanvasHeight"
                       @mousedown="startPreviewDrag"
                     ></canvas>
                   </div>
@@ -730,8 +726,6 @@
                     <canvas 
                       ref="previewCanvasStandard" 
                       class="preview-canvas"
-                      :width="previewCanvasWidth"
-                      :height="previewCanvasHeight"
                       @mousedown="startPreviewDrag"
                     ></canvas>
                   </div>
@@ -1016,8 +1010,6 @@
                     <canvas 
                       ref="previewCanvasImageText" 
                       class="preview-canvas"
-                      :width="previewCanvasWidth"
-                      :height="previewCanvasHeight"
                       @mousedown="startPreviewDrag"
                     ></canvas>
                   </div>
@@ -1457,11 +1449,13 @@ export default {
       }
     },
 
-    // Размеры для превью канваса - точно как основной канвас (1472x697)
+    // Размеры для превью канваса - динамические на основе контейнера
     previewCanvasWidth() {
+      // Возвращаем базовые размеры для инициализации, реальные размеры устанавливаются в updateSinglePreviewCanvas
       return 1472
     },
     previewCanvasHeight() {
+      // Возвращаем базовые размеры для инициализации, реальные размеры устанавливаются в updateSinglePreviewCanvas
       return 697
     },
 
@@ -1594,6 +1588,16 @@ export default {
     }
   },
 
+  mounted() {
+    // Добавляем обработчик изменения размера окна
+    window.addEventListener('resize', this.handleResize)
+  },
+
+  beforeUnmount() {
+    // Удаляем обработчик изменения размера окна
+    window.removeEventListener('resize', this.handleResize)
+  },
+
   methods: {
     // Открытие диалога добавления текста
     openTextDialog() {
@@ -1625,6 +1629,16 @@ export default {
       this.resetAllTextDialogData()
       
       this.$emit('text-dialog-closed')
+    },
+
+    // Обработчик изменения размера окна
+    handleResize() {
+      if (this.showTextDialog) {
+        // Пересчитываем размеры превью канваса при изменении размера окна
+        this.$nextTick(() => {
+          this.updatePreviewCanvas()
+        })
+      }
     },
 
     // Переключение вкладок
@@ -2676,19 +2690,43 @@ export default {
         return
       }
       
-      // Устанавливаем размеры превью канваса точно как основной канвас (1472x697)
+      // Получаем размеры контейнера
+      const container = previewCanvas.parentElement
+      if (!container) {
+        console.log('⚠️ Контейнер превью канваса не найден')
+        return
+      }
+      
+      const containerWidth = container.clientWidth
+      const containerHeight = container.clientHeight
+      
+      // Вычисляем размеры канваса с сохранением соотношения сторон 19:9
+      const aspectRatio = 19 / 9
+      let canvasWidth, canvasHeight
+      
+      if (containerWidth / containerHeight > aspectRatio) {
+        // Контейнер шире, ограничиваем по высоте
+        canvasHeight = containerHeight
+        canvasWidth = canvasHeight * aspectRatio
+      } else {
+        // Контейнер выше, ограничиваем по ширине
+        canvasWidth = containerWidth
+        canvasHeight = canvasWidth / aspectRatio
+      }
+      
+      // Устанавливаем размеры с учетом HiDPI
       const dpr = window.devicePixelRatio || 1
-      previewCanvas.width = 1472 * dpr
-      previewCanvas.height = 697 * dpr
-      previewCanvas.style.width = '1472px'
-      previewCanvas.style.height = '697px'
+      previewCanvas.width = canvasWidth * dpr
+      previewCanvas.height = canvasHeight * dpr
+      previewCanvas.style.width = `${canvasWidth}px`
+      previewCanvas.style.height = `${canvasHeight}px`
       
       console.log('🔄 Обновление превью канваса:', {
         canvas: previewCanvas,
-        width: previewCanvas.width,
-        height: previewCanvas.height,
-        styleWidth: previewCanvas.style.width,
-        styleHeight: previewCanvas.style.height,
+        containerSize: `${containerWidth}x${containerHeight}`,
+        canvasSize: `${canvasWidth}x${canvasHeight}`,
+        physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
+        styleSize: `${previewCanvas.style.width}x${previewCanvas.style.height}`,
         dpr: dpr
       })
       
@@ -2702,16 +2740,16 @@ export default {
       ctx.scale(dpr, dpr)
       
       // Очищаем канвас
-      ctx.clearRect(0, 0, 1472, 697)
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight)
       
       // Копируем фон с основного канваса если доступен
       if (this.canvas && this.canvas.width > 0) {
         console.log('🖼️ Копируем фон с основного канваса:', {
           mainCanvasSize: `${this.canvas.width}x${this.canvas.height}`,
-          previewSize: '1472x697'
+          previewSize: `${canvasWidth}x${canvasHeight}`
         })
-        // Копируем фон без масштабирования, так как размеры одинаковые
-        ctx.drawImage(this.canvas, 0, 0)
+        // Копируем фон с масштабированием под размер превью канваса
+        ctx.drawImage(this.canvas, 0, 0, canvasWidth, canvasHeight)
       } else {
         console.log('⚠️ Основной канвас недоступен, рисуем белый фон', {
           canvas: this.canvas,
@@ -2720,7 +2758,7 @@ export default {
         })
         // Рисуем белый фон если основной канвас недоступен
         ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, 1472, 697)
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight)
       }
       
       // Определяем какой режим рисования использовать
@@ -3889,7 +3927,7 @@ export default {
 
 .text-preview {
   width: 100%;
-  height: 697px; /* Высота основного канваса */
+  aspect-ratio: 19/9; /* Соотношение сторон как у основного канваса 1472x697 */
   border: 1px solid #dee2e6;
   border-radius: 4px;
   background: #f8f9fa;
@@ -3901,7 +3939,7 @@ export default {
 
 .preview-canvas {
   width: 100%;
-  height: auto;
+  height: 100%;
   border: none;
   background: transparent;
 }

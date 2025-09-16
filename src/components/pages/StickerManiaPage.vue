@@ -6692,7 +6692,7 @@ export default {
       const lineSpacing = fontSize * lineHeight
       
       // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = (lines.length - 1) * lineSpacing
+      const totalTextHeight = lines.length * fontSize * lineHeight
       const startY = y - totalTextHeight / 2
       
       // Вычисляем максимальную ширину текста для центрирования по горизонтали
@@ -6735,7 +6735,7 @@ export default {
       const lineSpacing = fontSize * lineHeight
       
       // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = (lines.length - 1) * lineSpacing
+      const totalTextHeight = lines.length * fontSize * lineHeight
       const startY = y - totalTextHeight / 2
       
       // Вычисляем максимальную ширину текста для центрирования по горизонтали
@@ -6759,6 +6759,92 @@ export default {
         // Для 'center' lineX остается x
         
         ctx.strokeText(line, lineX, lineY)
+      })
+    },
+
+    // Отрисовка обводки многострочного текста с передачей данных
+    drawMultilineTextStrokeWithData(ctx, text, x, y, fontSize, lineHeight = 1.2, textData) {
+      // Разбиваем текст на строки по символу \n
+      const lines = text.split('\n')
+      
+      // Устанавливаем размер шрифта
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      
+      // Устанавливаем выравнивание текста
+      ctx.textAlign = textData.textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Вычисляем межстрочный интервал
+      const lineSpacing = fontSize * lineHeight
+      
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      const totalTextHeight = lines.length * fontSize * lineHeight
+      const startY = y - totalTextHeight / 2
+      
+      // Вычисляем максимальную ширину текста для центрирования по горизонтали
+      let maxTextWidth = 0
+      lines.forEach(line => {
+        const textMetrics = ctx.measureText(line)
+        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
+      })
+      
+      // Рисуем обводку каждой строки
+      lines.forEach((line, index) => {
+        const lineY = startY + (index * fontSize * lineHeight) + fontSize / 2
+        
+        // Вычисляем позицию X в зависимости от выравнивания
+        let lineX = x
+        if (textData.textAlign === 'left') {
+          lineX = x - maxTextWidth / 2
+        } else if (textData.textAlign === 'right') {
+          lineX = x + maxTextWidth / 2
+        }
+        // Для 'center' lineX остается x
+        
+        ctx.strokeText(line, lineX, lineY)
+      })
+    },
+
+    // Отрисовка многострочного текста с передачей данных
+    drawMultilineTextWithData(ctx, text, x, y, fontSize, lineHeight = 1.2, textData) {
+      // Разбиваем текст на строки по символу \n
+      const lines = text.split('\n')
+      
+      // Устанавливаем размер шрифта
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      
+      // Устанавливаем выравнивание текста
+      ctx.textAlign = textData.textAlign
+      ctx.textBaseline = 'middle'
+      
+      // Вычисляем межстрочный интервал
+      const lineSpacing = fontSize * lineHeight
+      
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      const totalTextHeight = lines.length * fontSize * lineHeight
+      const startY = y - totalTextHeight / 2
+      
+      // Вычисляем максимальную ширину текста для центрирования по горизонтали
+      let maxTextWidth = 0
+      lines.forEach(line => {
+        const textMetrics = ctx.measureText(line)
+        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
+      })
+      
+      // Рисуем каждую строку
+      lines.forEach((line, index) => {
+        const lineY = startY + (index * fontSize * lineHeight) + fontSize / 2
+        
+        // Вычисляем позицию X в зависимости от выравнивания
+        let lineX = x
+        if (textData.textAlign === 'left') {
+          lineX = x - maxTextWidth / 2
+        } else if (textData.textAlign === 'right') {
+          lineX = x + maxTextWidth / 2
+        }
+        // Для 'center' lineX остается x
+        
+        ctx.fillText(line, lineX, lineY)
       })
     },
     
@@ -8162,13 +8248,13 @@ export default {
       let backgroundItem = null
       
       if (mode === 'conversation') {
-        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
       } else if (mode === 'standard') {
-        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
       } else if (mode === 'thoughts') {
-        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
       } else if (mode === 'image-text') {
-        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor)
+        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
       }
       
       // Добавляем подложку на слой если она создана
@@ -8228,8 +8314,12 @@ export default {
     },
     
     // Создание подложки используя существующую логику из превью
-    createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+    createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Используем переданные данные напрямую
+      const currentTextData = textData
+      
       try {
+        
         // Создаем временный Canvas с таким же разрешением как основной канвас
         const mainCanvas = this.$refs.testCanvas
         const container = mainCanvas ? mainCanvas.parentElement : null
@@ -8274,15 +8364,28 @@ export default {
         }
         
         // Добавляем обводку если включена (размеры остаются теми же)
-        if (this.textDialogData.stroke) {
-          tempCtx.strokeStyle = this.textDialogData.strokeColor
-          tempCtx.lineWidth = this.textDialogData.strokeWidth
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth
           this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1)
         }
         
         // Добавляем текст в Raster (размеры остаются теми же)
-        if (this.textDialogData.text) {
-          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        console.log('🔍 Проверка текста для добавления в Raster:', {
+          hasText: !!currentTextData.text,
+          text: currentTextData.text,
+          textLength: currentTextData.text ? currentTextData.text.length : 0,
+          fontSize: currentTextData.fontSize,
+          textColor: currentTextData.textColor,
+          fontFamily: currentTextData.font,
+          fontWeight: currentTextData.fontWeight,
+          originalTextData: textData
+        })
+        
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
+      } else {
+          console.log('⚠️ Текст не добавлен в Raster - текст отсутствует или пустой')
         }
         
         // Конвертируем Canvas в Paper.js Raster
@@ -8320,17 +8423,37 @@ export default {
     // Отрисовка текста в Raster (точно как в превью)
     drawTextInRaster(ctx, x, y, backgroundWidth, backgroundHeight) {
       try {
+        console.log('🎨 Начинаем отрисовку текста в Raster:', {
+          text: this.textDialogData.text,
+          position: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`
+        })
+        
         // Настройки текста (точно как в превью)
         const fontSize = this.textDialogData.fontSize
         const fontFamily = this.textDialogData.font
         const fontWeight = this.textDialogData.fontWeight
         const textColor = this.textDialogData.textColor
         
+        console.log('🎨 Настройки текста:', {
+          fontSize,
+          fontFamily,
+          fontWeight,
+          textColor
+        })
+        
         // Устанавливаем стиль шрифта (точно как в превью)
         ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillStyle = textColor
+        
+        console.log('🎨 Контекст настроен:', {
+          font: ctx.font,
+          textAlign: ctx.textAlign,
+          textBaseline: ctx.textBaseline,
+          fillStyle: ctx.fillStyle
+        })
         
         // Рисуем текст с поддержкой переноса строк (точно как в превью)
         this.drawMultilineText(ctx, this.textDialogData.text, x, y, fontSize, this.textDialogData.lineHeight)
@@ -8347,9 +8470,63 @@ export default {
       }
     },
     
-    // Создание стандартной подложки используя логику из превью
-    createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+    // Отрисовка текста в Raster с переданными данными
+    drawTextInRasterWithData(ctx, x, y, backgroundWidth, backgroundHeight, textData) {
       try {
+        console.log('🎨 Начинаем отрисовку текста в Raster с данными:', {
+          text: textData.text,
+          position: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`
+        })
+        
+        // Настройки текста из переданных данных
+        const fontSize = textData.fontSize
+        const fontFamily = textData.font
+        const fontWeight = textData.fontWeight
+        const textColor = textData.textColor
+        
+        console.log('🎨 Настройки текста:', {
+          fontSize,
+          fontFamily,
+          fontWeight,
+          textColor
+        })
+        
+        // Устанавливаем стиль шрифта
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = textColor
+        
+        console.log('🎨 Контекст настроен:', {
+          font: ctx.font,
+          textAlign: ctx.textAlign,
+          textBaseline: ctx.textBaseline,
+          fillStyle: ctx.fillStyle
+        })
+        
+        // Рисуем текст с поддержкой переноса строк
+        this.drawMultilineText(ctx, textData.text, x, y, fontSize, textData.lineHeight)
+        
+        console.log('✅ Текст добавлен в Raster:', {
+          position: `${x}, ${y}`,
+          content: textData.text,
+          fontSize: fontSize,
+          fontFamily: fontFamily
+        })
+        
+      } catch (error) {
+        console.error('❌ Ошибка добавления текста в Raster:', error)
+      }
+    },
+    
+    // Создание стандартной подложки используя логику из превью
+    createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Используем переданные данные напрямую
+      const currentTextData = textData
+      
+      try {
+        
         // Создаем временный Canvas с таким же разрешением как основной канвас
         const mainCanvas = this.$refs.testCanvas
         const container = mainCanvas ? mainCanvas.parentElement : null
@@ -8374,19 +8551,19 @@ export default {
         const canvasCenterY = containerHeight / 2
         
         // Применяем тень если включена (точно как в превью)
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
-          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
         }
         
         // Рисуем стандартную подложку в центре временного Canvas
         this.drawStandardModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor)
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           tempCtx.shadowColor = 'transparent'
           tempCtx.shadowBlur = 0
           tempCtx.shadowOffsetX = 0
@@ -8394,15 +8571,15 @@ export default {
         }
         
         // Добавляем обводку если включена
-        if (this.textDialogData.stroke) {
-          tempCtx.strokeStyle = this.textDialogData.strokeColor
-          tempCtx.lineWidth = this.textDialogData.strokeWidth
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth
           tempCtx.strokeRect(canvasCenterX - backgroundWidth / 2, canvasCenterY - backgroundHeight / 2, backgroundWidth, backgroundHeight)
         }
         
         // Добавляем текст в Raster (как в превью)
-        if (this.textDialogData.text) {
-          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
         }
         
         // Конвертируем Canvas в Paper.js Raster
@@ -8437,8 +8614,12 @@ export default {
     },
     
     // Создание подложки "Мысли" используя существующую логику из превью
-    createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+    createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Используем переданные данные напрямую
+      const currentTextData = textData
+      
       try {
+        
         // Создаем временный Canvas с таким же разрешением как основной канвас
         const mainCanvas = this.$refs.testCanvas
         const container = mainCanvas ? mainCanvas.parentElement : null
@@ -8463,19 +8644,19 @@ export default {
         const canvasCenterY = containerHeight / 2
         
         // Применяем тень если включена (точно как в превью)
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
-          tempCtx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * previewScale)
+          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
         }
         
         // Рисуем режим "Мысли" в центре временного Canvas
         this.drawThoughtsModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true)
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           tempCtx.shadowColor = 'transparent'
           tempCtx.shadowBlur = 0
           tempCtx.shadowOffsetX = 0
@@ -8483,9 +8664,9 @@ export default {
         }
         
         // Добавляем обводку если включена
-        if (this.textDialogData.stroke) {
-          tempCtx.strokeStyle = this.textDialogData.strokeColor
-          tempCtx.lineWidth = this.textDialogData.strokeWidth
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth
           // Для режима "Мысли" обводка применяется к основному овалу
           tempCtx.beginPath()
           this.drawOval(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
@@ -8493,8 +8674,8 @@ export default {
         }
         
         // Добавляем текст в Raster (как в превью)
-        if (this.textDialogData.text) {
-          this.drawTextInRaster(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
         }
         
         // Конвертируем Canvas в Paper.js Raster
@@ -8529,8 +8710,12 @@ export default {
     },
     
     // Создание подложки "Текст с изображением" используя существующую логику из превью
-    createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor) {
+    createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Используем переданные данные напрямую
+      const currentTextData = textData
+      
       try {
+        
         // Создаем временный Canvas с таким же разрешением как основной канвас
       const mainCanvas = this.$refs.testCanvas
         const container = mainCanvas ? mainCanvas.parentElement : null
@@ -8555,26 +8740,26 @@ export default {
         const canvasCenterY = containerHeight / 2
         
         // Устанавливаем стиль шрифта (как в превью)
-        const fontSize = this.textDialogData.fontSize
-        const fontFamily = this.textDialogData.font
-        const fontWeight = this.textDialogData.fontWeight
-        const textColor = this.textDialogData.textColor
+        const fontSize = currentTextData.fontSize
+        const fontFamily = currentTextData.font
+        const fontWeight = currentTextData.fontWeight
+        const textColor = currentTextData.textColor
         
         tempCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
-        tempCtx.textAlign = 'center'
+        tempCtx.textAlign = currentTextData.textAlign || 'center'
         tempCtx.textBaseline = 'middle'
         
         // 1. СНАЧАЛА рисуем тень (если включена) - она должна быть под основным текстом
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
-          tempCtx.shadowColor = this.textDialogData.shadowColor
-          tempCtx.shadowBlur = this.textDialogData.shadowBlur * previewScale
-          tempCtx.shadowOffsetX = this.textDialogData.shadowOffsetX * previewScale
-          tempCtx.shadowOffsetY = this.textDialogData.shadowOffsetY * previewScale
-          tempCtx.globalAlpha = this.textDialogData.shadowOpacity / 100
+          tempCtx.shadowColor = currentTextData.shadowColor
+          tempCtx.shadowBlur = currentTextData.shadowBlur * previewScale
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX * previewScale
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY * previewScale
+          tempCtx.globalAlpha = currentTextData.shadowOpacity / 100
           
           // Рисуем тень текста
-          this.drawMultilineText(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+          this.drawMultilineTextWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize * previewScale, currentTextData.lineHeight, currentTextData)
           
           // Сбрасываем настройки тени
           tempCtx.shadowColor = 'transparent'
@@ -8585,14 +8770,14 @@ export default {
         }
         
         // 2. ЗАТЕМ рисуем основной текст с поддержкой изображения (как в превью)
-        if (this.textDialogData.textImage && this.textDialogDataImageText.cachedImage) {
+        if (currentTextData.textImage && currentTextData.cachedImage) {
           console.log('🖼️ Рисуем текст с изображением:', {
-            text: this.textDialogData.text,
+            text: currentTextData.text,
             hasImage: true,
-            imageSize: `${this.textDialogDataImageText.cachedImage.width}x${this.textDialogDataImageText.cachedImage.height}`
+            imageSize: `${currentTextData.cachedImage.width}x${currentTextData.cachedImage.height}`
           })
           // Если есть изображение, используем его как маску для заливки текста
-          const img = this.textDialogDataImageText.cachedImage
+          const img = currentTextData.cachedImage
           
           // Создаем временный канвас для текста с изображением с ЛОГИЧЕСКИМИ размерами
           const textCanvas = document.createElement('canvas')
@@ -8604,8 +8789,8 @@ export default {
           // НЕ масштабируем контекст - работаем в логических координатах!
           
           // Вычисляем размеры текста для правильного позиционирования изображения (логические координаты)
-          const textWidth = tempCtx.measureText(this.textDialogData.text).width
-          const textHeight = this.textDialogData.fontSize * 1 * this.textDialogData.lineHeight
+          const textWidth = tempCtx.measureText(currentTextData.text).width
+          const textHeight = currentTextData.fontSize * 1 * currentTextData.lineHeight
           
           // Используем точные размеры текста для изображения
           // Изображение должно точно заполнить область текста
@@ -8631,8 +8816,8 @@ export default {
             canvasCenter: `${canvasCenterX}, ${canvasCenterY}`,
             containerSize: `${containerWidth}x${containerHeight}`,
             dpr: dpr,
-            fontSize: this.textDialogData.fontSize,
-            lineHeight: this.textDialogData.lineHeight
+            fontSize: currentTextData.fontSize,
+            lineHeight: currentTextData.lineHeight
           })
           
           console.log('🖼️ ПОЛНЫЕ ДЕТАЛИ drawArea (ИСПРАВЛЕНО):', {
@@ -8676,11 +8861,11 @@ export default {
           
           // Создаем маску из текста (логические координаты относительно временного канваса)
           textCtx.globalCompositeOperation = 'destination-in'
-          textCtx.font = tempCtx.font
-          textCtx.textAlign = tempCtx.textAlign
-          textCtx.textBaseline = tempCtx.textBaseline
+          textCtx.font = `${currentTextData.fontWeight} ${currentTextData.fontSize}px ${currentTextData.font}`
+          textCtx.textAlign = currentTextData.textAlign || 'center'
+          textCtx.textBaseline = 'middle'
           textCtx.fillStyle = 'white'
-          this.drawMultilineText(textCtx, this.textDialogData.text, textCanvasCenterX, textCanvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+          this.drawMultilineTextWithData(textCtx, currentTextData.text, textCanvasCenterX, textCanvasCenterY, currentTextData.fontSize * 1, currentTextData.lineHeight, currentTextData)
           
           // Рисуем результат на основном канвасе (полный размер)
           tempCtx.drawImage(textCanvas, 0, 0)
@@ -8695,20 +8880,20 @@ export default {
         } else {
           // Если нет изображения, используем обычную заливку цветом
           console.log('🖼️ Рисуем текст без изображения:', {
-            text: this.textDialogData.text,
+            text: currentTextData.text,
             textColor: textColor,
-            fontSize: this.textDialogData.fontSize,
+            fontSize: currentTextData.fontSize,
             position: `${canvasCenterX}, ${canvasCenterY}`
           })
           tempCtx.fillStyle = textColor
-          this.drawMultilineText(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+          this.drawMultilineTextWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize * 1, currentTextData.lineHeight, currentTextData)
         }
         
         // 3. НАКОНЕЦ применяем обводку к тексту если включена (поверх всего)
-        if (this.textDialogData.stroke) {
-          tempCtx.strokeStyle = this.textDialogData.strokeColor
-          tempCtx.lineWidth = this.textDialogData.strokeWidth * 1 // previewScale = 1
-          this.drawMultilineTextStroke(tempCtx, this.textDialogData.text, canvasCenterX, canvasCenterY, this.textDialogData.fontSize * 1, this.textDialogData.lineHeight)
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth * 1 // previewScale = 1
+          this.drawMultilineTextStrokeWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize * 1, currentTextData.lineHeight, currentTextData)
         }
         
         // Конвертируем Canvas в Paper.js Raster

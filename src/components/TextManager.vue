@@ -71,9 +71,8 @@
           <div class="tab-content">
             <!-- Вкладка "Разговор" -->
             <div v-if="textDialogActiveTab === 'conversation'" class="tab-pane active">
-              <!-- Область с полем ввода и превью (закреплена) -->
-              <div class="text-input-preview-area">
-                <!-- Превью текста с подложкой (слева) -->
+              <!-- Превью текста с подложкой (полная ширина) -->
+              <div class="texts-top-section">
                 <div class="text-preview-section">
                   <div class="text-preview">
                     <canvas 
@@ -84,7 +83,7 @@
                   </div>
                 </div>
                 
-                <!-- Поле ввода текста (справа) -->
+                <!-- Поле ввода текста (под превью) -->
                 <div class="text-input-section">
                   <textarea 
                     id="textInputConversation"
@@ -93,110 +92,107 @@
                     rows="6"
                     placeholder="Введите текст..."
                   ></textarea>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Шрифт:</label>
-                    <select v-model="textDialogDataConversation.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label">Шрифт:</label>
+                        <select v-model="textDialogDataConversation.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataConversation.fontSize}`">
+                          <label class="range-label" for="fontSizeConversation">Размер:</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="fontSizeConversation" 
+                            type="range" 
+                            v-model="textDialogDataConversation.fontSize" 
+                            min="12" 
+                            max="72" 
+                            step="1" 
+                            aria-valuemin="12" 
+                            aria-valuemax="72" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Размер шрифта:</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataConversation.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
-                    <div class="text-center">{{ textDialogDataConversation.fontSize }}px</div>
+                  <div class="row">
+                    <div class="col-md-12 text-style-buttons">
+                      <div class="font-weight-buttons">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogDataConversation.fontWeight === 'normal' }"
+                          @click="textDialogDataConversation.fontWeight = 'normal'"
+                          title="Обычный"
+                        >
+                          <i class="bi bi-type"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogDataConversation.fontWeight === 'bold' }"
+                          @click="textDialogDataConversation.fontWeight = 'bold'"
+                          title="Жирный"
+                        >
+                          <i class="bi bi-type-bold"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary font-weight-btn" 
+                          :class="{ 'active': textDialogDataConversation.fontWeight === 'italic' }"
+                          @click="textDialogDataConversation.fontWeight = 'italic'"
+                          title="Курсив"
+                        >
+                          <i class="bi bi-type-italic"></i>
+                        </button>
+                        <div class="vertical-line"></div>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogDataConversation.textAlign === 'left' }"
+                          @click="textDialogDataConversation.textAlign = 'left'"
+                          title="По левому краю"
+                        >
+                          <i class="bi bi-text-left"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogDataConversation.textAlign === 'center' }"
+                          @click="textDialogDataConversation.textAlign = 'center'"
+                          title="По центру"
+                        >
+                          <i class="bi bi-text-center"></i>
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary text-align-btn" 
+                          :class="{ 'active': textDialogDataConversation.textAlign === 'right' }"
+                          @click="textDialogDataConversation.textAlign = 'right'"
+                          title="По правому краю"
+                        >
+                          <i class="bi bi-text-right"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-
-              <!-- Кнопки стиля шрифта -->
-              <div class="form-group mb-3">
-                <div class="font-weight-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataConversation.fontWeight === 'normal' }"
-                    @click="textDialogDataConversation.fontWeight = 'normal'"
-                    title="Обычный"
-                  >
-                    <i class="bi bi-type"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataConversation.fontWeight === 'bold' }"
-                    @click="textDialogDataConversation.fontWeight = 'bold'"
-                    title="Жирный"
-                  >
-                    <i class="bi bi-type-bold"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataConversation.fontWeight === 'italic' }"
-                    @click="textDialogDataConversation.fontWeight = 'italic'"
-                    title="Курсив"
-                  >
-                    <i class="bi bi-type-italic"></i>
-                  </button>
-                </div>
-                
-                <div class="style-align-divider"></div>
-                
-                <div class="text-align-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataConversation.textAlign === 'left' }"
-                    @click="textDialogDataConversation.textAlign = 'left'"
-                    title="По левому краю"
-                  >
-                    <i class="bi bi-text-left"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataConversation.textAlign === 'center' }"
-                    @click="textDialogDataConversation.textAlign = 'center'"
-                    title="По центру"
-                  >
-                    <i class="bi bi-text-center"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataConversation.textAlign === 'right' }"
-                    @click="textDialogDataConversation.textAlign = 'right'"
-                    title="По правому краю"
-                  >
-                    <i class="bi bi-text-right"></i>
-                  </button>
-                </div>
-                
-                <div class="style-align-divider"></div>
-                
-                <div class="color-buttons">
+                  <div class="color-buttons">
                   <div class="color-button-group">
                     <i class="bi bi-type color-icon" title="Цвет текста"></i>
                     <button 
@@ -221,48 +217,78 @@
                     </button>
                   </div>
                 </div>
-              </div>
 
-              <!-- Настройки хвоста -->
-              <div class="form-group mb-3">
+                <!-- Настройки хвоста -->
+              <div class="form-group mb-0">
+              <div class="mb-2">Настройки "Хвоста"</div>
                 <div class="row g-2">
                   <div class="col-4">
-                    <label class="form-label">Размер хвоста: {{ textDialogDataConversation.tailSize }}%</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailSize" 
-                      class="form-range" 
-                      min="100" 
-                      max="750" 
-                      step="1"
-                    >
+                    <div class="range" :style="`--value: ${textDialogDataConversation.tailSize}`">
+                      <label class="range-label" for="tailSizeConversation">Размер</label>
+                      <div class="track"></div>
+                      <input 
+                        class="range-input" 
+                        id="tailSizeConversation" 
+                        type="range" 
+                        v-model="textDialogDataConversation.tailSize" 
+                        min="100" 
+                        max="750" 
+                        step="1" 
+                        aria-valuemin="100" 
+                        aria-valuemax="750" 
+                        aria-orientation="horizontal"
+                      >
+                    </div>
                   </div>
                   <div class="col-4">
-                    <label class="form-label">Ширина хвоста: {{ textDialogDataConversation.tailWidth }}%</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailWidth" 
-                      class="form-range" 
-                      min="40" 
-                      max="100" 
-                      step="1"
-                    >
+                    <div class="range" :style="`--value: ${textDialogDataConversation.tailWidth}`">
+                      <label class="range-label" for="tailWidthConversation">Ширина</label>
+                      <div class="track"></div>
+                      <input 
+                        class="range-input" 
+                        id="tailWidthConversation" 
+                        type="range" 
+                        v-model="textDialogDataConversation.tailWidth" 
+                        min="40" 
+                        max="100" 
+                        step="1" 
+                        aria-valuemin="40" 
+                        aria-valuemax="100" 
+                        aria-orientation="horizontal"
+                      >
+                    </div>
                   </div>
                   <div class="col-4">
-                    <label class="form-label">Угол хвоста: {{ textDialogDataConversation.tailAngle }}°</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailAngle" 
-                      class="form-range" 
-                      min="0" 
-                      max="359" 
-                      step="1"
-                    >
+                    <div class="range" :style="`--value: ${textDialogDataConversation.tailAngle}`">
+                      <label class="range-label" for="tailAngleConversation">Угол</label>
+                      <div class="track"></div>
+                      <input 
+                        class="range-input" 
+                        id="tailAngleConversation" 
+                        type="range" 
+                        v-model="textDialogDataConversation.tailAngle" 
+                        min="0" 
+                        max="359" 
+                        step="1" 
+                        aria-valuemin="0" 
+                        aria-valuemax="359" 
+                        aria-orientation="horizontal"
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
 
+              <button @click="applyText" class="btn btn-primary w-100">
+                {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
+              </button>
+
+                </div>
+              </div>
+              
+
               <!-- Настройки подложки -->
+              <!--
               <div class="form-group mb-3">
                 <div class="row g-2">
                   <div class="col-4">
@@ -300,6 +326,7 @@
                   </div>
                 </div>
               </div>
+              -->
 
               <!-- Обводка -->
               <div class="form-group mb-3">
@@ -395,9 +422,8 @@
 
             <!-- Вкладка "Мысли" -->
             <div v-if="textDialogActiveTab === 'thoughts'" class="tab-pane active">
-              <!-- Область с полем ввода и превью (закреплена) -->
-              <div class="text-input-preview-area">
-                <!-- Превью текста с подложкой (слева) -->
+              <div class="texts-top-section">
+                <!-- Превью текста с подложкой (полная ширина) -->
                 <div class="text-preview-section">
                   <div class="text-preview">
                     <canvas 
@@ -408,7 +434,7 @@
                   </div>
                 </div>
                 
-                <!-- Поле ввода текста (справа) -->
+                <!-- Поле ввода текста (под превью) -->
                 <div class="text-input-section">
                   <textarea 
                     id="textInputThoughts"
@@ -419,7 +445,6 @@
                   ></textarea>
                 </div>
               </div>
-
               <!-- Аналогичные настройки как для разговора, но с textDialogDataThoughts -->
               <div class="row">
                 <div class="col-md-6">
@@ -718,9 +743,8 @@
 
             <!-- Вкладка "Стандарт" -->
             <div v-if="textDialogActiveTab === 'standard'" class="tab-pane active">
-              <!-- Область с полем ввода и превью (закреплена) -->
-              <div class="text-input-preview-area">
-                <!-- Превью текста с подложкой (слева) -->
+              <div class="texts-top-section">
+                <!-- Превью текста с подложкой (полная ширина) -->
                 <div class="text-preview-section">
                   <div class="text-preview">
                     <canvas 
@@ -731,7 +755,7 @@
                   </div>
                 </div>
                 
-                <!-- Поле ввода текста (справа) -->
+                <!-- Поле ввода текста (под превью) -->
                 <div class="text-input-section">
                   <textarea 
                     id="textInputStandard"
@@ -742,7 +766,6 @@
                   ></textarea>
                 </div>
               </div>
-
               <!-- Простые настройки для стандартного текста -->
               <div class="row">
                 <div class="col-md-6">
@@ -1002,9 +1025,8 @@
 
             <!-- Вкладка "Текст с изображением" -->
             <div v-if="textDialogActiveTab === 'image-text'" class="tab-pane active">
-              <!-- Область с полем ввода и превью (закреплена) -->
-              <div class="text-input-preview-area">
-                <!-- Превью текста с подложкой (слева) -->
+              <div class="texts-top-section">
+                <!-- Превью текста с подложкой (полная ширина) -->
                 <div class="text-preview-section">
                   <div class="text-preview">
                     <canvas 
@@ -1015,7 +1037,7 @@
                   </div>
                 </div>
                 
-                <!-- Поле ввода текста (справа) -->
+                <!-- Поле ввода текста (под превью) -->
                 <div class="text-input-section">
                   <textarea 
                     id="textInputImageText"
@@ -1276,15 +1298,7 @@
             </div>
           </div>
 
-          <!-- Кнопки действий -->
-          <div class="text-dialog-footer">
-            <button @click="closeTextDialog" class="btn btn-secondary">
-              Отмена
-            </button>
-            <button @click="applyText" class="btn btn-primary">
-              {{ isEditingText ? 'Сохранить изменения' : 'Добавить текст' }}
-            </button>
-          </div>
+
         </div>
       </div>
     </div>
@@ -1611,22 +1625,8 @@ export default {
       this.isEditingText = false
       this.editingLayerIndex = null
       
-      // Инициализируем позицию для перетаскивания после обновления DOM
-      this.$nextTick(() => {
-        const previewCanvas = this.$refs.previewCanvasConversation
-        if (previewCanvas) {
-          this.currentDragPosition = {
-            x: previewCanvas.width / 2,
-            y: previewCanvas.height / 2
-          }
-        } else {
-          // Fallback на фиксированные значения
-          this.currentDragPosition = {
-            x: 736,
-            y: 348
-          }
-        }
-      })
+      // Сбрасываем позицию для перетаскивания - она будет установлена в updateSinglePreviewCanvas
+      this.currentDragPosition = { x: 0, y: 0 }
       
       this.textDialogActiveTab = 'conversation'
       this.resetAllTextDialogData()
@@ -1825,18 +1825,21 @@ export default {
       // Разбиваем текст на строки по символу \n
       const lines = text.split('\n')
       
+      // Определяем правильные данные в зависимости от активной вкладки
+      const textData = this.textDialogActiveTab === 'image-text' ? this.textDialogDataImageText : this.textDialogData
+      
       // Устанавливаем размер шрифта
-      ctx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
       
       // Устанавливаем выравнивание текста
-      ctx.textAlign = this.textDialogData.textAlign
+      ctx.textAlign = textData.textAlign
       ctx.textBaseline = 'middle'
       
       // Вычисляем межстрочный интервал
       const lineSpacing = fontSize * lineHeight
       
       // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = (lines.length - 1) * lineSpacing
+      const totalTextHeight = lines.length * fontSize * lineHeight
       const startY = y - totalTextHeight / 2
       
       // Вычисляем максимальную ширину текста для центрирования по горизонтали
@@ -1848,13 +1851,13 @@ export default {
       
       // Рисуем обводку каждой строки
       lines.forEach((line, index) => {
-        const lineY = startY + (index * lineSpacing)
+        const lineY = startY + (index * lineSpacing) + fontSize / 2
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x
-        if (this.textDialogData.textAlign === 'left') {
+        if (textData.textAlign === 'left') {
           lineX = x - maxTextWidth / 2
-        } else if (this.textDialogData.textAlign === 'right') {
+        } else if (textData.textAlign === 'right') {
           lineX = x + maxTextWidth / 2
         }
         // Для 'center' lineX остается x
@@ -2182,8 +2185,8 @@ export default {
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
       
-      // БЕЗ масштабирования - размеры канвасов одинаковые
-      const previewScale = 1 // Убираем масштабирование
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
+      const previewScale = 1
       
       // ЛОГИРОВАНИЕ для отладки - МЕТОД 1
       const rect = canvas.getBoundingClientRect()
@@ -2292,7 +2295,7 @@ export default {
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
       
-      // БЕЗ масштабирования - размеры канвасов одинаковые
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
       // Временно заменяем textDialogData на textDialogDataThoughts для отрисовки
@@ -2360,7 +2363,7 @@ export default {
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
       
-      // БЕЗ масштабирования - размеры канвасов одинаковые
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
@@ -2371,27 +2374,33 @@ export default {
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
-      ctx.textAlign = 'center'
+      ctx.textAlign = this.textDialogDataImageText.textAlign || 'center'
       ctx.textBaseline = 'middle'
       
       // Применяем тень к тексту если включена
       if (this.textDialogDataImageText.shadow) {
-        ctx.shadowColor = this.textDialogDataImageText.shadowColor
-        ctx.shadowBlur = this.textDialogDataImageText.shadowBlur * previewScale
-        ctx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX * previewScale
-        ctx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY * previewScale
-        ctx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
-        ctx.textAlign = this.textDialogDataImageText.textAlign || 'center'
+        // Создаем временный канвас для тени
+        const shadowCanvas = document.createElement('canvas')
+        shadowCanvas.width = canvas.width
+        shadowCanvas.height = canvas.height
+        const shadowCtx = shadowCanvas.getContext('2d')
+        
+        // Настраиваем тень
+        shadowCtx.shadowColor = this.textDialogDataImageText.shadowColor
+        shadowCtx.shadowBlur = this.textDialogDataImageText.shadowBlur * previewScale
+        shadowCtx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX * previewScale
+        shadowCtx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY * previewScale
+        shadowCtx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
+        shadowCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        shadowCtx.textAlign = this.textDialogDataImageText.textAlign || 'center'
+        shadowCtx.textBaseline = 'middle'
+        shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
         
         // Рисуем тень текста
-        this.drawMultilineText(ctx, this.textDialogDataImageText.text, previewX, previewY, this.textDialogDataImageText.fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        this.drawMultilineText(shadowCtx, this.textDialogDataImageText.text, previewX, previewY, this.textDialogDataImageText.fontSize * previewScale, this.textDialogDataImageText.lineHeight)
         
-        // Сбрасываем настройки тени
-        ctx.shadowColor = 'transparent'
-        ctx.shadowBlur = 0
-        ctx.shadowOffsetX = 0
-        ctx.shadowOffsetY = 0
-        ctx.globalAlpha = 1
+        // Рисуем тень на основном канвасе
+        ctx.drawImage(shadowCanvas, 0, 0)
       }
       
       // Рисуем основной текст с поддержкой переноса строк
@@ -2416,6 +2425,14 @@ export default {
         textCtx.globalCompositeOperation = 'source-in'
         textCtx.drawImage(img, 0, 0, canvas.width, canvas.height)
         
+        // Применяем обводку к тексту если включена (на временном канвасе)
+        if (this.textDialogDataImageText.stroke) {
+          textCtx.globalCompositeOperation = 'source-over'
+          textCtx.strokeStyle = this.textDialogDataImageText.strokeColor
+          textCtx.lineWidth = this.textDialogDataImageText.strokeWidth * previewScale
+          this.drawMultilineTextStroke(textCtx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        }
+        
         // Рисуем результат на основном канвасе
         ctx.drawImage(textCanvas, 0, 0)
       } else {
@@ -2423,13 +2440,13 @@ export default {
         ctx.fillStyle = textColor
         ctx.textAlign = this.textDialogDataImageText.textAlign || 'center'
         this.drawMultilineText(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
-      }
-      
-      // Применяем обводку к тексту если включена
-      if (this.textDialogDataImageText.stroke) {
-        ctx.strokeStyle = this.textDialogDataImageText.strokeColor
-        ctx.lineWidth = this.textDialogDataImageText.strokeWidth * previewScale
-        this.drawMultilineTextStroke(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        
+        // Применяем обводку к тексту если включена
+        if (this.textDialogDataImageText.stroke) {
+          ctx.strokeStyle = this.textDialogDataImageText.strokeColor
+          ctx.lineWidth = this.textDialogDataImageText.strokeWidth * previewScale
+          this.drawMultilineTextStroke(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        }
       }
       
       console.log('✅ Текст в режиме "Текст с изображением" отрисован без подложки')
@@ -2495,7 +2512,7 @@ export default {
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
       
-      // БЕЗ масштабирования - размеры канвасов одинаковые
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
       // Временно заменяем textDialogData на textDialogDataThoughts для отрисовки
@@ -2625,24 +2642,26 @@ export default {
         
         // Сначала рисуем тень к тексту с изображением если включена
         if (this.textDialogDataImageText.shadow) {
-          // Рисуем тень напрямую на основном канвасе (без применения изображения как маски)
-          ctx.shadowColor = this.textDialogDataImageText.shadowColor
-          ctx.shadowBlur = this.textDialogDataImageText.shadowBlur
-          ctx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX
-          ctx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
-          ctx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
-          ctx.fillStyle = this.textDialogDataImageText.shadowColor
-          ctx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
-          ctx.textAlign = this.textDialogDataImageText.textAlign
-          ctx.textBaseline = 'middle'
-          ctx.fillText('Текст', x, y)
+          // Создаем временный канвас для тени
+          const shadowCanvas = document.createElement('canvas')
+          shadowCanvas.width = canvas.width
+          shadowCanvas.height = canvas.height
+          const shadowCtx = shadowCanvas.getContext('2d')
           
-          // Сбрасываем настройки тени
-          ctx.shadowColor = 'transparent'
-          ctx.shadowBlur = 0
-          ctx.shadowOffsetX = 0
-          ctx.shadowOffsetY = 0
-          ctx.globalAlpha = 1
+          // Настраиваем тень
+          shadowCtx.shadowColor = this.textDialogDataImageText.shadowColor
+          shadowCtx.shadowBlur = this.textDialogDataImageText.shadowBlur
+          shadowCtx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX
+          shadowCtx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
+          shadowCtx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
+          shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
+          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+          shadowCtx.textAlign = this.textDialogDataImageText.textAlign
+          shadowCtx.textBaseline = 'middle'
+          shadowCtx.fillText('Текст', x, y)
+          
+          // Рисуем тень на основном канвасе
+          ctx.drawImage(shadowCanvas, 0, 0)
         }
         
         // Затем рисуем основной текст с изображением поверх тени
@@ -2663,24 +2682,26 @@ export default {
         
         // Применяем тень к дефолтному тексту если включена
         if (this.textDialogDataImageText.shadow) {
-          // Рисуем тень отдельно
-          ctx.shadowColor = this.textDialogDataImageText.shadowColor
-          ctx.shadowBlur = this.textDialogDataImageText.shadowBlur
-          ctx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX
-          ctx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
-          ctx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
-          ctx.fillStyle = this.textDialogDataImageText.textColor
-          ctx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
-          ctx.textAlign = this.textDialogDataImageText.textAlign
-          ctx.textBaseline = 'middle'
-          ctx.fillText('Текст', x, y)
+          // Создаем временный канвас для тени
+          const shadowCanvas = document.createElement('canvas')
+          shadowCanvas.width = canvas.width
+          shadowCanvas.height = canvas.height
+          const shadowCtx = shadowCanvas.getContext('2d')
           
-          // Сбрасываем настройки тени
-          ctx.shadowColor = 'transparent'
-          ctx.shadowBlur = 0
-          ctx.shadowOffsetX = 0
-          ctx.shadowOffsetY = 0
-          ctx.globalAlpha = 1
+          // Настраиваем тень
+          shadowCtx.shadowColor = this.textDialogDataImageText.shadowColor
+          shadowCtx.shadowBlur = this.textDialogDataImageText.shadowBlur
+          shadowCtx.shadowOffsetX = this.textDialogDataImageText.shadowOffsetX
+          shadowCtx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
+          shadowCtx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
+          shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
+          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+          shadowCtx.textAlign = this.textDialogDataImageText.textAlign
+          shadowCtx.textBaseline = 'middle'
+          shadowCtx.fillText('Текст', x, y)
+          
+          // Рисуем тень на основном канвасе
+          ctx.drawImage(shadowCanvas, 0, 0)
         }
         
         // Рисуем основной текст
@@ -2708,29 +2729,21 @@ export default {
         return
       }
       
-      // Получаем размеры контейнера
-      const container = previewCanvas.parentElement
-      if (!container) {
-        console.log('⚠️ Контейнер превью канваса не найден')
+      // Получаем размеры основного канваса для точного соответствия
+      const mainCanvas = this.canvas
+      if (!mainCanvas || mainCanvas.width === 0) {
+        console.log('⚠️ Основной канвас не найден или не инициализирован')
         return
       }
       
-      const containerWidth = container.clientWidth
-      const containerHeight = container.clientHeight
+      // Получаем логические размеры основного канваса
+      const dpr = window.devicePixelRatio || 1
+      const mainCanvasLogicalWidth = mainCanvas.width / dpr
+      const mainCanvasLogicalHeight = mainCanvas.height / dpr
       
-      // Вычисляем размеры канваса с сохранением соотношения сторон 19:9
-      const aspectRatio = 19 / 9
-      let canvasWidth, canvasHeight
-      
-      if (containerWidth / containerHeight > aspectRatio) {
-        // Контейнер шире, ограничиваем по высоте
-        canvasHeight = containerHeight
-        canvasWidth = canvasHeight * aspectRatio
-      } else {
-        // Контейнер выше, ограничиваем по ширине
-        canvasWidth = containerWidth
-        canvasHeight = canvasWidth / aspectRatio
-      }
+      // Используем точно такие же размеры, как у основного канваса
+      const canvasWidth = mainCanvasLogicalWidth
+      const canvasHeight = mainCanvasLogicalHeight
       
       // Устанавливаем размеры канваса (без дополнительного масштабирования)
       previewCanvas.width = canvasWidth
@@ -2738,12 +2751,23 @@ export default {
       previewCanvas.style.width = `${canvasWidth}px`
       previewCanvas.style.height = `${canvasHeight}px`
       
-      console.log('🔄 Обновление превью канваса:', {
+      // Обновляем позицию для центрирования, если она еще не инициализирована
+      if (this.currentDragPosition.x === 0 && this.currentDragPosition.y === 0) {
+        this.currentDragPosition = {
+          x: canvasWidth / 2,
+          y: canvasHeight / 2
+        }
+      }
+      
+      console.log('🔄 Обновление превью канваса (точные размеры основного канваса):', {
         canvas: previewCanvas,
-        containerSize: `${containerWidth}x${containerHeight}`,
-        canvasSize: `${canvasWidth}x${canvasHeight}`,
+        mainCanvasPhysical: `${mainCanvas.width}x${mainCanvas.height}`,
+        mainCanvasLogical: `${mainCanvasLogicalWidth}x${mainCanvasLogicalHeight}`,
+        previewCanvasSize: `${canvasWidth}x${canvasHeight}`,
         physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
-        styleSize: `${previewCanvas.style.width}x${previewCanvas.style.height}`
+        styleSize: `${previewCanvas.style.width}x${previewCanvas.style.height}`,
+        currentPosition: `${this.currentDragPosition.x}x${this.currentDragPosition.y}`,
+        dpr: dpr
       })
       
       const ctx = previewCanvas.getContext('2d')
@@ -2821,14 +2845,20 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
+      // Стабилизация размеров - обеспечиваем минимальные размеры для корректного отображения хвоста
+      const minWidth = 150
+      const minHeight = 80
+      const stableWidth = Math.max(bgWidth, minWidth)
+      const stableHeight = Math.max(bgHeight, minHeight)
+      
       // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
-      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
       
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()
       
       // Строим объединенную фигуру как единый путь с кэшированной точкой
-      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, stableWidth, stableHeight, scale, cachedIntersection)
       
       // Заполняем объединенную фигуру
       ctx.fillStyle = backgroundColor
@@ -3407,10 +3437,16 @@ export default {
     
     // Обводка объединенной фигуры
     strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
-      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight)
+      // Стабилизация размеров - используем те же минимальные размеры
+      const minWidth = 150
+      const minHeight = 80
+      const stableWidth = Math.max(bgWidth, minWidth)
+      const stableHeight = Math.max(bgHeight, minHeight)
+      
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
       
       ctx.beginPath()
-      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection)
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, stableWidth, stableHeight, scale, cachedIntersection)
       ctx.stroke()
     },
     
@@ -3459,13 +3495,13 @@ export default {
     drawMultilineText(ctx, text, x, y, fontSize, lineHeight) {
       const lines = text.split('\n')
       const totalHeight = lines.length * fontSize * lineHeight
-      const startY = y - totalHeight / 2 + fontSize / 2
+      const startY = y - totalHeight / 2
       
       // Получаем текущие настройки выравнивания
       const textAlign = ctx.textAlign || 'center'
       
       for (let i = 0; i < lines.length; i++) {
-        const lineY = startY + i * fontSize * lineHeight
+        const lineY = startY + i * fontSize * lineHeight + fontSize / 2
         
         // Сохраняем текущее выравнивание
         const currentAlign = ctx.textAlign
@@ -3733,7 +3769,14 @@ export default {
       const bgWidth = textData.backgroundWidth
       const bgHeight = textData.backgroundHeight
       
-      // Размеры канвасов одинаковые, масштабирование не нужно
+      // Получаем ссылку на текущий превью-канвас
+      const previewCanvas = this.getCurrentPreviewCanvasRef()
+      if (!previewCanvas) {
+        console.log('❌ Превью-канвас не найден в isClickOnSuperBackground')
+        return false
+      }
+      
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
       // Масштабированные размеры подложки (используем тот же масштаб)
@@ -3771,6 +3814,15 @@ export default {
       // Координаты остаются теми же, так как размеры канвасов одинаковые
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
+      
+      // Получаем ссылку на текущий превью-канвас
+      const previewCanvas = this.getCurrentPreviewCanvasRef()
+      if (!previewCanvas) {
+        console.log('❌ Превью-канвас не найден в isClickOnText')
+        return false
+      }
+      
+      // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
       // Получаем данные для текущего режима
@@ -3879,21 +3931,16 @@ export default {
 }
 
 .text-dialog {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 1200px;
-  width: 90%;
-  max-height: 80vh;
+  background: #fff;
+  width: 100%;
+  height: 100vh;
   overflow-y: auto;
 }
 
 .text-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
+  width: 1200px;
+  margin: 0 auto;
+  padding: 1.5em 0;
 }
 
 .text-dialog-title {
@@ -3903,51 +3950,35 @@ export default {
 }
 
 .text-dialog-body {
-  padding: 1.5rem;
+  padding: 0 20px;
 }
 
-/* Область с полем ввода и превью */
-.text-input-preview-area {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  height: auto;
-  min-height: fit-content;
-  /* Закрепляем область при скролле */
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 10;
-  padding: 20px;
-  border: 0;
-  margin: 0 0 24px 0;
-  /* Убираем тень */
-  box-shadow: none;
-}
-
-/* Секция поля ввода текста */
-.text-input-section {
-  flex: 0 0 300px;
-  min-width: 300px;
-  height: 200px;
-}
-
-/* Секция превью */
+/* Секция превью (полная ширина) */
 .text-preview-section {
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 1rem !important;
+}
+
+/* Секция поля ввода текста (под превью) */
+.text-input-section {
+  width: 250px;
+  margin-right: 25px;
+  max-width: 100%;
+}
+
+.text-dialog-body .tab-pane.active {
+  width: 1280px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.text-input-section textarea {
+  height: 56px;
 }
 
 .text-preview {
-  width: 100%;
-  aspect-ratio: 19/9; /* Соотношение сторон как у основного канваса 1472x697 */
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  background: #f8f9fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  aspect-ratio: initial;
 }
 
 .preview-canvas {
@@ -3959,22 +3990,11 @@ export default {
 
 /* Адаптивность */
 @media (max-width: 768px) {
-  .text-input-preview-area {
-    flex-direction: column;
-    gap: 16px;
-    /* На мобильных устройствах sticky может не работать корректно */
-    position: relative;
-    top: auto;
+  .text-preview-section {
+    width: 100%;
   }
   
   .text-input-section {
-    flex: none;
-    width: 100%;
-    min-width: auto;
-    height: auto;
-  }
-  
-  .text-preview-section {
     width: 100%;
   }
 }
@@ -4123,34 +4143,102 @@ export default {
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-.form-range {
+/* Стили для ползунков */
+.range {
+  position: relative;
+  display: grid;
   width: 100%;
-  height: 1.5rem;
-  padding: 0;
-  background-color: transparent;
-  -webkit-appearance: none;
+  margin-bottom: 20px;
+}
+
+.range-label {
+  margin-block-end: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.range-input {
+  width: 100%;
+  height: 30px;
+  border-radius: 10px;
   appearance: none;
+  background: none;
+  position: relative;
+  z-index: 9;
 }
 
-.form-range::-webkit-slider-track {
-  width: 100%;
-  height: 0.5rem;
-  cursor: pointer;
-  background: #dee2e6;
-  border-radius: 1rem;
-}
-
-.form-range::-webkit-slider-thumb {
-  height: 1.5rem;
-  width: 1.5rem;
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px;
+  height: 30px;
+  border: none;
   border-radius: 50%;
-  background: #007bff;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  box-shadow: 0 0 0 5px inset #007bff;
+  transition: 300ms;
 }
+
+.range-input::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background-color: white;
+  box-shadow: 0 0 0 5px inset #007bff;
+  transition: 300ms;
+}
+
+.range-input:hover::-webkit-slider-thumb,
+.range-input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 10px inset #007bff;
+}
+
+.range-input:hover::-moz-range-thumb,
+.range-input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 10px inset #007bff;
+}
+
+.range-input:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 30px inset #007bff;
+}
+
+.range-input:active::-moz-range-thumb {
+  box-shadow: 0 0 0 30px inset #007bff;
+}
+
+.range-input:disabled::-webkit-slider-thumb {
+  box-shadow: 0 0 0 30px inset gray;
+}
+
+.range-input:disabled::-moz-range-thumb {
+  box-shadow: 0 0 0 30px inset gray;
+}
+
+.range-input:focus-visible {
+  outline-offset: 10px;
+  outline: 1px solid #007bff;
+}
+
+.range-input:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid #28a745;
+}
+
+.range-input:focus-visible::-moz-range-thumb {
+  outline: 3px solid #28a745;
+}
+
+.track {
+  position: absolute;
+  top: 43px;
+  width: 100%;
+  height: 8px;
+  border-radius: 10px;
+  background-color: #ababab;
+  z-index: 1;
+}
+
+
 
 .form-check {
   margin: 0;
@@ -4159,5 +4247,45 @@ export default {
 .form-check-label {
   font-size: 0.875rem;
   margin-left: 0.5rem;
+}
+
+.texts-top-section {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.text-input-section {
+  width: 300px;
+}
+
+.text-dialog-body .tab-pane.active {
+  width: 1200px;
+}
+
+.vertical-line {
+  width: 1px;
+  height: 38px;
+  background: #eee;
+  max-width: 1px;
+  padding: 0;
+  margin: 0 5px;
+}
+
+.form-label {
+  font-size: 14px;
+}
+
+.range-label {
+  font-size: 15px;
+}
+
+.text-input-section textarea {
+  margin-bottom: 10px;
+}
+
+.nav.nav-tabs {
+  width: 1200px;
+  margin: 0 auto;
 }
 </style>

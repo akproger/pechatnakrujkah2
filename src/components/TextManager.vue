@@ -3716,7 +3716,7 @@ export default {
       const bgHeight = textData.backgroundHeight
       
       // Размеры канвасов одинаковые, масштабирование не нужно
-      const previewScale = 1.2
+      const previewScale = 1
       
       // Масштабированные размеры подложки (используем тот же масштаб)
       const scaledBgWidth = Math.round(bgWidth * previewScale)
@@ -3753,7 +3753,7 @@ export default {
       // Координаты остаются теми же, так как размеры канвасов одинаковые
       const previewX = this.currentTextPosition.x
       const previewY = this.currentTextPosition.y
-      const previewScale = 1.2
+      const previewScale = 1
       
       // Получаем данные для текущего режима
       const textData = this.getCurrentTextDialogData()

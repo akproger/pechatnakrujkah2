@@ -1468,7 +1468,13 @@ export default {
     currentTextPosition() {
       // Если currentDragPosition не инициализирован, используем дефолтную позицию
       if (this.currentDragPosition.x === 0 && this.currentDragPosition.y === 0) {
-        return { x: this.previewCanvasWidth / 2, y: this.previewCanvasHeight / 2 }
+        // Используем реальные размеры канваса, если доступны
+        const previewCanvas = this.$refs.previewCanvasConversation
+        if (previewCanvas) {
+          return { x: previewCanvas.width / 2, y: previewCanvas.height / 2 }
+        }
+        // Fallback на фиксированные значения
+        return { x: 736, y: 348 }
       }
       return this.currentDragPosition
     }
@@ -1605,11 +1611,23 @@ export default {
       this.isEditingText = false
       this.editingLayerIndex = null
       
-      // Инициализируем позицию для перетаскивания
-      this.currentDragPosition = {
-        x: this.previewCanvasWidth / 2,
-        y: this.previewCanvasHeight / 2
-      }
+      // Инициализируем позицию для перетаскивания после обновления DOM
+      this.$nextTick(() => {
+        const previewCanvas = this.$refs.previewCanvasConversation
+        if (previewCanvas) {
+          this.currentDragPosition = {
+            x: previewCanvas.width / 2,
+            y: previewCanvas.height / 2
+          }
+        } else {
+          // Fallback на фиксированные значения
+          this.currentDragPosition = {
+            x: 736,
+            y: 348
+          }
+        }
+      })
+      
       this.textDialogActiveTab = 'conversation'
       this.resetAllTextDialogData()
       

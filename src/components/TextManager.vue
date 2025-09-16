@@ -2710,7 +2710,8 @@ export default {
           mainCanvasSize: `${this.canvas.width}x${this.canvas.height}`,
           previewSize: '1472x697'
         })
-        ctx.drawImage(this.canvas, 0, 0, 1472, 697)
+        // Копируем фон без масштабирования, так как размеры одинаковые
+        ctx.drawImage(this.canvas, 0, 0)
       } else {
         console.log('⚠️ Основной канвас недоступен, рисуем белый фон', {
           canvas: this.canvas,
@@ -3888,7 +3889,7 @@ export default {
 
 .text-preview {
   width: 100%;
-  height: 328px;
+  height: 697px; /* Высота основного канваса */
   border: 1px solid #dee2e6;
   border-radius: 4px;
   background: #f8f9fa;

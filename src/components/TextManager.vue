@@ -2714,10 +2714,9 @@ export default {
         canvasHeight = canvasWidth / aspectRatio
       }
       
-      // Устанавливаем размеры с учетом HiDPI
-      const dpr = window.devicePixelRatio || 1
-      previewCanvas.width = canvasWidth * dpr
-      previewCanvas.height = canvasHeight * dpr
+      // Устанавливаем размеры канваса (без дополнительного масштабирования)
+      previewCanvas.width = canvasWidth
+      previewCanvas.height = canvasHeight
       previewCanvas.style.width = `${canvasWidth}px`
       previewCanvas.style.height = `${canvasHeight}px`
       
@@ -2726,8 +2725,7 @@ export default {
         containerSize: `${containerWidth}x${containerHeight}`,
         canvasSize: `${canvasWidth}x${canvasHeight}`,
         physicalSize: `${previewCanvas.width}x${previewCanvas.height}`,
-        styleSize: `${previewCanvas.style.width}x${previewCanvas.style.height}`,
-        dpr: dpr
+        styleSize: `${previewCanvas.style.width}x${previewCanvas.style.height}`
       })
       
       const ctx = previewCanvas.getContext('2d')
@@ -2735,9 +2733,6 @@ export default {
         console.log('⚠️ Не удалось получить контекст канваса')
         return
       }
-      
-      // Масштабируем контекст для HiDPI
-      ctx.scale(dpr, dpr)
       
       // Очищаем канвас
       ctx.clearRect(0, 0, canvasWidth, canvasHeight)

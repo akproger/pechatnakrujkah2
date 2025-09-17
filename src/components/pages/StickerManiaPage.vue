@@ -8381,11 +8381,10 @@ export default {
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
-          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
           tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
         }
         
         // Рисуем объединенную фигуру в центре временного Canvas (размеры остаются теми же)
@@ -8634,11 +8633,10 @@ export default {
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
-          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
           tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
         }
         
         // Рисуем стандартную подложку в центре временного Canvas
@@ -8757,11 +8755,10 @@ export default {
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
-          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
           tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * previewScale))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * previewScale)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * previewScale)
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
         }
         
         // Рисуем режим "Мысли" в центре временного Canvas
@@ -8893,15 +8890,14 @@ export default {
         
         // 1. СНАЧАЛА рисуем тень (если включена) - она должна быть под основным текстом
         if (currentTextData.shadow) {
-          const previewScale = 1 // БЕЗ масштабирования - размеры канвасов одинаковые
           tempCtx.shadowColor = currentTextData.shadowColor
-          tempCtx.shadowBlur = currentTextData.shadowBlur * previewScale
-          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX * previewScale
-          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY * previewScale
+          tempCtx.shadowBlur = currentTextData.shadowBlur
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY
           tempCtx.globalAlpha = currentTextData.shadowOpacity / 100
           
           // Рисуем тень текста
-          this.drawMultilineTextWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize * previewScale, currentTextData.lineHeight, currentTextData)
+          this.drawMultilineTextWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize, currentTextData.lineHeight, currentTextData)
           
           // Сбрасываем настройки тени
           tempCtx.shadowColor = 'transparent'

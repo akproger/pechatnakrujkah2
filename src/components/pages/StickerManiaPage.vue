@@ -1623,6 +1623,25 @@
                 Настройки
               </button>
             </li>
+            
+            <!-- Вкладка "Стикеры" - показывается только после генерации стикеров -->
+            <li class="nav-item" role="presentation" v-if="stickers.length > 0">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'stickers' }"
+                id="stickers-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#stickers" 
+                type="button" 
+                role="tab" 
+                aria-controls="stickers" 
+                aria-selected="activeTab === 'stickers'"
+                @click="activeTab = 'stickers'"
+              >
+                <i class="bi bi-layer-group me-2"></i>
+                Стикеры ({{ stickers.length }})
+              </button>
+            </li>
           </ul>
         </div>
       </div>
@@ -1887,6 +1906,69 @@
             </div>
           </div>
         </div>
+        
+        <!-- Таб "Стикеры" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'stickers' }" id="stickers" role="tabpanel" aria-labelledby="stickers-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="bi bi-layer-group me-2"></i>
+                    Управление слоями стикеров
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-12">
+                      <p class="text-muted mb-3">
+                        Стикеры расположены в порядке слоев (снизу вверх). 
+                        Двойной клик на стикер перемещает его на верхний слой.
+                      </p>
+                      
+                      <!-- Список слоев стикеров -->
+                      <div class="sticker-layers-list">
+                        <div 
+                          v-for="(sticker, index) in stickers" 
+                          :key="index"
+                          class="sticker-layer-item"
+                          :class="{ 'active': selectedStickerIndex === index }"
+                          @click="selectSticker(index)"
+                        >
+                          <div class="layer-info">
+                            <div class="layer-number">{{ sticker.originalNumber }}</div>
+                            <div class="layer-details">
+                              <div class="layer-name">Стикер {{ sticker.originalNumber }}</div>
+                              <div class="layer-position">
+                                Позиция: ({{ Math.round(sticker.group.position.x) }}, {{ Math.round(sticker.group.position.y) }})
+                              </div>
+                            </div>
+                          </div>
+                          <div class="layer-actions">
+                            <button 
+                              class="btn btn-sm btn-outline-primary"
+                              @click.stop="moveStickerToTop(index)"
+                              title="Переместить на верхний слой"
+                            >
+                              <i class="bi bi-arrow-up"></i>
+                            </button>
+                            <button 
+                              class="btn btn-sm btn-outline-danger"
+                              @click.stop="deleteSticker(index)"
+                              title="Удалить стикер"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1970,6 +2052,11 @@ export default {
       shadowOffsetX: 5, // Проценты (-50 до +50)
       shadowOffsetY: 5, // Проценты (-50 до +50)
       shadowOpacity: 40, // Проценты (0-100)
+      
+      // Управление стикерами
+      selectedStickerIndex: -1,
+      selectedItem: null, // Выбранный объект (стикер или текст)
+      selectedItemType: null, // Тип выбранного объекта: 'sticker' или 'text'
       
       // Стикеры
       stickers: [],
@@ -2217,6 +2304,81 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    // Рассчитывает умные bounds для области перетаскивания с учетом хвоста
+    calculateSmartBounds(originalBounds, textData, mode) {
+      const basePadding = 3 // Уменьшенный базовый отступ от обводки
+      
+      // Для режимов без хвоста используем минимальный отступ
+      if (mode === 'standard' || mode === 'imageText') {
+        return originalBounds.expand(basePadding)
+      }
+      
+      // Для режимов с хвостом (conversation, thoughts)
+      if (mode === 'conversation' || mode === 'thoughts') {
+        const tailSize = Number(textData.tailSize) / 100
+        const tailAngle = Number(textData.tailAngle)
+        
+        // Рассчитываем длину хвоста (более консервативно)
+        const minDimension = Math.min(originalBounds.width, originalBounds.height)
+        const tailLength = minDimension * 0.6 * tailSize // Уменьшенный коэффициент
+        
+        // Рассчитываем координаты крайней точки хвоста
+        const centerX = originalBounds.center.x
+        const centerY = originalBounds.center.y
+        
+        // Угол в радианах
+        const angleRad = (tailAngle * Math.PI) / 180
+        
+        // Координаты крайней точки хвоста
+        const tailEndX = centerX + Math.cos(angleRad) * tailLength
+        const tailEndY = centerY + Math.sin(angleRad) * tailLength
+        
+        // Определяем, в какую сторону нужно расширить bounds
+        let leftExpansion = basePadding
+        let rightExpansion = basePadding
+        let topExpansion = basePadding
+        let bottomExpansion = basePadding
+        
+        // Если хвост выходит за границы, добавляем только необходимое расширение
+        if (tailEndX < originalBounds.left) {
+          leftExpansion = Math.min(Math.abs(tailEndX - originalBounds.left) + basePadding, 20) // Ограничиваем максимум
+        }
+        
+        if (tailEndX > originalBounds.right) {
+          rightExpansion = Math.min(Math.abs(tailEndX - originalBounds.right) + basePadding, 20)
+        }
+        
+        if (tailEndY < originalBounds.top) {
+          topExpansion = Math.min(Math.abs(tailEndY - originalBounds.top) + basePadding, 20)
+        }
+        
+        if (tailEndY > originalBounds.bottom) {
+          bottomExpansion = Math.min(Math.abs(tailEndY - originalBounds.bottom) + basePadding, 20)
+        }
+        
+        // Создаем новые bounds с учетом расширения
+        const newBounds = new this.paperScope.Rectangle(
+          originalBounds.left - leftExpansion,
+          originalBounds.top - topExpansion,
+          originalBounds.width + leftExpansion + rightExpansion,
+          originalBounds.height + topExpansion + bottomExpansion
+        )
+        
+        console.log('🎯 Умные bounds для хвоста:', {
+          originalBounds: originalBounds,
+          tailEnd: { x: tailEndX, y: tailEndY },
+          tailLength: tailLength,
+          expansions: { left: leftExpansion, right: rightExpansion, top: topExpansion, bottom: bottomExpansion },
+          newBounds: newBounds
+        })
+        
+        return newBounds
+      }
+      
+      // Fallback для неизвестных режимов
+      return originalBounds.expand(basePadding)
+    },
+
     // Сохранение холста в высоком разрешении для печати
     async saveCanvasForPrint() {
       console.log('🖨️ Начинаем сохранение холста для печати')
@@ -2315,6 +2477,18 @@ export default {
       
       this.paperScope = new paper.PaperScope()
       this.paperScope.setup(canvas)
+      
+      // Настраиваем стили выделения
+      this.paperScope.settings.handleSize = 8
+      this.paperScope.settings.hitTolerance = 5
+      
+      // Настраиваем стили выделения для красной рамки
+      this.paperScope.settings.selectionStyle = {
+        strokeColor: '#dc3545',
+        strokeWidth: 2,
+        dashArray: [5, 5],
+        fillColor: null
+      }
       
       // Устанавливаем размер канваса
       this.resizeCanvas()
@@ -2903,43 +3077,23 @@ export default {
       const viewWidth = this.paperScope.view.viewSize.width
       const viewHeight = this.paperScope.view.viewSize.height
       
-      console.log('🎯 Запуск 5 итераций генерации стикеров:', viewWidth, 'x', viewHeight)
+      console.log('🎯 Запуск 1 итерации генерации стикеров:', viewWidth, 'x', viewHeight)
       
-      // Запускаем 5 итераций генерации
+      // Запускаем 1 итерацию генерации
       await this.runMultipleGenerations(selectedMasks, selectedImages, viewWidth, viewHeight)
     },
     
     // Запуск множественных итераций генерации
     async runMultipleGenerations(selectedMasks, selectedImages, viewWidth, viewHeight) {
-      console.log('🚀 Запуск 5 итераций генерации...')
+      console.log('🚀 Запуск 1 итерации генерации...')
       
       try {
         // Итерация 1: Основная генерация
-        console.log('📋 Итерация 1/5: Основная генерация')
+        console.log('📋 Итерация 1/1: Основная генерация')
         await this.runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight)
         
-        // Итерации 2-5: Дополнительные слои
-        for (let iteration = 2; iteration <= 5; iteration++) {
-          console.log(`📋 Итерация ${iteration}/5: Дополнительный слой`)
-          
-          // Проверяем общий лимит стикеров (максимум 100)
-          if (this.stickers.length >= 100) {
-            console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
-            break
-          }
-          
-          // Небольшая пауза между итерациями для стабильности
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          // Запускаем addMoreStickers для создания нового слоя
-          await this.addMoreStickers()
-          
-          // Обновляем прогресс
-          console.log(`✅ Итерация ${iteration}/5 завершена. Всего стикеров: ${this.stickers.length}`)
-        }
-        
-        console.log('🎉 Все итерации генерации завершены!')
-        console.log(`📊 Итоговое количество стикеров: ${this.stickers.length} (максимум 100 - 20 на итерацию)`)
+        console.log('🎉 Генерация завершена!')
+        console.log(`📊 Итоговое количество стикеров: ${this.stickers.length} (максимум 20 на итерацию)`)
         
         // Финальное обновление
         this.paperScope.view.draw()
@@ -2955,7 +3109,7 @@ export default {
         })
         
       } catch (error) {
-        console.error('❌ Ошибка при выполнении множественных итераций:', error)
+        console.error('❌ Ошибка при выполнении генерации:', error)
         this.isLoading = false
       }
     },
@@ -3138,7 +3292,7 @@ export default {
         if (position) {
           // Создаем стикер (теперь асинхронно)
           try {
-            const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
+            const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size, this.stickers.length + 1)
             
             if (sticker) {
               this.stickers.push(sticker)
@@ -3397,7 +3551,7 @@ export default {
           if (position) {
             // Создаем стикер
             try {
-              const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size)
+              const sticker = await this.createOptimalSticker(selectedMasks, selectedImages, position.x, position.y, size, this.stickers.length + 1)
               
               if (sticker) {
                 this.stickers.push(sticker)
@@ -3441,7 +3595,7 @@ export default {
     },
     
     // Создание оптимального стикера
-    createOptimalSticker(masks, images, x, y, size) {
+    createOptimalSticker(masks, images, x, y, size, originalNumber) {
       // Случайная маска
       const randomMask = masks[Math.floor(Math.random() * masks.length)]
       // Случайное изображение
@@ -3687,7 +3841,8 @@ export default {
                         size: size,
                         rotation: rotation,
                         mask: randomMask.name,
-                        image: randomImage.name
+                        image: randomImage.name,
+                        originalNumber: originalNumber
                       })
                     }
                   }
@@ -5858,8 +6013,97 @@ export default {
       
       let dragItem = null
       let offset = null
+      let clickCount = 0
+      let clickTimer = null
+      let selectedItem = null // Выбранный объект
+      let transformMode = null // 'rotate', 'scale', 'move'
+      let initialAngle = 0
+      let initialScale = 1
+      let initialMouseAngle = 0
+      let initialDistance = 0
+      
+      // Функция для снятия выделения
+      const clearSelection = () => {
+        if (selectedItem) {
+          selectedItem.selected = false
+          selectedItem = null
+          console.log('🎯 Выделение снято')
+        }
+        // Также снимаем выделение в Vue компоненте
+        if (this.selectedItem) {
+          this.selectedItem.selected = false
+          this.selectedItem = null
+          this.selectedItemType = null
+          this.selectedStickerIndex = -1
+        }
+      }
+      
+      // Функция для определения типа клика (ручка трансформации или объект)
+      const detectTransformHandle = (point, selectedItem) => {
+        if (!selectedItem || !selectedItem.selected) return null
+        
+        const bounds = selectedItem.bounds
+        const handleSize = 8 // Размер ручки
+        
+        // Верхний правый угол (поворот)
+        const topRight = new this.paperScope.Point(bounds.right, bounds.top)
+        if (point.getDistance(topRight) <= handleSize) {
+          return 'rotate'
+        }
+        
+        // Правый нижний угол (масштабирование)
+        const bottomRight = new this.paperScope.Point(bounds.right, bounds.bottom)
+        if (point.getDistance(bottomRight) <= handleSize) {
+          return 'scale'
+        }
+        
+        return null
+      }
       
       dragTool.onMouseDown = (event) => {
+        // Проверяем, кликнули ли по ручке трансформации
+        const handleType = detectTransformHandle(event.point, this.selectedItem)
+        
+        if (handleType) {
+          // Клик по ручке трансформации - начинаем трансформацию
+          transformMode = handleType
+          dragItem = this.selectedItem
+          
+          if (handleType === 'rotate') {
+            // Поворот
+            initialAngle = dragItem.rotation
+            const center = dragItem.bounds.center
+            initialMouseAngle = Math.atan2(event.point.y - center.y, event.point.x - center.x)
+            console.log('🔄 Начато поворачивание стикера')
+          } else if (handleType === 'scale') {
+            // Масштабирование
+            initialScale = dragItem.scaling.x
+            const center = dragItem.bounds.center
+            initialDistance = event.point.getDistance(center)
+            console.log('📏 Начато масштабирование стикера, начальный масштаб:', initialScale.toFixed(2))
+          }
+          
+          return // Не обрабатываем как обычный клик
+        }
+        
+        // Обработка двойного клика
+        clickCount++
+        
+        if (clickCount === 1) {
+          clickTimer = setTimeout(() => {
+            // Одинарный клик - выбираем объект
+            this.handleSingleClick(event, clearSelection)
+            clickCount = 0
+          }, 300) // 300ms для двойного клика
+        } else if (clickCount === 2) {
+          clearTimeout(clickTimer)
+          clickCount = 0
+          
+          // Обрабатываем двойной клик
+          this.handleDoubleClick(event)
+          return // Не продолжаем с обычной логикой перетаскивания
+        }
+        
         // Ищем элемент под курсором
         const hitResult = this.paperScope.project.hitTest(event.point, {
           segments: true,
@@ -5879,43 +6123,168 @@ export default {
                            (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
           
           if (isTextItem) {
-            dragItem = item
-            offset = event.point.subtract(item.position)
+            // Снимаем предыдущее выделение при начале перетаскивания
+            clearSelection()
+            
+            // Если это элемент стикера (обводка, тень или изображение), перетаскиваем всю группу
+            if (item.parent && item.parent.className === 'Group' && item.parent.children.length >= 3) {
+              // Это стикер - перетаскиваем всю группу
+              dragItem = item.parent
+              console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
+            } else {
+              // Это обычный текстовый элемент
+              dragItem = item
+              console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
+            }
+            
+            offset = event.point.subtract(dragItem.position)
             dragItem.selected = true
-            console.log('🎯 Начато перетаскивание Paper.js элемента:', dragItem.className, dragItem.data)
           }
         }
       }
       
       dragTool.onMouseDrag = (event) => {
         if (dragItem) {
-          dragItem.position = event.point.subtract(offset)
+          if (transformMode === 'rotate') {
+            // Поворот стикера с уменьшенной чувствительностью
+            const center = dragItem.bounds.center
+            const currentMouseAngle = Math.atan2(event.point.y - center.y, event.point.x - center.x)
+            const angleDelta = currentMouseAngle - initialMouseAngle
+            
+            // Уменьшаем чувствительность поворота (коэффициент 0.5)
+            const rotationSensitivity = 0.5
+            dragItem.rotation = initialAngle + (angleDelta * 180 / Math.PI * rotationSensitivity)
+            
+            console.log('🔄 Поворот:', dragItem.rotation.toFixed(1) + '°')
+          } else if (transformMode === 'scale') {
+            // Масштабирование стикера с уменьшенной чувствительностью
+            const center = dragItem.bounds.center
+            const currentDistance = event.point.getDistance(center)
+            const distanceDelta = currentDistance - initialDistance
+            
+            // Уменьшаем чувствительность масштабирования (коэффициент 0.01)
+            const scaleSensitivity = 0.01
+            const scaleDelta = distanceDelta * scaleSensitivity
+            const newScale = initialScale + scaleDelta
+            
+            // Ограничиваем масштабирование
+            const minScale = 0.1
+            const maxScale = 3.0
+            const clampedScale = Math.max(minScale, Math.min(maxScale, newScale))
+            
+            dragItem.scaling = new this.paperScope.Point(clampedScale, clampedScale)
+            
+            console.log('📏 Масштаб:', clampedScale.toFixed(2))
+          } else {
+            // Обычное перемещение
+            dragItem.position = event.point.subtract(offset)
+            
+            // Обновляем позицию в диалоге, если элемент редактируется
+            if (this.isEditingText && this.editingLayerIndex) {
+              this.textDialogPosition = {
+                x: event.point.x,
+                y: event.point.y
+              }
+              
+              // Обновляем позицию в данных слоя
+              const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
+              if (layerInfo) {
+                layerInfo.position = { x: event.point.x, y: event.point.y }
+              }
+              
+              // Обновляем превью с throttling для визуальной обратной связи
+              this.updatePreviewCanvasThrottled()
+            }
+          }
           
-          // Обновляем позицию в диалоге, если элемент редактируется
-          if (this.isEditingText && this.editingLayerIndex) {
-            this.textDialogPosition = {
-              x: event.point.x,
-              y: event.point.y
-            }
-            
-            // Обновляем позицию в данных слоя
-            const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
-            if (layerInfo) {
-              layerInfo.position = { x: event.point.x, y: event.point.y }
-            }
-            
-            // Обновляем превью с throttling для визуальной обратной связи
-            this.updatePreviewCanvasThrottled()
+          // Перерисовываем рендер кружки при трансформации
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
           }
         }
       }
       
       dragTool.onMouseUp = (event) => {
         if (dragItem) {
-          dragItem.selected = false
+          if (transformMode) {
+            console.log(`🎯 Завершена трансформация: ${transformMode}`)
+            transformMode = null
+            initialAngle = 0
+            initialScale = 1
+            initialMouseAngle = 0
+            initialDistance = 0
+          } else {
+            dragItem.selected = false
+            console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          }
+          
           dragItem = null
           offset = null
-          console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          
+          // Финальная перерисовка рендера кружки после завершения трансформации
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }
+      }
+      
+      // Обработчик двойного клика для перемещения стикеров на верхний слой
+      dragTool.onDoubleClick = (event) => {
+        console.log('🎯 Двойной клик зарегистрирован в точке:', event.point)
+        
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 15 // Увеличиваем tolerance для лучшего обнаружения
+        })
+        
+        if (hitResult && hitResult.item) {
+          const item = hitResult.item
+          console.log('🎯 Найден элемент при двойном клике:', {
+            className: item.className,
+            parent: item.parent ? item.parent.className : 'нет родителя',
+            childrenCount: item.parent ? item.parent.children.length : 0,
+            item: item
+          })
+          
+          // Проверяем, что это стикер (группа с 3+ элементами)
+          if (item.parent && item.parent.className === 'Group' && item.parent.children.length >= 3) {
+            const stickerGroup = item.parent
+            console.log('🎯 Двойной клик на стикер, перемещаем на верхний слой')
+            
+            // Перемещаем стикер на верхний слой
+            stickerGroup.bringToFront()
+            
+            // Обновляем порядок в массиве стикеров
+            const stickerIndex = this.stickers.findIndex(sticker => sticker.group === stickerGroup)
+            if (stickerIndex !== -1) {
+              // Перемещаем стикер в конец массива (верхний слой)
+              const [movedSticker] = this.stickers.splice(stickerIndex, 1)
+              this.stickers.push(movedSticker)
+              
+              console.log(`✅ Стикер перемещен на верхний слой. Новый порядок: ${this.stickers.length} стикеров`)
+              
+              // Обновляем отображение слоев если вкладка "Стикеры" активна
+              if (this.activeTab === 'stickers') {
+                this.updateStickerLayersDisplay()
+              }
+              
+              // Обновляем 3D рендер
+              if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+                this.$refs.threeRenderer.forceUpdate()
+              }
+            } else {
+              console.warn('⚠️ Стикер не найден в массиве stickers')
+            }
+          } else {
+            console.log('ℹ️ Двойной клик не на стикер:', {
+              isGroup: item.parent && item.parent.className === 'Group',
+              childrenCount: item.parent ? item.parent.children.length : 0
+            })
+          }
+        } else {
+          console.log('ℹ️ Двойной клик не попал на элемент')
         }
       }
       
@@ -5923,6 +6292,256 @@ export default {
       dragTool.activate()
       
       console.log('🎯 Paper.js инструменты для перетаскивания настроены')
+    },
+    
+    // Методы для управления стикерами
+    selectSticker(index) {
+      // Снимаем предыдущее выделение
+      if (this.selectedItem) {
+        this.selectedItem.selected = false
+        console.log('🎯 Снято предыдущее выделение при выборе стикера в списке')
+      }
+      
+      this.selectedStickerIndex = index
+      
+      // Выделяем стикер на канвасе
+      if (index >= 0 && index < this.stickers.length) {
+        const sticker = this.stickers[index]
+        if (sticker.group) {
+          sticker.group.selected = true
+          this.selectedItem = sticker.group
+          this.selectedItemType = 'sticker'
+          console.log('🎯 Выбран стикер:', index, 'на канвасе')
+        }
+      } else {
+        this.selectedItem = null
+        this.selectedItemType = null
+        this.selectedStickerIndex = -1
+      }
+    },
+    
+    moveStickerToTop(index) {
+      if (index >= 0 && index < this.stickers.length) {
+        const sticker = this.stickers[index]
+        
+        // Перемещаем стикер на верхний слой в Paper.js
+        sticker.group.bringToFront()
+        
+        // Перемещаем стикер в начало массива (верхний слой)
+        const [movedSticker] = this.stickers.splice(index, 1)
+        this.stickers.unshift(movedSticker)
+        
+        // Обновляем индекс выбранного стикера (теперь он на позиции 0)
+        this.selectedStickerIndex = 0
+        
+        console.log(`✅ Стикер ${index} перемещен на верхний слой`)
+        
+        // Принудительно обновляем Vue для отображения изменений в списке слоев
+        this.$forceUpdate()
+        
+        // Обновляем отображение
+        this.updateStickerLayersDisplay()
+      }
+    },
+    
+    deleteSticker(index) {
+      if (index >= 0 && index < this.stickers.length) {
+        const sticker = this.stickers[index]
+        
+        // Удаляем стикер из Paper.js
+        if (sticker.group) {
+          sticker.group.remove()
+        }
+        
+        // Удаляем стикер из массива
+        this.stickers.splice(index, 1)
+        
+        // Снимаем выделение
+        this.clearAllSelection()
+        
+        console.log(`✅ Стикер ${index} удален`)
+        
+        // Принудительно обновляем Vue для отображения изменений в списке слоев
+        this.$forceUpdate()
+        
+        // Обновляем отображение
+        this.updateStickerLayersDisplay()
+        
+        // Обновляем 3D рендер
+        if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+          this.$refs.threeRenderer.forceUpdate()
+        }
+      }
+    },
+    
+    updateStickerLayersDisplay() {
+      // Метод для обновления отображения слоев стикеров
+      // Вызывается при изменении порядка или удалении стикеров
+      console.log('🔄 Обновление отображения слоев стикеров:', {
+        totalStickers: this.stickers.length,
+        selectedIndex: this.selectedStickerIndex,
+        activeTab: this.activeTab
+      })
+    },
+    
+    // Глобальный метод для снятия выделения
+    clearAllSelection() {
+      if (this.selectedItem) {
+        this.selectedItem.selected = false
+        this.selectedItem = null
+        this.selectedItemType = null
+        this.selectedStickerIndex = -1
+        console.log('🎯 Все выделения сняты')
+      }
+    },
+    
+    // Обновление выбранного стикера в списке слоев
+    updateSelectedStickerInLayers(selectedGroup) {
+      const stickerIndex = this.stickers.findIndex(sticker => sticker.group === selectedGroup)
+      if (stickerIndex !== -1) {
+        this.selectedStickerIndex = stickerIndex
+        console.log('🎯 Выбранный стикер обновлен в слоях:', stickerIndex, '(верхний слой = индекс 0)')
+      } else {
+        this.selectedStickerIndex = -1
+        console.warn('⚠️ Выбранный стикер не найден в массиве stickers')
+      }
+    },
+    
+    // Обработчик одинарного клика для выбора объектов
+    handleSingleClick(event, clearSelection) {
+      console.log('🎯 Обработка одинарного клика в точке:', event.point)
+      
+      const hitResult = this.paperScope.project.hitTest(event.point, {
+        segments: true,
+        stroke: true,
+        fill: true,
+        tolerance: 15
+      })
+      
+      if (hitResult && hitResult.item) {
+        const item = hitResult.item
+        
+        // Проверяем, что это текстовый элемент или стикер
+        const isTextItem = item.className === 'TextItem' || 
+                         item.className === 'Group' || 
+                         item.className === 'Raster' ||
+                         (item.parent && item.parent.className === 'Layer') ||
+                         (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
+        
+        if (isTextItem) {
+          // Определяем, что выбираем (стикер или текстовый элемент)
+          let targetItem = item
+          let isSticker = false
+          
+          if (item.parent && item.parent.className === 'Group' && item.parent.children.length >= 3) {
+            // Это стикер - выбираем всю группу
+            targetItem = item.parent
+            isSticker = true
+            console.log('🎯 Выбран стикер (группа):', targetItem.className)
+          } else {
+            // Это обычный текстовый элемент
+            console.log('🎯 Выбран текстовый элемент:', targetItem.className, targetItem.data)
+          }
+          
+          // Снимаем предыдущее выделение только если выбираем другой объект
+          if (this.selectedItem && this.selectedItem !== targetItem) {
+            this.selectedItem.selected = false
+            console.log('🎯 Снято предыдущее выделение')
+          }
+          
+          // Выделяем новый объект
+          targetItem.selected = true
+          
+          // Сохраняем ссылку на выбранный объект
+          this.selectedItem = targetItem
+          this.selectedItemType = isSticker ? 'sticker' : 'text'
+          
+          // Обновляем отображение слоев если вкладка "Стикеры" активна
+          if (isSticker && this.activeTab === 'stickers') {
+            this.updateSelectedStickerInLayers(targetItem)
+          }
+          
+          console.log('✅ Объект выбран:', {
+            type: isSticker ? 'sticker' : 'text',
+            className: targetItem.className
+          })
+        } else {
+          // Клик не на текстовый элемент - снимаем выделение
+          clearSelection()
+          console.log('ℹ️ Клик не на текстовый элемент, выделение снято')
+        }
+      } else {
+        // Клик в пустое место - снимаем выделение
+        clearSelection()
+        this.selectedItem = null
+        this.selectedItemType = null
+        console.log('ℹ️ Клик в пустое место, выделение снято')
+      }
+    },
+    
+    // Обработчик двойного клика для стикеров
+    handleDoubleClick(event) {
+      console.log('🎯 Обработка двойного клика в точке:', event.point)
+      
+      // Снимаем выделение при двойном клике
+      this.clearAllSelection()
+      
+      const hitResult = this.paperScope.project.hitTest(event.point, {
+        segments: true,
+        stroke: true,
+        fill: true,
+        tolerance: 15
+      })
+      
+      if (hitResult && hitResult.item) {
+        const item = hitResult.item
+        console.log('🎯 Найден элемент при двойном клике:', {
+          className: item.className,
+          parent: item.parent ? item.parent.className : 'нет родителя',
+          childrenCount: item.parent ? item.parent.children.length : 0
+        })
+        
+        // Проверяем, что это стикер (группа с 3+ элементами)
+        if (item.parent && item.parent.className === 'Group' && item.parent.children.length >= 3) {
+          const stickerGroup = item.parent
+          console.log('🎯 Двойной клик на стикер, перемещаем на верхний слой')
+          
+          // Перемещаем стикер на верхний слой
+          stickerGroup.bringToFront()
+          
+          // Обновляем порядок в массиве стикеров
+          const stickerIndex = this.stickers.findIndex(sticker => sticker.group === stickerGroup)
+          if (stickerIndex !== -1) {
+            // Перемещаем стикер в начало массива (верхний слой)
+            const [movedSticker] = this.stickers.splice(stickerIndex, 1)
+            this.stickers.unshift(movedSticker)
+            
+            console.log(`✅ Стикер перемещен на верхний слой. Новый порядок: ${this.stickers.length} стикеров`)
+            
+            // Обновляем индекс выбранного стикера (теперь он на позиции 0)
+            this.selectedStickerIndex = 0
+            
+            // Принудительно обновляем Vue для отображения изменений в списке слоев
+            this.$forceUpdate()
+            
+            // Обновляем отображение слоев если вкладка "Стикеры" активна
+            if (this.activeTab === 'stickers') {
+              this.updateStickerLayersDisplay()
+            }
+            
+            // Обновляем 3D рендер
+            if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
+          } else {
+            console.warn('⚠️ Стикер не найден в массиве stickers')
+          }
+        } else {
+          console.log('ℹ️ Двойной клик не на стикер')
+        }
+      } else {
+        console.log('ℹ️ Двойной клик не попал на элемент')
+      }
     },
 
     // Получение текущего data-свойства для активной вкладки
@@ -8339,16 +8958,16 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени, обводки и хвоста
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
         const tailSize = Number(currentTextData.tailSize) / 100
         const minDimension = Math.min(backgroundWidth, backgroundHeight)
         const tailLength = minDimension * 0.8 * tailSize // Уменьшенный коэффициент
-        const tailPadding = Math.min(tailLength * 0.5, minDimension * 0.8) // Увеличенный отступ для хвоста
+        const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0) // Увеличенный отступ для хвоста
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 10 // Минимальный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30 // Увеличенный дополнительный отступ для тени
         
         console.log('📏 Расчет отступов:', {
           shadowPadding,
@@ -8438,10 +9057,11 @@ export default {
         
         // Создаем область перетаскивания для правильного выделения
         // Ждем пока Paper.js вычислит bounds
-        setTimeout(() => {
+          setTimeout(() => {
           const rasterBounds = raster.bounds
           if (rasterBounds) {
-            const expandedBounds = rasterBounds.expand(12)
+            // Рассчитываем правильные bounds с учетом хвоста
+            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'conversation')
             console.log('🎯 Создаем область перетаскивания для Raster:', {
               originalBounds: rasterBounds,
               expandedBounds: expandedBounds
@@ -8607,10 +9227,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8675,7 +9295,8 @@ export default {
         setTimeout(() => {
           const rasterBounds = raster.bounds
           if (rasterBounds) {
-            const expandedBounds = rasterBounds.expand(12)
+            // Рассчитываем правильные bounds с учетом хвоста
+            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'standard')
             console.log('🎯 Создаем область перетаскивания для Raster (Standard):', {
               originalBounds: rasterBounds,
               expandedBounds: expandedBounds
@@ -8683,7 +9304,7 @@ export default {
             
             // Устанавливаем правильные bounds для области перетаскивания
             raster.bounds = expandedBounds
-          } else {
+      } else {
             console.warn('⚠️ Не удалось получить bounds для Raster (Standard)')
           }
         }, 0)
@@ -8729,10 +9350,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8800,7 +9421,8 @@ export default {
         setTimeout(() => {
           const rasterBounds = raster.bounds
           if (rasterBounds) {
-            const expandedBounds = rasterBounds.expand(12)
+            // Рассчитываем правильные bounds с учетом хвоста
+            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'thoughts')
             console.log('🎯 Создаем область перетаскивания для Raster (Thoughts):', {
               originalBounds: rasterBounds,
               expandedBounds: expandedBounds
@@ -8854,10 +9476,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -9047,7 +9669,8 @@ export default {
         setTimeout(() => {
           const rasterBounds = raster.bounds
           if (rasterBounds) {
-            const expandedBounds = rasterBounds.expand(12)
+            // Рассчитываем правильные bounds с учетом хвоста
+            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'imageText')
             console.log('🎯 Создаем область перетаскивания для Raster (ImageText):', {
               originalBounds: rasterBounds,
               expandedBounds: expandedBounds
@@ -9452,7 +10075,7 @@ export default {
         this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasImageText)
         
         // Обновляем превью канвасы
-        this.updatePreviewCanvas()
+      this.updatePreviewCanvas()
         console.log('🔄 Превью канвасы обновлены при открытии диалога редактирования')
       })
     },
@@ -10604,6 +11227,104 @@ export default {
 }
 .control-icon:before {
   display: none !important;
+}
+
+/* Стили для вкладки "Стикеры" */
+.sticker-layers-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.sticker-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sticker-layer-item:hover {
+  background-color: #f8f9fa;
+}
+
+.sticker-layer-item.active {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+}
+
+.sticker-layer-item:last-child {
+  border-bottom: none;
+}
+
+.layer-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.layer-number {
+  width: 32px;
+  height: 32px;
+  background-color: #6c757d;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.layer-details {
+  flex: 1;
+}
+
+.layer-name {
+  font-weight: 500;
+  color: #212529;
+  margin-bottom: 2px;
+}
+
+.layer-position {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.layer-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Стили для красной рамки выделения Paper.js */
+:deep(.paper-selection) {
+  stroke: #dc3545 !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+  stroke-dasharray: 5, 5 !important;
+  animation: dash 1s linear infinite !important;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Стили для ручек изменения размера */
+:deep(.paper-handle) {
+  fill: #dc3545 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2 !important;
 }
 
 </style>

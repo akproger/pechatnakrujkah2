@@ -8332,28 +8332,33 @@ export default {
       
       try {
         
-        // Создаем временный Canvas с таким же разрешением как основной канвас
-        const mainCanvas = this.$refs.testCanvas
-        const container = mainCanvas ? mainCanvas.parentElement : null
-        const containerWidth = container ? container.clientWidth : 600
-        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
+        // Добавляем отступы для тени и обводки
+        const padding = Math.max(
+          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
+          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
+        ) + 20 // Дополнительный отступ
+        
+        const canvasWidth = backgroundWidth + padding * 2
+        const canvasHeight = backgroundHeight + padding * 2
+        
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = containerHeight * dpr
-        tempCanvas.style.width = containerWidth + 'px' // Логический размер
-        tempCanvas.style.height = containerHeight + 'px'
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
+        tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
         tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
         // Очищаем канвас
-        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
         // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = containerWidth / 2
-        const canvasCenterY = containerHeight / 2
+        const canvasCenterX = canvasWidth / 2
+        const canvasCenterY = canvasHeight / 2
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
@@ -8407,6 +8412,13 @@ export default {
         // Масштабируем Raster чтобы сохранить тот же логический размер
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('🎯 Raster создан с правильными размерами (Conversation):', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
+          padding: padding
+        })
         
         console.log('✅ Подложка создана из логики превью с высоким качеством:', {
           position: `${x}, ${y}`,
@@ -8538,28 +8550,33 @@ export default {
       
       try {
         
-        // Создаем временный Canvas с таким же разрешением как основной канвас
-        const mainCanvas = this.$refs.testCanvas
-        const container = mainCanvas ? mainCanvas.parentElement : null
-        const containerWidth = container ? container.clientWidth : 600
-        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
+        // Добавляем отступы для тени и обводки
+        const padding = Math.max(
+          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
+          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
+        ) + 20 // Дополнительный отступ
+        
+        const canvasWidth = backgroundWidth + padding * 2
+        const canvasHeight = backgroundHeight + padding * 2
+        
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = containerHeight * dpr
-        tempCanvas.style.width = containerWidth + 'px' // Логический размер
-        tempCanvas.style.height = containerHeight + 'px'
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
+        tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
         tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
         // Очищаем канвас
-        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
         // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = containerWidth / 2
-        const canvasCenterY = containerHeight / 2
+        const canvasCenterX = canvasWidth / 2
+        const canvasCenterY = canvasHeight / 2
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
@@ -8601,11 +8618,18 @@ export default {
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
+        console.log('🎯 Raster создан с правильными размерами (Standard):', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
+          padding: padding
+        })
+        
         console.log('✅ Стандартная подложка создана из логики превью с высоким качеством:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
           canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
-          logicalSize: `${containerWidth}x${containerHeight}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
           dpr: dpr,
           rasterScale: `${(1 / dpr).toFixed(3)}x`
         })
@@ -8631,28 +8655,33 @@ export default {
       
       try {
         
-        // Создаем временный Canvas с таким же разрешением как основной канвас
-        const mainCanvas = this.$refs.testCanvas
-        const container = mainCanvas ? mainCanvas.parentElement : null
-        const containerWidth = container ? container.clientWidth : 600
-        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
+        // Добавляем отступы для тени и обводки
+        const padding = Math.max(
+          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
+          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
+        ) + 20 // Дополнительный отступ
+        
+        const canvasWidth = backgroundWidth + padding * 2
+        const canvasHeight = backgroundHeight + padding * 2
+        
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = containerHeight * dpr
-        tempCanvas.style.width = containerWidth + 'px' // Логический размер
-        tempCanvas.style.height = containerHeight + 'px'
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
+        tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
         tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
         // Очищаем канвас
-        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
         // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = containerWidth / 2
-        const canvasCenterY = containerHeight / 2
+        const canvasCenterX = canvasWidth / 2
+        const canvasCenterY = canvasHeight / 2
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
@@ -8697,11 +8726,18 @@ export default {
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
+        console.log('🎯 Raster создан с правильными размерами (Thoughts):', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
+          padding: padding
+        })
+        
         console.log('✅ Подложка "Мысли" создана из логики превью с высоким качеством:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
           canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
-          logicalSize: `${containerWidth}x${containerHeight}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
           dpr: dpr,
           rasterScale: `${(1 / dpr).toFixed(3)}x`
         })
@@ -8727,28 +8763,33 @@ export default {
       
       try {
         
-        // Создаем временный Canvas с таким же разрешением как основной канвас
-      const mainCanvas = this.$refs.testCanvas
-        const container = mainCanvas ? mainCanvas.parentElement : null
-        const containerWidth = container ? container.clientWidth : 600
-        const containerHeight = container ? (containerWidth * 9) / 19 : 400
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
+        // Добавляем отступы для тени и обводки
+        const padding = Math.max(
+          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
+          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
+        ) + 20 // Дополнительный отступ
+        
+        const canvasWidth = backgroundWidth + padding * 2
+        const canvasHeight = backgroundHeight + padding * 2
+        
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = containerWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = containerHeight * dpr
-        tempCanvas.style.width = containerWidth + 'px' // Логический размер
-        tempCanvas.style.height = containerHeight + 'px'
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
+        tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
         tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
         // Очищаем канвас
-        tempCtx.clearRect(0, 0, containerWidth, containerHeight)
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
         // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = containerWidth / 2
-        const canvasCenterY = containerHeight / 2
+        const canvasCenterX = canvasWidth / 2
+        const canvasCenterY = canvasHeight / 2
         
         // Устанавливаем стиль шрифта (как в превью)
         const fontSize = currentTextData.fontSize
@@ -8915,11 +8956,18 @@ export default {
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
+        console.log('🎯 Raster создан с правильными размерами (ImageText):', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
+          padding: padding
+        })
+        
         console.log('✅ Подложка "Текст с изображением" создана из логики превью с высоким качеством:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
           canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
-          logicalSize: `${containerWidth}x${containerHeight}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
           dpr: dpr,
           rasterScale: `${(1 / dpr).toFixed(3)}x`,
           textData: {

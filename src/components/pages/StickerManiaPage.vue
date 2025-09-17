@@ -8345,10 +8345,20 @@ export default {
         // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
         const tailSize = Number(currentTextData.tailSize) / 100
         const minDimension = Math.min(backgroundWidth, backgroundHeight)
-        const tailLength = minDimension * 1.25 * tailSize
-        const tailPadding = tailLength * 0.3 // 30% от длины хвоста
+        const tailLength = minDimension * 0.8 * tailSize // Уменьшенный коэффициент
+        const tailPadding = Math.min(tailLength * 0.2, minDimension * 0.5) // Ограничиваем максимальный отступ
         
         const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 10 // Минимальный дополнительный отступ
+        
+        console.log('📏 Расчет отступов:', {
+          shadowPadding,
+          strokePadding,
+          tailPadding,
+          finalPadding: padding,
+          tailSize: currentTextData.tailSize,
+          tailLength,
+          minDimension
+        })
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2

@@ -8339,7 +8339,7 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени, обводки и хвоста
-        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
@@ -8607,7 +8607,7 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
@@ -8729,7 +8729,7 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
@@ -8854,7 +8854,7 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 50) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ

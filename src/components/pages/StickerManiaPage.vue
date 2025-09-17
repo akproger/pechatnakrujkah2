@@ -6151,8 +6151,8 @@ export default {
             const currentMouseAngle = Math.atan2(event.point.y - center.y, event.point.x - center.x)
             const angleDelta = currentMouseAngle - initialMouseAngle
             
-            // Уменьшаем чувствительность поворота (коэффициент 0.5)
-            const rotationSensitivity = 0.5
+            // Уменьшаем чувствительность поворота (коэффициент 0.05)
+            const rotationSensitivity = 0.05
             dragItem.rotation = initialAngle + (angleDelta * 180 / Math.PI * rotationSensitivity)
             
             console.log('🔄 Поворот:', dragItem.rotation.toFixed(1) + '°')
@@ -6162,8 +6162,8 @@ export default {
             const currentDistance = event.point.getDistance(center)
             const distanceDelta = currentDistance - initialDistance
             
-            // Уменьшаем чувствительность масштабирования (коэффициент 0.01)
-            const scaleSensitivity = 0.01
+            // Уменьшаем чувствительность масштабирования (коэффициент 0.001)
+            const scaleSensitivity = 0.001
             const scaleDelta = distanceDelta * scaleSensitivity
             const newScale = initialScale + scaleDelta
             

@@ -2429,34 +2429,62 @@ export default {
         console.log('- stickers:', this.stickers.length, this.stickers)
         console.log('- backgroundImage:', !!this.backgroundImage)
         
-        // Используем Paper.js для экспорта в высоком разрешении
-        console.log('🎨 Экспортируем Paper.js проект в высоком разрешении')
+        // Создаем новый Paper.js canvas с высоким разрешением
+        console.log('🎨 Создаем новый Paper.js canvas с высоким разрешением')
         
         if (this.paperScope && this.paperScope.project) {
-          // Обновляем view перед экспортом
-          this.paperScope.project.view.update()
-          
-          // Экспортируем Paper.js проект в высоком разрешении
-          const paperCanvas = this.paperScope.project.view.element
-          if (paperCanvas) {
-            console.log('📐 Размеры Paper.js canvas:', paperCanvas.width, 'x', paperCanvas.height)
+          try {
+            // Создаем временный canvas с высоким разрешением
+            const tempHighResCanvas = document.createElement('canvas')
+            tempHighResCanvas.width = printWidth
+            tempHighResCanvas.height = printHeight
+            tempHighResCanvas.style.width = canvasWidth + 'px'
+            tempHighResCanvas.style.height = canvasHeight + 'px'
             
-            // Масштабируем Paper.js canvas на print canvas
-            printCtx.drawImage(
-              paperCanvas,
-              0, 0, paperCanvas.width, paperCanvas.height,  // Исходный прямоугольник
-              0, 0, printWidth, printHeight                  // Целевой прямоугольник
-            )
+            console.log('📐 Создан временный canvas:', tempHighResCanvas.width, 'x', tempHighResCanvas.height)
             
-            console.log('✅ Paper.js проект экспортирован в высоком разрешении')
-          } else {
-            console.error('❌ Paper.js canvas не найден')
-            // Fallback: простое масштабирование HTML canvas
-            printCtx.drawImage(
-              canvas,
-              0, 0, canvasWidth, canvasHeight,
-              0, 0, printWidth, printHeight
-            )
+            // Создаем новый Paper scope для высокого разрешения
+            const tempPaperScope = new paper.PaperScope()
+            tempPaperScope.setup(tempHighResCanvas)
+            
+            // Устанавливаем белый фон
+            const whiteRect = new tempPaperScope.Rectangle(0, 0, printWidth, printHeight)
+            const background = new tempPaperScope.Path.Rectangle(whiteRect)
+            background.fillColor = '#FFFFFF'
+            tempPaperScope.project.activeLayer.addChild(background)
+            
+            // Перерисовываем все элементы в высоком разрешении
+            await this.redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
+            
+            // Обновляем view
+            tempPaperScope.project.view.update()
+            
+            // Копируем результат на print canvas
+            printCtx.drawImage(tempHighResCanvas, 0, 0)
+            
+            console.log('✅ Элементы перерисованы в высоком разрешении')
+            
+            // Очищаем временный scope
+            tempPaperScope.project.clear()
+            
+          } catch (error) {
+            console.error('❌ Ошибка при создании высокого разрешения:', error)
+            
+            // Fallback: простое масштабирование
+            const paperCanvas = this.paperScope.project.view.element
+            if (paperCanvas) {
+              printCtx.drawImage(
+                paperCanvas,
+                0, 0, paperCanvas.width, paperCanvas.height,
+                0, 0, printWidth, printHeight
+              )
+            } else {
+              printCtx.drawImage(
+                canvas,
+                0, 0, canvasWidth, canvasHeight,
+                0, 0, printWidth, printHeight
+              )
+            }
           }
         } else {
           console.error('❌ Paper.js project не найден')
@@ -2504,7 +2532,7 @@ export default {
     },
     
     // Перерисовка всех элементов в высоком разрешении для печати
-    async redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight) {
+    async redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight) {
       console.log('🎨 Перерисовываем все элементы в высоком разрешении')
       console.log('📊 Статистика элементов:')
       console.log('- textLayers:', this.textLayers.length)
@@ -2515,7 +2543,7 @@ export default {
         // 1. Перерисовываем фоновое изображение если есть
         if (this.backgroundImage) {
           console.log('🖼️ Рисуем фоновое изображение')
-          await this.redrawBackgroundInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
+          await this.redrawBackgroundInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
         } else {
           console.log('⚠️ Фоновое изображение отсутствует')
         }
@@ -2525,7 +2553,7 @@ export default {
         for (let i = 0; i < this.textLayers.length; i++) {
           const layer = this.textLayers[i]
           console.log(`📝 Слой ${i + 1}:`, layer)
-          await this.redrawTextLayerInHighDPI(printCtx, layer, scale)
+          await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale)
         }
         
         // 3. Перерисовываем все стикеры
@@ -2533,7 +2561,7 @@ export default {
         for (let i = 0; i < this.stickers.length; i++) {
           const sticker = this.stickers[i]
           console.log(`🎭 Стикер ${i + 1}:`, sticker)
-          await this.redrawStickerInHighDPI(printCtx, sticker, scale)
+          await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale)
         }
         
         console.log('✅ Все элементы перерисованы в высоком разрешении')
@@ -2543,93 +2571,110 @@ export default {
     },
     
     // Перерисовка фонового изображения в высоком разрешении
-    async redrawBackgroundInHighDPI(printCtx, scale, canvasWidth, canvasHeight) {
+    async redrawBackgroundInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight) {
       if (!this.backgroundImage) return
       
       console.log('🖼️ Перерисовываем фоновое изображение')
       
-      // Создаем временный canvas для фонового изображения
-      const tempCanvas = document.createElement('canvas')
-      const tempCtx = tempCanvas.getContext('2d')
-      
-      tempCanvas.width = canvasWidth * scale
-      tempCanvas.height = canvasHeight * scale
-      
-      // Настраиваем высокое качество
-      tempCtx.imageSmoothingEnabled = true
-      tempCtx.imageSmoothingQuality = 'high'
-      
-      // Рисуем фоновое изображение с масштабированием
-      tempCtx.drawImage(
-        this.backgroundImage,
-        0, 0, canvasWidth, canvasHeight,
-        0, 0, canvasWidth * scale, canvasHeight * scale
-      )
-      
-      // Копируем на основной print canvas
-      printCtx.drawImage(tempCanvas, 0, 0)
+      try {
+        // Создаем Raster из фонового изображения
+        const backgroundRaster = new tempPaperScope.Raster(this.backgroundImage)
+        
+        // Ждем загрузки изображения
+        await new Promise((resolve) => {
+          backgroundRaster.onLoad = resolve
+        })
+        
+        // Позиционируем и масштабируем
+        backgroundRaster.position = new tempPaperScope.Point(canvasWidth * scale / 2, canvasHeight * scale / 2)
+        backgroundRaster.scale(scale)
+        
+        // Добавляем на слой
+        tempPaperScope.project.activeLayer.addChild(backgroundRaster)
+        
+        console.log('✅ Фоновое изображение добавлено в высоком разрешении')
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке фонового изображения:', error)
+      }
     },
     
     // Перерисовка текстового слоя в высоком разрешении
-    async redrawTextLayerInHighDPI(printCtx, layer, scale) {
+    async redrawTextLayerInHighDPI(tempPaperScope, layer, scale) {
       console.log(`📝 Перерисовываем текстовый слой: ${layer.textData?.text || 'без текста'}`)
-      console.log('📋 Структура слоя:', {
-        hasLayer: !!layer.layer,
-        hasBackgroundItem: !!layer.backgroundItem,
-        hasTextData: !!layer.textData,
-        position: layer.position
-      })
       
-      // Получаем bounds из Paper.js элемента
-      let bounds
-      if (layer.layer && layer.layer.bounds) {
-        bounds = layer.layer.bounds
-        console.log('📍 Bounds из layer:', bounds)
-      } else if (layer.backgroundItem && layer.backgroundItem.bounds) {
-        bounds = layer.backgroundItem.bounds
-        console.log('📍 Bounds из backgroundItem:', bounds)
-      } else {
-        console.warn('⚠️ Не удалось получить bounds для текстового слоя')
-        console.log('🔍 Доступные свойства:', Object.keys(layer))
+      if (!layer.textData) {
+        console.warn('⚠️ Нет данных текста для слоя')
         return
       }
       
-      // Создаем временный canvas для текста
-      const tempCanvas = document.createElement('canvas')
-      const tempCtx = tempCanvas.getContext('2d')
-      
-      // Вычисляем размеры с учетом масштаба
-      const scaledWidth = bounds.width * scale
-      const scaledHeight = bounds.height * scale
-      
-      tempCanvas.width = scaledWidth
-      tempCanvas.height = scaledHeight
-      
-      // Настраиваем высокое качество
-      tempCtx.imageSmoothingEnabled = true
-      tempCtx.imageSmoothingQuality = 'high'
-      
-      // Применяем масштабирование
-      tempCtx.scale(scale, scale)
-      
-      // Рисуем подложку если есть
-      if (layer.textData.hasBackground) {
-        await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds })
+      try {
+        // Создаем временный canvas для рендеринга текста в высоком разрешении
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Получаем размеры из оригинального элемента
+        let bounds
+        if (layer.backgroundItem && layer.backgroundItem.bounds) {
+          bounds = layer.backgroundItem.bounds
+        } else if (layer.layer && layer.layer.bounds) {
+          bounds = layer.layer.bounds
+        } else {
+          // Используем примерные размеры если bounds недоступны
+          bounds = {
+            width: 200,
+            height: 100,
+            x: 0,
+            y: 0
+          }
+        }
+        
+        // Создаем canvas с высоким разрешением
+        const highResWidth = bounds.width * scale
+        const highResHeight = bounds.height * scale
+        
+        tempCanvas.width = highResWidth
+        tempCanvas.height = highResHeight
+        
+        // Настраиваем высокое качество
+        tempCtx.imageSmoothingEnabled = true
+        tempCtx.imageSmoothingQuality = 'high'
+        
+        // Применяем масштабирование
+        tempCtx.scale(scale, scale)
+        
+        // Рисуем подложку если есть
+        if (layer.textData.hasBackground) {
+          await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds })
+        }
+        
+        // Рисуем текст
+        this.drawTextInHighDPI(tempCtx, { ...layer, bounds })
+        
+        // Создаем Raster из временного canvas
+        const textRaster = new tempPaperScope.Raster(tempCanvas.toDataURL())
+        
+        // Ждем загрузки
+        await new Promise((resolve) => {
+          textRaster.onLoad = resolve
+        })
+        
+        // Позиционируем
+        textRaster.position = new tempPaperScope.Point(
+          layer.position.x * scale,
+          layer.position.y * scale
+        )
+        
+        // Добавляем на слой
+        tempPaperScope.project.activeLayer.addChild(textRaster)
+        
+        console.log('✅ Текстовый слой добавлен в высоком разрешении')
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке текстового слоя:', error)
       }
-      
-      // Рисуем текст
-      this.drawTextInHighDPI(tempCtx, { ...layer, bounds })
-      
-      // Копируем на основной print canvas
-      printCtx.drawImage(
-        tempCanvas,
-        layer.position.x * scale,
-        layer.position.y * scale
-      )
     },
     
     // Перерисовка стикера в высоком разрешении
-    async redrawStickerInHighDPI(printCtx, sticker, scale) {
+    async redrawStickerInHighDPI(tempPaperScope, sticker, scale) {
       console.log(`🎭 Перерисовываем стикер: ${sticker.mask} + ${sticker.image}`)
       
       try {
@@ -2642,17 +2687,17 @@ export default {
           return
         }
         
-        // Создаем временный canvas для стикера
+        // Создаем временный canvas для стикера с высоким разрешением
         const tempCanvas = document.createElement('canvas')
         const tempCtx = tempCanvas.getContext('2d')
         
         // Вычисляем размеры с учетом масштаба
         const stickerBounds = sticker.group.bounds
-        const scaledWidth = stickerBounds.width * scale
-        const scaledHeight = stickerBounds.height * scale
+        const highResWidth = stickerBounds.width * scale
+        const highResHeight = stickerBounds.height * scale
         
-        tempCanvas.width = scaledWidth
-        tempCanvas.height = scaledHeight
+        tempCanvas.width = highResWidth
+        tempCanvas.height = highResHeight
         
         // Настраиваем высокое качество
         tempCtx.imageSmoothingEnabled = true
@@ -2675,14 +2720,17 @@ export default {
           return
         }
         
-        // Создаем canvas для SVG
+        // Создаем canvas для SVG с высоким разрешением
         const svgCanvas = document.createElement('canvas')
         const svgCtx = svgCanvas.getContext('2d')
         
         // Масштабируем SVG под размер стикера
         const svgScale = sticker.size / 100
-        svgCanvas.width = svgElement.viewBox.baseVal.width * svgScale
-        svgCanvas.height = svgElement.viewBox.baseVal.height * svgScale
+        const svgHighResWidth = svgElement.viewBox.baseVal.width * svgScale * scale
+        const svgHighResHeight = svgElement.viewBox.baseVal.height * svgScale * scale
+        
+        svgCanvas.width = svgHighResWidth
+        svgCanvas.height = svgHighResHeight
         
         // Рисуем SVG на canvas
         const svgData = new XMLSerializer().serializeToString(svgElement)
@@ -2695,13 +2743,13 @@ export default {
           svgImg.src = svgUrl
         })
         
-        svgCtx.drawImage(svgImg, 0, 0, svgCanvas.width, svgCanvas.height)
+        svgCtx.drawImage(svgImg, 0, 0, svgHighResWidth, svgHighResHeight)
         
         // Создаем маску из SVG
         const maskCanvas = document.createElement('canvas')
         const maskCtx = maskCanvas.getContext('2d')
-        maskCanvas.width = svgCanvas.width
-        maskCanvas.height = svgCanvas.height
+        maskCanvas.width = svgHighResWidth
+        maskCanvas.height = svgHighResHeight
         
         // Применяем маску
         maskCtx.globalCompositeOperation = 'source-over'
@@ -2716,7 +2764,7 @@ export default {
         
         // Рисуем изображение с маской
         maskCtx.globalCompositeOperation = 'source-atop'
-        maskCtx.drawImage(imgElement, 0, 0, maskCanvas.width, maskCanvas.height)
+        maskCtx.drawImage(imgElement, 0, 0, svgHighResWidth, svgHighResHeight)
         
         // Копируем результат на временный canvas
         tempCtx.drawImage(maskCanvas, 0, 0, stickerBounds.width, stickerBounds.height)
@@ -2724,12 +2772,37 @@ export default {
         // Очищаем URL
         URL.revokeObjectURL(svgUrl)
         
-        // Копируем на основной print canvas
-        printCtx.drawImage(
-          tempCanvas,
+        // Создаем Raster из временного canvas
+        const stickerRaster = new tempPaperScope.Raster(tempCanvas.toDataURL())
+        
+        // Ждем загрузки
+        await new Promise((resolve) => {
+          stickerRaster.onLoad = resolve
+        })
+        
+        // Позиционируем и масштабируем
+        stickerRaster.position = new tempPaperScope.Point(
           sticker.group.position.x * scale,
           sticker.group.position.y * scale
         )
+        
+        // Применяем поворот если есть
+        if (sticker.group.rotation) {
+          stickerRaster.rotation = sticker.group.rotation
+        }
+        
+        // Применяем масштабирование если есть
+        if (sticker.group.scaling) {
+          stickerRaster.scaling = new tempPaperScope.Point(
+            sticker.group.scaling.x * scale,
+            sticker.group.scaling.y * scale
+          )
+        }
+        
+        // Добавляем на слой
+        tempPaperScope.project.activeLayer.addChild(stickerRaster)
+        
+        console.log('✅ Стикер добавлен в высоком разрешении')
         
       } catch (error) {
         console.error('❌ Ошибка при перерисовке стикера:', error)

@@ -8346,7 +8346,7 @@ export default {
         const tailSize = Number(currentTextData.tailSize) / 100
         const minDimension = Math.min(backgroundWidth, backgroundHeight)
         const tailLength = minDimension * 0.8 * tailSize // Уменьшенный коэффициент
-        const tailPadding = Math.min(tailLength * 0.2, minDimension * 0.5) // Ограничиваем максимальный отступ
+        const tailPadding = Math.min(tailLength * 0.5, minDimension * 0.8) // Увеличенный отступ для хвоста
         
         const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 10 // Минимальный дополнительный отступ
         
@@ -8419,8 +8419,13 @@ export default {
         })
         
         if (currentTextData.text && currentTextData.text.trim() !== '') {
+          console.log('✅ Добавляем текст в Raster с тенью:', {
+            hasShadow: currentTextData.shadow,
+            shadowColor: currentTextData.shadowColor,
+            shadowBlur: currentTextData.shadowBlur
+          })
           this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
-      } else {
+        } else {
           console.log('⚠️ Текст не добавлен в Raster - текст отсутствует или пустой')
         }
         
@@ -8541,37 +8546,26 @@ export default {
         ctx.textBaseline = 'middle'
         ctx.fillStyle = textColor
         
-        // Применяем тень если включена
-        if (textData.shadow) {
-          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
-          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
-          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
-        }
+        // НЕ применяем тень к тексту - тень должна быть у подложки
+        // if (textData.shadow) {
+        //   ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        //   ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+        //   ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+        //   ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+        // }
         
         console.log('🎨 Контекст настроен:', {
           font: ctx.font,
           textAlign: ctx.textAlign,
           textBaseline: ctx.textBaseline,
           fillStyle: ctx.fillStyle,
-          shadow: textData.shadow ? {
-            color: ctx.shadowColor,
-            blur: ctx.shadowBlur,
-            offsetX: ctx.shadowOffsetX,
-            offsetY: ctx.shadowOffsetY
-          } : 'none'
+          shadow: 'none (тень применяется к подложке)'
         })
         
         // Рисуем текст с поддержкой переноса строк
         this.drawMultilineTextWithData(ctx, textData.text, x, y, fontSize, textData.lineHeight, textData)
         
-        // Сбрасываем тень
-        if (textData.shadow) {
-          ctx.shadowColor = 'transparent'
-          ctx.shadowBlur = 0
-          ctx.shadowOffsetX = 0
-          ctx.shadowOffsetY = 0
-        }
+        // Тень не применяется к тексту, поэтому сброс не нужен
         
         console.log('✅ Текст добавлен в Raster:', {
           position: `${x}, ${y}`,

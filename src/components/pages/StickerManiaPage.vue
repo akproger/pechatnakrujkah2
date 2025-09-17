@@ -2423,8 +2423,22 @@ export default {
         printCtx.imageSmoothingEnabled = true
         printCtx.imageSmoothingQuality = 'high'
         
-        // Перерисовываем все элементы в высоком разрешении
-        await this.redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
+        // Отладочная информация
+        console.log('🔍 Отладочная информация для сохранения:')
+        console.log('- textLayers:', this.textLayers.length, this.textLayers)
+        console.log('- stickers:', this.stickers.length, this.stickers)
+        console.log('- backgroundImage:', !!this.backgroundImage)
+        
+        // ВРЕМЕННО: Простое масштабирование для тестирования
+        console.log('🧪 ВРЕМЕННО: Используем простое масштабирование для тестирования')
+        printCtx.drawImage(
+          canvas,
+          0, 0, canvasWidth, canvasHeight,  // Исходный прямоугольник
+          0, 0, printWidth, printHeight     // Целевой прямоугольник
+        )
+        
+        // TODO: Перерисовываем все элементы в высоком разрешении
+        // await this.redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
 
         // Создаем ссылку для скачивания
         const link = document.createElement('a')
@@ -2464,20 +2478,33 @@ export default {
     // Перерисовка всех элементов в высоком разрешении для печати
     async redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight) {
       console.log('🎨 Перерисовываем все элементы в высоком разрешении')
+      console.log('📊 Статистика элементов:')
+      console.log('- textLayers:', this.textLayers.length)
+      console.log('- stickers:', this.stickers.length)
+      console.log('- backgroundImage:', !!this.backgroundImage)
       
       try {
         // 1. Перерисовываем фоновое изображение если есть
         if (this.backgroundImage) {
+          console.log('🖼️ Рисуем фоновое изображение')
           await this.redrawBackgroundInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
+        } else {
+          console.log('⚠️ Фоновое изображение отсутствует')
         }
         
         // 2. Перерисовываем все текстовые элементы с подложками
-        for (const layer of this.textLayers) {
+        console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев`)
+        for (let i = 0; i < this.textLayers.length; i++) {
+          const layer = this.textLayers[i]
+          console.log(`📝 Слой ${i + 1}:`, layer)
           await this.redrawTextLayerInHighDPI(printCtx, layer, scale)
         }
         
         // 3. Перерисовываем все стикеры
-        for (const sticker of this.stickers) {
+        console.log(`🎭 Рисуем ${this.stickers.length} стикеров`)
+        for (let i = 0; i < this.stickers.length; i++) {
+          const sticker = this.stickers[i]
+          console.log(`🎭 Стикер ${i + 1}:`, sticker)
           await this.redrawStickerInHighDPI(printCtx, sticker, scale)
         }
         
@@ -2517,16 +2544,25 @@ export default {
     
     // Перерисовка текстового слоя в высоком разрешении
     async redrawTextLayerInHighDPI(printCtx, layer, scale) {
-      console.log(`📝 Перерисовываем текстовый слой: ${layer.textData.text}`)
+      console.log(`📝 Перерисовываем текстовый слой: ${layer.textData?.text || 'без текста'}`)
+      console.log('📋 Структура слоя:', {
+        hasLayer: !!layer.layer,
+        hasBackgroundItem: !!layer.backgroundItem,
+        hasTextData: !!layer.textData,
+        position: layer.position
+      })
       
       // Получаем bounds из Paper.js элемента
       let bounds
       if (layer.layer && layer.layer.bounds) {
         bounds = layer.layer.bounds
+        console.log('📍 Bounds из layer:', bounds)
       } else if (layer.backgroundItem && layer.backgroundItem.bounds) {
         bounds = layer.backgroundItem.bounds
+        console.log('📍 Bounds из backgroundItem:', bounds)
       } else {
         console.warn('⚠️ Не удалось получить bounds для текстового слоя')
+        console.log('🔍 Доступные свойства:', Object.keys(layer))
         return
       }
       

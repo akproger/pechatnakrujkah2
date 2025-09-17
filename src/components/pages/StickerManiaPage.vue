@@ -2552,16 +2552,36 @@ export default {
         console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев`)
         for (let i = 0; i < this.textLayers.length; i++) {
           const layer = this.textLayers[i]
-          console.log(`📝 Слой ${i + 1}:`, layer)
-          await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale)
+          console.log(`📝 Слой ${i + 1}:`, {
+            hasTextData: !!layer.textData,
+            hasBackground: layer.textData?.hasBackground,
+            text: layer.textData?.text,
+            position: layer.position
+          })
+          try {
+            await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale)
+            console.log(`✅ Слой ${i + 1} успешно обработан`)
+          } catch (error) {
+            console.error(`❌ Ошибка в слое ${i + 1}:`, error)
+          }
         }
         
         // 3. Перерисовываем все стикеры
         console.log(`🎭 Рисуем ${this.stickers.length} стикеров`)
         for (let i = 0; i < this.stickers.length; i++) {
           const sticker = this.stickers[i]
-          console.log(`🎭 Стикер ${i + 1}:`, sticker)
-          await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale)
+          console.log(`🎭 Стикер ${i + 1}:`, {
+            mask: sticker.mask,
+            image: sticker.image,
+            position: sticker.group?.position,
+            hasGroup: !!sticker.group
+          })
+          try {
+            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale)
+            console.log(`✅ Стикер ${i + 1} успешно обработан`)
+          } catch (error) {
+            console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
+          }
         }
         
         console.log('✅ Все элементы перерисованы в высоком разрешении')
@@ -2644,10 +2664,14 @@ export default {
         
         // Рисуем подложку если есть
         if (layer.textData.hasBackground) {
+          console.log('🎨 Рисуем подложку для текста')
           await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds })
+        } else {
+          console.log('⚠️ У текста нет подложки')
         }
         
         // Рисуем текст
+        console.log('✍️ Рисуем текст')
         this.drawTextInHighDPI(tempCtx, { ...layer, bounds })
         
         // Создаем Raster из временного canvas
@@ -2812,7 +2836,16 @@ export default {
     // Рисование подложки в высоком разрешении
     async drawBackgroundInHighDPI(ctx, layer) {
       const textData = layer.textData
-      if (!textData || !textData.hasBackground) return
+      console.log('🎨 drawBackgroundInHighDPI вызван:', {
+        hasTextData: !!textData,
+        hasBackground: textData?.hasBackground,
+        backgroundMode: textData?.backgroundMode
+      })
+      
+      if (!textData || !textData.hasBackground) {
+        console.log('⚠️ Нет данных подложки, выходим')
+        return
+      }
       
       console.log('🎨 Рисуем подложку в высоком разрешении')
       
@@ -3039,6 +3072,17 @@ export default {
     // Рисование текста в высоком разрешении
     drawTextInHighDPI(ctx, layer) {
       const textData = layer.textData
+      console.log('✍️ drawTextInHighDPI вызван:', {
+        hasTextData: !!textData,
+        text: textData?.text,
+        fontSize: textData?.fontSize,
+        font: textData?.font
+      })
+      
+      if (!textData) {
+        console.log('⚠️ Нет данных текста, выходим')
+        return
+      }
       
       // Настраиваем шрифт
       ctx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font}`

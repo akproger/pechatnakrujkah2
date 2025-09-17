@@ -2429,16 +2429,44 @@ export default {
         console.log('- stickers:', this.stickers.length, this.stickers)
         console.log('- backgroundImage:', !!this.backgroundImage)
         
-        // ВРЕМЕННО: Простое масштабирование для тестирования
-        console.log('🧪 ВРЕМЕННО: Используем простое масштабирование для тестирования')
-        printCtx.drawImage(
-          canvas,
-          0, 0, canvasWidth, canvasHeight,  // Исходный прямоугольник
-          0, 0, printWidth, printHeight     // Целевой прямоугольник
-        )
+        // Используем Paper.js для экспорта в высоком разрешении
+        console.log('🎨 Экспортируем Paper.js проект в высоком разрешении')
         
-        // TODO: Перерисовываем все элементы в высоком разрешении
-        // await this.redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
+        if (this.paperScope && this.paperScope.project) {
+          // Обновляем view перед экспортом
+          this.paperScope.project.view.update()
+          
+          // Экспортируем Paper.js проект в высоком разрешении
+          const paperCanvas = this.paperScope.project.view.element
+          if (paperCanvas) {
+            console.log('📐 Размеры Paper.js canvas:', paperCanvas.width, 'x', paperCanvas.height)
+            
+            // Масштабируем Paper.js canvas на print canvas
+            printCtx.drawImage(
+              paperCanvas,
+              0, 0, paperCanvas.width, paperCanvas.height,  // Исходный прямоугольник
+              0, 0, printWidth, printHeight                  // Целевой прямоугольник
+            )
+            
+            console.log('✅ Paper.js проект экспортирован в высоком разрешении')
+          } else {
+            console.error('❌ Paper.js canvas не найден')
+            // Fallback: простое масштабирование HTML canvas
+            printCtx.drawImage(
+              canvas,
+              0, 0, canvasWidth, canvasHeight,
+              0, 0, printWidth, printHeight
+            )
+          }
+        } else {
+          console.error('❌ Paper.js project не найден')
+          // Fallback: простое масштабирование HTML canvas
+          printCtx.drawImage(
+            canvas,
+            0, 0, canvasWidth, canvasHeight,
+            0, 0, printWidth, printHeight
+          )
+        }
 
         // Создаем ссылку для скачивания
         const link = document.createElement('a')

@@ -2577,6 +2577,12 @@ export default {
             hasGroup: !!sticker.group
           })
           try {
+            console.log('🔍 Отладка параметров:', {
+              stickerMasks: this.stickerMasks,
+              stickerImages: this.stickerImages,
+              stickerMasksLength: this.stickerMasks?.length,
+              stickerImagesLength: this.stickerImages?.length
+            })
             await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.stickerImages)
             console.log(`✅ Стикер ${i + 1} успешно обработан`)
           } catch (error) {
@@ -2706,6 +2712,14 @@ export default {
     // Перерисовка стикера в высоком разрешении
     async redrawStickerInHighDPI(tempPaperScope, sticker, scale, stickerMasks, stickerImages) {
       console.log(`🎭 Перерисовываем стикер: ${sticker.mask} + ${sticker.image}`)
+      console.log('🔍 Отладка в redrawStickerInHighDPI:', {
+        stickerMasks: stickerMasks,
+        stickerImages: stickerImages,
+        stickerMasksLength: stickerMasks?.length,
+        stickerImagesLength: stickerImages?.length,
+        stickerMask: sticker.mask,
+        stickerImage: sticker.image
+      })
       
       try {
         // Находим маску и изображение

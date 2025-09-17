@@ -2453,8 +2453,55 @@ export default {
             background.fillColor = '#FFFFFF'
             tempPaperScope.project.activeLayer.addChild(background)
             
-            // Перерисовываем все элементы в высоком разрешении
-            await this.redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
+        // ВРЕМЕННО: Копируем все элементы из основного проекта в высоком разрешении
+        console.log('🧪 ВРЕМЕННО: Копируем элементы из основного проекта')
+        
+        if (this.paperScope && this.paperScope.project) {
+          // Получаем все элементы из основного проекта
+          const allItems = this.paperScope.project.getItems()
+          console.log('📋 Найдено элементов в основном проекте:', allItems.length)
+          
+          // Копируем каждый элемент с масштабированием
+          for (const item of allItems) {
+            try {
+              // Клонируем элемент
+              const clonedItem = item.clone()
+              
+              // Масштабируем позицию и размер
+              if (clonedItem.position) {
+                clonedItem.position = new tempPaperScope.Point(
+                  clonedItem.position.x * scale,
+                  clonedItem.position.y * scale
+                )
+              }
+              
+              // Масштабируем размеры если это Raster
+              if (clonedItem.className === 'Raster') {
+                clonedItem.scale(scale)
+              }
+              
+              // Масштабируем размеры если это Path
+              if (clonedItem.className === 'Path') {
+                clonedItem.scale(scale)
+              }
+              
+              // Масштабируем размеры если это Group
+              if (clonedItem.className === 'Group') {
+                clonedItem.scale(scale)
+              }
+              
+              // Добавляем в новый проект
+              tempPaperScope.project.activeLayer.addChild(clonedItem)
+              
+              console.log('✅ Элемент скопирован:', clonedItem.className)
+            } catch (error) {
+              console.error('❌ Ошибка при копировании элемента:', error)
+            }
+          }
+        }
+        
+        // TODO: Перерисовываем все элементы в высоком разрешении
+        // await this.redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
             
             // Обновляем view
             tempPaperScope.project.view.update()

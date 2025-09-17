@@ -8438,17 +8438,22 @@ export default {
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
         // Создаем область перетаскивания для правильного выделения
-        const rasterBounds = raster.bounds
-        if (rasterBounds) {
-          const expandedBounds = rasterBounds.expand(12)
-          console.log('🎯 Создаем область перетаскивания для Raster:', {
-            originalBounds: rasterBounds,
-            expandedBounds: expandedBounds
-          })
-          
-          // Устанавливаем правильные bounds для области перетаскивания
-          raster.bounds = expandedBounds
-        }
+        // Ждем пока Paper.js вычислит bounds
+        setTimeout(() => {
+          const rasterBounds = raster.bounds
+          if (rasterBounds) {
+            const expandedBounds = rasterBounds.expand(12)
+            console.log('🎯 Создаем область перетаскивания для Raster:', {
+              originalBounds: rasterBounds,
+              expandedBounds: expandedBounds
+            })
+            
+            // Устанавливаем правильные bounds для области перетаскивания
+            raster.bounds = expandedBounds
+          } else {
+            console.warn('⚠️ Не удалось получить bounds для Raster')
+          }
+        }, 0)
         
         console.log('🎯 Raster создан с правильными размерами (Conversation):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
@@ -8668,17 +8673,22 @@ export default {
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
         // Создаем область перетаскивания для правильного выделения
-        const rasterBounds = raster.bounds
-        if (rasterBounds) {
-          const expandedBounds = rasterBounds.expand(12)
-          console.log('🎯 Создаем область перетаскивания для Raster (Standard):', {
-            originalBounds: rasterBounds,
-            expandedBounds: expandedBounds
-          })
-          
-          // Устанавливаем правильные bounds для области перетаскивания
-          raster.bounds = expandedBounds
-        }
+        // Ждем пока Paper.js вычислит bounds
+        setTimeout(() => {
+          const rasterBounds = raster.bounds
+          if (rasterBounds) {
+            const expandedBounds = rasterBounds.expand(12)
+            console.log('🎯 Создаем область перетаскивания для Raster (Standard):', {
+              originalBounds: rasterBounds,
+              expandedBounds: expandedBounds
+            })
+            
+            // Устанавливаем правильные bounds для области перетаскивания
+            raster.bounds = expandedBounds
+          } else {
+            console.warn('⚠️ Не удалось получить bounds для Raster (Standard)')
+          }
+        }, 0)
         
         console.log('🎯 Raster создан с правильными размерами (Standard):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
@@ -8789,17 +8799,22 @@ export default {
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
         // Создаем область перетаскивания для правильного выделения
-        const rasterBounds = raster.bounds
-        if (rasterBounds) {
-          const expandedBounds = rasterBounds.expand(12)
-          console.log('🎯 Создаем область перетаскивания для Raster (Thoughts):', {
-            originalBounds: rasterBounds,
-            expandedBounds: expandedBounds
-          })
-          
-          // Устанавливаем правильные bounds для области перетаскивания
-          raster.bounds = expandedBounds
-        }
+        // Ждем пока Paper.js вычислит bounds
+        setTimeout(() => {
+          const rasterBounds = raster.bounds
+          if (rasterBounds) {
+            const expandedBounds = rasterBounds.expand(12)
+            console.log('🎯 Создаем область перетаскивания для Raster (Thoughts):', {
+              originalBounds: rasterBounds,
+              expandedBounds: expandedBounds
+            })
+            
+            // Устанавливаем правильные bounds для области перетаскивания
+            raster.bounds = expandedBounds
+          } else {
+            console.warn('⚠️ Не удалось получить bounds для Raster (Thoughts)')
+          }
+        }, 0)
         
         console.log('🎯 Raster создан с правильными размерами (Thoughts):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
@@ -9032,17 +9047,22 @@ export default {
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
         // Создаем область перетаскивания для правильного выделения
-        const rasterBounds = raster.bounds
-        if (rasterBounds) {
-          const expandedBounds = rasterBounds.expand(12)
-          console.log('🎯 Создаем область перетаскивания для Raster (ImageText):', {
-            originalBounds: rasterBounds,
-            expandedBounds: expandedBounds
-          })
-          
-          // Устанавливаем правильные bounds для области перетаскивания
-          raster.bounds = expandedBounds
-        }
+        // Ждем пока Paper.js вычислит bounds
+        setTimeout(() => {
+          const rasterBounds = raster.bounds
+          if (rasterBounds) {
+            const expandedBounds = rasterBounds.expand(12)
+            console.log('🎯 Создаем область перетаскивания для Raster (ImageText):', {
+              originalBounds: rasterBounds,
+              expandedBounds: expandedBounds
+            })
+            
+            // Устанавливаем правильные bounds для области перетаскивания
+            raster.bounds = expandedBounds
+          } else {
+            console.warn('⚠️ Не удалось получить bounds для Raster (ImageText)')
+          }
+        }, 0)
         
         console.log('🎯 Raster создан с правильными размерами (ImageText):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,

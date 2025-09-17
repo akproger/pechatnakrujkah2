@@ -2381,7 +2381,7 @@ export default {
 
     // Сохранение холста в высоком разрешении для печати
     async saveCanvasForPrint() {
-      console.log('🖨️ Начинаем сохранение холста для печати')
+      console.log('🖨️ Начинаем сохранение холста для печати в 300 DPI')
       
       try {
         const canvas = this.$refs.testCanvas
@@ -2401,11 +2401,12 @@ export default {
         // Вычисляем размеры для печати (увеличиваем в 3.125 раза для 300 DPI)
         const printWidth = Math.round(canvasWidth * (printDPI / screenDPI))
         const printHeight = Math.round(canvasHeight * (printDPI / screenDPI))
+        const scale = printDPI / screenDPI
         
         console.log('📏 Размеры для печати:', {
           original: `${canvasWidth}x${canvasHeight}`,
           print: `${printWidth}x${printHeight}`,
-          scale: (printDPI / screenDPI).toFixed(2)
+          scale: scale.toFixed(2)
         })
 
         // Создаем временный холст в высоком разрешении
@@ -2418,17 +2419,12 @@ export default {
         printCtx.fillStyle = '#FFFFFF'
         printCtx.fillRect(0, 0, printWidth, printHeight)
 
-        // Простое и надежное копирование холста с масштабированием
-        // Используем imageSmoothingEnabled для лучшего качества
+        // Настраиваем высокое качество рендеринга
         printCtx.imageSmoothingEnabled = true
         printCtx.imageSmoothingQuality = 'high'
         
-        // Копируем содержимое основного холста с масштабированием
-        printCtx.drawImage(
-          canvas,
-          0, 0, canvasWidth, canvasHeight,  // Исходный прямоугольник
-          0, 0, printWidth, printHeight     // Целевой прямоугольник
-        )
+        // Перерисовываем все элементы в высоком разрешении
+        await this.redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
 
         // Создаем ссылку для скачивания
         const link = document.createElement('a')
@@ -2463,6 +2459,471 @@ export default {
       } catch (error) {
         console.error('❌ Ошибка при сохранении холста:', error)
       }
+    },
+    
+    // Перерисовка всех элементов в высоком разрешении для печати
+    async redrawAllElementsInHighDPI(printCtx, scale, canvasWidth, canvasHeight) {
+      console.log('🎨 Перерисовываем все элементы в высоком разрешении')
+      
+      try {
+        // 1. Перерисовываем фоновое изображение если есть
+        if (this.backgroundImage) {
+          await this.redrawBackgroundInHighDPI(printCtx, scale, canvasWidth, canvasHeight)
+        }
+        
+        // 2. Перерисовываем все текстовые элементы с подложками
+        for (const layer of this.textLayers) {
+          await this.redrawTextLayerInHighDPI(printCtx, layer, scale)
+        }
+        
+        // 3. Перерисовываем все стикеры
+        for (const sticker of this.stickers) {
+          await this.redrawStickerInHighDPI(printCtx, sticker, scale)
+        }
+        
+        console.log('✅ Все элементы перерисованы в высоком разрешении')
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке элементов:', error)
+      }
+    },
+    
+    // Перерисовка фонового изображения в высоком разрешении
+    async redrawBackgroundInHighDPI(printCtx, scale, canvasWidth, canvasHeight) {
+      if (!this.backgroundImage) return
+      
+      console.log('🖼️ Перерисовываем фоновое изображение')
+      
+      // Создаем временный canvas для фонового изображения
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      tempCanvas.width = canvasWidth * scale
+      tempCanvas.height = canvasHeight * scale
+      
+      // Настраиваем высокое качество
+      tempCtx.imageSmoothingEnabled = true
+      tempCtx.imageSmoothingQuality = 'high'
+      
+      // Рисуем фоновое изображение с масштабированием
+      tempCtx.drawImage(
+        this.backgroundImage,
+        0, 0, canvasWidth, canvasHeight,
+        0, 0, canvasWidth * scale, canvasHeight * scale
+      )
+      
+      // Копируем на основной print canvas
+      printCtx.drawImage(tempCanvas, 0, 0)
+    },
+    
+    // Перерисовка текстового слоя в высоком разрешении
+    async redrawTextLayerInHighDPI(printCtx, layer, scale) {
+      console.log(`📝 Перерисовываем текстовый слой: ${layer.textData.text}`)
+      
+      // Получаем bounds из Paper.js элемента
+      let bounds
+      if (layer.layer && layer.layer.bounds) {
+        bounds = layer.layer.bounds
+      } else if (layer.backgroundItem && layer.backgroundItem.bounds) {
+        bounds = layer.backgroundItem.bounds
+      } else {
+        console.warn('⚠️ Не удалось получить bounds для текстового слоя')
+        return
+      }
+      
+      // Создаем временный canvas для текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      // Вычисляем размеры с учетом масштаба
+      const scaledWidth = bounds.width * scale
+      const scaledHeight = bounds.height * scale
+      
+      tempCanvas.width = scaledWidth
+      tempCanvas.height = scaledHeight
+      
+      // Настраиваем высокое качество
+      tempCtx.imageSmoothingEnabled = true
+      tempCtx.imageSmoothingQuality = 'high'
+      
+      // Применяем масштабирование
+      tempCtx.scale(scale, scale)
+      
+      // Рисуем подложку если есть
+      if (layer.textData.hasBackground) {
+        await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds })
+      }
+      
+      // Рисуем текст
+      this.drawTextInHighDPI(tempCtx, { ...layer, bounds })
+      
+      // Копируем на основной print canvas
+      printCtx.drawImage(
+        tempCanvas,
+        layer.position.x * scale,
+        layer.position.y * scale
+      )
+    },
+    
+    // Перерисовка стикера в высоком разрешении
+    async redrawStickerInHighDPI(printCtx, sticker, scale) {
+      console.log(`🎭 Перерисовываем стикер: ${sticker.mask} + ${sticker.image}`)
+      
+      try {
+        // Находим маску и изображение
+        const mask = this.stickerMasks.find(m => m.name === sticker.mask)
+        const image = this.stickerImages.find(img => img.name === sticker.image)
+        
+        if (!mask || !image) {
+          console.warn('⚠️ Маска или изображение не найдены для стикера')
+          return
+        }
+        
+        // Создаем временный canvas для стикера
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Вычисляем размеры с учетом масштаба
+        const stickerBounds = sticker.group.bounds
+        const scaledWidth = stickerBounds.width * scale
+        const scaledHeight = stickerBounds.height * scale
+        
+        tempCanvas.width = scaledWidth
+        tempCanvas.height = scaledHeight
+        
+        // Настраиваем высокое качество
+        tempCtx.imageSmoothingEnabled = true
+        tempCtx.imageSmoothingQuality = 'high'
+        
+        // Применяем масштабирование
+        tempCtx.scale(scale, scale)
+        
+        // Загружаем SVG маску
+        const svgResponse = await fetch(mask.url)
+        const svgText = await svgResponse.text()
+        
+        // Создаем временный div для SVG
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = svgText
+        const svgElement = tempDiv.querySelector('svg')
+        
+        if (!svgElement) {
+          console.warn('⚠️ SVG элемент не найден')
+          return
+        }
+        
+        // Создаем canvas для SVG
+        const svgCanvas = document.createElement('canvas')
+        const svgCtx = svgCanvas.getContext('2d')
+        
+        // Масштабируем SVG под размер стикера
+        const svgScale = sticker.size / 100
+        svgCanvas.width = svgElement.viewBox.baseVal.width * svgScale
+        svgCanvas.height = svgElement.viewBox.baseVal.height * svgScale
+        
+        // Рисуем SVG на canvas
+        const svgData = new XMLSerializer().serializeToString(svgElement)
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+        const svgUrl = URL.createObjectURL(svgBlob)
+        
+        const svgImg = new Image()
+        await new Promise((resolve) => {
+          svgImg.onload = resolve
+          svgImg.src = svgUrl
+        })
+        
+        svgCtx.drawImage(svgImg, 0, 0, svgCanvas.width, svgCanvas.height)
+        
+        // Создаем маску из SVG
+        const maskCanvas = document.createElement('canvas')
+        const maskCtx = maskCanvas.getContext('2d')
+        maskCanvas.width = svgCanvas.width
+        maskCanvas.height = svgCanvas.height
+        
+        // Применяем маску
+        maskCtx.globalCompositeOperation = 'source-over'
+        maskCtx.drawImage(svgCanvas, 0, 0)
+        
+        // Загружаем изображение стикера
+        const imgElement = new Image()
+        await new Promise((resolve) => {
+          imgElement.onload = resolve
+          imgElement.src = image.url
+        })
+        
+        // Рисуем изображение с маской
+        maskCtx.globalCompositeOperation = 'source-atop'
+        maskCtx.drawImage(imgElement, 0, 0, maskCanvas.width, maskCanvas.height)
+        
+        // Копируем результат на временный canvas
+        tempCtx.drawImage(maskCanvas, 0, 0, stickerBounds.width, stickerBounds.height)
+        
+        // Очищаем URL
+        URL.revokeObjectURL(svgUrl)
+        
+        // Копируем на основной print canvas
+        printCtx.drawImage(
+          tempCanvas,
+          sticker.group.position.x * scale,
+          sticker.group.position.y * scale
+        )
+        
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке стикера:', error)
+      }
+    },
+    
+    // Рисование подложки в высоком разрешении
+    async drawBackgroundInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      if (!textData || !textData.hasBackground) return
+      
+      console.log('🎨 Рисуем подложку в высоком разрешении')
+      
+      // Определяем режим подложки
+      const mode = textData.backgroundMode || 'conversation'
+      
+      // Создаем подложку в зависимости от режима
+      switch (mode) {
+        case 'conversation':
+          await this.drawConversationBackgroundInHighDPI(ctx, layer)
+          break
+        case 'thoughts':
+          await this.drawThoughtsBackgroundInHighDPI(ctx, layer)
+          break
+        case 'standard':
+          await this.drawStandardBackgroundInHighDPI(ctx, layer)
+          break
+        case 'imageText':
+          await this.drawImageTextBackgroundInHighDPI(ctx, layer)
+          break
+        default:
+          await this.drawStandardBackgroundInHighDPI(ctx, layer)
+      }
+    },
+    
+    // Рисование подложки "Разговор" в высоком разрешении
+    async drawConversationBackgroundInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      
+      // Создаем путь для облачка с хвостом
+      const tailSize = Number(textData.tailSize) / 100
+      const tailAngle = Number(textData.tailAngle)
+      const tailWidth = Number(textData.tailWidth) / 100
+      
+      // Размеры подложки
+      const width = layer.bounds.width
+      const height = layer.bounds.height
+      
+      // Создаем основной прямоугольник
+      const rectX = 0
+      const rectY = 0
+      const rectWidth = width
+      const rectHeight = height
+      
+      // Рассчитываем параметры хвоста
+      const minDimension = Math.min(rectWidth, rectHeight)
+      const tailLength = minDimension * 0.6 * tailSize
+      const tailBaseWidth = minDimension * 0.3 * tailWidth
+      
+      // Угол хвоста в радианах
+      const angleRad = (tailAngle * Math.PI) / 180
+      
+      // Центр прямоугольника
+      const centerX = rectX + rectWidth / 2
+      const centerY = rectY + rectHeight / 2
+      
+      // Координаты начала хвоста
+      const tailStartX = centerX + Math.cos(angleRad) * (rectWidth / 2)
+      const tailStartY = centerY + Math.sin(angleRad) * (rectHeight / 2)
+      
+      // Координаты конца хвоста
+      const tailEndX = centerX + Math.cos(angleRad) * (rectWidth / 2 + tailLength)
+      const tailEndY = centerY + Math.sin(angleRad) * (rectHeight / 2 + tailLength)
+      
+      // Направление перпендикулярное хвосту
+      const perpAngle = angleRad + Math.PI / 2
+      const perpX = Math.cos(perpAngle)
+      const perpY = Math.sin(perpAngle)
+      
+      // Координаты вершин хвоста
+      const tail1X = tailStartX + perpX * tailBaseWidth / 2
+      const tail1Y = tailStartY + perpY * tailBaseWidth / 2
+      const tail2X = tailStartX - perpX * tailBaseWidth / 2
+      const tail2Y = tailStartY - perpY * tailBaseWidth / 2
+      
+      // Рисуем путь
+      ctx.beginPath()
+      
+      // Начинаем с угла прямоугольника
+      ctx.moveTo(rectX, rectY)
+      
+      // Рисуем прямоугольник до начала хвоста
+      if (tailStartX < centerX) {
+        // Хвост слева
+        ctx.lineTo(tail1X, tail1Y)
+        ctx.lineTo(tailEndX, tailEndY)
+        ctx.lineTo(tail2X, tail2Y)
+        ctx.lineTo(rectX, rectY + rectHeight)
+        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
+        ctx.lineTo(rectX + rectWidth, rectY)
+      } else if (tailStartX > centerX) {
+        // Хвост справа
+        ctx.lineTo(rectX + rectWidth, rectY)
+        ctx.lineTo(tail1X, tail1Y)
+        ctx.lineTo(tailEndX, tailEndY)
+        ctx.lineTo(tail2X, tail2Y)
+        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
+        ctx.lineTo(rectX, rectY + rectHeight)
+      } else if (tailStartY < centerY) {
+        // Хвост сверху
+        ctx.lineTo(tail1X, tail1Y)
+        ctx.lineTo(tailEndX, tailEndY)
+        ctx.lineTo(tail2X, tail2Y)
+        ctx.lineTo(rectX + rectWidth, rectY)
+        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
+        ctx.lineTo(rectX, rectY + rectHeight)
+      } else {
+        // Хвост снизу
+        ctx.lineTo(rectX + rectWidth, rectY)
+        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
+        ctx.lineTo(tail1X, tail1Y)
+        ctx.lineTo(tailEndX, tailEndY)
+        ctx.lineTo(tail2X, tail2Y)
+        ctx.lineTo(rectX, rectY + rectHeight)
+      }
+      
+      ctx.closePath()
+      
+      // Применяем тень если нужно
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+      }
+      
+      // Заливаем фон
+      ctx.fillStyle = textData.backgroundColor
+      ctx.fill()
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      // Рисуем обводку если нужно
+      if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth
+        ctx.stroke()
+      }
+    },
+    
+    // Рисование подложки "Мысли" в высоком разрешении
+    async drawThoughtsBackgroundInHighDPI(ctx, layer) {
+      // Аналогично drawConversationBackgroundInHighDPI, но с другой формой хвоста
+      await this.drawConversationBackgroundInHighDPI(ctx, layer) // Временно используем ту же логику
+    },
+    
+    // Рисование стандартной подложки в высоком разрешении
+    async drawStandardBackgroundInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      
+      // Размеры подложки
+      const width = layer.bounds.width
+      const height = layer.bounds.height
+      
+      // Создаем скругленный прямоугольник
+      const radius = 10
+      
+      // Рисуем прямоугольник (используем старый метод для совместимости)
+      ctx.beginPath()
+      ctx.moveTo(radius, 0)
+      ctx.lineTo(width - radius, 0)
+      ctx.quadraticCurveTo(width, 0, width, radius)
+      ctx.lineTo(width, height - radius)
+      ctx.quadraticCurveTo(width, height, width - radius, height)
+      ctx.lineTo(radius, height)
+      ctx.quadraticCurveTo(0, height, 0, height - radius)
+      ctx.lineTo(0, radius)
+      ctx.quadraticCurveTo(0, 0, radius, 0)
+      ctx.closePath()
+      
+      // Применяем тень если нужно
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+      }
+      
+      // Заливаем фон
+      ctx.fillStyle = textData.backgroundColor
+      ctx.fill()
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      // Рисуем обводку если нужно
+      if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth
+        ctx.stroke()
+      }
+    },
+    
+    // Рисование подложки с изображением в высоком разрешении
+    async drawImageTextBackgroundInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      
+      // Размеры подложки
+      const width = layer.bounds.width
+      const height = layer.bounds.height
+      
+      // Если есть изображение фона, рисуем его
+      if (textData.backgroundImage) {
+        const img = new Image()
+        await new Promise((resolve) => {
+          img.onload = resolve
+          img.src = textData.backgroundImage
+        })
+        
+        ctx.drawImage(img, 0, 0, width, height)
+      } else {
+        // Иначе рисуем обычную подложку
+        await this.drawStandardBackgroundInHighDPI(ctx, layer)
+      }
+    },
+    
+    // Рисование текста в высоком разрешении
+    drawTextInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      
+      // Настраиваем шрифт
+      ctx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font}`
+      ctx.fillStyle = textData.textColor
+      ctx.textAlign = textData.textAlign || 'center'
+      ctx.textBaseline = 'middle'
+      
+      // НЕ применяем тень к тексту - тень должна быть у подложки
+      
+      // Разбиваем текст на строки
+      const lines = textData.text.split('\n')
+      const lineHeight = textData.lineHeight || textData.fontSize * 1.2
+      
+      // Центрируем текст
+      const centerY = layer.bounds.height / 2
+      const startY = centerY - (lines.length - 1) * lineHeight / 2
+      
+      // Рисуем каждую строку
+      lines.forEach((line, index) => {
+        const y = startY + index * lineHeight
+        ctx.fillText(line, layer.bounds.width / 2, y)
+      })
     },
 
     // Инициализация Paper.js

@@ -1,0 +1,4 @@
+.text-input-section{
+    margin-right: 0;
+    width: 325px;
+}

@@ -6771,7 +6771,7 @@ export default {
       ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
       
       // Устанавливаем выравнивание текста
-      ctx.textAlign = textData.textAlign
+      ctx.textAlign = textData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       
       // Вычисляем межстрочный интервал
@@ -6794,9 +6794,9 @@ export default {
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x
-        if (textData.textAlign === 'left') {
+        if ((textData.textAlign || 'center') === 'left') {
           lineX = x - maxTextWidth / 2
-        } else if (textData.textAlign === 'right') {
+        } else if ((textData.textAlign || 'center') === 'right') {
           lineX = x + maxTextWidth / 2
         }
         // Для 'center' lineX остается x
@@ -6814,7 +6814,7 @@ export default {
       ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
       
       // Устанавливаем выравнивание текста
-      ctx.textAlign = textData.textAlign
+      ctx.textAlign = textData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       
       // Вычисляем межстрочный интервал
@@ -6837,9 +6837,9 @@ export default {
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x
-        if (textData.textAlign === 'left') {
+        if ((textData.textAlign || 'center') === 'left') {
           lineX = x - maxTextWidth / 2
-        } else if (textData.textAlign === 'right') {
+        } else if ((textData.textAlign || 'center') === 'right') {
           lineX = x + maxTextWidth / 2
         }
         // Для 'center' lineX остается x
@@ -8506,7 +8506,6 @@ export default {
         
         // Устанавливаем стиль шрифта
         ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
-        ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillStyle = textColor
         
@@ -8518,7 +8517,7 @@ export default {
         })
         
         // Рисуем текст с поддержкой переноса строк
-        this.drawMultilineText(ctx, textData.text, x, y, fontSize, textData.lineHeight)
+        this.drawMultilineTextWithData(ctx, textData.text, x, y, fontSize, textData.lineHeight, textData)
         
         console.log('✅ Текст добавлен в Raster:', {
           position: `${x}, ${y}`,

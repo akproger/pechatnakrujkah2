@@ -2577,7 +2577,7 @@ export default {
             hasGroup: !!sticker.group
           })
           try {
-            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale)
+            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.stickerImages)
             console.log(`✅ Стикер ${i + 1} успешно обработан`)
           } catch (error) {
             console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
@@ -2704,13 +2704,13 @@ export default {
     },
     
     // Перерисовка стикера в высоком разрешении
-    async redrawStickerInHighDPI(tempPaperScope, sticker, scale) {
+    async redrawStickerInHighDPI(tempPaperScope, sticker, scale, stickerMasks, stickerImages) {
       console.log(`🎭 Перерисовываем стикер: ${sticker.mask} + ${sticker.image}`)
       
       try {
         // Находим маску и изображение
-        const mask = this.stickerMasks.find(m => m.name === sticker.mask)
-        const image = this.stickerImages.find(img => img.name === sticker.image)
+        const mask = stickerMasks.find(m => m.name === sticker.mask)
+        const image = stickerImages.find(img => img.name === sticker.image)
         
         if (!mask || !image) {
           console.warn('⚠️ Маска или изображение не найдены для стикера')
@@ -2723,18 +2723,19 @@ export default {
         
         // Вычисляем размеры с учетом масштаба
         const stickerBounds = sticker.group.bounds
-        const highResWidth = stickerBounds.width * scale
-        const highResHeight = stickerBounds.height * scale
+        const highResWidth = Math.round(stickerBounds.width * scale)
+        const highResHeight = Math.round(stickerBounds.height * scale)
         
         tempCanvas.width = highResWidth
         tempCanvas.height = highResHeight
+        
+        console.log('📐 Canvas стикера высокого разрешения:', highResWidth, 'x', highResHeight)
         
         // Настраиваем высокое качество
         tempCtx.imageSmoothingEnabled = true
         tempCtx.imageSmoothingQuality = 'high'
         
-        // Применяем масштабирование
-        tempCtx.scale(scale, scale)
+        // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
         // Загружаем SVG маску
         const svgResponse = await fetch(mask.url)
@@ -2754,13 +2755,15 @@ export default {
         const svgCanvas = document.createElement('canvas')
         const svgCtx = svgCanvas.getContext('2d')
         
-        // Масштабируем SVG под размер стикера
+        // Масштабируем SVG под размер стикера в высоком разрешении
         const svgScale = sticker.size / 100
-        const svgHighResWidth = svgElement.viewBox.baseVal.width * svgScale * scale
-        const svgHighResHeight = svgElement.viewBox.baseVal.height * svgScale * scale
+        const svgHighResWidth = Math.round(svgElement.viewBox.baseVal.width * svgScale * scale)
+        const svgHighResHeight = Math.round(svgElement.viewBox.baseVal.height * svgScale * scale)
         
         svgCanvas.width = svgHighResWidth
         svgCanvas.height = svgHighResHeight
+        
+        console.log('📐 SVG canvas высокого разрешения:', svgHighResWidth, 'x', svgHighResHeight)
         
         // Рисуем SVG на canvas
         const svgData = new XMLSerializer().serializeToString(svgElement)
@@ -2796,21 +2799,21 @@ export default {
         maskCtx.globalCompositeOperation = 'source-atop'
         maskCtx.drawImage(imgElement, 0, 0, svgHighResWidth, svgHighResHeight)
         
-        // Копируем результат на временный canvas
-        tempCtx.drawImage(maskCanvas, 0, 0, stickerBounds.width, stickerBounds.height)
+        // Копируем результат на временный canvas (уже в высоком разрешении)
+        tempCtx.drawImage(maskCanvas, 0, 0, highResWidth, highResHeight)
         
         // Очищаем URL
         URL.revokeObjectURL(svgUrl)
         
-        // Создаем Raster из временного canvas
-        const stickerRaster = new tempPaperScope.Raster(tempCanvas.toDataURL())
+        // Создаем Raster из временного canvas с максимальным качеством
+        const stickerRaster = new tempPaperScope.Raster(tempCanvas.toDataURL('image/png', 1.0))
         
         // Ждем загрузки
         await new Promise((resolve) => {
           stickerRaster.onLoad = resolve
         })
         
-        // Позиционируем и масштабируем
+        // Позиционируем в высоком разрешении
         stickerRaster.position = new tempPaperScope.Point(
           sticker.group.position.x * scale,
           sticker.group.position.y * scale
@@ -2821,11 +2824,11 @@ export default {
           stickerRaster.rotation = sticker.group.rotation
         }
         
-        // Применяем масштабирование если есть
-        if (sticker.group.scaling) {
+        // Применяем масштабирование если есть (уже учтено в canvas)
+        if (sticker.group.scaling && sticker.group.scaling.x !== 1) {
           stickerRaster.scaling = new tempPaperScope.Point(
-            sticker.group.scaling.x * scale,
-            sticker.group.scaling.y * scale
+            sticker.group.scaling.x,
+            sticker.group.scaling.y
           )
         }
         

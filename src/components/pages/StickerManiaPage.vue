@@ -8437,6 +8437,19 @@ export default {
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
+        // Создаем область перетаскивания для правильного выделения
+        const rasterBounds = raster.bounds
+        if (rasterBounds) {
+          const expandedBounds = rasterBounds.expand(12)
+          console.log('🎯 Создаем область перетаскивания для Raster:', {
+            originalBounds: rasterBounds,
+            expandedBounds: expandedBounds
+          })
+          
+          // Устанавливаем правильные bounds для области перетаскивания
+          raster.bounds = expandedBounds
+        }
+        
         console.log('🎯 Raster создан с правильными размерами (Conversation):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
           rasterPosition: `${x}, ${y}`,
@@ -8654,6 +8667,19 @@ export default {
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
         
+        // Создаем область перетаскивания для правильного выделения
+        const rasterBounds = raster.bounds
+        if (rasterBounds) {
+          const expandedBounds = rasterBounds.expand(12)
+          console.log('🎯 Создаем область перетаскивания для Raster (Standard):', {
+            originalBounds: rasterBounds,
+            expandedBounds: expandedBounds
+          })
+          
+          // Устанавливаем правильные bounds для области перетаскивания
+          raster.bounds = expandedBounds
+        }
+        
         console.log('🎯 Raster создан с правильными размерами (Standard):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
           rasterPosition: `${x}, ${y}`,
@@ -8761,6 +8787,19 @@ export default {
         // Масштабируем Raster чтобы сохранить тот же логический размер
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        // Создаем область перетаскивания для правильного выделения
+        const rasterBounds = raster.bounds
+        if (rasterBounds) {
+          const expandedBounds = rasterBounds.expand(12)
+          console.log('🎯 Создаем область перетаскивания для Raster (Thoughts):', {
+            originalBounds: rasterBounds,
+            expandedBounds: expandedBounds
+          })
+          
+          // Устанавливаем правильные bounds для области перетаскивания
+          raster.bounds = expandedBounds
+        }
         
         console.log('🎯 Raster создан с правильными размерами (Thoughts):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
@@ -8991,6 +9030,19 @@ export default {
         // Масштабируем Raster чтобы сохранить тот же логический размер
         // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
         raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        // Создаем область перетаскивания для правильного выделения
+        const rasterBounds = raster.bounds
+        if (rasterBounds) {
+          const expandedBounds = rasterBounds.expand(12)
+          console.log('🎯 Создаем область перетаскивания для Raster (ImageText):', {
+            originalBounds: rasterBounds,
+            expandedBounds: expandedBounds
+          })
+          
+          // Устанавливаем правильные bounds для области перетаскивания
+          raster.bounds = expandedBounds
+        }
         
         console.log('🎯 Raster создан с правильными размерами (ImageText):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,

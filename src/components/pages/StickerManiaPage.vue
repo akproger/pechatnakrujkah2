@@ -2580,11 +2580,11 @@ export default {
           try {
             console.log('🔍 Отладка параметров:', {
               stickerMasks: this.stickerMasks,
-              stickerImages: this.stickerImages,
+              stickerImages: this.uploadedImages,
               stickerMasksLength: this.stickerMasks?.length,
-              stickerImagesLength: this.stickerImages?.length
+              stickerImagesLength: this.uploadedImages?.length
             })
-            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.stickerImages)
+            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.uploadedImages)
             console.log(`✅ Стикер ${i + 1} успешно обработан`)
           } catch (error) {
             console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
@@ -9451,7 +9451,10 @@ export default {
         layer: textLayer,
         textItem: textItem,
         backgroundItem: backgroundItem,
-        textData: { ...textData }, // Используем переданные данные
+        textData: { 
+          ...textData,
+          backgroundMode: mode // Добавляем backgroundMode для сохранения
+        }, // Используем переданные данные
         position: { ...position }, // Используем переданную позицию
         mode: mode, // Используем переданный режим
         createdAt: new Date().toISOString()

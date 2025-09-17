@@ -8340,12 +8340,15 @@ export default {
         
         // Добавляем отступы для тени, обводки и хвоста
         const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        // Для режима "Разговор" добавляем отступ для хвоста
-        const tailPadding = Math.max(backgroundWidth, backgroundHeight) * 0.4 // 40% от максимального размера подложки
+        // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
+        const tailSize = Number(currentTextData.tailSize) / 100
+        const minDimension = Math.min(backgroundWidth, backgroundHeight)
+        const tailLength = minDimension * 1.25 * tailSize
+        const tailPadding = tailLength * 0.3 // 30% от длины хвоста
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 40 // Увеличенный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 10 // Минимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8524,18 +8527,41 @@ export default {
         
         // Устанавливаем стиль шрифта
         ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        ctx.textAlign = textData.textAlign || 'center'
         ctx.textBaseline = 'middle'
         ctx.fillStyle = textColor
+        
+        // Применяем тень если включена
+        if (textData.shadow) {
+          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+        }
         
         console.log('🎨 Контекст настроен:', {
           font: ctx.font,
           textAlign: ctx.textAlign,
           textBaseline: ctx.textBaseline,
-          fillStyle: ctx.fillStyle
+          fillStyle: ctx.fillStyle,
+          shadow: textData.shadow ? {
+            color: ctx.shadowColor,
+            blur: ctx.shadowBlur,
+            offsetX: ctx.shadowOffsetX,
+            offsetY: ctx.shadowOffsetY
+          } : 'none'
         })
         
         // Рисуем текст с поддержкой переноса строк
         this.drawMultilineTextWithData(ctx, textData.text, x, y, fontSize, textData.lineHeight, textData)
+        
+        // Сбрасываем тень
+        if (textData.shadow) {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
         
         console.log('✅ Текст добавлен в Raster:', {
           position: `${x}, ${y}`,
@@ -8561,9 +8587,9 @@ export default {
         
         // Добавляем отступы для тени и обводки
         const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8666,9 +8692,9 @@ export default {
         
         // Добавляем отступы для тени и обводки
         const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8774,9 +8800,9 @@ export default {
         
         // Добавляем отступы для тени и обводки
         const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2

@@ -2453,55 +2453,8 @@ export default {
             background.fillColor = '#FFFFFF'
             tempPaperScope.project.activeLayer.addChild(background)
             
-        // ВРЕМЕННО: Копируем все элементы из основного проекта в высоком разрешении
-        console.log('🧪 ВРЕМЕННО: Копируем элементы из основного проекта')
-        
-        if (this.paperScope && this.paperScope.project) {
-          // Получаем все элементы из основного проекта
-          const allItems = this.paperScope.project.getItems()
-          console.log('📋 Найдено элементов в основном проекте:', allItems.length)
-          
-          // Копируем каждый элемент с масштабированием
-          for (const item of allItems) {
-            try {
-              // Клонируем элемент
-              const clonedItem = item.clone()
-              
-              // Масштабируем позицию и размер
-              if (clonedItem.position) {
-                clonedItem.position = new tempPaperScope.Point(
-                  clonedItem.position.x * scale,
-                  clonedItem.position.y * scale
-                )
-              }
-              
-              // Масштабируем размеры если это Raster
-              if (clonedItem.className === 'Raster') {
-                clonedItem.scale(scale)
-              }
-              
-              // Масштабируем размеры если это Path
-              if (clonedItem.className === 'Path') {
-                clonedItem.scale(scale)
-              }
-              
-              // Масштабируем размеры если это Group
-              if (clonedItem.className === 'Group') {
-                clonedItem.scale(scale)
-              }
-              
-              // Добавляем в новый проект
-              tempPaperScope.project.activeLayer.addChild(clonedItem)
-              
-              console.log('✅ Элемент скопирован:', clonedItem.className)
-            } catch (error) {
-              console.error('❌ Ошибка при копировании элемента:', error)
-            }
-          }
-        }
-        
-        // TODO: Перерисовываем все элементы в высоком разрешении
-        // await this.redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
+        // Перерисовываем все элементы в высоком разрешении
+        await this.redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight)
             
             // Обновляем view
             tempPaperScope.project.view.update()
@@ -2606,7 +2559,7 @@ export default {
             position: layer.position
           })
           try {
-            await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale)
+            await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale, canvasWidth, canvasHeight)
             console.log(`✅ Слой ${i + 1} успешно обработан`)
           } catch (error) {
             console.error(`❌ Ошибка в слое ${i + 1}:`, error)
@@ -2666,7 +2619,7 @@ export default {
     },
     
     // Перерисовка текстового слоя в высоком разрешении
-    async redrawTextLayerInHighDPI(tempPaperScope, layer, scale) {
+    async redrawTextLayerInHighDPI(tempPaperScope, layer, scale, canvasWidth, canvasHeight) {
       console.log(`📝 Перерисовываем текстовый слой: ${layer.textData?.text || 'без текста'}`)
       
       if (!layer.textData) {
@@ -2675,10 +2628,6 @@ export default {
       }
       
       try {
-        // Создаем временный canvas для рендеринга текста в высоком разрешении
-        const tempCanvas = document.createElement('canvas')
-        const tempCtx = tempCanvas.getContext('2d')
-        
         // Получаем размеры из оригинального элемента
         let bounds
         if (layer.backgroundItem && layer.backgroundItem.bounds) {
@@ -2695,41 +2644,51 @@ export default {
           }
         }
         
+        console.log('📏 Размеры слоя:', bounds)
+        
+        // Создаем временный canvas для рендеринга в высоком разрешении
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
         // Создаем canvas с высоким разрешением
-        const highResWidth = bounds.width * scale
-        const highResHeight = bounds.height * scale
+        const highResWidth = Math.round(bounds.width * scale)
+        const highResHeight = Math.round(bounds.height * scale)
         
         tempCanvas.width = highResWidth
         tempCanvas.height = highResHeight
         
-        // Настраиваем высокое качество
-        tempCtx.imageSmoothingEnabled = true
-        tempCtx.imageSmoothingQuality = 'high'
+        console.log('📐 Canvas высокого разрешения:', highResWidth, 'x', highResHeight)
         
-        // Применяем масштабирование
-        tempCtx.scale(scale, scale)
+        // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
         // Рисуем подложку если есть
         if (layer.textData.hasBackground) {
-          console.log('🎨 Рисуем подложку для текста')
-          await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds })
+          console.log('🎨 Рисуем подложку для текста в высоком разрешении')
+          await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds: { width: highResWidth, height: highResHeight } }, scale)
         } else {
           console.log('⚠️ У текста нет подложки')
         }
         
-        // Рисуем текст
-        console.log('✍️ Рисуем текст')
-        this.drawTextInHighDPI(tempCtx, { ...layer, bounds })
+        // Рисуем текст в высоком разрешении
+        console.log('✍️ Рисуем текст в высоком разрешении')
+        this.drawTextInHighDPI(tempCtx, { 
+          ...layer, 
+          bounds: { width: highResWidth, height: highResHeight },
+          textData: {
+            ...layer.textData,
+            fontSize: layer.textData.fontSize * scale  // Масштабируем размер шрифта
+          }
+        })
         
         // Создаем Raster из временного canvas
-        const textRaster = new tempPaperScope.Raster(tempCanvas.toDataURL())
+        const textRaster = new tempPaperScope.Raster(tempCanvas.toDataURL('image/png', 1.0))
         
         // Ждем загрузки
         await new Promise((resolve) => {
           textRaster.onLoad = resolve
         })
         
-        // Позиционируем
+        // Позиционируем в высоком разрешении
         textRaster.position = new tempPaperScope.Point(
           layer.position.x * scale,
           layer.position.y * scale
@@ -2738,7 +2697,7 @@ export default {
         // Добавляем на слой
         tempPaperScope.project.activeLayer.addChild(textRaster)
         
-        console.log('✅ Текстовый слой добавлен в высоком разрешении')
+        console.log('✅ Текстовый слой добавлен в высоком разрешении:', textRaster.bounds)
       } catch (error) {
         console.error('❌ Ошибка при перерисовке текстового слоя:', error)
       }
@@ -2881,7 +2840,7 @@ export default {
     },
     
     // Рисование подложки в высоком разрешении
-    async drawBackgroundInHighDPI(ctx, layer) {
+    async drawBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       console.log('🎨 drawBackgroundInHighDPI вызван:', {
         hasTextData: !!textData,
@@ -2902,24 +2861,24 @@ export default {
       // Создаем подложку в зависимости от режима
       switch (mode) {
         case 'conversation':
-          await this.drawConversationBackgroundInHighDPI(ctx, layer)
+          await this.drawConversationBackgroundInHighDPI(ctx, layer, scale)
           break
         case 'thoughts':
-          await this.drawThoughtsBackgroundInHighDPI(ctx, layer)
+          await this.drawThoughtsBackgroundInHighDPI(ctx, layer, scale)
           break
         case 'standard':
-          await this.drawStandardBackgroundInHighDPI(ctx, layer)
+          await this.drawStandardBackgroundInHighDPI(ctx, layer, scale)
           break
         case 'imageText':
-          await this.drawImageTextBackgroundInHighDPI(ctx, layer)
+          await this.drawImageTextBackgroundInHighDPI(ctx, layer, scale)
           break
         default:
-          await this.drawStandardBackgroundInHighDPI(ctx, layer)
+          await this.drawStandardBackgroundInHighDPI(ctx, layer, scale)
       }
     },
     
     // Рисование подложки "Разговор" в высоком разрешении
-    async drawConversationBackgroundInHighDPI(ctx, layer) {
+    async drawConversationBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       
       // Создаем путь для облачка с хвостом
@@ -2927,9 +2886,11 @@ export default {
       const tailAngle = Number(textData.tailAngle)
       const tailWidth = Number(textData.tailWidth) / 100
       
-      // Размеры подложки
+      // Размеры подложки (уже в высоком разрешении)
       const width = layer.bounds.width
       const height = layer.bounds.height
+      
+      console.log('📐 Размеры подложки conversation:', width, 'x', height)
       
       // Создаем основной прямоугольник
       const rectX = 0
@@ -3038,21 +2999,23 @@ export default {
     },
     
     // Рисование подложки "Мысли" в высоком разрешении
-    async drawThoughtsBackgroundInHighDPI(ctx, layer) {
+    async drawThoughtsBackgroundInHighDPI(ctx, layer, scale = 1) {
       // Аналогично drawConversationBackgroundInHighDPI, но с другой формой хвоста
       await this.drawConversationBackgroundInHighDPI(ctx, layer) // Временно используем ту же логику
     },
     
     // Рисование стандартной подложки в высоком разрешении
-    async drawStandardBackgroundInHighDPI(ctx, layer) {
+    async drawStandardBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       
-      // Размеры подложки
+      // Размеры подложки (уже в высоком разрешении)
       const width = layer.bounds.width
       const height = layer.bounds.height
       
-      // Создаем скругленный прямоугольник
-      const radius = 10
+      console.log('📐 Размеры подложки standard:', width, 'x', height)
+      
+      // Создаем скругленный прямоугольник (радиус тоже масштабируется)
+      const radius = 10 * scale
       
       // Рисуем прямоугольник (используем старый метод для совместимости)
       ctx.beginPath()
@@ -3094,7 +3057,7 @@ export default {
     },
     
     // Рисование подложки с изображением в высоком разрешении
-    async drawImageTextBackgroundInHighDPI(ctx, layer) {
+    async drawImageTextBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       
       // Размеры подложки

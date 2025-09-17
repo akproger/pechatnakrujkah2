@@ -2554,7 +2554,8 @@ export default {
           const layer = this.textLayers[i]
           console.log(`📝 Слой ${i + 1}:`, {
             hasTextData: !!layer.textData,
-            hasBackground: layer.textData?.hasBackground,
+            hasBackground: !!layer.textData?.backgroundMode,
+            backgroundMode: layer.textData?.backgroundMode,
             text: layer.textData?.text,
             position: layer.position
           })
@@ -2667,8 +2668,8 @@ export default {
         
         // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
-        // Рисуем подложку если есть
-        if (layer.textData.hasBackground) {
+        // Рисуем подложку если есть (проверяем backgroundMode)
+        if (layer.textData.backgroundMode) {
           console.log('🎨 Рисуем подложку для текста в высоком разрешении')
           await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds: { width: highResWidth, height: highResHeight } }, scale)
         } else {
@@ -2722,12 +2723,28 @@ export default {
       })
       
       try {
+        // Проверяем наличие массивов
+        if (!stickerMasks || !Array.isArray(stickerMasks)) {
+          console.warn('⚠️ stickerMasks не определен или не является массивом:', stickerMasks)
+          return
+        }
+        
+        if (!stickerImages || !Array.isArray(stickerImages)) {
+          console.warn('⚠️ stickerImages не определен или не является массивом:', stickerImages)
+          return
+        }
+        
         // Находим маску и изображение
         const mask = stickerMasks.find(m => m.name === sticker.mask)
         const image = stickerImages.find(img => img.name === sticker.image)
         
         if (!mask || !image) {
-          console.warn('⚠️ Маска или изображение не найдены для стикера')
+          console.warn('⚠️ Маска или изображение не найдены для стикера:', {
+            mask: mask ? 'найдена' : 'не найдена',
+            image: image ? 'найдено' : 'не найдено',
+            stickerMask: sticker.mask,
+            stickerImage: sticker.image
+          })
           return
         }
         
@@ -2865,7 +2882,7 @@ export default {
         backgroundMode: textData?.backgroundMode
       })
       
-      if (!textData || !textData.hasBackground) {
+      if (!textData || !textData.backgroundMode) {
         console.log('⚠️ Нет данных подложки, выходим')
         return
       }

@@ -7370,7 +7370,7 @@ export default {
       if (intersectionPoint) {
         // Создаем суперподложку с хвостом
         this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                                   intersectionPoint, tailAngle, tailLength, tailWidth)
+                                   intersectionPoint, tailAngle, tailLength, tailWidth, this.textDialogData)
       } else {
         // Если нет пересечения, рисуем обычную подложку
         this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
@@ -7485,10 +7485,13 @@ export default {
     
     // Построение пути суперподложки с хвостом
     buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                           intersectionPoint, tailAngle, tailLength, tailWidth) {
+                           intersectionPoint, tailAngle, tailLength, tailWidth, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // Вычисляем параметры хвоста
-      const tailWidthPercent = Number(this.textDialogData.tailWidth) / 100
-      const tailSizePercent = Number(this.textDialogData.tailSize) / 100
+      const tailWidthPercent = Number(currentTextData.tailWidth) / 100
+      const tailSizePercent = Number(currentTextData.tailSize) / 100
       
       // Острая вершина хвоста (tailSize теперь от 100% до 300%)
       const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
@@ -8048,7 +8051,7 @@ export default {
       if (cachedIntersection) {
         // Создаем суперподложку с хвостом используя КЭШИРОВАННУЮ точку
         this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                                   cachedIntersection, tailAngle, tailLength, tailWidth)
+                                   cachedIntersection, tailAngle, tailLength, tailWidth, currentTextData)
       } else {
         // Если нет пересечения, рисуем обычную подложку
         this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
@@ -8428,7 +8431,7 @@ export default {
           size: `${backgroundWidth}x${backgroundHeight}`,
           mode: this.textDialogActiveTab,
           canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
-          logicalSize: `${containerWidth}x${containerHeight}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
           dpr: dpr,
           rasterScale: `${(1 / dpr).toFixed(3)}x`
         })

@@ -8335,11 +8335,14 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
-        const padding = Math.max(
-          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
-          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
-        ) + 20 // Дополнительный отступ
+        // Добавляем отступы для тени, обводки и хвоста
+        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        
+        // Для режима "Разговор" добавляем отступ для хвоста
+        const tailPadding = Math.max(backgroundWidth, backgroundHeight) * 0.4 // 40% от максимального размера подложки
+        
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 40 // Увеличенный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8554,10 +8557,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const padding = Math.max(
-          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
-          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
-        ) + 20 // Дополнительный отступ
+        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8659,10 +8662,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const padding = Math.max(
-          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
-          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
-        ) + 20 // Дополнительный отступ
+        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -8767,10 +8770,10 @@ export default {
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени и обводки
-        const padding = Math.max(
-          (currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0),
-          (currentTextData.stroke ? currentTextData.strokeWidth : 0)
-        ) + 20 // Дополнительный отступ
+        const shadowPadding = currentTextData.shadow ? currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY) : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth : 0
+        
+        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2

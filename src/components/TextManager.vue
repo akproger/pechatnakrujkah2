@@ -2484,8 +2484,24 @@ export default {
       if (this.textDialogActiveTab === 'conversation') {
         console.log('🎯 Дефолтная подложка режима "Разговор" с хвостом')
         
-        // Рисуем объединенную фигуру (подложка + хвост)
-        this.drawCombinedShape(ctx, x, y, bgWidth, bgHeight, 1, this.textDialogData.backgroundColor || '#ffffff', false)
+        // Сначала рисуем тень если включена (применяется к объединенной фигуре)
+        if (this.textDialogData.shadow) {
+          ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = this.textDialogData.shadowBlur
+          ctx.shadowOffsetX = this.textDialogData.shadowOffsetX
+          ctx.shadowOffsetY = this.textDialogData.shadowOffsetY
+        }
+        
+        // Рисуем объединенную фигуру (подложка + хвост) с тенью
+        this.drawCombinedShape(ctx, x, y, bgWidth, bgHeight, 1, this.textDialogData.backgroundColor || '#ffffff', true)
+        
+        // Сбрасываем тень
+        if (this.textDialogData.shadow) {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
         
         // Добавляем обводку если включена
         if (this.textDialogData.stroke) {

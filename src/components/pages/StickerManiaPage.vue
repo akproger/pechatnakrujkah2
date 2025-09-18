@@ -9077,7 +9077,7 @@ export default {
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
         // Учитываем размеры подложки для вычисления ширины хвоста
         const minDimension = Math.min(bgWidth, bgHeight)
-        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
+        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
                                          isTopLeft, isTopRight, isBottomRight, isBottomLeft, 
@@ -9089,7 +9089,7 @@ export default {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // Учитываем размеры подложки для вычисления ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
       
       // Сбрасываем флаги углов для второй проверки
       isTopLeft = false
@@ -9326,7 +9326,7 @@ export default {
       // tailWidth теперь в процентах от 40% до 100%
       // Учитываем размеры подложки для вычисления ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
       
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне

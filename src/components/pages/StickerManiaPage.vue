@@ -2531,8 +2531,9 @@ export default {
         }
 
         // Создаем ссылку для скачивания
+        const filename = `sticker-design-${new Date().toISOString().slice(0, 10)}.png`
         const link = document.createElement('a')
-        link.download = `sticker-design-${new Date().toISOString().slice(0, 10)}.png`
+        link.download = filename
         
         // Конвертируем в blob с высоким качеством
         printCanvas.toBlob((blob) => {

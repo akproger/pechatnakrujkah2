@@ -2628,21 +2628,23 @@ export default {
         // 2. Перерисовываем все стикеры в правильном порядке слоев (сначала стикеры - они будут внизу)
         console.log(`🎭 Рисуем ${this.stickers.length} стикеров в правильном порядке слоев`)
         
-        // Сортируем стикеры по их z-index (порядку в массиве)
+        // Сортируем стикеры по их реальному z-index (порядку наложения на канвасе)
         const sortedStickers = [...this.stickers].sort((a, b) => {
-          const indexA = this.stickers.indexOf(a)
-          const indexB = this.stickers.indexOf(b)
-          return indexA - indexB
+          // Получаем реальный z-index из Paper.js группы
+          const zIndexA = a.group ? a.group.index : 0
+          const zIndexB = b.group ? b.group.index : 0
+          return zIndexA - zIndexB // Сначала рисуем стикеры с меньшим z-index (они будут внизу)
         })
         
         for (let i = 0; i < sortedStickers.length; i++) {
           const sticker = sortedStickers[i]
           const originalIndex = this.stickers.indexOf(sticker)
-          console.log(`🎭 Стикер ${originalIndex + 1} (слой ${i + 1}):`, {
+          console.log(`🎭 Стикер ${originalIndex + 1} (z-index: ${sticker.group?.index || 0}, слой ${i + 1}):`, {
             mask: sticker.mask,
             image: sticker.image,
             position: sticker.group?.position,
             rotation: sticker.group?.rotation,
+            zIndex: sticker.group?.index || 0,
             stickerMasksLength: this.stickerMasks?.length,
             stickerImagesLength: this.uploadedImages?.length
           })
@@ -2757,9 +2759,17 @@ export default {
         const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
         const tailLength = minDimension * 1.25 * tailSize // Увеличиваем базовую длину хвоста
         const tailBaseWidth = minDimension * 0.3 * tailWidth
-        const tailPadding = Math.max(tailLength * 2.0, tailBaseWidth * 2.0, minDimension * 1.5) // Увеличиваем отступы
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 100 // Увеличиваем дополнительный отступ
+        // Учитываем толщину хвоста в отступах
+        const tailThicknessPadding = tailBaseWidth * 1.5 // Дополнительный отступ для толщины хвоста
+        const tailPadding = Math.max(
+          tailLength * 2.5, // Увеличиваем отступ для длины хвоста
+          tailBaseWidth * 2.5, // Увеличиваем отступ для ширины хвоста
+          tailThicknessPadding, // Добавляем отступ для толщины хвоста
+          minDimension * 2.0 // Увеличиваем базовый отступ
+        )
+        
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 150 // Еще больше увеличиваем дополнительный отступ
         
         // Вычисляем размеры с отступами
         const highResWidth = scaledBackgroundWidth + padding * 2

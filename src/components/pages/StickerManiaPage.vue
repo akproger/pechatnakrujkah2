@@ -9075,7 +9075,9 @@ export default {
       
       // Если хвост точно выходит из угла, используем специальную логику
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
-        const tailWidthPixels = tailWidthPercent * 50 // Увеличено в 2.5 раза (было 20)
+        // Учитываем размеры подложки для вычисления ширины хвоста
+        const minDimension = Math.min(bgWidth, bgHeight)
+        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
                                          isTopLeft, isTopRight, isBottomRight, isBottomLeft, 
@@ -9085,7 +9087,9 @@ export default {
       
       // Если хвост выходит НЕ точно из угла, а рядом с углом, используем старую логику
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
-      const tailWidthPixels = tailWidthPercent * 50 // Увеличено в 2.5 раза (было 20)
+      // Учитываем размеры подложки для вычисления ширины хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
       
       // Сбрасываем флаги углов для второй проверки
       isTopLeft = false
@@ -9320,7 +9324,9 @@ export default {
                           intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent) {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // tailWidth теперь в процентах от 40% до 100%
-      const tailWidthPixels = tailWidthPercent * 50 // Увеличено в 2.5 раза (было 20)
+      // Учитываем размеры подложки для вычисления ширины хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
       
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне

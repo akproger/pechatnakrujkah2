@@ -9539,7 +9539,7 @@ export default {
       
       // Параметры хвоста
       const tailSize = Number(currentTextData.tailSize) / 100 // От 100% до 300%
-      const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100%
+      const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100% (уже в правильном формате)
       const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
       // Размеры хвоста

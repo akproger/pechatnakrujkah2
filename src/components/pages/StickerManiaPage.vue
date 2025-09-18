@@ -6988,65 +6988,76 @@ export default {
           return // Не продолжаем с обычной логикой перетаскивания
         }
         
-        // Ищем элемент под курсором с более точными настройками
-        const hitResult = this.paperScope.project.hitTest(event.point, {
-          segments: true,
-          stroke: true,
-          fill: true,
-          tolerance: 15,
-          match: (result) => {
-            const item = result.item
-            
-            // Проверяем, что это элемент, который можно перетаскивать
-            const isDraggable = item.className === 'TextItem' || 
-                               item.className === 'Group' || 
-                               item.className === 'Raster' ||
-                               item.className === 'Path' ||
-                               (item.parent && item.parent.className === 'Layer') ||
-                               (item.data && (item.data.isTextOverlay || item.data.isTextBackground || item.data.isSticker))
-            
-            return isDraggable
-          }
-        })
+            // Ищем элемент под курсором с более точными настройками
+            const hitResult = this.paperScope.project.hitTest(event.point, {
+              segments: true,
+              stroke: true,
+              fill: true,
+              tolerance: 15,
+              match: (result) => {
+                const item = result.item
+                
+                // Проверяем, что это элемент, который можно перетаскивать
+                const isDraggable = item.className === 'TextItem' || 
+                                   item.className === 'Group' || 
+                                   item.className === 'Raster' ||
+                                   item.className === 'Path' ||
+                                   (item.parent && item.parent.className === 'Layer') ||
+                                   (item.data && (item.data.isTextOverlay || item.data.isTextBackground || item.data.isSticker))
+                
+                console.log('🔍 HitTest проверка элемента:', {
+                  className: item.className,
+                  data: item.data,
+                  parent: item.parent ? item.parent.className : 'none',
+                  isDraggable: isDraggable
+                })
+                
+                return isDraggable
+              }
+            })
         
-        if (hitResult && hitResult.item) {
-          const item = hitResult.item
-          
-          console.log('🎯 Найден элемент для перетаскивания:', {
-            className: item.className,
-            data: item.data,
-            parent: item.parent ? item.parent.className : 'none'
-          })
-          
-          // Снимаем предыдущее выделение при начале перетаскивания
-          clearSelection()
-          
-          // Определяем, что именно перетаскиваем
-          if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isSticker) {
-            // Это стикер - перетаскиваем всю группу
-            dragItem = item.parent
-            console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
-          } else if (item.className === 'Group' && item.data && item.data.isTextBackground) {
-            // Это группа с текстом и подложкой
-            dragItem = item
-            console.log('🎯 Начато перетаскивание текстовой группы:', dragItem.className)
-          } else if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isTextBackground) {
-            // Это элемент внутри текстовой группы
-            dragItem = item.parent
-            console.log('🎯 Начато перетаскивание текстовой группы (через дочерний элемент):', dragItem.className)
-          } else if (item.data && (item.data.isTextOverlay || item.data.isTextBackground)) {
-            // Это текстовый элемент или подложка
-            dragItem = item
-            console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
-          } else {
-            // Это обычный элемент
-            dragItem = item
-            console.log('🎯 Начато перетаскивание элемента:', dragItem.className)
-          }
-          
-          offset = event.point.subtract(dragItem.position)
-          dragItem.selected = true
-        }
+            if (hitResult && hitResult.item) {
+              const item = hitResult.item
+              
+              console.log('🎯 Найден элемент для перетаскивания:', {
+                className: item.className,
+                data: item.data,
+                parent: item.parent ? item.parent.className : 'none'
+              })
+              
+              // Снимаем предыдущее выделение при начале перетаскивания
+              clearSelection()
+              
+              // Определяем, что именно перетаскиваем
+              if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isSticker) {
+                // Это стикер - перетаскиваем всю группу
+                dragItem = item.parent
+                console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
+              } else if (item.className === 'Group' && item.data && item.data.isTextBackground) {
+                // Это группа с текстом и подложкой
+                dragItem = item
+                console.log('🎯 Начато перетаскивание текстовой группы:', dragItem.className)
+              } else if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isTextBackground) {
+                // Это элемент внутри текстовой группы
+                dragItem = item.parent
+                console.log('🎯 Начато перетаскивание текстовой группы (через дочерний элемент):', dragItem.className)
+              } else if (item.data && (item.data.isTextOverlay || item.data.isTextBackground)) {
+                // Это текстовый элемент или подложка
+                dragItem = item
+                console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
+              } else if (item.className === 'Raster' && !item.data) {
+                // Это Raster без данных (возможно, подложка) - перетаскиваем его напрямую
+                dragItem = item
+                console.log('🎯 Начато перетаскивание Raster:', dragItem.className)
+              } else {
+                // Это обычный элемент
+                dragItem = item
+                console.log('🎯 Начато перетаскивание элемента:', dragItem.className)
+              }
+              
+              offset = event.point.subtract(dragItem.position)
+              dragItem.selected = true
+            }
       }
       
       dragTool.onMouseDrag = (event) => {
@@ -9886,19 +9897,26 @@ export default {
       return backgroundItem
     },
     
-    // Создание подложки используя полную логику с канвас-превью
+    // Создание подложки используя перенос растра с канвас-превью
     createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
       const currentTextData = textData
       
       try {
-        console.log('🎨 Создание подложки "Разговор" с полной логикой канвас-превью:', {
+        console.log('🎨 Создание подложки "Разговор" через перенос растра с канвас-превью:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
           backgroundColor: backgroundColor
         })
         
-        // Создаем временный Canvas для отрисовки подложки с полной логикой
+        // Получаем канвас-превью
+        const previewCanvas = this.$refs.textPreviewCanvas
+        if (!previewCanvas) {
+          console.error('❌ Канвас-превью не найден')
+          return null
+        }
+        
+        // Создаем временный Canvas для копирования с канвас-превью
         const dpr = window.devicePixelRatio || 1
         
         // Добавляем отступы для тени, обводки и хвоста (используем ту же логику, что и при сохранении)
@@ -9944,43 +9962,14 @@ export default {
         const canvasCenterX = canvasWidth / 2
         const canvasCenterY = canvasHeight / 2
         
-        // Применяем тень если включена (точно как в превью)
-        if (currentTextData.shadow) {
-          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
-        }
-        
-        // Рисуем объединенную фигуру в центре временного Canvas (используем полную логику канвас-превью)
-        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
-        
-        // Сбрасываем тень
-        if (currentTextData.shadow) {
-          tempCtx.shadowColor = 'transparent'
-          tempCtx.shadowBlur = 0
-          tempCtx.shadowOffsetX = 0
-          tempCtx.shadowOffsetY = 0
-        }
-        
-        // Добавляем обводку если включена (используем полную логику канвас-превью)
-        if (currentTextData.stroke) {
-          tempCtx.strokeStyle = currentTextData.strokeColor
-          tempCtx.lineWidth = currentTextData.strokeWidth
-          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, currentTextData)
-        }
-        
-        // Добавляем текст в Raster (используем полную логику канвас-превью)
-        if (currentTextData.text && currentTextData.text.trim() !== '') {
-          console.log('✅ Добавляем текст в Raster с полной логикой канвас-превью:', {
-            hasShadow: currentTextData.shadow,
-            shadowColor: currentTextData.shadowColor,
-            shadowBlur: currentTextData.shadowBlur
-          })
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
-        } else {
-          console.log('⚠️ Текст не добавлен в Raster - текст отсутствует или пустой')
-        }
+        // Копируем содержимое с канвас-превью в центр временного Canvas
+        // Канвас-превью уже содержит правильно отрисованную подложку с тенью и обводкой
+        tempCtx.drawImage(
+          previewCanvas,
+          0, 0, previewCanvas.width, previewCanvas.height, // Исходная область (весь канвас-превью)
+          canvasCenterX - backgroundWidth / 2, canvasCenterY - backgroundHeight / 2, // Позиция в целевом канвасе
+          backgroundWidth, backgroundHeight // Размер в целевом канвасе
+        )
         
         // Конвертируем Canvas в Paper.js Raster
         const raster = new this.paperScope.Raster(tempCanvas)
@@ -10016,7 +10005,7 @@ export default {
           padding: padding
         })
         
-        console.log('✅ Подложка создана с полной логикой канвас-превью:', {
+        console.log('✅ Подложка создана через перенос растра с канвас-превью:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
           mode: 'conversation',
@@ -10029,7 +10018,7 @@ export default {
         return raster
         
       } catch (error) {
-        console.error('❌ Ошибка создания подложки с полной логикой канвас-превью:', error)
+        console.error('❌ Ошибка создания подложки через перенос растра:', error)
         // Fallback на простой прямоугольник
         const rect = new this.paperScope.Path.Rectangle(
           new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),

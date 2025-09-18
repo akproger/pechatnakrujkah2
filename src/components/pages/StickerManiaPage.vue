@@ -9075,9 +9075,8 @@ export default {
       
       // Если хвост точно выходит из угла, используем специальную логику
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
-        // Учитываем размеры подложки для вычисления ширины хвоста
-        const minDimension = Math.min(bgWidth, bgHeight)
-        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
+        // Используем ту же формулу, что и в canvas-превью для консистентности
+        const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
                                          isTopLeft, isTopRight, isBottomRight, isBottomLeft, 
@@ -9087,9 +9086,8 @@ export default {
       
       // Если хвост выходит НЕ точно из угла, а рядом с углом, используем старую логику
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
-      // Учитываем размеры подложки для вычисления ширины хвоста
-      const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
+      // Используем ту же формулу, что и в canvas-превью для консистентности
+      const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
       
       // Сбрасываем флаги углов для второй проверки
       isTopLeft = false
@@ -9324,9 +9322,8 @@ export default {
                           intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // tailWidth теперь в процентах от 40% до 100%
-      // Учитываем размеры подложки для вычисления ширины хвоста
-      const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины (без масштабирования)
+      // Используем ту же формулу, что и в canvas-превью для консистентности
+      const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
       
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне

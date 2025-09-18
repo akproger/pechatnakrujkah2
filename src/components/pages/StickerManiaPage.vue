@@ -2762,13 +2762,13 @@ export default {
         
         // Учитываем толщину хвоста в отступах
         const tailThicknessPadding = tailBaseWidth * 2.0 // Увеличиваем отступ для толщины хвоста
-        const tailTipPadding = tailLength * 0.5 // Дополнительный отступ для кончика хвоста
+        const tailTipPadding = tailLength * 1.0 // Увеличиваем отступ для кончика хвоста (было 0.5)
         const tailPadding = Math.max(
-          tailLength * 3.0, // Еще больше увеличиваем отступ для длины хвоста
-          tailBaseWidth * 3.0, // Еще больше увеличиваем отступ для ширины хвоста
+          tailLength * 4.0, // Еще больше увеличиваем отступ для длины хвоста (было 3.0)
+          tailBaseWidth * 4.0, // Еще больше увеличиваем отступ для ширины хвоста (было 3.0)
           tailThicknessPadding, // Добавляем отступ для толщины хвоста
           tailTipPadding, // Добавляем отступ для кончика хвоста
-          minDimension * 2.5 // Еще больше увеличиваем базовый отступ
+          minDimension * 3.0 // Еще больше увеличиваем базовый отступ (было 2.5)
         )
         
         const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимально увеличиваем дополнительный отступ
@@ -9084,12 +9084,13 @@ export default {
       
       // Если хвост точно выходит из угла, используем специальную логику
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
-        // Используем ту же формулу, что и в canvas-превью для консистентности
-        const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+        // Масштабируем ширину хвоста пропорционально разрешению для сохранения
+        const tailWidthPixels = tailWidthPercent * 50 * scale // Формула из TextManager.vue с масштабированием
         console.log('🔍 buildCornerTailSuperPath DEBUG:', {
           tailWidthPercent,
           tailWidthPixels,
-          formula: 'tailWidthPercent * 50'
+          scale,
+          formula: 'tailWidthPercent * 50 * scale'
         })
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
@@ -9100,12 +9101,13 @@ export default {
       
       // Если хвост выходит НЕ точно из угла, а рядом с углом, используем старую логику
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
-      // Используем ту же формулу, что и в canvas-превью для консистентности
-      const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+      // Масштабируем ширину хвоста пропорционально разрешению для сохранения
+      const tailWidthPixels = tailWidthPercent * 50 * scale // Формула из TextManager.vue с масштабированием
       console.log('🔍 buildCornerTailSuperPath (non-exact) DEBUG:', {
         tailWidthPercent,
         tailWidthPixels,
-        formula: 'tailWidthPercent * 50'
+        scale,
+        formula: 'tailWidthPercent * 50 * scale'
       })
       
       // Сбрасываем флаги углов для второй проверки
@@ -9341,12 +9343,13 @@ export default {
                           intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // tailWidth теперь в процентах от 40% до 100%
-      // Используем ту же формулу, что и в canvas-превью для консистентности
-      const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+      // Масштабируем ширину хвоста пропорционально разрешению для сохранения
+      const tailWidthPixels = tailWidthPercent * 50 * scale // Формула из TextManager.vue с масштабированием
       console.log('🔍 buildSideTailSuperPath DEBUG:', {
         tailWidthPercent,
         tailWidthPixels,
-        formula: 'tailWidthPercent * 50'
+        scale,
+        formula: 'tailWidthPercent * 50 * scale'
       })
       
       if (tailSide === 'top') {

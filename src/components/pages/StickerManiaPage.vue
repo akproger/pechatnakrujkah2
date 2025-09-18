@@ -2708,31 +2708,68 @@ export default {
         
         // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
-        // Рисуем подложку если есть (проверяем backgroundMode)
+        // Рисуем подложку если есть (используем ту же логику, что и на основном канвасе)
         if (layer.textData.backgroundMode) {
           console.log('🎨 Рисуем подложку для текста в высоком разрешении')
           
-          // Простая подложка - прямоугольник с закругленными углами
+          // Используем ту же логику, что и в createBackgroundFromPreviewLogic
           const backgroundColor = layer.textData.backgroundColor || '#ffffff'
-          const radius = 10 * scale // Масштабируем радиус
+          const backgroundWidth = layer.textData.backgroundWidth || 200
+          const backgroundHeight = layer.textData.backgroundHeight || 100
           
-          tempCtx.fillStyle = backgroundColor
-          tempCtx.beginPath()
+          // Масштабируем размеры подложки
+          const scaledBackgroundWidth = backgroundWidth * scale
+          const scaledBackgroundHeight = backgroundHeight * scale
           
-          // Рисуем закругленный прямоугольник вручную
-          tempCtx.moveTo(radius, 0)
-          tempCtx.lineTo(highResWidth - radius, 0)
-          tempCtx.quadraticCurveTo(highResWidth, 0, highResWidth, radius)
-          tempCtx.lineTo(highResWidth, highResHeight - radius)
-          tempCtx.quadraticCurveTo(highResWidth, highResHeight, highResWidth - radius, highResHeight)
-          tempCtx.lineTo(radius, highResHeight)
-          tempCtx.quadraticCurveTo(0, highResHeight, 0, highResHeight - radius)
-          tempCtx.lineTo(0, radius)
-          tempCtx.quadraticCurveTo(0, 0, radius, 0)
-          tempCtx.closePath()
-          tempCtx.fill()
+          // Вычисляем отступы для тени, обводки и хвоста
+          const shadowPadding = layer.textData.shadow ? Math.min(layer.textData.shadowBlur + Math.abs(layer.textData.shadowOffsetX) + Math.abs(layer.textData.shadowOffsetY), 100) : 0
+          const strokePadding = layer.textData.stroke ? layer.textData.strokeWidth / 2 : 0
           
-          console.log('✅ Подложка нарисована:', backgroundColor)
+          // Для режима "Разговор" добавляем отступ для хвоста
+          const tailSize = Number(layer.textData.tailSize) / 100
+          const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
+          const tailLength = minDimension * 0.8 * tailSize
+          const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0)
+          
+          const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30
+          
+          // Вычисляем размеры с отступами
+          const canvasWidth = scaledBackgroundWidth + padding * 2
+          const canvasHeight = scaledBackgroundHeight + padding * 2
+          
+          // Создаем новый временный canvas для подложки
+          const backgroundCanvas = document.createElement('canvas')
+          backgroundCanvas.width = canvasWidth
+          backgroundCanvas.height = canvasHeight
+          const backgroundCtx = backgroundCanvas.getContext('2d')
+          
+          // Очищаем канвас
+          backgroundCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+          
+          // Рисуем подложку в зависимости от режима
+          // Создаем временный слой для передачи в методы
+          const tempLayer = {
+            textData: layer.textData,
+            bounds: {
+              width: scaledBackgroundWidth,
+              height: scaledBackgroundHeight
+            }
+          }
+          
+          if (layer.textData.backgroundMode === 'conversation') {
+            await this.drawConversationBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+          } else if (layer.textData.backgroundMode === 'standard') {
+            await this.drawStandardBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+          } else if (layer.textData.backgroundMode === 'thoughts') {
+            await this.drawThoughtsBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+          } else if (layer.textData.backgroundMode === 'image-text') {
+            await this.drawImageTextBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+          }
+          
+          // Рисуем подложку на основной canvas
+          tempCtx.drawImage(backgroundCanvas, 0, 0)
+          
+          console.log('✅ Подложка нарисована:', backgroundColor, 'режим:', layer.textData.backgroundMode)
         } else {
           console.log('⚠️ У текста нет подложки')
         }
@@ -2844,10 +2881,10 @@ export default {
           })
         })
 
-        // Масштабируем маску (поворот применим позже к группе)
+        // Масштабируем и поворачиваем маску (как в createOptimalSticker)
         const maskScale = size / 100 // Масштабируем под нужный размер
         item.scale(maskScale)
-        // НЕ применяем поворот здесь - применим к группе позже
+        item.rotate(rotation) // Применяем поворот к маске, как в оригинале
 
         if (item.children && item.children.length > 0) {
           // Ищем путь в импортированном SVG
@@ -3042,11 +3079,8 @@ export default {
           stickerGroup.addChild(clippedRaster) // Изображение посередине
           stickerGroup.addChild(outlinePath) // Обводка сверху
           
-          // Применяем поворот к группе стикера относительно её центра
-          if (rotation !== 0) {
-            stickerGroup.rotate(rotation, stickerGroup.bounds.center)
-            console.log('🔄 Поворот применен к группе стикера:', rotation, 'центр:', stickerGroup.bounds.center)
-          }
+          // Поворот уже применен к маске, не нужно применять к группе
+          console.log('🔄 Поворот применен к маске стикера:', rotation)
           
           // Добавляем группу в проект
           tempPaperScope.project.activeLayer.addChild(stickerGroup)

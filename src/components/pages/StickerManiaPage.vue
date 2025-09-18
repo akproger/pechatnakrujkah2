@@ -8988,7 +8988,8 @@ export default {
       const currentTextData = textData || this.textDialogData
       
       // Вычисляем параметры хвоста
-      const tailWidthPercent = Number(currentTextData.tailWidth) / 100
+      // Используем переданный tailWidth (уже в процентах от 0 до 1) или берем из данных
+      const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(currentTextData.tailWidth) / 100)
       const tailSizePercent = Number(currentTextData.tailSize) / 100
       
       // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)

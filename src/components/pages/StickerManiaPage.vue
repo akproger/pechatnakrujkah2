@@ -8991,9 +8991,9 @@ export default {
       const tailWidthPercent = Number(currentTextData.tailWidth) / 100
       const tailSizePercent = Number(currentTextData.tailSize) / 100
       
-      // Острая вершина хвоста (используем переданный tailLength)
-      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
-      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
+      // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
+      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
       
       // Определяем, с какой стороны подложки выходит хвост
       const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
@@ -9546,7 +9546,7 @@ export default {
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 * scale // Базовая длина хвоста с учетом масштабирования
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (без масштабирования)
       
       // Позиция подложки
       const bgX = centerX - bgWidth / 2

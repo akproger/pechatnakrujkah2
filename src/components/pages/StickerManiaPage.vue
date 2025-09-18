@@ -59,15 +59,16 @@
                 
                 <!-- Кнопка сохранения -->
                 <div class="col" style="padding: 0;">
-                  <button 
-                    @click="saveCanvasForPrint" 
-                    class="btn btn-info"
-                    style="background-color: #17a2b8; border-color: #17a2b8;"
-                    title="Сохранить для печати (высокое качество)"
-                  >
-                    <i class="bi bi-download me-2"></i>
-                    Сохранить
-                  </button>
+                  <HighQualitySaveButton
+                    :save-function="saveCanvasForPrint"
+                    :save-params="{}"
+                    button-text="Сохранить в высоком качестве"
+                    size="medium"
+                    variant="primary"
+                    @save-success="onSaveSuccess"
+                    @save-error="onSaveError"
+                    @show-notification="showNotification"
+                  />
                 </div>
 
               </div>
@@ -1980,6 +1981,7 @@ import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import StickerSelectionModal from '../StickerSelectionModal.vue'
 import TextManager from '../TextManager.vue'
+import HighQualitySaveButton from '../common/HighQualitySaveButton.vue'
 import heartMask from '/src/assets/masks/heart.svg'
 import rocketMask from '/src/assets/masks/rocket.svg'
 import blabMask from '/src/assets/masks/blab.svg'
@@ -2000,7 +2002,8 @@ export default {
   components: {
     ThreeDRenderer,
     StickerSelectionModal,
-    TextManager
+    TextManager,
+    HighQualitySaveButton
   },
   data() {
     return {
@@ -2304,6 +2307,36 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    // Обработчики событий для кнопки сохранения
+    onSaveSuccess(result) {
+      console.log('✅ Сохранение завершено успешно:', result)
+      this.showNotification({
+        type: 'success',
+        message: 'Файл успешно сохранен в высоком качестве!'
+      })
+    },
+    
+    onSaveError(error) {
+      console.error('❌ Ошибка при сохранении:', error)
+      this.showNotification({
+        type: 'error',
+        message: 'Ошибка при сохранении файла. Попробуйте еще раз.'
+      })
+    },
+    
+    showNotification(notification) {
+      // Здесь можно добавить логику показа уведомлений
+      // Например, через toast или другой компонент уведомлений
+      console.log('📢 Уведомление:', notification)
+      
+      // Простое уведомление через alert (временное решение)
+      if (notification.type === 'success') {
+        alert('✅ ' + notification.message)
+      } else if (notification.type === 'error') {
+        alert('❌ ' + notification.message)
+      }
+    },
+
     // Рассчитывает умные bounds для области перетаскивания с учетом хвоста
     calculateSmartBounds(originalBounds, textData, mode) {
       const basePadding = 3 // Уменьшенный базовый отступ от обводки
@@ -2383,7 +2416,8 @@ export default {
     async saveCanvasForPrint() {
       console.log('🖨️ Начинаем сохранение холста для печати в 300 DPI')
       
-      try {
+      return new Promise(async (resolve, reject) => {
+        try {
         const canvas = this.$refs.testCanvas
         if (!canvas) {
           console.error('❌ Основной холст не найден')
@@ -2526,9 +2560,18 @@ export default {
           }
         }, 'image/png', 1.0) // Максимальное качество
 
-      } catch (error) {
-        console.error('❌ Ошибка при сохранении холста:', error)
-      }
+        resolve({
+          success: true,
+          filename: filename,
+          size: { width: printWidth, height: printHeight },
+          scale: scale
+        })
+
+        } catch (error) {
+          console.error('❌ Ошибка при сохранении холста:', error)
+          reject(error)
+        }
+      })
     },
     
     // Перерисовка всех элементов в высоком разрешении для печати
@@ -2710,7 +2753,7 @@ export default {
       }
     },
     
-    // Перерисовка стикера в высоком разрешении
+    // Перерисовка стикера в высоком разрешении - полное дублирование логики createOptimalSticker
     async redrawStickerInHighDPI(tempPaperScope, sticker, scale, stickerMasks, stickerImages) {
       console.log(`🎭 Перерисовываем стикер: ${sticker.mask} + ${sticker.image}`)
       console.log('🔍 Отладка в redrawStickerInHighDPI:', {
@@ -2723,23 +2766,23 @@ export default {
         originalRotation: sticker.group?.rotation,
         originalScaling: sticker.group?.scaling
       })
-      
+
       try {
         // Проверяем наличие массивов
         if (!stickerMasks || !Array.isArray(stickerMasks)) {
           console.warn('⚠️ stickerMasks не определен или не является массивом:', stickerMasks)
           return
         }
-        
+
         if (!stickerImages || !Array.isArray(stickerImages)) {
           console.warn('⚠️ stickerImages не определен или не является массивом:', stickerImages)
           return
         }
-        
+
         // Находим маску и изображение
         const mask = stickerMasks.find(m => m.name === sticker.mask)
         const image = stickerImages.find(img => img.name === sticker.image)
-        
+
         if (!mask || !image) {
           console.warn('⚠️ Маска или изображение не найдены для стикера:', {
             mask: mask ? 'найдена' : 'не найдена',
@@ -2749,318 +2792,259 @@ export default {
           })
           return
         }
-        
-        // Создаем группу стикера в высоком разрешении
-        const stickerGroup = new tempPaperScope.Group()
-        
-        // 1. Создаем тень (если есть)
-        if (this.shadowBlur > 0) {
-          const shadowRaster = await this.createStickerShadowInHighDPI(tempPaperScope, mask, image, sticker, scale)
-          if (shadowRaster) {
-            // Смещаем тень
-            shadowRaster.position = new tempPaperScope.Point(
-              (sticker.group.position.x + this.shadowOffsetX) * scale,
-              (sticker.group.position.y + this.shadowOffsetY) * scale
-            )
-            stickerGroup.addChild(shadowRaster)
-            console.log('✅ Тень стикера добавлена в высоком разрешении')
+
+        // Получаем параметры стикера
+        const x = sticker.group.position.x * scale
+        const y = sticker.group.position.y * scale
+        const size = sticker.size * scale
+        const rotation = sticker.group.rotation || 0
+
+        console.log(`🎨 Создаем стикер в высоком разрешении: ${mask.name} + ${image.name} в позиции (${x}, ${y}) размером ${size}`)
+
+        // Загружаем SVG маску (как в createOptimalSticker)
+        const svgResponse = await fetch(mask.url)
+        const svgText = await svgResponse.text()
+
+        // Импортируем SVG в временный scope
+        const tempScope = new paper.PaperScope()
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = 1000
+        tempCanvas.height = 1000
+        tempScope.setup(tempCanvas)
+
+        const item = await new Promise((resolve, reject) => {
+          tempScope.project.importSVG(svgText, {
+            onLoad: (importedItem) => {
+              resolve(importedItem)
+            },
+            onError: (error) => {
+              reject(error)
+            }
+          })
+        })
+
+        // Масштабируем и поворачиваем маску
+        const maskScale = size / 100 // Масштабируем под нужный размер
+        item.scale(maskScale)
+        item.rotate(rotation)
+
+        if (item.children && item.children.length > 0) {
+          // Ищем путь в импортированном SVG
+          let path = null
+          
+          // Рекурсивно ищем Path в импортированном SVG
+          const findPath = (node) => {
+            if (node.className === 'Path') {
+              path = node
+              return true
+            }
+            if (node.children) {
+              for (let child of node.children) {
+                if (findPath(child)) return true
+              }
+            }
+            return false
           }
-        }
-        
-        // 2. Создаем обводку (если есть)
-        if (this.strokeWidth > 0) {
-          const strokeRaster = await this.createStickerStrokeInHighDPI(tempPaperScope, mask, scale)
-          if (strokeRaster) {
-            strokeRaster.position = new tempPaperScope.Point(
-              sticker.group.position.x * scale,
-              sticker.group.position.y * scale
-            )
-            stickerGroup.addChild(strokeRaster)
-            console.log('✅ Обводка стикера добавлена в высоком разрешении')
+          
+          findPath(item)
+          
+          if (!path) {
+            console.log('⚠️ Не найден Path в SVG:', item)
+            path = item.children[0]
           }
-        }
-        
-        // 3. Создаем основное изображение стикера
-        const mainRaster = await this.createStickerImageInHighDPI(tempPaperScope, mask, image, sticker, scale)
-        if (mainRaster) {
-          mainRaster.position = new tempPaperScope.Point(
-            sticker.group.position.x * scale,
-            sticker.group.position.y * scale
+
+          // Создаем растр из изображения
+          const raster = new tempPaperScope.Raster(image.url)
+          raster.visible = false // Скрываем оригинальный растр
+          
+          await new Promise((resolve) => {
+            raster.onLoad = resolve
+          })
+
+          console.log(`🖼️ Растр загружен: ${image.name}, размеры: ${raster.image.width}x${raster.image.height}`)
+          
+          // Создаем временный canvas для обрезки изображения
+          const tempCanvas = document.createElement('canvas')
+          const tempCtx = tempCanvas.getContext('2d')
+          
+          // Получаем размеры маски
+          const maskBounds = path.bounds
+          console.log(`📐 Размеры маски ${mask.name}: ${maskBounds.width}x${maskBounds.height}`)
+          
+          tempCanvas.width = maskBounds.width
+          tempCanvas.height = maskBounds.height
+          
+          // Очищаем canvas
+          tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+          
+          // Создаем путь маски на canvas
+          tempCtx.save()
+          tempCtx.beginPath()
+          
+          // Рисуем путь маски (как в createOptimalSticker)
+          if (path.className === 'Path' && path.segments && path.segments.length > 0) {
+            console.log('🔍 Сегменты пути:', path.segments.length)
+            
+            // Используем более точный способ отрисовки SVG пути
+            if (path.pathData) {
+              console.log('🎯 Используем pathData для точной отрисовки')
+              
+              // Парсим SVG path data и рисуем его на canvas
+              const pathCommands = this.parseSVGPath(path.pathData)
+              tempCtx.translate(-maskBounds.x, -maskBounds.y)
+              
+              // Устанавливаем fill-rule для правильной обработки отверстий
+              tempCtx.fillRule = 'evenodd'
+              
+              // Используем ручную отрисовку для более точного контроля
+              for (const command of pathCommands) {
+                if (command.type === 'M') {
+                  tempCtx.moveTo(command.x, command.y)
+                } else if (command.type === 'L') {
+                  tempCtx.lineTo(command.x, command.y)
+                } else if (command.type === 'C') {
+                  tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
+                } else if (command.type === 'Q') {
+                  tempCtx.quadraticCurveTo(command.x1, command.y1, command.x, command.y)
+                } else if (command.type === 'Z') {
+                  tempCtx.closePath()
+                }
+              }
+              tempCtx.clip()
+              
+              tempCtx.translate(maskBounds.x, maskBounds.y)
+            } else {
+              // Fallback на сегменты
+              console.log('📐 Используем сегменты для отрисовки')
+              
+              // Первая точка
+              const firstPoint = path.segments[0].point
+              const relativeFirstPoint = new tempPaperScope.Point(
+                firstPoint.x - maskBounds.x,
+                firstPoint.y - maskBounds.y
+              )
+              tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+              
+              // Остальные точки
+              for (let i = 1; i < path.segments.length; i++) {
+                const segment = path.segments[i]
+                const relativePoint = new tempPaperScope.Point(
+                  segment.point.x - maskBounds.x,
+                  segment.point.y - maskBounds.y
+                )
+                tempCtx.lineTo(relativePoint.x, relativePoint.y)
+              }
+            }
+          } else {
+            console.log('⚠️ Нет сегментов в пути!')
+          }
+          
+          tempCtx.closePath()
+          tempCtx.clip()
+          
+          // Рисуем изображение на canvas с сохранением пропорций и поворотом
+          const imgWidth = raster.image.width
+          const imgHeight = raster.image.height
+          const canvasWidth = maskBounds.width
+          const canvasHeight = maskBounds.height
+          
+          // Вычисляем масштаб для заполнения всей площади стикера
+          const scaleX = canvasWidth / imgWidth
+          const scaleY = canvasHeight / imgHeight
+          const imgScale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
+          
+          // Дополнительно увеличиваем масштаб для гарантированного заполнения
+          const extraScale = 1.1 // Увеличиваем на 10% для гарантии заполнения
+          const finalScale = imgScale * extraScale
+          
+          // Вычисляем размеры масштабированного изображения
+          const scaledWidth = imgWidth * finalScale
+          const scaledHeight = imgHeight * finalScale
+          
+          // Вычисляем смещение для центрирования
+          const offsetX = (canvasWidth - scaledWidth) / 2
+          const offsetY = (canvasHeight - scaledHeight) / 2
+          
+          // Применяем поворот к изображению
+          tempCtx.save()
+          tempCtx.translate(canvasWidth / 2, canvasHeight / 2)
+          tempCtx.rotate((rotation * Math.PI) / 180)
+          tempCtx.translate(-canvasWidth / 2, -canvasHeight / 2)
+          
+          // Рисуем изображение
+          tempCtx.drawImage(
+            raster.image,
+            offsetX,
+            offsetY,
+            scaledWidth,
+            scaledHeight
           )
-          stickerGroup.addChild(mainRaster)
-          console.log('✅ Основное изображение стикера добавлено в высоком разрешении')
-        }
-        
-        // 4. Применяем поворот и масштабирование к группе
-        if (sticker.group.rotation) {
-          stickerGroup.rotation = sticker.group.rotation
-          console.log('🔄 Поворот применен:', sticker.group.rotation)
-        }
-        
-        if (sticker.group.scaling && sticker.group.scaling.x !== 1) {
-          stickerGroup.scaling = new tempPaperScope.Point(
-            sticker.group.scaling.x,
-            sticker.group.scaling.y
+          
+          tempCtx.restore()
+          tempCtx.restore()
+          
+          // Создаем новый растр из обрезанного изображения
+          const dataURL = tempCanvas.toDataURL('image/png')
+          console.log(`✂️ Создан обрезанный растр, размер dataURL: ${dataURL.length} символов`)
+          const clippedRaster = new tempPaperScope.Raster(dataURL)
+          
+          await new Promise((resolve) => {
+            clippedRaster.onLoad = resolve
+          })
+
+          console.log(`✅ Обрезанный растр загружен, позиционируем в (${x}, ${y})`)
+          // Позиционируем обрезанный растр точно в центр маски
+          clippedRaster.position = new tempPaperScope.Point(x, y)
+          
+          // Создаем контур для обводки
+          const outlinePath = path.clone()
+          outlinePath.position = new tempPaperScope.Point(x, y)
+          
+          // Применяем обводку к контуру (масштабируем параметры)
+          const strokeWidthPixels = this.strokeWidth * scale // Масштабируем толщину обводки
+          outlinePath.strokeColor = this.strokeColor
+          outlinePath.strokeWidth = strokeWidthPixels
+          outlinePath.fillColor = null
+          
+          // Создаем отдельную маску для тени (заполненная)
+          const shadowPath = path.clone()
+          shadowPath.position = new tempPaperScope.Point(x, y)
+          // Используем shadowOpacity для прозрачности тени
+          const shadowAlpha = this.shadowOpacity / 100
+          shadowPath.fillColor = `rgba(0, 0, 0, ${shadowAlpha})` // Заполняем тень
+          shadowPath.strokeColor = null
+          
+          // Применяем тень к заполненной маске (масштабируем параметры)
+          shadowPath.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
+          shadowPath.shadowBlur = this.shadowBlur * scale // Масштабируем размытость тени
+          shadowPath.shadowOffset = new tempPaperScope.Point(
+            this.shadowOffsetX * scale, // Масштабируем смещение тени по X
+            this.shadowOffsetY * scale  // Масштабируем смещение тени по Y
           )
-          console.log('📏 Масштабирование применено:', sticker.group.scaling)
+          
+          // Создаем группу стикера (правильный порядок слоев)
+          const stickerGroup = new tempPaperScope.Group()
+          stickerGroup.addChild(shadowPath) // Тень внизу
+          stickerGroup.addChild(clippedRaster) // Изображение посередине
+          stickerGroup.addChild(outlinePath) // Обводка сверху
+          
+          // Добавляем группу в проект
+          tempPaperScope.project.activeLayer.addChild(stickerGroup)
+          
+          // Очищаем временный scope
+          tempScope.project.clear()
+          
+          console.log('✅ Полный стикер (с тенью, обводкой и изображением) добавлен в высоком разрешении')
+
+        } else {
+          console.warn('⚠️ Нет дочерних элементов в импортированном SVG')
         }
-        
-        // Добавляем группу на слой
-        tempPaperScope.project.activeLayer.addChild(stickerGroup)
-        
-        console.log('✅ Полный стикер (с тенью, обводкой и изображением) добавлен в высоком разрешении')
-        
+
       } catch (error) {
         console.error('❌ Ошибка при перерисовке стикера:', error)
       }
     },
     
-    // Создание тени стикера в высоком разрешении
-    async createStickerShadowInHighDPI(tempPaperScope, mask, image, sticker, scale) {
-      try {
-        console.log('🌫️ Создаем тень стикера в высоком разрешении')
-        
-        // Создаем временный canvas для тени
-        const shadowCanvas = document.createElement('canvas')
-        const shadowCtx = shadowCanvas.getContext('2d')
-        
-        // Размеры тени с учетом масштаба
-        const shadowSize = sticker.size * scale
-        const shadowPadding = Math.max(this.shadowBlur, Math.abs(this.shadowOffsetX), Math.abs(this.shadowOffsetY)) * scale
-        
-        shadowCanvas.width = shadowSize + shadowPadding * 2
-        shadowCanvas.height = shadowSize + shadowPadding * 2
-        
-        // Настраиваем высокое качество
-        shadowCtx.imageSmoothingEnabled = true
-        shadowCtx.imageSmoothingQuality = 'high'
-        
-        // Настраиваем тень
-        shadowCtx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-        shadowCtx.shadowBlur = this.shadowBlur * scale
-        shadowCtx.shadowOffsetX = 0
-        shadowCtx.shadowOffsetY = 0
-        
-        // Загружаем SVG маску
-        const svgResponse = await fetch(mask.url)
-        const svgText = await svgResponse.text()
-        
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = svgText
-        const svgElement = tempDiv.querySelector('svg')
-        
-        if (!svgElement) return null
-        
-        // Создаем canvas для SVG
-        const svgCanvas = document.createElement('canvas')
-        const svgCtx = svgCanvas.getContext('2d')
-        
-        const svgScale = sticker.size / 100
-        const svgWidth = Math.round(svgElement.viewBox.baseVal.width * svgScale * scale)
-        const svgHeight = Math.round(svgElement.viewBox.baseVal.height * svgScale * scale)
-        
-        svgCanvas.width = svgWidth
-        svgCanvas.height = svgHeight
-        
-        // Рисуем SVG
-        const svgData = new XMLSerializer().serializeToString(svgElement)
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-        const svgUrl = URL.createObjectURL(svgBlob)
-        
-        const svgImg = new Image()
-        await new Promise((resolve) => {
-          svgImg.onload = resolve
-          svgImg.src = svgUrl
-        })
-        
-        svgCtx.drawImage(svgImg, 0, 0, svgWidth, svgHeight)
-        
-        // Рисуем тень на canvas
-        shadowCtx.drawImage(svgCanvas, shadowPadding, shadowPadding)
-        
-        URL.revokeObjectURL(svgUrl)
-        
-        // Создаем Raster
-        const shadowRaster = new tempPaperScope.Raster(shadowCanvas.toDataURL('image/png', 1.0))
-        await new Promise((resolve) => {
-          shadowRaster.onLoad = resolve
-        })
-        
-        return shadowRaster
-      } catch (error) {
-        console.error('❌ Ошибка при создании тени стикера:', error)
-        return null
-      }
-    },
-    
-    // Создание обводки стикера в высоком разрешении
-    async createStickerStrokeInHighDPI(tempPaperScope, mask, scale) {
-      try {
-        console.log('🖌️ Создаем обводку стикера в высоком разрешении')
-        
-        // Создаем временный canvas для обводки
-        const strokeCanvas = document.createElement('canvas')
-        const strokeCtx = strokeCanvas.getContext('2d')
-        
-        // Размеры обводки с учетом масштаба
-        const strokeSize = 100 * scale // Базовый размер
-        const strokePadding = this.strokeWidth * scale
-        
-        strokeCanvas.width = strokeSize + strokePadding * 2
-        strokeCanvas.height = strokeSize + strokePadding * 2
-        
-        // Настраиваем высокое качество
-        strokeCtx.imageSmoothingEnabled = true
-        strokeCtx.imageSmoothingQuality = 'high'
-        
-        // Настраиваем обводку
-        strokeCtx.strokeStyle = this.strokeColor
-        strokeCtx.lineWidth = this.strokeWidth * scale
-        strokeCtx.lineCap = 'round'
-        strokeCtx.lineJoin = 'round'
-        
-        // Загружаем SVG маску
-        const svgResponse = await fetch(mask.url)
-        const svgText = await svgResponse.text()
-        
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = svgText
-        const svgElement = tempDiv.querySelector('svg')
-        
-        if (!svgElement) return null
-        
-        // Создаем canvas для SVG
-        const svgCanvas = document.createElement('canvas')
-        const svgCtx = svgCanvas.getContext('2d')
-        
-        const svgWidth = Math.round(svgElement.viewBox.baseVal.width * scale)
-        const svgHeight = Math.round(svgElement.viewBox.baseVal.height * scale)
-        
-        svgCanvas.width = svgWidth
-        svgCanvas.height = svgHeight
-        
-        // Рисуем SVG
-        const svgData = new XMLSerializer().serializeToString(svgElement)
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-        const svgUrl = URL.createObjectURL(svgBlob)
-        
-        const svgImg = new Image()
-        await new Promise((resolve) => {
-          svgImg.onload = resolve
-          svgImg.src = svgUrl
-        })
-        
-        svgCtx.drawImage(svgImg, 0, 0, svgWidth, svgHeight)
-        
-        // Рисуем обводку
-        strokeCtx.drawImage(svgCanvas, strokePadding, strokePadding)
-        
-        URL.revokeObjectURL(svgUrl)
-        
-        // Создаем Raster
-        const strokeRaster = new tempPaperScope.Raster(strokeCanvas.toDataURL('image/png', 1.0))
-        await new Promise((resolve) => {
-          strokeRaster.onLoad = resolve
-        })
-        
-        return strokeRaster
-      } catch (error) {
-        console.error('❌ Ошибка при создании обводки стикера:', error)
-        return null
-      }
-    },
-    
-    // Создание основного изображения стикера в высоком разрешении
-    async createStickerImageInHighDPI(tempPaperScope, mask, image, sticker, scale) {
-      try {
-        console.log('🖼️ Создаем основное изображение стикера в высоком разрешении')
-        
-        // Создаем временный canvas для изображения
-        const imageCanvas = document.createElement('canvas')
-        const imageCtx = imageCanvas.getContext('2d')
-        
-        // Размеры изображения с учетом масштаба
-        const imageSize = sticker.size * scale
-        
-        imageCanvas.width = imageSize
-        imageCanvas.height = imageSize
-        
-        // Настраиваем высокое качество
-        imageCtx.imageSmoothingEnabled = true
-        imageCtx.imageSmoothingQuality = 'high'
-        
-        // Загружаем SVG маску
-        const svgResponse = await fetch(mask.url)
-        const svgText = await svgResponse.text()
-        
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = svgText
-        const svgElement = tempDiv.querySelector('svg')
-        
-        if (!svgElement) return null
-        
-        // Создаем canvas для SVG
-        const svgCanvas = document.createElement('canvas')
-        const svgCtx = svgCanvas.getContext('2d')
-        
-        const svgScale = sticker.size / 100
-        const svgWidth = Math.round(svgElement.viewBox.baseVal.width * svgScale * scale)
-        const svgHeight = Math.round(svgElement.viewBox.baseVal.height * svgScale * scale)
-        
-        svgCanvas.width = svgWidth
-        svgCanvas.height = svgHeight
-        
-        // Рисуем SVG
-        const svgData = new XMLSerializer().serializeToString(svgElement)
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
-        const svgUrl = URL.createObjectURL(svgBlob)
-        
-        const svgImg = new Image()
-        await new Promise((resolve) => {
-          svgImg.onload = resolve
-          svgImg.src = svgUrl
-        })
-        
-        svgCtx.drawImage(svgImg, 0, 0, svgWidth, svgHeight)
-        
-        // Создаем маску из SVG
-        const maskCanvas = document.createElement('canvas')
-        const maskCtx = maskCanvas.getContext('2d')
-        maskCanvas.width = svgWidth
-        maskCanvas.height = svgHeight
-        
-        // Применяем маску
-        maskCtx.globalCompositeOperation = 'source-over'
-        maskCtx.drawImage(svgCanvas, 0, 0)
-        
-        // Загружаем изображение стикера
-        const imgElement = new Image()
-        await new Promise((resolve) => {
-          imgElement.onload = resolve
-          imgElement.src = image.url
-        })
-        
-        // Рисуем изображение с маской
-        maskCtx.globalCompositeOperation = 'source-atop'
-        maskCtx.drawImage(imgElement, 0, 0, svgWidth, svgHeight)
-        
-        // Копируем результат на основной canvas
-        imageCtx.drawImage(maskCanvas, 0, 0, imageSize, imageSize)
-        
-        URL.revokeObjectURL(svgUrl)
-        
-        // Создаем Raster
-        const imageRaster = new tempPaperScope.Raster(imageCanvas.toDataURL('image/png', 1.0))
-        await new Promise((resolve) => {
-          imageRaster.onLoad = resolve
-        })
-        
-        return imageRaster
-      } catch (error) {
-        console.error('❌ Ошибка при создании изображения стикера:', error)
-        return null
-      }
-    },
     
     // Рисование подложки в высоком разрешении
     async drawBackgroundInHighDPI(ctx, layer, scale = 1) {

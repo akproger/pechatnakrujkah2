@@ -8308,7 +8308,7 @@ export default {
       // Разбиваем текст на строки по символу \n
       const lines = text.split('\n')
       
-      // Устанавливаем размер шрифта
+      // Устанавливаем размер шрифта (используем fontSize как есть, масштабирование применяется на уровне вызова)
       ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
       
       // Устанавливаем выравнивание текста
@@ -9568,9 +9568,9 @@ export default {
       const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100% (уже в правильном формате)
       const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
-      // Размеры хвоста
+      // Размеры хвоста (точно как в превью)
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста (без масштабирования)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в превью)
       
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
@@ -9869,57 +9869,120 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени, обводки и хвоста
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
-        
-        // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
-        const tailSize = Number(currentTextData.tailSize) / 100
-        const minDimension = Math.min(backgroundWidth, backgroundHeight)
-        const tailLength = minDimension * 0.8 * tailSize // Уменьшенный коэффициент
-        const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0) // Увеличенный отступ для хвоста
-        
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30 // Увеличенный дополнительный отступ для тени
-        
-        console.log('📏 Расчет отступов:', {
-          shadowPadding,
-          strokePadding,
-          tailPadding,
-          finalPadding: padding,
-          tailSize: currentTextData.tailSize,
-          tailLength,
-          minDimension
+        console.log('🔍 HiDPI информация:', {
+          dpr: dpr,
+          note: 'Если dpr > 1, то размеры будут масштабироваться'
         })
         
-        const canvasWidth = backgroundWidth + padding * 2
-        const canvasHeight = backgroundHeight + padding * 2
+        // Вычисляем точные координаты крайних точек суперподложки
+        const extremePoints = this.calculateExtremePointsForSuperBackground(x, y, backgroundWidth, backgroundHeight, currentTextData)
+        
+        console.log('🎯 Расчет крайних точек суперподложки:', {
+          center: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`,
+          tailSize: currentTextData.tailSize,
+          tailAngle: currentTextData.tailAngle,
+          extremePoints: extremePoints,
+          note: 'Эти границы будут использоваться для размера канваса'
+        })
+        
+        // Вычисляем размеры канваса на основе крайних точек
+        const minX = extremePoints.minX
+        const maxX = extremePoints.maxX
+        const minY = extremePoints.minY
+        const maxY = extremePoints.maxY
+        
+        // Вычисляем размеры канваса для центрированного рисования
+        // Нужно учесть, что суперподложка будет рисоваться в центре канваса
+        const originalCanvasWidth = maxX - minX
+        const originalCanvasHeight = maxY - minY
+        
+        // Увеличиваем размер канваса, чтобы хвост не обрезался
+        // Добавляем отступы для хвоста и тени
+        const tailPadding = 100 // Отступ для хвоста
+        const shadowPadding = 50 // Отступ для тени
+        const canvasWidth = Math.max(originalCanvasWidth + tailPadding, backgroundWidth + tailPadding)
+        const canvasHeight = Math.max(originalCanvasHeight + shadowPadding, backgroundHeight + shadowPadding)
+        
+        console.log('📏 Расчет размеров канваса (с отступами для хвоста):', {
+          extremePoints: extremePoints,
+          originalCanvasSize: `${originalCanvasWidth}x${originalCanvasHeight}`,
+          canvasWidth,
+          canvasHeight,
+          tailPadding,
+          shadowPadding,
+          note: 'Канвас увеличен для предотвращения обрезания хвоста'
+        })
         
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = canvasHeight * dpr
-        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
+        tempCanvas.width = canvasWidth // Физический размер = логический размер (как в превью)
+        tempCanvas.height = canvasHeight
+        tempCanvas.style.width = canvasWidth + 'px'
         tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
+        // НЕ масштабируем контекст - рисуем в тех же координатах, что и превью
         
         // Очищаем канвас
         tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
-        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = canvasWidth / 2
-        const canvasCenterY = canvasHeight / 2
+        // ВАЖНО: НЕ смещаем элементы к началу канваса!
+        // Вместо этого рисуем суперподложку точно в центре tempCanvas
+        const offsetX = 0
+        const offsetY = 0
+        
+        console.log('🎯 ДЕТАЛЬНОЕ позиционирование на канвасе:', {
+          originalPosition: `${x}, ${y}`,
+          extremePoints: extremePoints,
+          minX: minX,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          offset: `${offsetX}, ${offsetY}`,
+          adjustedPosition: `${canvasWidth/2}, ${canvasHeight/2}`,
+          note: 'Суперподложка рисуется в центре канваса'
+        })
+        
+        console.log('🧮 МАТЕМАТИКА позиционирования:', {
+          step1: 'Целевая позиция центра суперподложки на основном канвасе',
+          targetCenter: `${x}, ${y}`,
+          step2: 'Где нарисован центр суперподложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Размер tempCanvas',
+          tempCanvasSize: `${canvasWidth}x${canvasHeight}`,
+          step4: 'Центр tempCanvas',
+          tempCanvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step5: 'Смещение центра суперподложки относительно центра tempCanvas',
+          centerOffset: `${(canvasWidth/2) - canvasWidth/2}, ${(canvasHeight/2) - canvasHeight/2} = 0, 0`,
+          step6: 'Позиция Raster для выравнивания центров',
+          rasterPosition: `${x}, ${y}`
+        })
         
         // Применяем тень если включена (точно как в превью)
         if (currentTextData.shadow) {
           tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur)) // Логические координаты
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX // Логические координаты
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY
+          
+          console.log('🔍 Применение тени к контексту:', {
+            shadowColor: tempCtx.shadowColor,
+            shadowBlur: tempCtx.shadowBlur,
+            shadowOffsetX: tempCtx.shadowOffsetX,
+            shadowOffsetY: tempCtx.shadowOffsetY,
+            originalData: {
+              shadowColor: currentTextData.shadowColor,
+              shadowBlur: currentTextData.shadowBlur,
+              shadowOffsetX: currentTextData.shadowOffsetX,
+              shadowOffsetY: currentTextData.shadowOffsetY,
+              shadowOpacity: currentTextData.shadowOpacity
+            }
+          })
         }
         
-        // Рисуем объединенную фигуру в центре временного Canvas (размеры остаются теми же)
-        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
+        // Рисуем объединенную фигуру в центре канваса (точно как в превью)
+        this.drawCombinedShape(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
         
         // Сбрасываем тень
         if (currentTextData.shadow) {
@@ -9929,11 +9992,11 @@ export default {
           tempCtx.shadowOffsetY = 0
         }
         
-        // Добавляем обводку если включена (размеры остаются теми же)
+        // Добавляем обводку если включена (логические координаты)
         if (currentTextData.stroke) {
           tempCtx.strokeStyle = currentTextData.strokeColor
-          tempCtx.lineWidth = currentTextData.strokeWidth
-          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, currentTextData)
+          tempCtx.lineWidth = currentTextData.strokeWidth // Логические координаты
+          this.strokeCombinedShape(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, currentTextData)
         }
         
         // Добавляем текст в Raster (размеры остаются теми же)
@@ -9954,43 +10017,57 @@ export default {
             shadowColor: currentTextData.shadowColor,
             shadowBlur: currentTextData.shadowBlur
           })
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
+          this.drawTextInRasterWithData(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, currentTextData, 1)
         } else {
           console.log('⚠️ Текст не добавлен в Raster - текст отсутствует или пустой')
         }
         
         // Конвертируем Canvas в Paper.js Raster
         const raster = new this.paperScope.Raster(tempCanvas)
+        // Позиционируем Raster так, чтобы центр суперподложки был в точке (x, y)
+        // Центр канваса находится в (canvasWidth/2, canvasHeight/2)
+        // Центр суперподложки внутри канваса в (x + offsetX, y + offsetY)
+        // Нужно сдвинуть Raster так, чтобы (x + offsetX, y + offsetY) оказалось в (x, y)
+        // ПРОСТАЯ математика: позиционируем Raster так, чтобы центр суперподложки был в (x, y)
+        // Центр суперподложки внутри tempCanvas: (canvasWidth/2, canvasHeight/2) - теперь в центре!
+        // Позиционируем Raster так, чтобы его центр был в (x, y)
         raster.position = new this.paperScope.Point(x, y)
         
-        // Масштабируем Raster чтобы сохранить тот же логический размер
-        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
-        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        // НЕ масштабируем Raster - рисуем в логических координатах
         
-        // Создаем область перетаскивания для правильного выделения
-        // Ждем пока Paper.js вычислит bounds
-          setTimeout(() => {
-          const rasterBounds = raster.bounds
-          if (rasterBounds) {
-            // Рассчитываем правильные bounds с учетом хвоста
-            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'conversation')
-            console.log('🎯 Создаем область перетаскивания для Raster:', {
-              originalBounds: rasterBounds,
-              expandedBounds: expandedBounds
-            })
-            
-            // Устанавливаем правильные bounds для области перетаскивания
-            raster.bounds = expandedBounds
-          } else {
-            console.warn('⚠️ Не удалось получить bounds для Raster')
-          }
-        }, 0)
+        // НЕ устанавливаем bounds для Raster - пусть Paper.js сам определит границы
+        // Это предотвращает создание дополнительного прямоугольника
         
         console.log('🎯 Raster создан с правильными размерами (Conversation):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
+          originalPosition: `${x}, ${y}`,
+          offset: `${offsetX}, ${offsetY}`,
           rasterPosition: `${x}, ${y}`,
-          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
-          padding: padding
+          rasterScaling: 'none (логические координаты)',
+          note: 'Raster позиционируется в целевую позицию'
+        })
+        
+        // Проверяем математику
+        const checkCenter = `${x + canvasWidth/2}, ${y + canvasHeight/2}`
+        const checkSuperCenter = `${x + canvasWidth/2 + ((canvasWidth/2) - canvasWidth/2)}, ${y + canvasHeight/2 + ((canvasHeight/2) - canvasHeight/2)}`
+        
+        console.log('🧮 ПРОВЕРКА математики позиционирования:', {
+          step1: 'Целевая позиция центра суперподложки',
+          target: `${x}, ${y}`,
+          step2: 'Центр суперподложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Центр tempCanvas',
+          tempCanvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step4: 'Смещение центра суперподложки относительно центра tempCanvas',
+          centerOffset: '0, 0',
+          step5: 'Позиция Raster (центр)',
+          rasterPos: `${x}, ${y}`,
+          step6: 'Проверка: центр tempCanvas в позиции Raster',
+          checkCenter: checkCenter,
+          step7: 'Проверка: центр суперподложки',
+          checkSuperCenter: checkSuperCenter,
+          step8: 'ОЖИДАЕМОЕ: центр суперподложки должен быть равен target',
+          expected: checkSuperCenter === `${x}, ${y}` ? '✅ ПРАВИЛЬНО' : '❌ НЕПРАВИЛЬНО'
         })
         
         console.log('✅ Подложка создана из логики превью с высоким качеством:', {
@@ -10014,6 +10091,123 @@ export default {
         )
         rect.fillColor = backgroundColor
         return rect
+      }
+    },
+    
+    // Вычисление крайних точек суперподложки (прямоугольник + хвост)
+    calculateExtremePointsForSuperBackground(x, y, backgroundWidth, backgroundHeight, textData) {
+      try {
+        // Параметры хвоста
+        const tailSize = Number(textData.tailSize) / 100
+        const tailWidth = Number(textData.tailWidth) / 100
+        const tailAngle = Number(textData.tailAngle)
+        
+        // Базовые координаты прямоугольника
+        const halfWidth = backgroundWidth / 2
+        const halfHeight = backgroundHeight / 2
+        
+        let minX = x - halfWidth
+        let maxX = x + halfWidth
+        let minY = y - halfHeight
+        let maxY = y + halfHeight
+        
+        // Если есть хвост, учитываем его координаты
+        if (tailSize > 0) {
+          const minDimension = Math.min(backgroundWidth, backgroundHeight)
+          const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в основном методе)
+          const tailBaseWidth = minDimension * 0.3 * tailWidth
+          
+          // Угол хвоста в радианах
+          const angleRad = (tailAngle * Math.PI) / 180
+          
+          // Координаты конца хвоста
+          const tailEndX = x + Math.cos(angleRad) * tailLength
+          const tailEndY = y + Math.sin(angleRad) * tailLength
+          
+          // Координаты основания хвоста (учитываем ширину)
+          const tailBaseHalfWidth = tailBaseWidth / 2
+          const perpendicularAngle = angleRad + Math.PI / 2
+          const base1X = x + Math.cos(perpendicularAngle) * tailBaseHalfWidth
+          const base1Y = y + Math.sin(perpendicularAngle) * tailBaseHalfWidth
+          const base2X = x - Math.cos(perpendicularAngle) * tailBaseHalfWidth
+          const base2Y = y - Math.sin(perpendicularAngle) * tailBaseHalfWidth
+          
+          // Расширяем границы с учетом всех точек хвоста + увеличенный отступ для кончика
+          const tailPadding = Math.max(tailLength * 0.2, 20) // 20% от длины хвоста или минимум 20px
+          
+          // Дополнительный отступ в направлении хвоста для кончика + тени
+          const tailTipPadding = Math.max(tailLength * 0.1, 15) // 10% от длины хвоста или минимум 15px
+          const tipX = tailEndX + Math.cos(angleRad) * tailTipPadding
+          const tipY = tailEndY + Math.sin(angleRad) * tailTipPadding
+          
+          // Учитываем тень для хвоста (если включена)
+          let shadowPaddingForTail = 0
+          if (textData.shadow) {
+            const shadowOffsetX = Number(textData.shadowOffsetX) || 0
+            const shadowOffsetY = Number(textData.shadowOffsetY) || 0
+            const shadowBlur = Number(textData.shadowBlur) || 0
+            
+            // Рассчитываем, насколько тень может выходить за пределы хвоста
+            const shadowInTailDirection = Math.abs(Math.cos(angleRad) * shadowOffsetX + Math.sin(angleRad) * shadowOffsetY)
+            shadowPaddingForTail = Math.max(shadowInTailDirection + shadowBlur, 10)
+          }
+          
+          // Финальная точка с учетом тени
+          const finalTipX = tipX + Math.cos(angleRad) * shadowPaddingForTail
+          const finalTipY = tipY + Math.sin(angleRad) * shadowPaddingForTail
+          
+          minX = Math.min(minX, tailEndX, base1X, base2X, finalTipX) - tailPadding
+          maxX = Math.max(maxX, tailEndX, base1X, base2X, finalTipX) + tailPadding
+          minY = Math.min(minY, tailEndY, base1Y, base2Y, finalTipY) - tailPadding
+          maxY = Math.max(maxY, tailEndY, base1Y, base2Y, finalTipY) + tailPadding
+        }
+        
+        // Учитываем тень если включена
+        if (textData.shadow) {
+          const shadowOffsetX = Number(textData.shadowOffsetX) || 0
+          const shadowOffsetY = Number(textData.shadowOffsetY) || 0
+          const shadowBlur = Number(textData.shadowBlur) || 0
+          
+          // Тень расширяет границы
+          minX = Math.min(minX, minX + shadowOffsetX - shadowBlur)
+          maxX = Math.max(maxX, maxX + shadowOffsetX + shadowBlur)
+          minY = Math.min(minY, minY + shadowOffsetY - shadowBlur)
+          maxY = Math.max(maxY, maxY + shadowOffsetY + shadowBlur)
+        }
+        
+        // Учитываем обводку если включена + дополнительный отступ
+        if (textData.stroke) {
+          const strokeWidth = Number(textData.strokeWidth) || 0
+          const strokePadding = strokeWidth / 2 + 5 // Добавляем 5px для безопасности
+          
+          minX -= strokePadding
+          maxX += strokePadding
+          minY -= strokePadding
+          maxY += strokePadding
+        }
+        
+        return {
+          minX: minX,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка расчета крайних точек суперподложки:', error)
+        // Fallback на простой прямоугольник
+        const halfWidth = backgroundWidth / 2
+        const halfHeight = backgroundHeight / 2
+        return {
+          minX: x - halfWidth,
+          maxX: x + halfWidth,
+          minY: y - halfHeight,
+          maxY: y + halfHeight,
+          width: backgroundWidth,
+          height: backgroundHeight
+        }
       }
     },
     
@@ -10068,7 +10262,7 @@ export default {
     },
     
     // Отрисовка текста в Raster с переданными данными
-    drawTextInRasterWithData(ctx, x, y, backgroundWidth, backgroundHeight, textData) {
+    drawTextInRasterWithData(ctx, x, y, backgroundWidth, backgroundHeight, textData, dpr = 1) {
       try {
         console.log('🎨 Начинаем отрисовку текста в Raster с данными:', {
           text: textData.text,
@@ -10076,14 +10270,14 @@ export default {
           backgroundSize: `${backgroundWidth}x${backgroundHeight}`
         })
         
-        // Настройки текста из переданных данных
-        const fontSize = textData.fontSize
+        // Настройки текста из переданных данных (логические координаты)
+        const fontSize = textData.fontSize // Используем оригинальный размер шрифта
         const fontFamily = textData.font
         const fontWeight = textData.fontWeight
         const textColor = textData.textColor
         
-        console.log('🎨 Настройки текста:', {
-          fontSize,
+        console.log('🎨 Настройки текста (логические координаты):', {
+          fontSize: fontSize,
           fontFamily,
           fontWeight,
           textColor
@@ -10111,7 +10305,7 @@ export default {
           shadow: 'none (тень применяется к подложке)'
         })
         
-        // Рисуем текст с поддержкой переноса строк
+        // Рисуем текст с поддержкой переноса строк (HiDPI)
         this.drawMultilineTextWithData(ctx, textData.text, x, y, fontSize, textData.lineHeight, textData)
         
         // Тень не применяется к тексту, поэтому сброс не нужен
@@ -10191,7 +10385,7 @@ export default {
         
         // Добавляем текст в Raster (как в превью)
         if (currentTextData.text && currentTextData.text.trim() !== '') {
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData, 1)
         }
         
         // Конвертируем Canvas в Paper.js Raster
@@ -10317,7 +10511,7 @@ export default {
         
         // Добавляем текст в Raster (как в превью)
         if (currentTextData.text && currentTextData.text.trim() !== '') {
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData, 1)
         }
         
         // Конвертируем Canvas в Paper.js Raster

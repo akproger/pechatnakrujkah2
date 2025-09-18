@@ -9898,9 +9898,9 @@ export default {
         const originalCanvasHeight = maxY - minY
         
         // Увеличиваем размер канваса, чтобы хвост не обрезался
-        // Добавляем отступы для хвоста и тени
-        const tailPadding = 100 // Отступ для хвоста
-        const shadowPadding = 50 // Отступ для тени
+        // Добавляем отступы для хвоста и тени (еще чуть-чуть увеличены)
+        const tailPadding = 180 // Отступ для хвоста (увеличен с 150 до 180)
+        const shadowPadding = 100 // Отступ для тени (увеличен с 80 до 100)
         const canvasWidth = Math.max(originalCanvasWidth + tailPadding, backgroundWidth + tailPadding)
         const canvasHeight = Math.max(originalCanvasHeight + shadowPadding, backgroundHeight + shadowPadding)
         

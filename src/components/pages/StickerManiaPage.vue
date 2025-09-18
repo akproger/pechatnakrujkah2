@@ -2715,7 +2715,17 @@ export default {
         // Рисуем подложку если есть (проверяем backgroundMode)
         if (layer.textData.backgroundMode) {
           console.log('🎨 Рисуем подложку для текста в высоком разрешении')
-          await this.drawBackgroundInHighDPI(tempCtx, { ...layer, bounds: { width: highResWidth, height: highResHeight } }, scale)
+          
+          // Простая подложка - прямоугольник с закругленными углами
+          const backgroundColor = layer.textData.backgroundColor || '#ffffff'
+          const radius = 10 * scale // Масштабируем радиус
+          
+          tempCtx.fillStyle = backgroundColor
+          tempCtx.beginPath()
+          tempCtx.roundRect(0, 0, highResWidth, highResHeight, radius)
+          tempCtx.fill()
+          
+          console.log('✅ Подложка нарисована:', backgroundColor)
         } else {
           console.log('⚠️ У текста нет подложки')
         }
@@ -3028,6 +3038,12 @@ export default {
           stickerGroup.addChild(shadowPath) // Тень внизу
           stickerGroup.addChild(clippedRaster) // Изображение посередине
           stickerGroup.addChild(outlinePath) // Обводка сверху
+          
+          // Применяем поворот к группе стикера
+          if (rotation !== 0) {
+            stickerGroup.rotate(rotation)
+            console.log('🔄 Поворот применен к группе стикера:', rotation)
+          }
           
           // Добавляем группу в проект
           tempPaperScope.project.activeLayer.addChild(stickerGroup)

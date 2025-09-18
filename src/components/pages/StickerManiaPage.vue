@@ -2349,11 +2349,13 @@ export default {
       // Для режимов с хвостом (conversation, thoughts)
       if (mode === 'conversation' || mode === 'thoughts') {
         const tailSize = Number(textData.tailSize) / 100
+        const tailWidth = Number(textData.tailWidth) / 100
         const tailAngle = Number(textData.tailAngle)
         
-        // Рассчитываем длину хвоста (более консервативно)
+        // Рассчитываем длину хвоста (используем ту же логику, что и при сохранении)
         const minDimension = Math.min(originalBounds.width, originalBounds.height)
-        const tailLength = minDimension * 0.6 * tailSize // Уменьшенный коэффициент
+        const tailLength = minDimension * 1.25 * tailSize // Базовая длина хвоста (как при сохранении)
+        const tailBaseWidth = minDimension * 0.3 * tailWidth
         
         // Рассчитываем координаты крайней точки хвоста
         const centerX = originalBounds.center.x
@@ -2366,27 +2368,30 @@ export default {
         const tailEndX = centerX + Math.cos(angleRad) * tailLength
         const tailEndY = centerY + Math.sin(angleRad) * tailLength
         
-        // Определяем, в какую сторону нужно расширить bounds
+        // Определяем, в какую сторону нужно расширить bounds (учитываем ширину хвоста)
         let leftExpansion = basePadding
         let rightExpansion = basePadding
         let topExpansion = basePadding
         let bottomExpansion = basePadding
         
+        // Добавляем отступ для ширины хвоста
+        const tailWidthExpansion = Math.max(tailBaseWidth * 2, 10)
+        
         // Если хвост выходит за границы, добавляем только необходимое расширение
         if (tailEndX < originalBounds.left) {
-          leftExpansion = Math.min(Math.abs(tailEndX - originalBounds.left) + basePadding, 20) // Ограничиваем максимум
+          leftExpansion = Math.min(Math.abs(tailEndX - originalBounds.left) + tailWidthExpansion, 50)
         }
         
         if (tailEndX > originalBounds.right) {
-          rightExpansion = Math.min(Math.abs(tailEndX - originalBounds.right) + basePadding, 20)
+          rightExpansion = Math.min(Math.abs(tailEndX - originalBounds.right) + tailWidthExpansion, 50)
         }
         
         if (tailEndY < originalBounds.top) {
-          topExpansion = Math.min(Math.abs(tailEndY - originalBounds.top) + basePadding, 20)
+          topExpansion = Math.min(Math.abs(tailEndY - originalBounds.top) + tailWidthExpansion, 50)
         }
         
         if (tailEndY > originalBounds.bottom) {
-          bottomExpansion = Math.min(Math.abs(tailEndY - originalBounds.bottom) + basePadding, 20)
+          bottomExpansion = Math.min(Math.abs(tailEndY - originalBounds.bottom) + tailWidthExpansion, 50)
         }
         
         // Создаем новые bounds с учетом расширения
@@ -9873,13 +9878,25 @@ export default {
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        // Для режима "Разговор" добавляем отступ для хвоста (только в направлении хвоста)
+        // Для режима "Разговор" добавляем отступ для хвоста (используем ту же логику, что и при сохранении)
         const tailSize = Number(currentTextData.tailSize) / 100
+        const tailWidth = Number(currentTextData.tailWidth) / 100
         const minDimension = Math.min(backgroundWidth, backgroundHeight)
-        const tailLength = minDimension * 0.8 * tailSize // Уменьшенный коэффициент
-        const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0) // Увеличенный отступ для хвоста
+        const tailLength = minDimension * 1.25 * tailSize // Базовая длина хвоста (как при сохранении)
+        const tailBaseWidth = minDimension * 0.3 * tailWidth
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30 // Увеличенный дополнительный отступ для тени
+        // Учитываем толщину хвоста в отступах (как при сохранении)
+        const tailThicknessPadding = tailBaseWidth * 2.0 // Отступ для толщины хвоста
+        const tailTipPadding = tailLength * 1.0 // Отступ для кончика хвоста
+        const tailPadding = Math.max(
+          tailLength * 4.0, // Отступ для длины хвоста
+          tailBaseWidth * 4.0, // Отступ для ширины хвоста
+          tailThicknessPadding, // Отступ для толщины хвоста
+          tailTipPadding, // Отступ для кончика хвоста
+          minDimension * 3.0 // Базовый отступ
+        )
+        
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимальный дополнительный отступ
         
         console.log('📏 Расчет отступов:', {
           shadowPadding,
@@ -10138,11 +10155,11 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
+        // Добавляем отступы для тени и обводки (используем ту же логику, что и при сохранении)
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
+        const padding = Math.max(shadowPadding, strokePadding) + 200 // Максимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -10261,11 +10278,11 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
+        // Добавляем отступы для тени и обводки (используем ту же логику, что и при сохранении)
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
+        const padding = Math.max(shadowPadding, strokePadding) + 200 // Максимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -10387,11 +10404,11 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
+        // Добавляем отступы для тени и обводки (используем ту же логику, что и при сохранении)
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
+        const padding = Math.max(shadowPadding, strokePadding) + 200 // Максимальный дополнительный отступ
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2

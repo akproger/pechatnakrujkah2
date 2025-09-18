@@ -2443,6 +2443,10 @@ export default {
           scale: scale.toFixed(2)
         })
 
+        // Обновляем актуальные позиции всех элементов перед сохранением
+        console.log('🔄 Обновляем актуальные позиции элементов перед сохранением')
+        this.updateAllElementPositions()
+
         // Создаем временный холст в высоком разрешении
         const printCanvas = document.createElement('canvas')
         printCanvas.width = printWidth
@@ -2573,6 +2577,35 @@ export default {
           reject(error)
         }
       })
+    },
+    
+    // Обновление актуальных позиций всех элементов перед сохранением
+    updateAllElementPositions() {
+      console.log('🔄 Обновляем позиции стикеров и текстов')
+      
+      // Обновляем позиции стикеров
+      this.stickers.forEach((sticker, index) => {
+        if (sticker.group && sticker.group.position) {
+          sticker.x = sticker.group.position.x
+          sticker.y = sticker.group.position.y
+          sticker.rotation = sticker.group.rotation || 0
+          sticker.scaling = sticker.group.scaling || { x: 1, y: 1 }
+          console.log(`📍 Стикер ${index + 1}: позиция (${sticker.x}, ${sticker.y}), поворот: ${sticker.rotation}°`)
+        }
+      })
+      
+      // Обновляем позиции текстовых слоев
+      this.textLayers.forEach((layer, index) => {
+        if (layer.layer && layer.layer.bounds) {
+          layer.position = {
+            x: layer.layer.bounds.center.x,
+            y: layer.layer.bounds.center.y
+          }
+          console.log(`📍 Текстовый слой ${index + 1}: позиция (${layer.position.x}, ${layer.position.y})`)
+        }
+      })
+      
+      console.log('✅ Позиции всех элементов обновлены')
     },
     
     // Перерисовка всех элементов в высоком разрешении для печати
@@ -2711,11 +2744,13 @@ export default {
         
         // Для режима "Разговор" добавляем отступ для хвоста
         const tailSize = Number(layer.textData.tailSize) / 100
+        const tailWidth = Number(layer.textData.tailWidth) / 100
         const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
         const tailLength = minDimension * 0.8 * tailSize
-        const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0)
+        const tailBaseWidth = minDimension * 0.3 * tailWidth
+        const tailPadding = Math.max(tailLength * 1.5, tailBaseWidth * 1.5, minDimension * 1.2)
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 50
         
         // Вычисляем размеры с отступами
         const highResWidth = scaledBackgroundWidth + padding * 2

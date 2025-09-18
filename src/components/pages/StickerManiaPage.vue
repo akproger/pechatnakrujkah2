@@ -2750,10 +2750,13 @@ export default {
         })
         
         // Позиционируем в высоком разрешении
+        const position = layer.position || { x: 0, y: 0 }
         textRaster.position = new tempPaperScope.Point(
-          layer.position.x * scale,
-          layer.position.y * scale
+          position.x * scale,
+          position.y * scale
         )
+        
+        console.log('📍 Позиция текста:', position, 'масштабированная:', position.x * scale, position.y * scale)
         
         // Добавляем на слой
         tempPaperScope.project.activeLayer.addChild(textRaster)
@@ -2834,10 +2837,10 @@ export default {
           })
         })
 
-        // Масштабируем и поворачиваем маску
+        // Масштабируем маску (поворот применим позже к группе)
         const maskScale = size / 100 // Масштабируем под нужный размер
         item.scale(maskScale)
-        item.rotate(rotation)
+        // НЕ применяем поворот здесь - применим к группе позже
 
         if (item.children && item.children.length > 0) {
           // Ищем путь в импортированном SVG
@@ -2976,12 +2979,7 @@ export default {
           const offsetX = (canvasWidth - scaledWidth) / 2
           const offsetY = (canvasHeight - scaledHeight) / 2
           
-          // Применяем поворот к изображению
-          tempCtx.save()
-          tempCtx.translate(canvasWidth / 2, canvasHeight / 2)
-          tempCtx.rotate((rotation * Math.PI) / 180)
-          tempCtx.translate(-canvasWidth / 2, -canvasHeight / 2)
-          
+          // НЕ применяем поворот к изображению здесь - применим к группе позже
           // Рисуем изображение
           tempCtx.drawImage(
             raster.image,
@@ -2990,8 +2988,6 @@ export default {
             scaledWidth,
             scaledHeight
           )
-          
-          tempCtx.restore()
           tempCtx.restore()
           
           // Создаем новый растр из обрезанного изображения

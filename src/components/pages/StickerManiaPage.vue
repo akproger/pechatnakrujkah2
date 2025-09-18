@@ -6988,42 +6988,64 @@ export default {
           return // Не продолжаем с обычной логикой перетаскивания
         }
         
-        // Ищем элемент под курсором
+        // Ищем элемент под курсором с более точными настройками
         const hitResult = this.paperScope.project.hitTest(event.point, {
           segments: true,
           stroke: true,
           fill: true,
-          tolerance: 10
+          tolerance: 15,
+          match: (result) => {
+            const item = result.item
+            
+            // Проверяем, что это элемент, который можно перетаскивать
+            const isDraggable = item.className === 'TextItem' || 
+                               item.className === 'Group' || 
+                               item.className === 'Raster' ||
+                               item.className === 'Path' ||
+                               (item.parent && item.parent.className === 'Layer') ||
+                               (item.data && (item.data.isTextOverlay || item.data.isTextBackground || item.data.isSticker))
+            
+            return isDraggable
+          }
         })
         
         if (hitResult && hitResult.item) {
           const item = hitResult.item
           
-          // Проверяем, что это текстовый элемент или подложка
-          const isTextItem = item.className === 'TextItem' || 
-                           item.className === 'Group' || 
-                           item.className === 'Raster' ||
-                           (item.parent && item.parent.className === 'Layer') ||
-                           (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
+          console.log('🎯 Найден элемент для перетаскивания:', {
+            className: item.className,
+            data: item.data,
+            parent: item.parent ? item.parent.className : 'none'
+          })
           
-          if (isTextItem) {
-            // Снимаем предыдущее выделение при начале перетаскивания
-            clearSelection()
-            
-            // Если это элемент стикера (обводка, тень или изображение), перетаскиваем всю группу
-            if (item.parent && item.parent.className === 'Group' && item.parent.children.length >= 3) {
-              // Это стикер - перетаскиваем всю группу
-              dragItem = item.parent
-              console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
-            } else {
-              // Это обычный текстовый элемент
-              dragItem = item
-              console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
-            }
-            
-            offset = event.point.subtract(dragItem.position)
-            dragItem.selected = true
+          // Снимаем предыдущее выделение при начале перетаскивания
+          clearSelection()
+          
+          // Определяем, что именно перетаскиваем
+          if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isSticker) {
+            // Это стикер - перетаскиваем всю группу
+            dragItem = item.parent
+            console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
+          } else if (item.className === 'Group' && item.data && item.data.isTextBackground) {
+            // Это группа с текстом и подложкой
+            dragItem = item
+            console.log('🎯 Начато перетаскивание текстовой группы:', dragItem.className)
+          } else if (item.parent && item.parent.className === 'Group' && item.parent.data && item.parent.data.isTextBackground) {
+            // Это элемент внутри текстовой группы
+            dragItem = item.parent
+            console.log('🎯 Начато перетаскивание текстовой группы (через дочерний элемент):', dragItem.className)
+          } else if (item.data && (item.data.isTextOverlay || item.data.isTextBackground)) {
+            // Это текстовый элемент или подложка
+            dragItem = item
+            console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
+          } else {
+            // Это обычный элемент
+            dragItem = item
+            console.log('🎯 Начато перетаскивание элемента:', dragItem.className)
           }
+          
+          offset = event.point.subtract(dragItem.position)
+          dragItem.selected = true
         }
       }
       
@@ -9864,166 +9886,62 @@ export default {
       return backgroundItem
     },
     
-    // Создание подложки используя существующую логику из превью
+    // Создание подложки используя Paper.js напрямую (без растра)
     createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
       const currentTextData = textData
       
       try {
-        
-        // Создаем временный Canvas размером только подложки + отступы
-        const dpr = window.devicePixelRatio || 1
-        
-        // Добавляем отступы для тени, обводки и хвоста
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
-        
-        // Для режима "Разговор" добавляем отступ для хвоста (используем ту же логику, что и при сохранении)
-        const tailSize = Number(currentTextData.tailSize) / 100
-        const tailWidth = Number(currentTextData.tailWidth) / 100
-        const minDimension = Math.min(backgroundWidth, backgroundHeight)
-        const tailLength = minDimension * 1.25 * tailSize // Базовая длина хвоста (как при сохранении)
-        const tailBaseWidth = minDimension * 0.3 * tailWidth
-        
-        // Учитываем толщину хвоста в отступах (как при сохранении)
-        const tailThicknessPadding = tailBaseWidth * 2.0 // Отступ для толщины хвоста
-        const tailTipPadding = tailLength * 1.0 // Отступ для кончика хвоста
-        const tailPadding = Math.max(
-          tailLength * 4.0, // Отступ для длины хвоста
-          tailBaseWidth * 4.0, // Отступ для ширины хвоста
-          tailThicknessPadding, // Отступ для толщины хвоста
-          tailTipPadding, // Отступ для кончика хвоста
-          minDimension * 3.0 // Базовый отступ
-        )
-        
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимальный дополнительный отступ
-        
-        console.log('📏 Расчет отступов:', {
-          shadowPadding,
-          strokePadding,
-          tailPadding,
-          finalPadding: padding,
-          tailSize: currentTextData.tailSize,
-          tailLength,
-          minDimension
-        })
-        
-        const canvasWidth = backgroundWidth + padding * 2
-        const canvasHeight = backgroundHeight + padding * 2
-        
-        const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
-        tempCanvas.height = canvasHeight * dpr
-        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
-        tempCanvas.style.height = canvasHeight + 'px'
-        
-        const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
-        
-        // Очищаем канвас
-        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
-        
-        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = canvasWidth / 2
-        const canvasCenterY = canvasHeight / 2
-        
-        // Применяем тень если включена (точно как в превью)
-        if (currentTextData.shadow) {
-          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
-        }
-        
-        // Рисуем объединенную фигуру в центре временного Canvas (размеры остаются теми же)
-        this.drawCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
-        
-        // Сбрасываем тень
-        if (currentTextData.shadow) {
-          tempCtx.shadowColor = 'transparent'
-          tempCtx.shadowBlur = 0
-          tempCtx.shadowOffsetX = 0
-          tempCtx.shadowOffsetY = 0
-        }
-        
-        // Добавляем обводку если включена (размеры остаются теми же)
-        if (currentTextData.stroke) {
-          tempCtx.strokeStyle = currentTextData.strokeColor
-          tempCtx.lineWidth = currentTextData.strokeWidth
-          this.strokeCombinedShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, currentTextData)
-        }
-        
-        // Добавляем текст в Raster (размеры остаются теми же)
-        console.log('🔍 Проверка текста для добавления в Raster:', {
-          hasText: !!currentTextData.text,
-          text: currentTextData.text,
-          textLength: currentTextData.text ? currentTextData.text.length : 0,
-          fontSize: currentTextData.fontSize,
-          textColor: currentTextData.textColor,
-          fontFamily: currentTextData.font,
-          fontWeight: currentTextData.fontWeight,
-          originalTextData: textData
-        })
-        
-        if (currentTextData.text && currentTextData.text.trim() !== '') {
-          console.log('✅ Добавляем текст в Raster с тенью:', {
-            hasShadow: currentTextData.shadow,
-            shadowColor: currentTextData.shadowColor,
-            shadowBlur: currentTextData.shadowBlur
-          })
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData)
-        } else {
-          console.log('⚠️ Текст не добавлен в Raster - текст отсутствует или пустой')
-        }
-        
-        // Конвертируем Canvas в Paper.js Raster
-        const raster = new this.paperScope.Raster(tempCanvas)
-        raster.position = new this.paperScope.Point(x, y)
-        
-        // Масштабируем Raster чтобы сохранить тот же логический размер
-        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
-        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
-        
-        // Создаем область перетаскивания для правильного выделения
-        // Ждем пока Paper.js вычислит bounds
-          setTimeout(() => {
-          const rasterBounds = raster.bounds
-          if (rasterBounds) {
-            // Рассчитываем правильные bounds с учетом хвоста
-            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'conversation')
-            console.log('🎯 Создаем область перетаскивания для Raster:', {
-              originalBounds: rasterBounds,
-              expandedBounds: expandedBounds
-            })
-            
-            // Устанавливаем правильные bounds для области перетаскивания
-            raster.bounds = expandedBounds
-          } else {
-            console.warn('⚠️ Не удалось получить bounds для Raster')
-          }
-        }, 0)
-        
-        console.log('🎯 Raster создан с правильными размерами (Conversation):', {
-          canvasSize: `${canvasWidth}x${canvasHeight}`,
-          rasterPosition: `${x}, ${y}`,
-          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
-          padding: padding
-        })
-        
-        console.log('✅ Подложка создана из логики превью с высоким качеством:', {
+        console.log('🎨 Создание подложки "Разговор" напрямую в Paper.js:', {
           position: `${x}, ${y}`,
           size: `${backgroundWidth}x${backgroundHeight}`,
-          mode: this.textDialogActiveTab,
-          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
-          logicalSize: `${canvasWidth}x${canvasHeight}`,
-          dpr: dpr,
-          rasterScale: `${(1 / dpr).toFixed(3)}x`
+          backgroundColor: backgroundColor
         })
         
-        return raster
+        // Создаем группу для подложки и текста
+        const backgroundGroup = new this.paperScope.Group()
+        
+        // Создаем подложку с хвостом как Path
+        const backgroundPath = this.createConversationBackgroundPath(x, y, backgroundWidth, backgroundHeight, backgroundColor, currentTextData)
+        
+        if (backgroundPath) {
+          backgroundGroup.addChild(backgroundPath)
+        }
+        
+        // Создаем текстовый элемент
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          const textItem = new this.paperScope.PointText({
+            point: new this.paperScope.Point(x, y),
+            content: currentTextData.text,
+            fontFamily: currentTextData.font || 'Arial',
+            fontSize: currentTextData.fontSize || 16,
+            fillColor: currentTextData.textColor || '#000000',
+            justification: 'center'
+          })
+          
+          // Применяем стили текста
+          if (currentTextData.fontWeight) {
+            textItem.fontWeight = currentTextData.fontWeight
+          }
+          if (currentTextData.textAlign) {
+            textItem.justification = currentTextData.textAlign
+          }
+          
+          backgroundGroup.addChild(textItem)
+        }
+        
+        // Устанавливаем метаданные
+        backgroundGroup.data = {
+          isTextBackground: true,
+          mode: 'conversation',
+          textData: currentTextData
+        }
+        
+        console.log('✅ Подложка "Разговор" создана напрямую в Paper.js')
+        return backgroundGroup
         
       } catch (error) {
-        console.error('❌ Ошибка создания подложки из логики превью:', error)
+        console.error('❌ Ошибка создания подложки "Разговор":', error)
         // Fallback на простой прямоугольник
         const rect = new this.paperScope.Path.Rectangle(
           new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
@@ -10032,6 +9950,143 @@ export default {
         rect.fillColor = backgroundColor
         return rect
       }
+    },
+    
+    // Создание подложки "Разговор" как Paper.js Path
+    createConversationBackgroundPath(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      try {
+        console.log('🎨 Создание подложки "Разговор" как Path:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          backgroundColor: backgroundColor
+        })
+        
+        // Создаем основной прямоугольник подложки
+        const bgX = x - backgroundWidth / 2
+        const bgY = y - backgroundHeight / 2
+        
+        // Создаем путь для подложки с хвостом
+        const path = new this.paperScope.Path()
+        
+        // Параметры хвоста
+        const tailSize = Number(textData.tailSize) / 100
+        const tailWidth = Number(textData.tailWidth) / 100
+        const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+        
+        // Размеры хвоста
+        const minDimension = Math.min(backgroundWidth, backgroundHeight)
+        const tailLength = minDimension * 1.25 * tailSize
+        const tailBaseWidth = minDimension * 0.3 * tailWidth
+        
+        // Координаты хвоста
+        const sharpPointX = x + tailLength * Math.cos(tailAngle)
+        const sharpPointY = y + tailLength * Math.sin(tailAngle)
+        
+        // Создаем путь подложки с хвостом
+        // Начинаем с левого верхнего угла
+        path.add(new this.paperScope.Point(bgX, bgY))
+        // Правый верхний угол
+        path.add(new this.paperScope.Point(bgX + backgroundWidth, bgY))
+        // Правый нижний угол
+        path.add(new this.paperScope.Point(bgX + backgroundWidth, bgY + backgroundHeight))
+        // Левый нижний угол
+        path.add(new this.paperScope.Point(bgX, bgY + backgroundHeight))
+        // Закрываем прямоугольник
+        path.add(new this.paperScope.Point(bgX, bgY))
+        
+        // Добавляем хвост
+        // Находим точку пересечения хвоста с прямоугольником
+        const intersectionPoint = this.findTailIntersection(x, y, backgroundWidth, backgroundHeight, tailAngle)
+        
+        if (intersectionPoint) {
+          // Добавляем хвост к пути
+          path.add(intersectionPoint)
+          path.add(new this.paperScope.Point(sharpPointX, sharpPointY))
+          path.add(intersectionPoint)
+        }
+        
+        // Закрываем путь
+        path.closePath = true
+        
+        // Устанавливаем стили
+        path.fillColor = backgroundColor
+        
+        // Добавляем тень если включена
+        if (textData.shadow) {
+          path.shadowColor = textData.shadowColor
+          path.shadowBlur = textData.shadowBlur
+          path.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX, textData.shadowOffsetY)
+        }
+        
+        // Добавляем обводку если включена
+        if (textData.stroke) {
+          path.strokeColor = textData.strokeColor
+          path.strokeWidth = textData.strokeWidth
+        }
+        
+        console.log('✅ Подложка "Разговор" создана как Path')
+        return path
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки "Разговор" как Path:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
+      }
+    },
+    
+    // Поиск точки пересечения хвоста с прямоугольником
+    findTailIntersection(centerX, centerY, width, height, tailAngle) {
+      const halfWidth = width / 2
+      const halfHeight = height / 2
+      
+      // Координаты углов прямоугольника
+      const corners = [
+        { x: centerX - halfWidth, y: centerY - halfHeight }, // Левый верхний
+        { x: centerX + halfWidth, y: centerY - halfHeight }, // Правый верхний
+        { x: centerX + halfWidth, y: centerY + halfHeight }, // Правый нижний
+        { x: centerX - halfWidth, y: centerY + halfHeight }  // Левый нижний
+      ]
+      
+      // Проверяем пересечение с каждой стороной
+      for (let i = 0; i < corners.length; i++) {
+        const corner1 = corners[i]
+        const corner2 = corners[(i + 1) % corners.length]
+        
+        // Проверяем пересечение луча хвоста с отрезком стороны
+        const intersection = this.lineIntersection(
+          centerX, centerY, centerX + Math.cos(tailAngle) * 1000, centerY + Math.sin(tailAngle) * 1000,
+          corner1.x, corner1.y, corner2.x, corner2.y
+        )
+        
+        if (intersection) {
+          return new this.paperScope.Point(intersection.x, intersection.y)
+        }
+      }
+      
+      return null
+    },
+    
+    // Поиск пересечения двух линий
+    lineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(denom) < 1e-10) return null
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+      
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
+      }
+      
+      return null
     },
     
     // Отрисовка текста в Raster (точно как в превью)

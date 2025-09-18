@@ -2625,11 +2625,20 @@ export default {
           console.log('⚠️ Фоновое изображение отсутствует')
         }
         
-        // 2. Перерисовываем все стикеры (сначала стикеры - они будут внизу)
-        console.log(`🎭 Рисуем ${this.stickers.length} стикеров`)
-        for (let i = 0; i < this.stickers.length; i++) {
-          const sticker = this.stickers[i]
-          console.log(`🎭 Стикер ${i + 1}:`, {
+        // 2. Перерисовываем все стикеры в правильном порядке слоев (сначала стикеры - они будут внизу)
+        console.log(`🎭 Рисуем ${this.stickers.length} стикеров в правильном порядке слоев`)
+        
+        // Сортируем стикеры по их z-index (порядку в массиве)
+        const sortedStickers = [...this.stickers].sort((a, b) => {
+          const indexA = this.stickers.indexOf(a)
+          const indexB = this.stickers.indexOf(b)
+          return indexA - indexB
+        })
+        
+        for (let i = 0; i < sortedStickers.length; i++) {
+          const sticker = sortedStickers[i]
+          const originalIndex = this.stickers.indexOf(sticker)
+          console.log(`🎭 Стикер ${originalIndex + 1} (слой ${i + 1}):`, {
             mask: sticker.mask,
             image: sticker.image,
             position: sticker.group?.position,
@@ -2639,9 +2648,9 @@ export default {
           })
           try {
             await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.uploadedImages)
-            console.log(`✅ Стикер ${i + 1} успешно обработан`)
+            console.log(`✅ Стикер ${originalIndex + 1} успешно обработан`)
           } catch (error) {
-            console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
+            console.error(`❌ Ошибка в стикере ${originalIndex + 1}:`, error)
           }
         }
         
@@ -2746,11 +2755,11 @@ export default {
         const tailSize = Number(layer.textData.tailSize) / 100
         const tailWidth = Number(layer.textData.tailWidth) / 100
         const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
-        const tailLength = minDimension * 0.8 * tailSize
+        const tailLength = minDimension * 1.25 * tailSize // Увеличиваем базовую длину хвоста
         const tailBaseWidth = minDimension * 0.3 * tailWidth
-        const tailPadding = Math.max(tailLength * 1.5, tailBaseWidth * 1.5, minDimension * 1.2)
+        const tailPadding = Math.max(tailLength * 2.0, tailBaseWidth * 2.0, minDimension * 1.5) // Увеличиваем отступы
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 50
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 100 // Увеличиваем дополнительный отступ
         
         // Вычисляем размеры с отступами
         const highResWidth = scaledBackgroundWidth + padding * 2
@@ -3167,96 +3176,15 @@ export default {
     async drawConversationBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       
-      // Создаем путь для облачка с хвостом
-      const tailSize = Number(textData.tailSize) / 100
-      const tailAngle = Number(textData.tailAngle)
-      const tailWidth = Number(textData.tailWidth) / 100
-      
       // Размеры подложки (уже в высоком разрешении)
       const width = layer.bounds.width
       const height = layer.bounds.height
       
       console.log('📐 Размеры подложки conversation:', width, 'x', height)
       
-      // Создаем основной прямоугольник
-      const rectX = 0
-      const rectY = 0
-      const rectWidth = width
-      const rectHeight = height
-      
-      // Рассчитываем параметры хвоста
-      const minDimension = Math.min(rectWidth, rectHeight)
-      const tailLength = minDimension * 0.6 * tailSize
-      const tailBaseWidth = minDimension * 0.3 * tailWidth
-      
-      // Угол хвоста в радианах
-      const angleRad = (tailAngle * Math.PI) / 180
-      
-      // Центр прямоугольника
-      const centerX = rectX + rectWidth / 2
-      const centerY = rectY + rectHeight / 2
-      
-      // Координаты начала хвоста
-      const tailStartX = centerX + Math.cos(angleRad) * (rectWidth / 2)
-      const tailStartY = centerY + Math.sin(angleRad) * (rectHeight / 2)
-      
-      // Координаты конца хвоста
-      const tailEndX = centerX + Math.cos(angleRad) * (rectWidth / 2 + tailLength)
-      const tailEndY = centerY + Math.sin(angleRad) * (rectHeight / 2 + tailLength)
-      
-      // Направление перпендикулярное хвосту
-      const perpAngle = angleRad + Math.PI / 2
-      const perpX = Math.cos(perpAngle)
-      const perpY = Math.sin(perpAngle)
-      
-      // Координаты вершин хвоста
-      const tail1X = tailStartX + perpX * tailBaseWidth / 2
-      const tail1Y = tailStartY + perpY * tailBaseWidth / 2
-      const tail2X = tailStartX - perpX * tailBaseWidth / 2
-      const tail2Y = tailStartY - perpY * tailBaseWidth / 2
-      
-      // Рисуем путь
-      ctx.beginPath()
-      
-      // Начинаем с угла прямоугольника
-      ctx.moveTo(rectX, rectY)
-      
-      // Рисуем прямоугольник до начала хвоста
-      if (tailStartX < centerX) {
-        // Хвост слева
-        ctx.lineTo(tail1X, tail1Y)
-        ctx.lineTo(tailEndX, tailEndY)
-        ctx.lineTo(tail2X, tail2Y)
-        ctx.lineTo(rectX, rectY + rectHeight)
-        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
-        ctx.lineTo(rectX + rectWidth, rectY)
-      } else if (tailStartX > centerX) {
-        // Хвост справа
-        ctx.lineTo(rectX + rectWidth, rectY)
-        ctx.lineTo(tail1X, tail1Y)
-        ctx.lineTo(tailEndX, tailEndY)
-        ctx.lineTo(tail2X, tail2Y)
-        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
-        ctx.lineTo(rectX, rectY + rectHeight)
-      } else if (tailStartY < centerY) {
-        // Хвост сверху
-        ctx.lineTo(tail1X, tail1Y)
-        ctx.lineTo(tailEndX, tailEndY)
-        ctx.lineTo(tail2X, tail2Y)
-        ctx.lineTo(rectX + rectWidth, rectY)
-        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
-        ctx.lineTo(rectX, rectY + rectHeight)
-      } else {
-        // Хвост снизу
-        ctx.lineTo(rectX + rectWidth, rectY)
-        ctx.lineTo(rectX + rectWidth, rectY + rectHeight)
-        ctx.lineTo(tail1X, tail1Y)
-        ctx.lineTo(tailEndX, tailEndY)
-        ctx.lineTo(tail2X, tail2Y)
-        ctx.lineTo(rectX, rectY + rectHeight)
-      }
-      
-      ctx.closePath()
+      // Используем ту же логику, что и в canvas-превью режима "Текст 2"
+      const centerX = width / 2
+      const centerY = height / 2
       
       // Применяем тень если нужно
       if (textData.shadow) {
@@ -3266,21 +3194,22 @@ export default {
         ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
       }
       
-      // Заливаем фон
-      ctx.fillStyle = textData.backgroundColor
-      ctx.fill()
+      // Рисуем объединенную фигуру (подложка + хвост) с тенью
+      this.drawCombinedShape(ctx, centerX, centerY, width, height, scale, textData.backgroundColor, true, textData)
       
       // Сбрасываем тень
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
+      if (textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
       
-      // Рисуем обводку если нужно
+      // Рисуем обводку если нужно (масштабируем толщину)
       if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
         ctx.strokeStyle = textData.strokeColor
         ctx.lineWidth = textData.strokeWidth * scale
-        ctx.stroke()
+        this.strokeCombinedShape(ctx, centerX, centerY, width, height, scale)
       }
     },
     

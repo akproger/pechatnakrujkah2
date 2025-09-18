@@ -2698,55 +2698,40 @@ export default {
         const tempCtx = tempCanvas.getContext('2d')
         
         // Создаем canvas с высоким разрешением
-        const highResWidth = Math.round(bounds.width * scale)
-        const highResHeight = Math.round(bounds.height * scale)
+        const backgroundWidth = layer.textData.backgroundWidth || 200
+        const backgroundHeight = layer.textData.backgroundHeight || 100
+        
+        // Масштабируем размеры подложки
+        const scaledBackgroundWidth = backgroundWidth * scale
+        const scaledBackgroundHeight = backgroundHeight * scale
+        
+        // Вычисляем отступы для тени, обводки и хвоста
+        const shadowPadding = layer.textData.shadow ? Math.min(layer.textData.shadowBlur + Math.abs(layer.textData.shadowOffsetX) + Math.abs(layer.textData.shadowOffsetY), 100) : 0
+        const strokePadding = layer.textData.stroke ? layer.textData.strokeWidth / 2 : 0
+        
+        // Для режима "Разговор" добавляем отступ для хвоста
+        const tailSize = Number(layer.textData.tailSize) / 100
+        const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
+        const tailLength = minDimension * 0.8 * tailSize
+        const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0)
+        
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30
+        
+        // Вычисляем размеры с отступами
+        const highResWidth = scaledBackgroundWidth + padding * 2
+        const highResHeight = scaledBackgroundHeight + padding * 2
         
         tempCanvas.width = highResWidth
         tempCanvas.height = highResHeight
         
-        console.log('📐 Canvas высокого разрешения:', highResWidth, 'x', highResHeight)
+        console.log('📐 Canvas высокого разрешения:', highResWidth, 'x', highResHeight, 'отступы:', padding)
         
         // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
-        // Рисуем подложку если есть (используем ту же логику, что и на основном канвасе)
+        // Рисуем подложку если есть (рисуем прямо на основном canvas)
         if (layer.textData.backgroundMode) {
           console.log('🎨 Рисуем подложку для текста в высоком разрешении')
           
-          // Используем ту же логику, что и в createBackgroundFromPreviewLogic
-          const backgroundColor = layer.textData.backgroundColor || '#ffffff'
-          const backgroundWidth = layer.textData.backgroundWidth || 200
-          const backgroundHeight = layer.textData.backgroundHeight || 100
-          
-          // Масштабируем размеры подложки
-          const scaledBackgroundWidth = backgroundWidth * scale
-          const scaledBackgroundHeight = backgroundHeight * scale
-          
-          // Вычисляем отступы для тени, обводки и хвоста
-          const shadowPadding = layer.textData.shadow ? Math.min(layer.textData.shadowBlur + Math.abs(layer.textData.shadowOffsetX) + Math.abs(layer.textData.shadowOffsetY), 100) : 0
-          const strokePadding = layer.textData.stroke ? layer.textData.strokeWidth / 2 : 0
-          
-          // Для режима "Разговор" добавляем отступ для хвоста
-          const tailSize = Number(layer.textData.tailSize) / 100
-          const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
-          const tailLength = minDimension * 0.8 * tailSize
-          const tailPadding = Math.min(tailLength * 1.2, minDimension * 1.0)
-          
-          const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 30
-          
-          // Вычисляем размеры с отступами
-          const canvasWidth = scaledBackgroundWidth + padding * 2
-          const canvasHeight = scaledBackgroundHeight + padding * 2
-          
-          // Создаем новый временный canvas для подложки
-          const backgroundCanvas = document.createElement('canvas')
-          backgroundCanvas.width = canvasWidth
-          backgroundCanvas.height = canvasHeight
-          const backgroundCtx = backgroundCanvas.getContext('2d')
-          
-          // Очищаем канвас
-          backgroundCtx.clearRect(0, 0, canvasWidth, canvasHeight)
-          
-          // Рисуем подложку в зависимости от режима
           // Создаем временный слой для передачи в методы
           const tempLayer = {
             textData: layer.textData,
@@ -2756,20 +2741,25 @@ export default {
             }
           }
           
+          // Рисуем подложку прямо на основном canvas в зависимости от режима
+          // Сохраняем контекст и применяем отступы
+          tempCtx.save()
+          tempCtx.translate(padding, padding)
+          
           if (layer.textData.backgroundMode === 'conversation') {
-            await this.drawConversationBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+            await this.drawConversationBackgroundInHighDPI(tempCtx, tempLayer, scale)
           } else if (layer.textData.backgroundMode === 'standard') {
-            await this.drawStandardBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+            await this.drawStandardBackgroundInHighDPI(tempCtx, tempLayer, scale)
           } else if (layer.textData.backgroundMode === 'thoughts') {
-            await this.drawThoughtsBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+            await this.drawThoughtsBackgroundInHighDPI(tempCtx, tempLayer, scale)
           } else if (layer.textData.backgroundMode === 'image-text') {
-            await this.drawImageTextBackgroundInHighDPI(backgroundCtx, tempLayer, scale)
+            await this.drawImageTextBackgroundInHighDPI(tempCtx, tempLayer, scale)
           }
           
-          // Рисуем подложку на основной canvas
-          tempCtx.drawImage(backgroundCanvas, 0, 0)
+          // Восстанавливаем контекст
+          tempCtx.restore()
           
-          console.log('✅ Подложка нарисована:', backgroundColor, 'режим:', layer.textData.backgroundMode)
+          console.log('✅ Подложка нарисована:', layer.textData.backgroundColor, 'режим:', layer.textData.backgroundMode)
         } else {
           console.log('⚠️ У текста нет подложки')
         }
@@ -2881,10 +2871,10 @@ export default {
           })
         })
 
-        // Масштабируем и поворачиваем маску (как в createOptimalSticker)
+        // Масштабируем маску (поворот убран из генерации)
         const maskScale = size / 100 // Масштабируем под нужный размер
         item.scale(maskScale)
-        item.rotate(rotation) // Применяем поворот к маске, как в оригинале
+        // Поворот убран - стикеры создаются без поворота
 
         if (item.children && item.children.length > 0) {
           // Ищем путь в импортированном SVG
@@ -3079,8 +3069,8 @@ export default {
           stickerGroup.addChild(clippedRaster) // Изображение посередине
           stickerGroup.addChild(outlinePath) // Обводка сверху
           
-          // Поворот уже применен к маске, не нужно применять к группе
-          console.log('🔄 Поворот применен к маске стикера:', rotation)
+          // Поворот убран из генерации стикеров
+          console.log('🔄 Стикер создан без поворота')
           
           // Добавляем группу в проект
           tempPaperScope.project.activeLayer.addChild(stickerGroup)
@@ -4516,8 +4506,8 @@ export default {
       
       console.log(`🎨 Создаем стикер: ${randomMask.name} + ${randomImage.name} в позиции (${x}, ${y}) размером ${size}`)
       
-      // Случайный поворот для лучшего покрытия
-      const rotation = Math.random() * 360
+      // Убираем случайный поворот - стикеры создаются без поворота
+      const rotation = 0
       
       return new Promise((resolve) => {
         // Загружаем SVG маску (как в addMaskToCanvas)

@@ -2592,7 +2592,27 @@ export default {
           console.log('⚠️ Фоновое изображение отсутствует')
         }
         
-        // 2. Перерисовываем все текстовые элементы с подложками
+        // 2. Перерисовываем все стикеры (сначала стикеры - они будут внизу)
+        console.log(`🎭 Рисуем ${this.stickers.length} стикеров`)
+        for (let i = 0; i < this.stickers.length; i++) {
+          const sticker = this.stickers[i]
+          console.log(`🎭 Стикер ${i + 1}:`, {
+            mask: sticker.mask,
+            image: sticker.image,
+            position: sticker.group?.position,
+            rotation: sticker.group?.rotation,
+            stickerMasksLength: this.stickerMasks?.length,
+            stickerImagesLength: this.uploadedImages?.length
+          })
+          try {
+            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.uploadedImages)
+            console.log(`✅ Стикер ${i + 1} успешно обработан`)
+          } catch (error) {
+            console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
+          }
+        }
+        
+        // 3. Перерисовываем все текстовые элементы с подложками (тексты сверху)
         console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев`)
         for (let i = 0; i < this.textLayers.length; i++) {
           const layer = this.textLayers[i]
@@ -2608,30 +2628,6 @@ export default {
             console.log(`✅ Слой ${i + 1} успешно обработан`)
           } catch (error) {
             console.error(`❌ Ошибка в слое ${i + 1}:`, error)
-          }
-        }
-        
-        // 3. Перерисовываем все стикеры
-        console.log(`🎭 Рисуем ${this.stickers.length} стикеров`)
-        for (let i = 0; i < this.stickers.length; i++) {
-          const sticker = this.stickers[i]
-          console.log(`🎭 Стикер ${i + 1}:`, {
-            mask: sticker.mask,
-            image: sticker.image,
-            position: sticker.group?.position,
-            hasGroup: !!sticker.group
-          })
-          try {
-            console.log('🔍 Отладка параметров:', {
-              stickerMasks: this.stickerMasks,
-              stickerImages: this.uploadedImages,
-              stickerMasksLength: this.stickerMasks?.length,
-              stickerImagesLength: this.uploadedImages?.length
-            })
-            await this.redrawStickerInHighDPI(tempPaperScope, sticker, scale, this.stickerMasks, this.uploadedImages)
-            console.log(`✅ Стикер ${i + 1} успешно обработан`)
-          } catch (error) {
-            console.error(`❌ Ошибка в стикере ${i + 1}:`, error)
           }
         }
         
@@ -2722,7 +2718,18 @@ export default {
           
           tempCtx.fillStyle = backgroundColor
           tempCtx.beginPath()
-          tempCtx.roundRect(0, 0, highResWidth, highResHeight, radius)
+          
+          // Рисуем закругленный прямоугольник вручную
+          tempCtx.moveTo(radius, 0)
+          tempCtx.lineTo(highResWidth - radius, 0)
+          tempCtx.quadraticCurveTo(highResWidth, 0, highResWidth, radius)
+          tempCtx.lineTo(highResWidth, highResHeight - radius)
+          tempCtx.quadraticCurveTo(highResWidth, highResHeight, highResWidth - radius, highResHeight)
+          tempCtx.lineTo(radius, highResHeight)
+          tempCtx.quadraticCurveTo(0, highResHeight, 0, highResHeight - radius)
+          tempCtx.lineTo(0, radius)
+          tempCtx.quadraticCurveTo(0, 0, radius, 0)
+          tempCtx.closePath()
           tempCtx.fill()
           
           console.log('✅ Подложка нарисована:', backgroundColor)
@@ -3035,10 +3042,10 @@ export default {
           stickerGroup.addChild(clippedRaster) // Изображение посередине
           stickerGroup.addChild(outlinePath) // Обводка сверху
           
-          // Применяем поворот к группе стикера
+          // Применяем поворот к группе стикера относительно её центра
           if (rotation !== 0) {
-            stickerGroup.rotate(rotation)
-            console.log('🔄 Поворот применен к группе стикера:', rotation)
+            stickerGroup.rotate(rotation, stickerGroup.bounds.center)
+            console.log('🔄 Поворот применен к группе стикера:', rotation, 'центр:', stickerGroup.bounds.center)
           }
           
           // Добавляем группу в проект

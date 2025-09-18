@@ -8992,6 +8992,14 @@ export default {
       const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(currentTextData.tailWidth) / 100)
       const tailSizePercent = Number(currentTextData.tailSize) / 100
       
+      console.log('🔍 buildSuperBackgroundPath DEBUG:', {
+        passedTailWidth: tailWidth,
+        currentTextDataTailWidth: currentTextData.tailWidth,
+        finalTailWidthPercent: tailWidthPercent,
+        tailSizePercent,
+        scale
+      })
+      
       // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
       const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
       const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
@@ -9078,6 +9086,11 @@ export default {
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
         // Используем ту же формулу, что и в canvas-превью для консистентности
         const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+        console.log('🔍 buildCornerTailSuperPath DEBUG:', {
+          tailWidthPercent,
+          tailWidthPixels,
+          formula: 'tailWidthPercent * 50'
+        })
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
                                          isTopLeft, isTopRight, isBottomRight, isBottomLeft, 
@@ -9089,6 +9102,11 @@ export default {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // Используем ту же формулу, что и в canvas-превью для консистентности
       const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+      console.log('🔍 buildCornerTailSuperPath (non-exact) DEBUG:', {
+        tailWidthPercent,
+        tailWidthPixels,
+        formula: 'tailWidthPercent * 50'
+      })
       
       // Сбрасываем флаги углов для второй проверки
       isTopLeft = false
@@ -9325,6 +9343,11 @@ export default {
       // tailWidth теперь в процентах от 40% до 100%
       // Используем ту же формулу, что и в canvas-превью для консистентности
       const tailWidthPixels = tailWidthPercent * 50 // Формула из TextManager.vue
+      console.log('🔍 buildSideTailSuperPath DEBUG:', {
+        tailWidthPercent,
+        tailWidthPixels,
+        formula: 'tailWidthPercent * 50'
+      })
       
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне

@@ -2761,15 +2761,17 @@ export default {
         const tailBaseWidth = minDimension * 0.3 * tailWidth
         
         // Учитываем толщину хвоста в отступах
-        const tailThicknessPadding = tailBaseWidth * 1.5 // Дополнительный отступ для толщины хвоста
+        const tailThicknessPadding = tailBaseWidth * 2.0 // Увеличиваем отступ для толщины хвоста
+        const tailTipPadding = tailLength * 0.5 // Дополнительный отступ для кончика хвоста
         const tailPadding = Math.max(
-          tailLength * 2.5, // Увеличиваем отступ для длины хвоста
-          tailBaseWidth * 2.5, // Увеличиваем отступ для ширины хвоста
+          tailLength * 3.0, // Еще больше увеличиваем отступ для длины хвоста
+          tailBaseWidth * 3.0, // Еще больше увеличиваем отступ для ширины хвоста
           tailThicknessPadding, // Добавляем отступ для толщины хвоста
-          minDimension * 2.0 // Увеличиваем базовый отступ
+          tailTipPadding, // Добавляем отступ для кончика хвоста
+          minDimension * 2.5 // Еще больше увеличиваем базовый отступ
         )
         
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 150 // Еще больше увеличиваем дополнительный отступ
+        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимально увеличиваем дополнительный отступ
         
         // Вычисляем размеры с отступами
         const highResWidth = scaledBackgroundWidth + padding * 2
@@ -3219,7 +3221,7 @@ export default {
       if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
         ctx.strokeStyle = textData.strokeColor
         ctx.lineWidth = textData.strokeWidth * scale
-        this.strokeCombinedShape(ctx, centerX, centerY, width, height, scale)
+        this.strokeCombinedShape(ctx, centerX, centerY, width, height, scale, textData)
       }
     },
     

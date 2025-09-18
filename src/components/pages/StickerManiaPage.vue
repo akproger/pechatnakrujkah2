@@ -3226,9 +3226,9 @@ export default {
       // Применяем тень если нужно
       if (textData.shadow) {
         ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
-        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
-        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
       }
       
       // Заливаем фон
@@ -3244,7 +3244,7 @@ export default {
       // Рисуем обводку если нужно
       if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
         ctx.strokeStyle = textData.strokeColor
-        ctx.lineWidth = textData.strokeWidth
+        ctx.lineWidth = textData.strokeWidth * scale
         ctx.stroke()
       }
     },
@@ -3284,9 +3284,9 @@ export default {
       // Применяем тень если нужно
       if (textData.shadow) {
         ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
-        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
-        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
       }
       
       // Заливаем фон
@@ -3302,7 +3302,7 @@ export default {
       // Рисуем обводку если нужно
       if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
         ctx.strokeStyle = textData.strokeColor
-        ctx.lineWidth = textData.strokeWidth
+        ctx.lineWidth = textData.strokeWidth * scale
         ctx.stroke()
       }
     },

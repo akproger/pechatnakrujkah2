@@ -8983,7 +8983,7 @@ export default {
     
     // Построение пути суперподложки с хвостом
     buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                           intersectionPoint, tailAngle, tailLength, tailWidth, textData = null) {
+                           intersectionPoint, tailAngle, tailLength, tailWidth, textData = null, scale = 1) {
       // Используем переданные данные или данные по умолчанию
       const currentTextData = textData || this.textDialogData
       
@@ -8991,9 +8991,9 @@ export default {
       const tailWidthPercent = Number(currentTextData.tailWidth) / 100
       const tailSizePercent = Number(currentTextData.tailSize) / 100
       
-      // Острая вершина хвоста (tailSize теперь от 100% до 300%)
-      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
-      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      // Острая вершина хвоста (используем переданный tailLength)
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
       
       // Определяем, с какой стороны подложки выходит хвост
       const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
@@ -9007,11 +9007,11 @@ export default {
       if (isCorner) {
         // Если хвост выходит из угла, строим специальный путь
         this.buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
-                                    intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent)
+                                    intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
       } else {
         // Обычный путь для стороны
         this.buildSideTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
-                                  intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent)
+                                  intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
       }
       
       ctx.closePath()
@@ -9058,7 +9058,7 @@ export default {
     
     // Построение пути суперподложки с хвостом из угла
     buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
-                            intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent) {
+                            intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
       // Определяем, какой это угол
       const tolerance = 2
       let isTopLeft = false, isTopRight = false, isBottomRight = false, isBottomLeft = false
@@ -9077,7 +9077,7 @@ export default {
       if (isTopLeft || isTopRight || isBottomRight || isBottomLeft) {
         // Учитываем размеры подложки для вычисления ширины хвоста
         const minDimension = Math.min(bgWidth, bgHeight)
-        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
+        const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
         this.buildExactCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                                          intersectionPoint, sharpPointX, sharpPointY, 
                                          isTopLeft, isTopRight, isBottomRight, isBottomLeft, 
@@ -9089,7 +9089,7 @@ export default {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // Учитываем размеры подложки для вычисления ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
       
       // Сбрасываем флаги углов для второй проверки
       isTopLeft = false
@@ -9321,12 +9321,12 @@ export default {
     
     // Построение пути суперподложки с хвостом со стороны (не из угла)
     buildSideTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
-                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent) {
+                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
       // Вычисляем точки хвоста НА СТОРОНАХ ПРЯМОУГОЛЬНИКА
       // tailWidth теперь в процентах от 40% до 100%
       // Учитываем размеры подложки для вычисления ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent // 30% от минимального размера * процент ширины
+      const tailWidthPixels = minDimension * 0.3 * tailWidthPercent * scale // 30% от минимального размера * процент ширины * масштаб
       
       if (tailSide === 'top') {
         // Хвост выходит сверху - точки на верхней стороне
@@ -9546,7 +9546,7 @@ export default {
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста (125% от минимального размера - увеличен в 2.5 раза)
+      const tailLength = minDimension * 1.25 * scale // Базовая длина хвоста с учетом масштабирования
       
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
@@ -9555,7 +9555,7 @@ export default {
       if (cachedIntersection) {
         // Создаем суперподложку с хвостом используя КЭШИРОВАННУЮ точку
         this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                                   cachedIntersection, tailAngle, tailLength, tailWidth, currentTextData)
+                                   cachedIntersection, tailAngle, tailLength, tailWidth, currentTextData, scale)
       } else {
         // Если нет пересечения, рисуем обычную подложку
         this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)

@@ -48,6 +48,7 @@
                 </div>
                 <div class="col" style="padding: 0;">
                   <TextManager 
+                    ref="textManager"
                     :canvas="$refs.testCanvas"
                     :paper-scope="paperScope"
                     :text-position="textDialogPosition"
@@ -6982,17 +6983,21 @@ export default {
           // Обычное перемещение
           dragItem.position = event.point.subtract(offset)
           
+          // Обновляем позицию в данных слоя для всех текстовых слоев
+          const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
+          if (layerInfo) {
+            layerInfo.position = { x: event.point.x, y: event.point.y }
+            console.log('📍 Обновлена позиция слоя при перетаскивании:', {
+              layerIndex: layerInfo.id,
+              position: layerInfo.position
+            })
+          }
+          
           // Обновляем позицию в диалоге, если элемент редактируется
           if (this.isEditingText && this.editingLayerIndex) {
             this.textDialogPosition = {
               x: event.point.x,
               y: event.point.y
-            }
-            
-            // Обновляем позицию в данных слоя
-            const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
-            if (layerInfo) {
-              layerInfo.position = { x: event.point.x, y: event.point.y }
             }
             
             // Обновляем превью с throttling для визуальной обратной связи
@@ -7374,8 +7379,8 @@ export default {
       const { textData, mode, position, isEditing, editingLayerIndex } = event
       
       if (isEditing && editingLayerIndex !== null) {
-        // Редактирование существующего текста
-        this.editTextLayer(editingLayerIndex, textData, mode)
+        // Редактирование существующего текста - обновляем существующий слой
+        this.updateExistingTextLayer(editingLayerIndex, textData, position, mode)
       } else {
         // Создание нового текста
         this.applyTextToCanvas(textData, position, mode)
@@ -11021,9 +11026,9 @@ export default {
       console.log('✅ Текстовый слой полностью удален')
     },
     
-    // Редактирование текстового слоя
+    // Редактирование текстового слоя через компонент TextManager
     editTextLayer(layerIndex) {
-      console.log('✏️ Редактирование текстового слоя:', layerIndex)
+      console.log('✏️ Редактирование текстового слоя через TextManager:', layerIndex)
       
       // Находим слой
       const layerInfo = this.textLayers.find(layer => layer.id === layerIndex)
@@ -11032,15 +11037,35 @@ export default {
         return
       }
       
-      // Активируем режим редактирования ПЕРЕД заполнением данных
-      this.isEditingText = true
-      this.editingLayerIndex = layerIndex
+      // Получаем компонент TextManager
+      const textManager = this.$refs.textManager
+      if (!textManager) {
+        console.log('❌ Компонент TextManager не найден')
+        return
+      }
       
-      // Заполняем данные диалога ПОСЛЕ активации режима редактирования
-      this.textDialogPosition = { ...layerInfo.position }
-      this.textDialogActiveTab = layerInfo.mode
+      // Получаем актуальную позицию из Paper.js элемента
+      let actualPosition = { ...layerInfo.position }
+      if (layerInfo.backgroundItem && layerInfo.backgroundItem.position) {
+        actualPosition = {
+          x: layerInfo.backgroundItem.position.x,
+          y: layerInfo.backgroundItem.position.y
+        }
+        console.log('📍 Актуальная позиция из Paper.js:', actualPosition)
+      } else {
+        console.log('📍 Используем сохраненную позицию:', actualPosition)
+      }
       
-      // Глубокое копирование всех данных в соответствующее data-свойство для активной вкладки
+      // Устанавливаем позицию для компонента TextManager
+      this.textDialogPosition = actualPosition
+      
+      // Устанавливаем позицию в компоненте TextManager для отображения на превью
+      textManager.currentDragPosition = actualPosition
+      
+      // Обновляем сохраненную позицию в layerInfo
+      layerInfo.position = actualPosition
+      
+      // Глубокое копирование всех данных
       const dataCopy = JSON.parse(JSON.stringify(layerInfo.textData))
       
       // Специальная обработка для режима "Текст с изображением" - копируем cachedImage отдельно
@@ -11052,52 +11077,89 @@ export default {
         })
       }
       
+      // Заполняем данные в компоненте TextManager в зависимости от режима
       switch (layerInfo.mode) {
         case 'conversation':
-          Object.assign(this.textDialogDataConversation, dataCopy)
+          Object.assign(textManager.textDialogDataConversation, dataCopy)
           break
         case 'thoughts':
-          Object.assign(this.textDialogDataThoughts, dataCopy)
+          Object.assign(textManager.textDialogDataThoughts, dataCopy)
           break
         case 'standard':
-          Object.assign(this.textDialogDataStandard, dataCopy)
+          Object.assign(textManager.textDialogDataStandard, dataCopy)
           break
         case 'image-text':
-          Object.assign(this.textDialogDataImageText, dataCopy)
+          Object.assign(textManager.textDialogDataImageText, dataCopy)
           break
       }
       
-      // Открываем диалог БЕЗ вызова resetTextDialogData
-      this.isTextModeActive = true
-      this.showTextDialog = true
+      // Устанавливаем режим редактирования в компоненте TextManager
+      textManager.isEditingText = true
+      textManager.editingLayerIndex = layerIndex
+      textManager.textDialogActiveTab = layerInfo.mode // Открываем в той же вкладке
       
-      console.log('📝 Заполнены данные для редактирования:', {
-        text: this.textDialogData.text,
-        mode: this.textDialogActiveTab,
-        hasTextImage: !!this.textDialogData.textImage,
-        backgroundColor: this.textDialogData.backgroundColor
-      })
+      // Открываем диалог в компоненте TextManager
+      textManager.showTextDialog = true
       
-      console.log('✅ Режим редактирования активирован:', {
+      console.log('✅ Режим редактирования активирован через TextManager:', {
         layerIndex: layerIndex,
-        isEditingText: this.isEditingText,
-        editingLayerIndex: this.editingLayerIndex,
         mode: layerInfo.mode,
         text: layerInfo.textData.text
       })
-      
-      // Принудительно обновляем превью канвасы после открытия диалога редактирования
-      this.$nextTick(() => {
-        // Настраиваем HiDPI для всех превью канвасов
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvas)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasThoughts)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasStandard)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasImageText)
-        
-        // Обновляем превью канвасы
-      this.updatePreviewCanvas()
-        console.log('🔄 Превью канвасы обновлены при открытии диалога редактирования')
+    },
+    
+    // Обновление существующего текстового слоя при редактировании
+    updateExistingTextLayer(layerIndex, textData, position, mode) {
+      console.log('🔄 Обновление существующего текстового слоя:', {
+        layerIndex,
+        mode,
+        originalMode: this.textLayers.find(layer => layer.id === layerIndex)?.mode
       })
+      
+      // Находим слой
+      const layerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+      if (!layerInfo) {
+        console.log('❌ Слой не найден:', layerIndex)
+        return
+      }
+      
+      // Сохраняем оригинальный режим для правильного сохранения
+      const originalMode = layerInfo.mode
+      
+      // Удаляем старый слой
+      if (layerInfo.layer) {
+        layerInfo.layer.remove()
+      }
+      
+      // Создаем новый слой с теми же параметрами
+      const textLayer = new this.paperScope.Layer()
+      textLayer.name = `textLayer_${layerIndex}`
+      textLayer.data = { layerIndex: layerIndex }
+      
+      // Создаем подложку с включенным текстом на слое
+      const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex, textData, position, originalMode)
+      
+      // Обновляем информацию о слое
+      layerInfo.layer = textLayer
+      layerInfo.backgroundItem = backgroundItem
+      layerInfo.textItem = null
+      layerInfo.textData = { 
+        ...textData,
+        backgroundMode: originalMode
+      }
+      layerInfo.position = { ...position }
+      // Режим остается оригинальным
+      
+      console.log('✅ Существующий слой обновлен:', {
+        layerIndex,
+        originalMode,
+        newPosition: position
+      })
+      
+      // Обновляем 3D модель
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+        this.$refs.threeRenderer.forceUpdate()
+      }
     },
     
     // Оптимизированное обновление превью с debounce для улучшения производительности

@@ -2806,16 +2806,33 @@ export default {
       // Очищаем канвас
       ctx.clearRect(0, 0, canvasWidth, canvasHeight)
       
+      // При редактировании отключаем редактируемый слой перед скриншотом
+      let editingLayer = null
+      if (this.isEditingText && this.editingLayerIndex && this.paperScope) {
+        // Находим редактируемый слой в родительском компоненте
+        const parentComponent = this.$parent
+        if (parentComponent && parentComponent.textLayers) {
+          editingLayer = parentComponent.textLayers.find(layer => layer.id === this.editingLayerIndex)
+          if (editingLayer && editingLayer.layer) {
+            editingLayer.layer.visible = false
+            console.log('👁️ TextManager: Отключаем редактируемый слой для скриншота:', this.editingLayerIndex)
+            
+            // Обновляем Paper.js канвас после отключения слоя
+            this.paperScope.view.draw()
+          }
+        }
+      }
+      
       // Копируем фон с основного канваса если доступен
       if (this.canvas && this.canvas.width > 0) {
-        console.log('🖼️ Копируем фон с основного канваса:', {
+        console.log('🖼️ TextManager: Копируем фон с основного канваса:', {
           mainCanvasSize: `${this.canvas.width}x${this.canvas.height}`,
           previewSize: `${canvasWidth}x${canvasHeight}`
         })
         // Копируем фон с масштабированием под размер превью канваса
         ctx.drawImage(this.canvas, 0, 0, canvasWidth, canvasHeight)
       } else {
-        console.log('⚠️ Основной канвас недоступен, рисуем белый фон', {
+        console.log('⚠️ TextManager: Основной канвас недоступен, рисуем белый фон', {
           canvas: this.canvas,
           canvasWidth: this.canvas ? this.canvas.width : 'undefined',
           canvasHeight: this.canvas ? this.canvas.height : 'undefined'
@@ -2823,6 +2840,15 @@ export default {
         // Рисуем белый фон если основной канвас недоступен
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+      }
+      
+      // Включаем обратно редактируемый слой после скриншота
+      if (editingLayer && editingLayer.layer) {
+        editingLayer.layer.visible = true
+        console.log('👁️ TextManager: Включаем обратно редактируемый слой:', this.editingLayerIndex)
+        
+        // Обновляем Paper.js канвас после включения слоя
+        this.paperScope.view.draw()
       }
       
       // Определяем какой режим рисования использовать

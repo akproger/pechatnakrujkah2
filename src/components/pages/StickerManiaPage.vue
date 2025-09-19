@@ -8013,23 +8013,21 @@ export default {
       
       // 4️⃣ Рисуем овалы хвоста с правильным расположением (2 овала)
       for (let i = 0; i < tailCount; i++) {
-        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького
+        // Упрощенная логика позиционирования овалов
         let distanceFromCenter
         if (i === 0) {
-          // Первый овал (большой) - на 35% длины хвоста от маленького овала
-          const smallOvalDistance = offsetFromMain + (tailLength - offsetFromMain) // Маленький в конце
-          const distanceFromSmall = (tailLength - offsetFromMain) * 0.35 // 35% длины хвоста
-          distanceFromCenter = smallOvalDistance - distanceFromSmall
+          // Первый овал (большой) - на 60% длины хвоста от центра
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain) * 0.6
         } else {
-          // Второй овал (маленький) - в конце хвоста
-          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain)
+          // Второй овал (маленький) - на 90% длины хвоста от центра
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain) * 0.9
         }
         
-        // Размер овала (только 2 овала)
+        // Размер овала (только 2 овала) - уменьшаем размеры для соответствия превью
         let sizeMultiplier
         if (i === 0) {
-          // Первый овал (большой) - увеличиваем на 60%
-          sizeMultiplier = 1.6 // 1.0 + 60% = 1.6
+          // Первый овал (большой) - увеличиваем на 20%
+          sizeMultiplier = 1.2
         } else {
           // Второй овал (маленький) - базовый размер
           sizeMultiplier = 1.0
@@ -10405,22 +10403,30 @@ export default {
         tailAngleDegrees: textData.tailAngle
       })
       
-      // Вычисляем длину хвоста (аналогично логике из buildThoughtsModePath)
+      // Вычисляем длину хвоста (используем ту же логику что и в режиме "Разговор")
       const minDimension = Math.min(backgroundWidth, backgroundHeight)
       const tailLength = minDimension * 1.25 * tailSize
       
-      // Вычисляем ширину хвоста в пикселях
+      // Вычисляем ширину хвоста в пикселях (как в buildThoughtsModePath)
       const tailWidthPixels = tailWidth * 50
       
-      // Острая вершина хвоста
-      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
-      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
+      // В режиме "Мысли" хвост состоит из множественных овалов
+      // Нужно учесть максимальное расстояние до самого дальнего овала
+      const maxOvalDistance = tailLength // Самый дальний овал находится на расстоянии tailLength
       
-      // Расширяем границы с учетом хвоста
-      minX = Math.min(minX, sharpPointX - tailWidthPixels/2)
-      maxX = Math.max(maxX, sharpPointX + tailWidthPixels/2)
-      minY = Math.min(minY, sharpPointY - tailWidthPixels/2)
-      maxY = Math.max(maxY, sharpPointY + tailWidthPixels/2)
+      // Координаты самого дальнего овала
+      const maxOvalX = centerX + maxOvalDistance * Math.cos(tailAngle)
+      const maxOvalY = centerY + maxOvalDistance * Math.sin(tailAngle)
+      
+      // Размер самого большого овала (в режиме "Мысли" используется sizeMultiplier = 1.2)
+      const maxOvalWidth = tailWidthPixels * 1.2
+      const maxOvalHeight = maxOvalWidth * 0.7
+      
+      // Расширяем границы с учетом самого дальнего и самого большого овала
+      minX = Math.min(minX, maxOvalX - maxOvalWidth/2)
+      maxX = Math.max(maxX, maxOvalX + maxOvalWidth/2)
+      minY = Math.min(minY, maxOvalY - maxOvalHeight/2)
+      maxY = Math.max(maxY, maxOvalY + maxOvalHeight/2)
       
       // Добавляем отступы для тени и обводки
       const shadowPadding = textData.shadow ? Math.max(
@@ -10495,9 +10501,9 @@ export default {
         const originalCanvasWidth = maxX - minX
         const originalCanvasHeight = maxY - minY
         
-        // Увеличиваем размер канваса, чтобы хвост не обрезался
-        const tailPadding = 180
-        const shadowPadding = 100
+        // Используем те же отступы, что и в режиме "Разговор"
+        const tailPadding = 100
+        const shadowPadding = 50
         
         const canvasWidth = originalCanvasWidth + tailPadding
         const canvasHeight = originalCanvasHeight + shadowPadding

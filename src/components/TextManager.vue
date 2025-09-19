@@ -4115,6 +4115,11 @@ export default {
   justify-content: flex-end;
 }
 
+.text-img-preview {
+  display: flex;
+  justify-content: space-between;
+}
+
 .text-img-preview > .img-thumbnail {
   padding: 0;
   border: none;

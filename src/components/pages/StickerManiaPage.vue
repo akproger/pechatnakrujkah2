@@ -2069,7 +2069,7 @@ export default {
       maxStickerSize: 150, // Максимальный размер стикера (150% от базового)
       baseStickerSize: 100, // Базовый размер стикера
       targetCoverage: 100, // Целевое покрытие в процентах (100%)
-      maxIterations: 2000, // Максимальное количество попыток размещения
+      maxIterations: 5000, // Максимальное количество попыток размещения
       overlapThreshold: 0.05, // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
       
       // Режим добавления текста
@@ -3972,7 +3972,7 @@ export default {
         await this.runOptimalPlacement(selectedMasks, selectedImages, viewWidth, viewHeight)
         
         console.log('🎉 Генерация завершена!')
-        console.log(`📊 Итоговое количество стикеров: ${this.stickers.length} (максимум 20 на итерацию)`)
+        console.log(`📊 Итоговое количество стикеров: ${this.stickers.length} (цель: 40 стикеров)`)
         
         // Финальное обновление
         this.paperScope.view.draw()
@@ -4059,14 +4059,14 @@ export default {
           const centerY = (randomEmptyArea.row + 0.5) * gridSize
           
           // Пробуем разместить стикер в этой области
-          for (let attempt = 0; attempt < 20; attempt++) {
+          for (let attempt = 0; attempt < 50; attempt++) {
             const x = centerX + (Math.random() - 0.5) * gridSize * 2
             const y = centerY + (Math.random() - 0.5) * gridSize * 2
             
             // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
-            // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+            // Проверяем только минимальное перекрытие с канвасом (хотя бы 10% стикера должно быть внутри)
             const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
-            if (overlapWithCanvas < 0.2) {
+            if (overlapWithCanvas < 0.1) {
               continue
             }
             
@@ -4108,9 +4108,9 @@ export default {
                const y = (Math.random() - 0.2) * viewHeight * 1.4 // -20% до +40% от высоты
             
             // Разрешаем стикерам выходить за границы канваса для лучшего заполнения
-            // Проверяем только минимальное перекрытие с канвасом (хотя бы 20% стикера должно быть внутри)
+            // Проверяем только минимальное перекрытие с канвасом (хотя бы 10% стикера должно быть внутри)
             const overlapWithCanvas = this.calculateCanvasOverlap(x, y, size, viewWidth, viewHeight)
-            if (overlapWithCanvas < 0.2) {
+            if (overlapWithCanvas < 0.1) {
               continue
             }
             
@@ -4147,9 +4147,14 @@ export default {
         return bestScore > 0 ? { x: bestX, y: bestY } : null
       }
       
-      // Основной цикл размещения (ограничиваем 20 стикерами на итерацию и общим лимитом 100)
-      while (currentCoverage < this.targetCoverage && iterations < this.maxIterations && this.stickers.length < 20 && this.stickers.length < 100) {
+      // Основной цикл размещения (генерируем ровно 40 стикеров)
+      while (this.stickers.length < 40 && iterations < this.maxIterations) {
         iterations++
+        
+        // Логируем прогресс каждые 100 итераций
+        if (iterations % 100 === 0) {
+          console.log(`🔄 Итерация ${iterations}: размещено ${this.stickers.length}/40 стикеров`)
+        }
         
         // Выбираем размер стикера в зависимости от покрытия (увеличены минимальные размеры в 3 раза)
         let sizeMultiplier
@@ -4199,7 +4204,7 @@ export default {
       if (this.stickers.length >= 100) {
         console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
       }
-      console.log(`✅ Завершено: ${this.stickers.length} стикеров (максимум 20), покрытие ${this.coveragePercentage}%`)
+      console.log(`✅ Завершено: ${this.stickers.length} стикеров (цель: 40 стикеров), покрытие ${this.coveragePercentage}%`)
       
       // Финальное обновление канваса
       this.paperScope.view.draw()
@@ -4313,7 +4318,7 @@ export default {
             const centerY = (randomEmptyArea.row + 0.5) * gridSize
              
              // Пробуем разместить стикер в этой области
-             for (let attempt = 0; attempt < 15; attempt++) {
+             for (let attempt = 0; attempt < 30; attempt++) {
                const x = centerX + (Math.random() - 0.5) * gridSize * 1.5
                const y = centerY + (Math.random() - 0.5) * gridSize * 1.5
                
@@ -4402,11 +4407,11 @@ export default {
            return bestScore > 0 ? { x: bestX, y: bestY } : null
          }
         
-        // Генерируем новый слой стикеров (ограничиваем 20 стикерами на итерацию)
+        // Генерируем новый слой стикеров (генерируем ровно 40 стикеров)
         let iterations = 0
-        const maxIterations = 20 // Ограничиваем количество стикеров в новом слое
+        const maxIterations = 40 // Генерируем ровно 40 стикеров
         
-        while (currentCoverage < 80 && iterations < maxIterations && this.stickers.length < 100) { // Останавливаемся на 80% покрытии, 20 стикерах или общем лимите 100
+        while (this.stickers.length < 40 && iterations < maxIterations) { // Генерируем ровно 40 стикеров
           iterations++
           
           // Выбираем размер стикера в зависимости от покрытия (увеличены минимальные размеры в 3 раза)
@@ -4452,7 +4457,7 @@ export default {
         if (this.stickers.length >= 100) {
           console.log(`🛑 Достигнут общий лимит стикеров: ${this.stickers.length}/100`)
         }
-        console.log(`✅ Создан новый слой: ${iterations} стикеров (максимум 20), покрытие: ${this.coveragePercentage}%`)
+        console.log(`✅ Создан новый слой: ${iterations} стикеров (цель: 40 стикеров), покрытие: ${this.coveragePercentage}%`)
         
         // Обновляем канвас только один раз в конце
         this.paperScope.view.draw()
@@ -4758,13 +4763,13 @@ export default {
       console.log('⬜ Белый фон создан')
     },
     
-    // Проверка перекрытия стикеров (разрешено перекрытие на 30%)
+    // Проверка перекрытия стикеров (разрешено перекрытие на 70%)
     checkOverlap(x, y, size, excludeExisting = false) {
       // Убираем margin для разрешения перекрытия
       const margin = 0 // Убираем минимальное расстояние между стикерами
       
-      // Если excludeExisting = true, не проверяем перекрытие с существующими стикерами
-      const stickersToCheck = excludeExisting ? [] : this.stickers
+      // Всегда проверяем перекрытие с существующими стикерами, если excludeExisting = false
+      const stickersToCheck = excludeExisting ? this.stickers.slice(-10) : this.stickers // Проверяем только последние 10 стикеров для новых слоев
       
       for (const sticker of stickersToCheck) {
         // Используем данные стикера для проверки перекрытия
@@ -4772,8 +4777,8 @@ export default {
         const stickerY = sticker.y
         const stickerSize = sticker.size
         
-        // Разрешаем перекрытие на 30% (стикеры могут заходить друг на друга на 30%)
-        const overlapThreshold = 0.3 // Допускаем 30% перекрытие
+        // Разрешаем перекрытие на 70% (стикеры могут заходить друг на друга на 70%)
+        const overlapThreshold = 0.7 // Допускаем 70% перекрытие
         
         const newBounds = {
           left: x - size/2 * (1 - overlapThreshold) - margin,
@@ -6895,11 +6900,6 @@ export default {
       let clickCount = 0
       let clickTimer = null
       let selectedItem = null // Выбранный объект
-      let transformMode = null // 'rotate', 'scale', 'move'
-      let initialAngle = 0
-      let initialScale = 1
-      let initialMouseAngle = 0
-      let initialDistance = 0
       
       // Функция для снятия выделения
       const clearSelection = () => {
@@ -6917,53 +6917,8 @@ export default {
         }
       }
       
-      // Функция для определения типа клика (ручка трансформации или объект)
-      const detectTransformHandle = (point, selectedItem) => {
-        if (!selectedItem || !selectedItem.selected) return null
-        
-        const bounds = selectedItem.bounds
-        const handleSize = 8 // Размер ручки
-        
-        // Верхний правый угол (поворот)
-        const topRight = new this.paperScope.Point(bounds.right, bounds.top)
-        if (point.getDistance(topRight) <= handleSize) {
-          return 'rotate'
-        }
-        
-        // Правый нижний угол (масштабирование)
-        const bottomRight = new this.paperScope.Point(bounds.right, bounds.bottom)
-        if (point.getDistance(bottomRight) <= handleSize) {
-          return 'scale'
-        }
-        
-        return null
-      }
       
       dragTool.onMouseDown = (event) => {
-        // Проверяем, кликнули ли по ручке трансформации
-        const handleType = detectTransformHandle(event.point, this.selectedItem)
-        
-        if (handleType) {
-          // Клик по ручке трансформации - начинаем трансформацию
-          transformMode = handleType
-          dragItem = this.selectedItem
-          
-          if (handleType === 'rotate') {
-            // Поворот
-            initialAngle = dragItem.rotation
-            const center = dragItem.bounds.center
-            initialMouseAngle = Math.atan2(event.point.y - center.y, event.point.x - center.x)
-            console.log('🔄 Начато поворачивание стикера')
-          } else if (handleType === 'scale') {
-            // Масштабирование
-            initialScale = dragItem.scaling.x
-            const center = dragItem.bounds.center
-            initialDistance = event.point.getDistance(center)
-            console.log('📏 Начато масштабирование стикера, начальный масштаб:', initialScale.toFixed(2))
-          }
-          
-          return // Не обрабатываем как обычный клик
-        }
         
         // Обработка двойного клика
         clickCount++
@@ -7024,59 +6979,27 @@ export default {
       
       dragTool.onMouseDrag = (event) => {
         if (dragItem) {
-          if (transformMode === 'rotate') {
-            // Поворот стикера с уменьшенной чувствительностью
-            const center = dragItem.bounds.center
-            const currentMouseAngle = Math.atan2(event.point.y - center.y, event.point.x - center.x)
-            const angleDelta = currentMouseAngle - initialMouseAngle
-            
-            // Уменьшаем чувствительность поворота (коэффициент 0.05)
-            const rotationSensitivity = 0.05
-            dragItem.rotation = initialAngle + (angleDelta * 180 / Math.PI * rotationSensitivity)
-            
-            console.log('🔄 Поворот:', dragItem.rotation.toFixed(1) + '°')
-          } else if (transformMode === 'scale') {
-            // Масштабирование стикера с уменьшенной чувствительностью
-            const center = dragItem.bounds.center
-            const currentDistance = event.point.getDistance(center)
-            const distanceDelta = currentDistance - initialDistance
-            
-            // Уменьшаем чувствительность масштабирования (коэффициент 0.001)
-            const scaleSensitivity = 0.001
-            const scaleDelta = distanceDelta * scaleSensitivity
-            const newScale = initialScale + scaleDelta
-            
-            // Ограничиваем масштабирование
-            const minScale = 0.1
-            const maxScale = 3.0
-            const clampedScale = Math.max(minScale, Math.min(maxScale, newScale))
-            
-            dragItem.scaling = new this.paperScope.Point(clampedScale, clampedScale)
-            
-            console.log('📏 Масштаб:', clampedScale.toFixed(2))
-          } else {
-            // Обычное перемещение
-            dragItem.position = event.point.subtract(offset)
-            
-            // Обновляем позицию в диалоге, если элемент редактируется
-            if (this.isEditingText && this.editingLayerIndex) {
-              this.textDialogPosition = {
-                x: event.point.x,
-                y: event.point.y
-              }
-              
-              // Обновляем позицию в данных слоя
-              const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
-              if (layerInfo) {
-                layerInfo.position = { x: event.point.x, y: event.point.y }
-              }
-              
-              // Обновляем превью с throttling для визуальной обратной связи
-              this.updatePreviewCanvasThrottled()
+          // Обычное перемещение
+          dragItem.position = event.point.subtract(offset)
+          
+          // Обновляем позицию в диалоге, если элемент редактируется
+          if (this.isEditingText && this.editingLayerIndex) {
+            this.textDialogPosition = {
+              x: event.point.x,
+              y: event.point.y
             }
+            
+            // Обновляем позицию в данных слоя
+            const layerInfo = this.textLayers.find(layer => layer.id === this.editingLayerIndex)
+            if (layerInfo) {
+              layerInfo.position = { x: event.point.x, y: event.point.y }
+            }
+            
+            // Обновляем превью с throttling для визуальной обратной связи
+            this.updatePreviewCanvasThrottled()
           }
           
-          // Перерисовываем рендер кружки при трансформации
+          // Перерисовываем рендер кружки при перемещении
           if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
             this.$refs.threeRenderer.forceUpdate()
           }
@@ -7085,22 +7008,13 @@ export default {
       
       dragTool.onMouseUp = (event) => {
         if (dragItem) {
-          if (transformMode) {
-            console.log(`🎯 Завершена трансформация: ${transformMode}`)
-            transformMode = null
-            initialAngle = 0
-            initialScale = 1
-            initialMouseAngle = 0
-            initialDistance = 0
-          } else {
-            dragItem.selected = false
-            console.log('🎯 Завершено перетаскивание Paper.js элемента')
-          }
+          dragItem.selected = false
+          console.log('🎯 Завершено перетаскивание Paper.js элемента')
           
           dragItem = null
           offset = null
           
-          // Финальная перерисовка рендера кружки после завершения трансформации
+          // Финальная перерисовка рендера кружки после завершения перемещения
           if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
             this.$refs.threeRenderer.forceUpdate()
           }
@@ -10398,7 +10312,7 @@ export default {
         
         // Создаем область перетаскивания для правильного выделения
         // Ждем пока Paper.js вычислит bounds
-        setTimeout(() => {
+          setTimeout(() => {
           const rasterBounds = raster.bounds
           if (rasterBounds) {
             // Рассчитываем правильные bounds с учетом хвоста
@@ -10536,7 +10450,7 @@ export default {
             
             // Устанавливаем правильные bounds для области перетаскивания
             raster.bounds = expandedBounds
-          } else {
+      } else {
             console.warn('⚠️ Не удалось получить bounds для Raster (Thoughts)')
           }
         }, 0)

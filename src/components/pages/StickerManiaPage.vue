@@ -7823,6 +7823,16 @@ export default {
       console.log('✅ Режим "Мысли" отрисован - только овалы, без треугольников!')
     },
     
+    // 🧠 РЕЖИМ "МЫСЛИ" с переданными данными
+    drawThoughtsModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true, textData = null) {
+      console.log('🧠 Отрисовка режима "Мысли" с переданными данными - овальная подложка с множественными хвостами')
+      
+      // Рисуем каждый овал отдельно, чтобы избежать создания общего пути
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail, backgroundColor, textData)
+      
+      console.log('✅ Режим "Мысли" отрисован с переданными данными - только овалы, без треугольников!')
+    },
+    
     // Метод для режима "Мысли" - овальная подложка с множественными хвостами
     drawTextPreviewOnCanvasThoughtsMode(ctx, canvas) {
       if (!this.textDialogPosition) return
@@ -7921,22 +7931,25 @@ export default {
     },
     
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
-    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor) {
+    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
+      
       // 1️⃣ Рисуем основной овал (подложка) с тенью если включена
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
-        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
-        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+      if (currentTextData.shadow) {
+        ctx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * scale)
       }
       
       ctx.beginPath()
       this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
-      ctx.fillStyle = this.textDialogData.backgroundColor
+      ctx.fillStyle = backgroundColor || currentTextData.backgroundColor
       ctx.fill()
       
       // Сбрасываем тень
-      if (this.textDialogData.shadow) {
+      if (currentTextData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
@@ -7944,9 +7957,9 @@ export default {
       }
       
       // Добавляем обводку если включена
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+      if (currentTextData.stroke) {
+        ctx.strokeStyle = currentTextData.strokeColor
+        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale))
         ctx.stroke()
       }
       
@@ -7957,35 +7970,35 @@ export default {
       }
       
       // Параметры хвоста из настроек
-      const tailSize = Number(this.textDialogData.tailSize) / 100 // Длина хвоста (от 100% до 300%)
-      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const tailSize = Number(currentTextData.tailSize) / 100 // Длина хвоста (от 100% до 750%)
+      const tailWidth = Number(currentTextData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
-      // Размеры хвоста
+      // Размеры хвоста (используем ту же логику что и в calculateExtremePointsForThoughtsMode)
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * tailSize // Длина хвоста
-      const maxTailWidth = minDimension * tailWidth // Максимальная ширина хвоста
+      const tailLength = minDimension * 1.25 * tailSize // Длина хвоста
+      const tailWidthPixels = tailWidth * 50 // Ширина хвоста в пикселях
       
       console.log('🧠 Параметры хвоста:', {
-        tailSize: this.textDialogData.tailSize,
-        tailWidth: this.textDialogData.tailWidth,
-        tailAngle: this.textDialogData.tailAngle,
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailAngle: currentTextData.tailAngle,
         tailSizePercent: tailSize,
         tailWidthPercent: tailWidth,
         tailAngleDeg: (tailAngle * 180 / Math.PI).toFixed(1),
         tailLength: tailLength.toFixed(1),
-        maxTailWidth: maxTailWidth.toFixed(1),
+        tailWidthPixels: tailWidthPixels.toFixed(1),
         minDimension: minDimension.toFixed(1)
       })
       
       // Проверяем, что параметры хвоста не слишком маленькие
-      if (tailLength < 10 || maxTailWidth < 5) {
+      if (tailLength < 10 || tailWidthPixels < 5) {
         console.log('⚠️ Параметры хвоста слишком маленькие, используем минимальные значения')
         const minTailLength = Math.max(10, minDimension * 0.3)
-        const minTailWidth = Math.max(5, minDimension * 0.2)
+        const minTailWidth = Math.max(5, 50 * 0.2) // 50 - это базовая ширина хвоста
         console.log('🧠 Скорректированные параметры:', {
           tailLength: minTailLength.toFixed(1),
-          maxTailWidth: minTailWidth.toFixed(1)
+          tailWidthPixels: minTailWidth.toFixed(1)
         })
       }
       
@@ -10364,6 +10377,86 @@ export default {
       }
     },
     
+    // Расчет крайних точек для режима "Мысли" с учетом хвостов
+    calculateExtremePointsForThoughtsMode(x, y, backgroundWidth, backgroundHeight, textData) {
+      // Центр подложки
+      const centerX = x
+      const centerY = y
+      
+      // Половины размеров подложки
+      const halfWidth = backgroundWidth / 2
+      const halfHeight = backgroundHeight / 2
+      
+      // Изначальные границы - это основной овал
+      let minX = centerX - halfWidth
+      let maxX = centerX + halfWidth
+      let minY = centerY - halfHeight
+      let maxY = centerY + halfHeight
+      
+      // Параметры хвоста из настроек
+      const tailSize = Number(textData.tailSize) / 100 // Длина хвоста (от 100% до 750%)
+      const tailWidth = Number(textData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      console.log('🧠 Параметры хвоста для расчета границ:', {
+        tailSize: tailSize,
+        tailWidth: tailWidth,
+        tailAngle: tailAngle,
+        tailAngleDegrees: textData.tailAngle
+      })
+      
+      // Вычисляем длину хвоста (аналогично логике из buildThoughtsModePath)
+      const minDimension = Math.min(backgroundWidth, backgroundHeight)
+      const tailLength = minDimension * 1.25 * tailSize
+      
+      // Вычисляем ширину хвоста в пикселях
+      const tailWidthPixels = tailWidth * 50
+      
+      // Острая вершина хвоста
+      const sharpPointX = centerX + tailLength * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Math.sin(tailAngle)
+      
+      // Расширяем границы с учетом хвоста
+      minX = Math.min(minX, sharpPointX - tailWidthPixels/2)
+      maxX = Math.max(maxX, sharpPointX + tailWidthPixels/2)
+      minY = Math.min(minY, sharpPointY - tailWidthPixels/2)
+      maxY = Math.max(maxY, sharpPointY + tailWidthPixels/2)
+      
+      // Добавляем отступы для тени и обводки
+      const shadowPadding = textData.shadow ? Math.max(
+        Math.abs(textData.shadowOffsetX) + textData.shadowBlur,
+        Math.abs(textData.shadowOffsetY) + textData.shadowBlur,
+        5
+      ) : 0
+      
+      const strokePadding = textData.stroke ? (textData.strokeWidth / 2 + 2) : 0
+      const totalPadding = Math.max(shadowPadding, strokePadding)
+      
+      // Расширяем границы с учетом отступов
+      minX -= totalPadding
+      maxX += totalPadding
+      minY -= totalPadding
+      maxY += totalPadding
+      
+      console.log('🧠 Результат расчета границ режима "Мысли":', {
+        originalBounds: {
+          minX: centerX - halfWidth,
+          maxX: centerX + halfWidth,
+          minY: centerY - halfHeight,
+          maxY: centerY + halfHeight
+        },
+        sharpPoint: { x: sharpPointX, y: sharpPointY },
+        tailLength: tailLength,
+        tailWidthPixels: tailWidthPixels,
+        shadowPadding: shadowPadding,
+        strokePadding: strokePadding,
+        totalPadding: totalPadding,
+        finalBounds: { minX, maxX, minY, maxY }
+      })
+      
+      return { minX, maxX, minY, maxY }
+    },
+
     // Создание подложки "Мысли" используя существующую логику из превью
     createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
@@ -10374,14 +10467,73 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
-        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
-        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
+        console.log('🔍 HiDPI информация для режима "Мысли":', {
+          dpr: dpr,
+          note: 'Если dpr > 1, то размеры будут масштабироваться'
+        })
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
+        // Вычисляем точные координаты крайних точек режима "Мысли" с учетом хвостов
+        const extremePoints = this.calculateExtremePointsForThoughtsMode(x, y, backgroundWidth, backgroundHeight, currentTextData)
         
-        const canvasWidth = backgroundWidth + padding * 2
-        const canvasHeight = backgroundHeight + padding * 2
+        console.log('🎯 Расчет крайних точек режима "Мысли":', {
+          center: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`,
+          tailSize: currentTextData.tailSize,
+          tailWidth: currentTextData.tailWidth,
+          tailAngle: currentTextData.tailAngle,
+          extremePoints: extremePoints,
+          note: 'Эти границы будут использованы для размера канваса'
+        })
+        
+        // Вычисляем размеры канваса на основе крайних точек
+        const minX = extremePoints.minX
+        const maxX = extremePoints.maxX
+        const minY = extremePoints.minY
+        const maxY = extremePoints.maxY
+        
+        // Вычисляем размеры канваса для центрированного рисования
+        const originalCanvasWidth = maxX - minX
+        const originalCanvasHeight = maxY - minY
+        
+        // Увеличиваем размер канваса, чтобы хвост не обрезался
+        const tailPadding = 180
+        const shadowPadding = 100
+        
+        const canvasWidth = originalCanvasWidth + tailPadding
+        const canvasHeight = originalCanvasHeight + shadowPadding
+        
+        console.log('📏 Расчет размеров канваса (точные границы):', {
+          extremePoints: extremePoints,
+          canvasWidth: canvasWidth,
+          canvasHeight: canvasHeight,
+          note: 'Канвас точно по размеру режима "Мысли"'
+        })
+        
+        // Смещение для центрирования в канвасе
+        const offsetX = 0
+        const offsetY = 0
+        
+        console.log('🎯 ДЕТАЛЬНОЕ позиционирование на канвасе:', {
+          originalPosition: `${x}, ${y}`,
+          extremePoints: extremePoints,
+          minX: minX,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          offset: `${offsetX}, ${offsetY}`
+        })
+        
+        console.log('🧮 МАТЕМАТИКА позиционирования:', {
+          step1: 'Целевая позиция центра подложки на основном канвасе',
+          targetCenter: `${x}, ${y}`,
+          step2: 'Где нарисован центр подложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Размер tempCanvas',
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          step4: 'Позиция Raster на основном канвасе',
+          rasterPosition: `${x}, ${y}`
+        })
         
         const tempCanvas = document.createElement('canvas')
         tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
@@ -10407,8 +10559,16 @@ export default {
           tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
         }
         
+        console.log('🔍 Применение тени к контексту:', {
+          shadowColor: currentTextData.shadow ? (currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')) : 'none',
+          shadowBlur: currentTextData.shadow ? Math.max(1, Math.round(currentTextData.shadowBlur)) : 'none',
+          shadowOffsetX: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetX) : 'none',
+          shadowOffsetY: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetY) : 'none',
+          originalData: currentTextData.shadow ? currentTextData : 'none'
+        })
+        
         // Рисуем режим "Мысли" в центре временного Canvas
-        this.drawThoughtsModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true)
+        this.drawThoughtsModeShapeWithData(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true, currentTextData)
         
         // Сбрасываем тень
         if (currentTextData.shadow) {
@@ -10424,47 +10584,38 @@ export default {
           tempCtx.lineWidth = currentTextData.strokeWidth
           // Для режима "Мысли" обводка применяется к основному овалу
           tempCtx.beginPath()
-          this.drawOval(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight)
+          this.drawOval(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight)
           tempCtx.stroke()
         }
         
         // Добавляем текст в Raster (как в превью)
         if (currentTextData.text && currentTextData.text.trim() !== '') {
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData, 1)
+          this.drawTextInRasterWithData(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, currentTextData, 1)
         }
         
         // Конвертируем Canvas в Paper.js Raster
         const raster = new this.paperScope.Raster(tempCanvas)
         raster.position = new this.paperScope.Point(x, y)
         
-        // Масштабируем Raster чтобы сохранить тот же логический размер
-        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
-        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
-        
-        // Создаем область перетаскивания для правильного выделения
-        // Ждем пока Paper.js вычислит bounds
-        setTimeout(() => {
-          const rasterBounds = raster.bounds
-          if (rasterBounds) {
-            // Рассчитываем правильные bounds с учетом хвоста
-            const expandedBounds = this.calculateSmartBounds(rasterBounds, currentTextData, 'thoughts')
-            console.log('🎯 Создаем область перетаскивания для Raster (Thoughts):', {
-              originalBounds: rasterBounds,
-              expandedBounds: expandedBounds
-            })
-            
-            // Устанавливаем правильные bounds для области перетаскивания
-            raster.bounds = expandedBounds
-      } else {
-            console.warn('⚠️ Не удалось получить bounds для Raster (Thoughts)')
-          }
-        }, 0)
-        
         console.log('🎯 Raster создан с правильными размерами (Thoughts):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
+          originalPosition: `${x}, ${y}`,
+          offset: `${offsetX}, ${offsetY}`,
           rasterPosition: `${x}, ${y}`,
-          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
-          padding: padding
+          rasterScaling: 'none (логические координаты)',
+          note: 'Raster позиционирован точно в целевую точку'
+        })
+        
+        console.log('🧮 ПРОВЕРКА математики позиционирования:', {
+          step1: 'Целевая позиция центра подложки',
+          target: `${x}, ${y}`,
+          step2: 'Центр подложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Центр tempCanvas',
+          canvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step4: 'Позиция Raster на основном канвасе',
+          finalPosition: `${x}, ${y}`,
+          result: 'Центр Raster совпадает с целевой позицией'
         })
         
         console.log('✅ Подложка "Мысли" создана из логики превью с высоким качеством:', {

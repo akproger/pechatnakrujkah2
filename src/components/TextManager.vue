@@ -288,7 +288,7 @@
               
 
               <!-- Настройки подложки -->
-              <!--
+              
               <div class="form-group mb-3">
                 <div class="row g-2">
                   <div class="col-4">
@@ -326,7 +326,7 @@
                   </div>
                 </div>
               </div>
-              -->
+              
 
               <!-- Обводка -->
               <div class="form-group mb-3">
@@ -443,76 +443,206 @@
                     rows="6"
                     placeholder="Введите текст..."
                   ></textarea>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label">Шрифт:</label>
+                        <select v-model="textDialogDataThoughts.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataThoughts.fontSize}`">
+                          <label class="range-label" for="fontSizeConversation">Размер:</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="fontSizeConversation" 
+                            type="range" 
+                            v-model="textDialogDataThoughts.fontSize" 
+                            min="12" 
+                            max="72" 
+                            step="1" 
+                            aria-valuemin="12" 
+                            aria-valuemax="72" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div>
+                    <!-- Настройки шрифта -->
+                      <div class="form-group mb-3">
+                        <div class="font-weight-buttons">
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary font-weight-btn" 
+                            :class="{ 'active': textDialogDataThoughts.fontWeight === 'normal' }"
+                            @click="textDialogDataThoughts.fontWeight = 'normal'"
+                            title="Обычный"
+                          >
+                            <i class="bi bi-type"></i>
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary font-weight-btn" 
+                            :class="{ 'active': textDialogDataThoughts.fontWeight === 'bold' }"
+                            @click="textDialogDataThoughts.fontWeight = 'bold'"
+                            title="Жирный"
+                          >
+                            <i class="bi bi-type-bold"></i>
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary font-weight-btn" 
+                            :class="{ 'active': textDialogDataThoughts.fontWeight === 'italic' }"
+                            @click="textDialogDataThoughts.fontWeight = 'italic'"
+                            title="Курсив"
+                          >
+                            <i class="bi bi-type-italic"></i>
+                          </button>
+                          <div class="vertical-line"></div>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary text-align-btn" 
+                            :class="{ 'active': textDialogDataThoughts.textAlign === 'left' }"
+                            @click="textDialogDataThoughts.textAlign = 'left'"
+                            title="По левому краю"
+                          >
+                            <i class="bi bi-text-left"></i>
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary text-align-btn" 
+                            :class="{ 'active': textDialogDataThoughts.textAlign === 'center' }"
+                            @click="textDialogDataThoughts.textAlign = 'center'"
+                            title="По центру"
+                          >
+                            <i class="bi bi-text-center"></i>
+                          </button>
+                          
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary text-align-btn" 
+                            :class="{ 'active': textDialogDataThoughts.textAlign === 'right' }"
+                            @click="textDialogDataThoughts.textAlign = 'right'"
+                            title="По правому краю"
+                          >
+                            <i class="bi bi-text-right"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Цвета -->
+                  <div class="form-group mb-3">
+                    <div class="color-buttons">
+                      <div class="color-button-group">
+                        <i class="bi bi-type color-icon" title="Цвет текста"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет текста"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.textColor }"></div>
+                          <input type="color" v-model="textDialogDataThoughts.textColor" class="color-input">
+                        </button>
+                      </div>
+                      
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет подложки"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.backgroundColor }"></div>
+                          <input type="color" v-model="textDialogDataThoughts.backgroundColor" class="color-input">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Настройки хвоста для мыслей -->
+                  
+                  <div class="form-group mb-0">
+                    <div class="mb-2">Настройки "Хвоста"</div>
+                      <div class="row g-2">
+                        <div class="col-4">
+                          <div class="range" :style="`--value: ${textDialogDataThoughts.tailSize}`">
+                            <label class="range-label" for="tailSizeConversation">Размер</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="tailSizeConversation" 
+                              type="range" 
+                              v-model="textDialogDataThoughts.tailSize" 
+                              min="100" 
+                              max="750" 
+                              step="1" 
+                              aria-valuemin="100" 
+                              aria-valuemax="750" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                        <div class="col-4">
+                          <div class="range" :style="`--value: ${textDialogDataThoughts.tailWidth}`">
+                            <label class="range-label" for="tailWidthConversation">Ширина</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="tailWidthConversation" 
+                              type="range" 
+                              v-model="textDialogDataThoughts.tailWidth" 
+                              min="40" 
+                              max="100" 
+                              step="1" 
+                              aria-valuemin="40" 
+                              aria-valuemax="100" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                        <div class="col-4">
+                          <div class="range" :style="`--value: ${textDialogDataThoughts.tailAngle}`">
+                            <label class="range-label" for="tailAngleConversation">Угол</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="tailAngleConversation" 
+                              type="range" 
+                              v-model="textDialogDataThoughts.tailAngle" 
+                              min="0" 
+                              max="359" 
+                              step="1" 
+                              aria-valuemin="0" 
+                              aria-valuemax="359" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <button @click="applyText" class="btn btn-primary w-100">
+                    {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
+                  </button>
                 </div>
               </div>
               <!-- Аналогичные настройки как для разговора, но с textDialogDataThoughts -->
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Шрифт:</label>
-                    <select v-model="textDialogDataThoughts.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Размер шрифта:</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
-                    <div class="text-center">{{ textDialogDataThoughts.fontSize }}px</div>
-                  </div>
-                </div>
-              </div>
+              
 
-              <!-- Настройки хвоста для мыслей -->
-              <div class="form-group mb-3">
-                <div class="row g-2">
-                  <div class="col-4">
-                    <label class="form-label">Размер хвоста: {{ textDialogDataThoughts.tailSize }}%</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.tailSize" 
-                      class="form-range" 
-                      min="100" 
-                      max="750" 
-                      step="1"
-                    >
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label">Ширина хвоста: {{ textDialogDataThoughts.tailWidth }}%</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.tailWidth" 
-                      class="form-range" 
-                      min="40" 
-                      max="100" 
-                      step="1"
-                    >
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label">Угол хвоста: {{ textDialogDataThoughts.tailAngle }}°</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.tailAngle" 
-                      class="form-range" 
-                      min="0" 
-                      max="359" 
-                      step="1"
-                    >
-                  </div>
-                </div>
-              </div>
+              
 
               <!-- Настройки подложки -->
               <div class="form-group mb-3">
@@ -553,101 +683,9 @@
                 </div>
               </div>
 
-              <!-- Настройки шрифта -->
-              <div class="form-group mb-3">
-                <div class="font-weight-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'normal' }"
-                    @click="textDialogDataThoughts.fontWeight = 'normal'"
-                    title="Обычный"
-                  >
-                    <i class="bi bi-type"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'bold' }"
-                    @click="textDialogDataThoughts.fontWeight = 'bold'"
-                    title="Жирный"
-                  >
-                    <i class="bi bi-type-bold"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'italic' }"
-                    @click="textDialogDataThoughts.fontWeight = 'italic'"
-                    title="Курсив"
-                  >
-                    <i class="bi bi-type-italic"></i>
-                  </button>
-                </div>
-                
-                <div class="text-align-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataThoughts.textAlign === 'left' }"
-                    @click="textDialogDataThoughts.textAlign = 'left'"
-                    title="По левому краю"
-                  >
-                    <i class="bi bi-text-left"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataThoughts.textAlign === 'center' }"
-                    @click="textDialogDataThoughts.textAlign = 'center'"
-                    title="По центру"
-                  >
-                    <i class="bi bi-text-center"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataThoughts.textAlign === 'right' }"
-                    @click="textDialogDataThoughts.textAlign = 'right'"
-                    title="По правому краю"
-                  >
-                    <i class="bi bi-text-right"></i>
-                  </button>
-                </div>
-              </div>
+              
 
-              <!-- Цвета -->
-              <div class="form-group mb-3">
-                <div class="color-buttons">
-                  <div class="color-button-group">
-                    <i class="bi bi-type color-icon" title="Цвет текста"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет текста"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.textColor }"></div>
-                      <input type="color" v-model="textDialogDataThoughts.textColor" class="color-input">
-                    </button>
-                  </div>
-                  
-                  <div class="color-button-group">
-                    <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет подложки"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.backgroundColor }"></div>
-                      <input type="color" v-model="textDialogDataThoughts.backgroundColor" class="color-input">
-                    </button>
-                  </div>
-                </div>
-              </div>
+              
 
               <!-- Обводка -->
               <div class="form-group mb-3">
@@ -764,66 +802,141 @@
                     rows="6"
                     placeholder="Введите текст..."
                   ></textarea>
-                </div>
-              </div>
-              <!-- Простые настройки для стандартного текста -->
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Шрифт:</label>
-                    <select v-model="textDialogDataStandard.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
+                  <!-- Простые настройки для стандартного текста -->
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label">Шрифт:</label>
+                        <select v-model="textDialogDataStandard.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataStandard.fontSize}`">
+                          <label class="range-label" for="fontSizeConversation">Размер:</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="fontSizeConversation" 
+                            type="range" 
+                            v-model="textDialogDataStandard.fontSize" 
+                            min="12" 
+                            max="72" 
+                            step="1" 
+                            aria-valuemin="12" 
+                            aria-valuemax="72" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div class="col-md-6">
+                  <!-- Настройки шрифта -->
                   <div class="form-group mb-3">
-                    <label class="form-label">Размер шрифта:</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataStandard.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="72" 
-                      step="1"
-                    >
-                    <div class="text-center">{{ textDialogDataStandard.fontSize }}px</div>
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'normal' }"
+                        @click="textDialogDataStandard.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'bold' }"
+                        @click="textDialogDataStandard.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'italic' }"
+                        @click="textDialogDataStandard.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
+                      <div class="vertical-line"></div>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'left' }"
+                        @click="textDialogDataStandard.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'center' }"
+                        @click="textDialogDataStandard.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'right' }"
+                        @click="textDialogDataStandard.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
+                    </div>
                   </div>
+                  <!-- Цвета -->
+                  <div class="form-group mb-3">
+                    <div class="color-buttons">
+                      <div class="color-button-group">
+                        <i class="bi bi-type color-icon" title="Цвет текста"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет текста"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.textColor }"></div>
+                          <input type="color" v-model="textDialogDataStandard.textColor" class="color-input">
+                        </button>
+                      </div>
+                      
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет подложки"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.backgroundColor }"></div>
+                          <input type="color" v-model="textDialogDataStandard.backgroundColor" class="color-input">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <button @click="applyText" class="btn btn-primary w-100">
+                    {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
+                  </button>
                 </div>
               </div>
 
-              <!-- Цвета -->
-              <div class="form-group mb-3">
-                <div class="color-buttons">
-                  <div class="color-button-group">
-                    <i class="bi bi-type color-icon" title="Цвет текста"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет текста"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.textColor }"></div>
-                      <input type="color" v-model="textDialogDataStandard.textColor" class="color-input">
-                    </button>
-                  </div>
-                  
-                  <div class="color-button-group">
-                    <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет подложки"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.backgroundColor }"></div>
-                      <input type="color" v-model="textDialogDataStandard.backgroundColor" class="color-input">
-                    </button>
-                  </div>
-                </div>
-              </div>
+
+              
 
               <!-- Настройки подложки -->
               <div class="form-group mb-3">
@@ -864,72 +977,7 @@
                 </div>
               </div>
 
-              <!-- Настройки шрифта -->
-              <div class="form-group mb-3">
-                <div class="font-weight-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataStandard.fontWeight === 'normal' }"
-                    @click="textDialogDataStandard.fontWeight = 'normal'"
-                    title="Обычный"
-                  >
-                    <i class="bi bi-type"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataStandard.fontWeight === 'bold' }"
-                    @click="textDialogDataStandard.fontWeight = 'bold'"
-                    title="Жирный"
-                  >
-                    <i class="bi bi-type-bold"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataStandard.fontWeight === 'italic' }"
-                    @click="textDialogDataStandard.fontWeight = 'italic'"
-                    title="Курсив"
-                  >
-                    <i class="bi bi-type-italic"></i>
-                  </button>
-                </div>
-                
-                <div class="text-align-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataStandard.textAlign === 'left' }"
-                    @click="textDialogDataStandard.textAlign = 'left'"
-                    title="По левому краю"
-                  >
-                    <i class="bi bi-text-left"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataStandard.textAlign === 'center' }"
-                    @click="textDialogDataStandard.textAlign = 'center'"
-                    title="По центру"
-                  >
-                    <i class="bi bi-text-center"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataStandard.textAlign === 'right' }"
-                    @click="textDialogDataStandard.textAlign = 'right'"
-                    title="По правому краю"
-                  >
-                    <i class="bi bi-text-right"></i>
-                  </button>
-                </div>
-              </div>
+              
 
               <!-- Обводка -->
               <div class="form-group mb-3">
@@ -1046,164 +1094,172 @@
                     rows="6"
                     placeholder="Введите текст..."
                   ></textarea>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <label class="form-label">Шрифт:</label>
+                        <select v-model="textDialogDataImageText.font" class="form-select">
+                          <option value="Arial">Arial</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Verdana">Verdana</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataImageText.fontSize}`">
+                          <label class="range-label" for="fontSizeConversation">Размер:</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="fontSizeConversation" 
+                            type="range" 
+                            v-model="textDialogDataImageText.fontSize" 
+                            min="12" 
+                            max="200" 
+                            step="1" 
+                            aria-valuemin="12" 
+                            aria-valuemax="72" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Настройки шрифта -->
+                  <div class="form-group mb-3">
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataImageText.fontWeight === 'normal' }"
+                        @click="textDialogDataImageText.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataImageText.fontWeight === 'bold' }"
+                        @click="textDialogDataImageText.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataImageText.fontWeight === 'italic' }"
+                        @click="textDialogDataImageText.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
+                      <div class="vertical-line"></div>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataImageText.textAlign === 'left' }"
+                        @click="textDialogDataImageText.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataImageText.textAlign === 'center' }"
+                        @click="textDialogDataImageText.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataImageText.textAlign === 'right' }"
+                        @click="textDialogDataImageText.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Цвет текста (для обводки) -->
+                  <div class="form-group mb-3">
+                    <div class="color-buttons">
+                      <div class="color-button-group">
+                        <i class="bi bi-type color-icon" title="Цвет текста (обводка)"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет текста (обводка)"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataImageText.textColor }"></div>
+                          <input type="color" v-model="textDialogDataImageText.textColor" class="color-input">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Загрузка изображения -->
+                  <div class="form-group mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <input 
+                        type="file" 
+                        ref="imageInput"
+                        @change="handleImageSelect"
+                        accept="image/*"
+                        class="form-control"
+                        style="display: none;"
+                      >
+                      <button 
+                        @click="triggerImageInput" 
+                        class="btn btn-outline-primary w-100"
+                        type="button"
+                      >
+                        <i class="bi bi-upload me-2"></i>
+                        Выбрать изображение
+                      </button>
+                    </div>
+                    
+                    <!-- Предпросмотр изображения -->
+                    <div v-if="textDialogDataImageText.cachedImage" class="mt-3 text-img-preview">
+                      <img 
+                        :src="textDialogDataImageText.cachedImage.src" 
+                        alt="Предпросмотр" 
+                        class="img-thumbnail"
+                        style="max-width: 100px; max-height: 44px;"
+                      >
+                                            <button 
+                        v-if="textDialogDataImageText.textImage"
+                        @click="removeMaskImage" 
+                        class="btn btn-outline-danger"
+                        type="button"
+                      >
+                        <i class="bi bi-trash me-2"></i>
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                  <button @click="applyText" class="btn btn-primary w-100">
+                    {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
+                  </button>
                 </div>
               </div>
 
-              <!-- Загрузка изображения -->
-              <div class="form-group mb-3">
-                <label class="form-label">Изображение для маскирования:</label>
-                <div class="d-flex align-items-center gap-3">
-                  <input 
-                    type="file" 
-                    ref="imageInput"
-                    @change="handleImageSelect"
-                    accept="image/*"
-                    class="form-control"
-                    style="display: none;"
-                  >
-                  <button 
-                    @click="triggerImageInput" 
-                    class="btn btn-outline-primary"
-                    type="button"
-                  >
-                    <i class="bi bi-upload me-2"></i>
-                    Выбрать изображение
-                  </button>
-                  <button 
-                    v-if="textDialogDataImageText.textImage"
-                    @click="removeMaskImage" 
-                    class="btn btn-outline-danger"
-                    type="button"
-                  >
-                    <i class="bi bi-trash me-2"></i>
-                    Удалить
-                  </button>
-                </div>
-                
-                <!-- Предпросмотр изображения -->
-                <div v-if="textDialogDataImageText.cachedImage" class="mt-3">
-                  <img 
-                    :src="textDialogDataImageText.cachedImage.src" 
-                    alt="Предпросмотр" 
-                    class="img-thumbnail"
-                    style="max-width: 200px; max-height: 150px;"
-                  >
-                </div>
-              </div>
+              
 
               <!-- Настройки шрифта -->
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Шрифт:</label>
-                    <select v-model="textDialogDataImageText.font" class="form-select">
-                      <option value="Arial">Arial</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-group mb-3">
-                    <label class="form-label">Размер шрифта:</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataImageText.fontSize" 
-                      class="form-range" 
-                      min="12" 
-                      max="200" 
-                      step="1"
-                    >
-                    <div class="text-center">{{ textDialogDataImageText.fontSize }}px</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Настройки шрифта -->
-              <div class="form-group mb-3">
-                <div class="font-weight-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataImageText.fontWeight === 'normal' }"
-                    @click="textDialogDataImageText.fontWeight = 'normal'"
-                    title="Обычный"
-                  >
-                    <i class="bi bi-type"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataImageText.fontWeight === 'bold' }"
-                    @click="textDialogDataImageText.fontWeight = 'bold'"
-                    title="Жирный"
-                  >
-                    <i class="bi bi-type-bold"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary font-weight-btn" 
-                    :class="{ 'active': textDialogDataImageText.fontWeight === 'italic' }"
-                    @click="textDialogDataImageText.fontWeight = 'italic'"
-                    title="Курсив"
-                  >
-                    <i class="bi bi-type-italic"></i>
-                  </button>
-                </div>
-                
-                <div class="text-align-buttons">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataImageText.textAlign === 'left' }"
-                    @click="textDialogDataImageText.textAlign = 'left'"
-                    title="По левому краю"
-                  >
-                    <i class="bi bi-text-left"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataImageText.textAlign === 'center' }"
-                    @click="textDialogDataImageText.textAlign = 'center'"
-                    title="По центру"
-                  >
-                    <i class="bi bi-text-center"></i>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary text-align-btn" 
-                    :class="{ 'active': textDialogDataImageText.textAlign === 'right' }"
-                    @click="textDialogDataImageText.textAlign = 'right'"
-                    title="По правому краю"
-                  >
-                    <i class="bi bi-text-right"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Цвет текста (для обводки) -->
-              <div class="form-group mb-3">
-                <div class="color-buttons">
-                  <div class="color-button-group">
-                    <i class="bi bi-type color-icon" title="Цвет текста (обводка)"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет текста (обводка)"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataImageText.textColor }"></div>
-                      <input type="color" v-model="textDialogDataImageText.textColor" class="color-input">
-                    </button>
-                  </div>
-                </div>
-              </div>
+              
 
               <!-- Обводка -->
               <div class="form-group mb-3">
@@ -3991,6 +4047,8 @@ export default {
 }
 
 .text-dialog-header {
+  display: flex;
+  justify-content: space-between;
   width: 1200px;
   margin: 0 auto;
   padding: 1.5em 0;
@@ -4055,10 +4113,11 @@ export default {
 .text-dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #dee2e6;
-  background: #f8f9fa;
+}
+
+.text-img-preview > .img-thumbnail {
+  padding: 0;
+  border: none;
 }
 
 /* Стили для кнопок шрифта */

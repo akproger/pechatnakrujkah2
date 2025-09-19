@@ -2344,6 +2344,7 @@ export default {
       
       // Для режимов без хвоста используем минимальный отступ
       if (mode === 'standard' || mode === 'imageText') {
+        // Используем минимальный отступ (сокращаем в 2 раза)
         return originalBounds.expand(basePadding)
       }
       
@@ -2754,25 +2755,31 @@ export default {
         const shadowPadding = layer.textData.shadow ? Math.min(layer.textData.shadowBlur + Math.abs(layer.textData.shadowOffsetX) + Math.abs(layer.textData.shadowOffsetY), 100) : 0
         const strokePadding = layer.textData.stroke ? layer.textData.strokeWidth / 2 : 0
         
-        // Для режима "Разговор" добавляем отступ для хвоста
-        const tailSize = Number(layer.textData.tailSize) / 100
-        const tailWidth = Number(layer.textData.tailWidth) / 100
-        const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
-        const tailLength = minDimension * 1.25 * tailSize // Увеличиваем базовую длину хвоста
-        const tailBaseWidth = minDimension * 0.3 * tailWidth
+        // Простой расчет отступов для всех режимов
+        let padding = Math.max(shadowPadding, strokePadding) + 50 // Базовый отступ
         
-        // Учитываем толщину хвоста в отступах
-        const tailThicknessPadding = tailBaseWidth * 2.0 // Увеличиваем отступ для толщины хвоста
-        const tailTipPadding = tailLength * 1.0 // Увеличиваем отступ для кончика хвоста (было 0.5)
-        const tailPadding = Math.max(
-          tailLength * 4.0, // Еще больше увеличиваем отступ для длины хвоста (было 3.0)
-          tailBaseWidth * 4.0, // Еще больше увеличиваем отступ для ширины хвоста (было 3.0)
-          tailThicknessPadding, // Добавляем отступ для толщины хвоста
-          tailTipPadding, // Добавляем отступ для кончика хвоста
-          minDimension * 3.0 // Еще больше увеличиваем базовый отступ (было 2.5)
-        )
-        
-        const padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимально увеличиваем дополнительный отступ
+        // Для режимов с хвостом добавляем дополнительные отступы
+        if (layer.textData.backgroundMode === 'conversation' || layer.textData.backgroundMode === 'thoughts') {
+          // Для режима "Разговор" и "Мысли" добавляем отступ для хвоста
+          const tailSize = Number(layer.textData.tailSize || 100) / 100 // Используем 100 как значение по умолчанию
+          const tailWidth = Number(layer.textData.tailWidth || 60) / 100 // Используем 60 как значение по умолчанию
+          const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
+          const tailLength = minDimension * 1.25 * tailSize // Увеличиваем базовую длину хвоста
+          const tailBaseWidth = minDimension * 0.3 * tailWidth
+          
+          // Учитываем толщину хвоста в отступах
+          const tailThicknessPadding = tailBaseWidth * 2.0 // Увеличиваем отступ для толщины хвоста
+          const tailTipPadding = tailLength * 1.0 // Увеличиваем отступ для кончика хвоста (было 0.5)
+          const tailPadding = Math.max(
+            tailLength * 4.0, // Еще больше увеличиваем отступ для длины хвоста (было 3.0)
+            tailBaseWidth * 4.0, // Еще больше увеличиваем отступ для ширины хвоста (было 3.0)
+            tailThicknessPadding, // Добавляем отступ для толщины хвоста
+            tailTipPadding, // Добавляем отступ для кончика хвоста
+            minDimension * 3.0 // Еще больше увеличиваем базовый отступ (было 2.5)
+          )
+          
+          padding = Math.max(shadowPadding, strokePadding, tailPadding) + 200 // Максимально увеличиваем дополнительный отступ
+        }
         
         // Вычисляем размеры с отступами
         const highResWidth = scaledBackgroundWidth + padding * 2
@@ -3228,11 +3235,26 @@ export default {
     
     // Рисование подложки "Мысли" в высоком разрешении
     async drawThoughtsBackgroundInHighDPI(ctx, layer, scale = 1) {
-      // Аналогично drawConversationBackgroundInHighDPI, но с другой формой хвоста
-      await this.drawConversationBackgroundInHighDPI(ctx, layer) // Временно используем ту же логику
+      const textData = layer.textData
+      
+      // Размеры подложки (уже в высоком разрешении)
+      const width = layer.bounds.width
+      const height = layer.bounds.height
+      
+      console.log('🧠 Размеры подложки thoughts:', width, 'x', height)
+      
+      // Используем ту же логику, что и в canvas-превью режима "Текст 2"
+      const centerX = width / 2
+      const centerY = height / 2
+      
+      // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
+      // Используем правильную логику из buildThoughtsModePath
+      this.buildThoughtsModePath(ctx, centerX, centerY, width, height, scale, true, textData.backgroundColor, textData)
+      
+      console.log('✅ Подложка "Мысли" нарисована в высоком разрешении')
     },
     
-    // Рисование стандартной подложки в высоком разрешении
+    // Рисование стандартной подложки в высоком разрешении (точная копия логики превью)
     async drawStandardBackgroundInHighDPI(ctx, layer, scale = 1) {
       const textData = layer.textData
       
@@ -3242,23 +3264,11 @@ export default {
       
       console.log('📐 Размеры подложки standard:', width, 'x', height)
       
-      // Создаем скругленный прямоугольник (радиус тоже масштабируется)
-      const radius = 10 * scale
+      // Используем центр для отрисовки (как в превью)
+      const centerX = width / 2
+      const centerY = height / 2
       
-      // Рисуем прямоугольник (используем старый метод для совместимости)
-      ctx.beginPath()
-      ctx.moveTo(radius, 0)
-      ctx.lineTo(width - radius, 0)
-      ctx.quadraticCurveTo(width, 0, width, radius)
-      ctx.lineTo(width, height - radius)
-      ctx.quadraticCurveTo(width, height, width - radius, height)
-      ctx.lineTo(radius, height)
-      ctx.quadraticCurveTo(0, height, 0, height - radius)
-      ctx.lineTo(0, radius)
-      ctx.quadraticCurveTo(0, 0, radius, 0)
-      ctx.closePath()
-      
-      // Применяем тень если нужно
+      // Рисуем тень если включена (точно как в превью)
       if (textData.shadow) {
         ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
         ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
@@ -3266,22 +3276,26 @@ export default {
         ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
       }
       
-      // Заливаем фон
-      ctx.fillStyle = textData.backgroundColor
-      ctx.fill()
+      // Рисуем простую прямоугольную подложку (точно как в превью)
+      ctx.fillStyle = textData.backgroundColor || '#ffffff'
+      ctx.fillRect(centerX - width/2, centerY - height/2, width, height)
       
       // Сбрасываем тень
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
-      
-      // Рисуем обводку если нужно
-      if (textData.stroke && textData.strokeColor && textData.strokeWidth > 0) {
-        ctx.strokeStyle = textData.strokeColor
-        ctx.lineWidth = textData.strokeWidth * scale
-        ctx.stroke()
+      if (textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
+      
+      // Добавляем обводку если включена (точно как в превью)
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = (textData.strokeWidth || 2) * scale
+        ctx.strokeRect(centerX - width/2, centerY - height/2, width, height)
+      }
+      
+      console.log('✅ Подложка "Стандарт" нарисована в высоком разрешении')
     },
     
     // Рисование подложки с изображением в высоком разрешении
@@ -7812,6 +7826,42 @@ export default {
       console.log('✅ Форма "Стандарт" отрисована - только прямоугольник')
     },
     
+    // Отрисовка формы для режима "Стандарт" с переданными данными (для основного канваса)
+    drawStandardModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData) {
+      console.log('⭐ Отрисовка формы "Стандарт" с переданными данными - только прямоугольник без хвоста')
+      
+      // Сначала рисуем тень если включена (точно как в превью)
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 2) // Добавляем множитель x2 для смещения
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 2) // Добавляем множитель x2 для смещения
+        
+        // Рисуем тень
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        // Сбрасываем настройки тени
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Затем рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // В конце применяем обводку если включена
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      }
+      
+      console.log('✅ Форма "Стандарт" с переданными данными отрисована - только прямоугольник')
+    },
+    
     // 🧠 РЕЖИМ "МЫСЛИ" - новая архитектура суперподложки
     // Отрисовка овальной подложки с множественными овальными хвостами
     drawThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true) {
@@ -7956,10 +8006,10 @@ export default {
         ctx.shadowOffsetY = 0
       }
       
-      // Добавляем обводку если включена
+      // Добавляем обводку если включена (такая же как у овалов хвоста)
       if (currentTextData.stroke) {
         ctx.strokeStyle = currentTextData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale))
+        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * 0.49))
         ctx.stroke()
       }
       
@@ -7969,15 +8019,22 @@ export default {
         return
       }
       
+      console.log('🧠 Режим "Мысли" - рисуем хвост с параметрами:', {
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailAngle: currentTextData.tailAngle,
+        drawTail: drawTail
+      })
+      
       // Параметры хвоста из настроек
       const tailSize = Number(currentTextData.tailSize) / 100 // Длина хвоста (от 100% до 750%)
       const tailWidth = Number(currentTextData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
       const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
       
-      // Размеры хвоста (используем ту же логику что и в calculateExtremePointsForThoughtsMode)
+      // Размеры хвоста (используем ту же логику что и в превью)
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 * tailSize // Длина хвоста
-      const tailWidthPixels = tailWidth * 50 // Ширина хвоста в пикселях
+      const tailLength = minDimension * tailSize // Длина хвоста (как в превью)
+      const tailWidthPixels = minDimension * tailWidth // Ширина хвоста в пикселях (как в превью)
       
       console.log('🧠 Параметры хвоста:', {
         tailSize: currentTextData.tailSize,
@@ -8002,39 +8059,49 @@ export default {
         })
       }
       
-      // 2️⃣ ПРОСТАЯ ЛОГИКА: рисуем овалы хвоста по прямой линии от центра
+      // 2️⃣ ЛОГИКА ИЗ ПРЕВЬЮ: рисуем овалы хвоста точно как в TextManager
       // Упрощенная логика: рисуем только 2 овала (большой и маленький)
       const tailCount = 2
       
       console.log('🧠 Количество овалов хвоста:', tailCount)
       
-      // 3️⃣ Отступ от основного овала (минимальный, чтобы не соприкасались)
-      const offsetFromMain = tailWidthPixels * 0.1 // Уменьшаем отступ для лучшей видимости
+      // 3️⃣ Отступ от основного овала (как в превью)
+      const offsetFromMain = tailWidthPixels * 0.1
       
-      // 4️⃣ Рисуем овалы хвоста с правильным расположением (2 овала)
+      // 4️⃣ Рисуем овалы хвоста с правильным расположением (как в превью)
+      console.log('🧠 Начинаем рисование овалов хвоста (логика из превью):', {
+        tailCount: tailCount,
+        tailLength: tailLength,
+        tailWidthPixels: tailWidthPixels,
+        offsetFromMain: offsetFromMain
+      })
+      
       for (let i = 0; i < tailCount; i++) {
-        // Упрощенная логика позиционирования овалов
+        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького (как в превью)
         let distanceFromCenter
         if (i === 0) {
-          // Первый овал (большой) - на 60% длины хвоста от центра
-          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain) * 0.6
+          // Первый овал (большой) - на 35% длины хвоста от маленького овала
+          const smallOvalDistance = offsetFromMain + (tailLength - offsetFromMain) // Маленький в конце
+          const distanceFromSmall = (tailLength - offsetFromMain) * 0.35 // 35% длины хвоста
+          distanceFromCenter = smallOvalDistance - distanceFromSmall
         } else {
-          // Второй овал (маленький) - на 90% длины хвоста от центра
-          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain) * 0.9
+          // Второй овал (маленький) - в конце хвоста
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain)
         }
         
-        // Размер овала (только 2 овала) - уменьшаем размеры для соответствия превью
+        // Размер овала (только 2 овала) - точно как в превью
         let sizeMultiplier
         if (i === 0) {
-          // Первый овал (большой) - увеличиваем на 20%
-          sizeMultiplier = 1.2
+          // Первый овал (большой) - увеличиваем на 60%
+          sizeMultiplier = 1.6 // 1.0 + 60% = 1.6
         } else {
           // Второй овал (маленький) - базовый размер
           sizeMultiplier = 1.0
         }
         
+        // Размеры овала (точно как в превью)
         const ovalWidth = tailWidthPixels * sizeMultiplier
-        const ovalHeight = ovalWidth * 0.7 // Увеличиваем соотношение сторон для лучшей видимости
+        const ovalHeight = tailWidthPixels * sizeMultiplier * 0.6 // Овалы немного сплющены (как в превью)
         
         // Позиция овала (центр совпадает с линией хвоста)
         const ovalX = centerX + Math.cos(tailAngle) * distanceFromCenter
@@ -8048,31 +8115,31 @@ export default {
         })
         
         // Рисуем овал хвоста с тенью если включена
-        if (this.textDialogData.shadow) {
-          ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
-          ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
-          ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+        if (currentTextData.shadow) {
+          ctx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * scale))
+          ctx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * scale)
+          ctx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * scale)
         }
         
         // Рисуем овал хвоста с собственным заполнением
         ctx.beginPath()
         this.drawOval(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
-        ctx.fillStyle = this.textDialogData.backgroundColor
+        ctx.fillStyle = backgroundColor || currentTextData.backgroundColor
         ctx.fill()
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (currentTextData.shadow) {
           ctx.shadowColor = 'transparent'
           ctx.shadowBlur = 0
           ctx.shadowOffsetX = 0
           ctx.shadowOffsetY = 0
         }
         
-        // Добавляем обводку если включена
-        if (this.textDialogData.stroke) {
-          ctx.strokeStyle = this.textDialogData.strokeColor
-          ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+        // Добавляем обводку если включена (точный размер)
+        if (currentTextData.stroke) {
+          ctx.strokeStyle = currentTextData.strokeColor
+          ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * 0.49))
           ctx.stroke()
         }
       }
@@ -10200,14 +10267,16 @@ export default {
           backgroundSize: `${backgroundWidth}x${backgroundHeight}`
         })
         
-        // Настройки текста из переданных данных (логические координаты)
-        const fontSize = textData.fontSize // Используем оригинальный размер шрифта
+        // Настройки текста из переданных данных (с масштабированием)
+        const fontSize = textData.fontSize * dpr // Масштабируем размер шрифта
         const fontFamily = textData.font
         const fontWeight = textData.fontWeight
         const textColor = textData.textColor
         
-        console.log('🎨 Настройки текста (логические координаты):', {
-          fontSize: fontSize,
+        console.log('🎨 Настройки текста (с масштабированием):', {
+          originalFontSize: textData.fontSize,
+          scaledFontSize: fontSize,
+          dpr: dpr,
           fontFamily,
           fontWeight,
           textColor
@@ -10262,11 +10331,11 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
-        // Добавляем отступы для тени и обводки
+        // Добавляем отступы для тени и обводки (минимальные для режима standard)
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
-        const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
+        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ для режима standard
         
         const canvasWidth = backgroundWidth + padding * 2
         const canvasHeight = backgroundHeight + padding * 2
@@ -10287,16 +10356,8 @@ export default {
         const canvasCenterX = canvasWidth / 2
         const canvasCenterY = canvasHeight / 2
         
-        // Применяем тень если включена (точно как в превью)
-        if (currentTextData.shadow) {
-          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
-        }
-        
-        // Рисуем стандартную подложку в центре временного Canvas
-        this.drawStandardModeShape(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor)
+        // Рисуем стандартную подложку в центре временного Canvas (точно как в превью)
+        this.drawStandardModeShapeWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, currentTextData)
         
         // Сбрасываем тень
         if (currentTextData.shadow) {
@@ -10403,12 +10464,12 @@ export default {
         tailAngleDegrees: textData.tailAngle
       })
       
-      // Вычисляем длину хвоста (используем ту же логику что и в режиме "Разговор")
+      // Вычисляем длину хвоста (используем ту же логику что и в превью)
       const minDimension = Math.min(backgroundWidth, backgroundHeight)
-      const tailLength = minDimension * 1.25 * tailSize
+      const tailLength = minDimension * tailSize
       
-      // Вычисляем ширину хвоста в пикселях (как в buildThoughtsModePath)
-      const tailWidthPixels = tailWidth * 50
+      // Вычисляем ширину хвоста в пикселях (как в превью)
+      const tailWidthPixels = minDimension * tailWidth
       
       // В режиме "Мысли" хвост состоит из множественных овалов
       // Нужно учесть максимальное расстояние до самого дальнего овала
@@ -10451,7 +10512,7 @@ export default {
           minY: centerY - halfHeight,
           maxY: centerY + halfHeight
         },
-        sharpPoint: { x: sharpPointX, y: sharpPointY },
+        maxOvalPoint: { x: maxOvalX, y: maxOvalY },
         tailLength: tailLength,
         tailWidthPixels: tailWidthPixels,
         shadowPadding: shadowPadding,
@@ -10478,41 +10539,22 @@ export default {
           note: 'Если dpr > 1, то размеры будут масштабироваться'
         })
         
-        // Вычисляем точные координаты крайних точек режима "Мысли" с учетом хвостов
-        const extremePoints = this.calculateExtremePointsForThoughtsMode(x, y, backgroundWidth, backgroundHeight, currentTextData)
+        // Используем фиксированные размеры канваса (как в других режимах)
+        // Добавляем отступы для тени и обводки
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
+        const strokePadding = currentTextData.stroke ? (currentTextData.strokeWidth / 2 + 2) : 0
+        const tailPadding = 50 // Отступ для хвоста
         
-        console.log('🎯 Расчет крайних точек режима "Мысли":', {
-          center: `${x}, ${y}`,
+        const canvasWidth = backgroundWidth + shadowPadding + strokePadding + tailPadding
+        const canvasHeight = backgroundHeight + shadowPadding + strokePadding + tailPadding
+        
+        console.log('📏 Расчет размеров канваса (фиксированные размеры):', {
           backgroundSize: `${backgroundWidth}x${backgroundHeight}`,
-          tailSize: currentTextData.tailSize,
-          tailWidth: currentTextData.tailWidth,
-          tailAngle: currentTextData.tailAngle,
-          extremePoints: extremePoints,
-          note: 'Эти границы будут использованы для размера канваса'
-        })
-        
-        // Вычисляем размеры канваса на основе крайних точек
-        const minX = extremePoints.minX
-        const maxX = extremePoints.maxX
-        const minY = extremePoints.minY
-        const maxY = extremePoints.maxY
-        
-        // Вычисляем размеры канваса для центрированного рисования
-        const originalCanvasWidth = maxX - minX
-        const originalCanvasHeight = maxY - minY
-        
-        // Используем те же отступы, что и в режиме "Разговор"
-        const tailPadding = 100
-        const shadowPadding = 50
-        
-        const canvasWidth = originalCanvasWidth + tailPadding
-        const canvasHeight = originalCanvasHeight + shadowPadding
-        
-        console.log('📏 Расчет размеров канваса (точные границы):', {
-          extremePoints: extremePoints,
-          canvasWidth: canvasWidth,
-          canvasHeight: canvasHeight,
-          note: 'Канвас точно по размеру режима "Мысли"'
+          shadowPadding: shadowPadding,
+          strokePadding: strokePadding,
+          tailPadding: tailPadding,
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          note: 'Используем фиксированные размеры как в других режимах'
         })
         
         // Смещение для центрирования в канвасе
@@ -10521,11 +10563,6 @@ export default {
         
         console.log('🎯 ДЕТАЛЬНОЕ позиционирование на канвасе:', {
           originalPosition: `${x}, ${y}`,
-          extremePoints: extremePoints,
-          minX: minX,
-          maxX: maxX,
-          minY: minY,
-          maxY: maxY,
           canvasSize: `${canvasWidth}x${canvasHeight}`,
           offset: `${offsetX}, ${offsetY}`
         })
@@ -10553,28 +10590,47 @@ export default {
         // Очищаем канвас
         tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
-        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
-        const canvasCenterX = canvasWidth / 2
-        const canvasCenterY = canvasHeight / 2
+        // ЭКСПЕРИМЕНТ: Суперподложка правильного размера, только текст уменьшаем
+        const backgroundScale = 0.5 // Суперподложка правильного размера
+        const textScale = 0.5 // Текст правильного размера
+        const scaledBackgroundWidth = backgroundWidth * backgroundScale
+        const scaledBackgroundHeight = backgroundHeight * backgroundScale
         
-        // Применяем тень если включена (точно как в превью)
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const centerX = canvasWidth / 2
+        const centerY = canvasHeight / 2
+        
+        // Применяем тень если включена (для суперподложки)
         if (currentTextData.shadow) {
           tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur))
-          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX)
-          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY)
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * backgroundScale))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * backgroundScale)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * backgroundScale)
         }
         
         console.log('🔍 Применение тени к контексту:', {
           shadowColor: currentTextData.shadow ? (currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')) : 'none',
-          shadowBlur: currentTextData.shadow ? Math.max(1, Math.round(currentTextData.shadowBlur)) : 'none',
-          shadowOffsetX: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetX) : 'none',
-          shadowOffsetY: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetY) : 'none',
+          shadowBlur: currentTextData.shadow ? Math.max(1, Math.round(currentTextData.shadowBlur * backgroundScale)) : 'none',
+          shadowOffsetX: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetX * backgroundScale) : 'none',
+          shadowOffsetY: currentTextData.shadow ? Math.round(currentTextData.shadowOffsetY * backgroundScale) : 'none',
+          backgroundScale: backgroundScale,
+          textScale: textScale,
           originalData: currentTextData.shadow ? currentTextData : 'none'
         })
         
-        // Рисуем режим "Мысли" в центре временного Canvas
-        this.drawThoughtsModeShapeWithData(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, backgroundColor, true, true, currentTextData)
+        console.log('🧠 ЭКСПЕРИМЕНТ: Вызываем drawThoughtsModeShapeWithData с правильными размерами:', {
+          centerX: centerX,
+          centerY: centerY,
+          originalSize: `${backgroundWidth}x${backgroundHeight}`,
+          scaledSize: `${scaledBackgroundWidth}x${scaledBackgroundHeight}`,
+          backgroundScale: backgroundScale,
+          textScale: textScale,
+          backgroundColor: backgroundColor,
+          withShadow: true,
+          drawTail: true,
+          hasTextData: !!currentTextData
+        })
+        this.drawThoughtsModeShapeWithData(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, 1, backgroundColor, true, true, currentTextData)
         
         // Сбрасываем тень
         if (currentTextData.shadow) {
@@ -10584,19 +10640,19 @@ export default {
           tempCtx.shadowOffsetY = 0
         }
         
-        // Добавляем обводку если включена
+        // Добавляем обводку если включена (для суперподложки - нормальная толщина)
         if (currentTextData.stroke) {
           tempCtx.strokeStyle = currentTextData.strokeColor
-          tempCtx.lineWidth = currentTextData.strokeWidth
+          tempCtx.lineWidth = Math.max(1, currentTextData.strokeWidth * backgroundScale)
           // Для режима "Мысли" обводка применяется к основному овалу
           tempCtx.beginPath()
-          this.drawOval(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight)
+          this.drawOval(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight)
           tempCtx.stroke()
         }
         
-        // Добавляем текст в Raster (как в превью)
+        // Добавляем текст в Raster (уменьшенный)
         if (currentTextData.text && currentTextData.text.trim() !== '') {
-          this.drawTextInRasterWithData(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, currentTextData, 1)
+          this.drawTextInRasterWithData(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, currentTextData, textScale)
         }
         
         // Конвертируем Canvas в Paper.js Raster

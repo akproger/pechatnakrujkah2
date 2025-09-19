@@ -2365,17 +2365,16 @@ export default {
       // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
-      // Временно заменяем textDialogData на textDialogDataThoughts для отрисовки
-      const originalData = this.textDialogData
-      this.textDialogData = this.textDialogDataThoughts
+      // Используем данные из textDialogDataThoughts для отрисовки
+      const currentTextData = this.textDialogDataThoughts
       
       // Настройки текста
-      const fontSize = this.textDialogData.fontSize
-      const fontFamily = this.textDialogData.font
-      const fontWeight = this.textDialogData.fontWeight
-      const textColor = this.textDialogData.textColor
-      const backgroundColor = this.textDialogData.backgroundColor
-      const padding = this.textDialogData.padding
+      const fontSize = currentTextData.fontSize
+      const fontFamily = currentTextData.font
+      const fontWeight = currentTextData.fontWeight
+      const textColor = currentTextData.textColor
+      const backgroundColor = currentTextData.backgroundColor
+      const padding = currentTextData.padding
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -2383,17 +2382,17 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, currentTextData.text, fontSize, currentTextData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
       // Размеры подложки - используем тот же подход, что и в режиме "Разговор"
       const backgroundWidth = Math.max(
-        this.textDialogData.backgroundWidth, 
+        currentTextData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        this.textDialogData.backgroundHeight, 
+        currentTextData.backgroundHeight, 
         textHeight + padding * 2
       )
       
@@ -2411,11 +2410,8 @@ export default {
       
       // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
-      ctx.textAlign = this.textDialogData.textAlign || 'center'
-      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
-      
-      // Восстанавливаем оригинальные данные
-      this.textDialogData = originalData
+      ctx.textAlign = currentTextData.textAlign || 'center'
+      this.drawMultilineText(ctx, currentTextData.text, previewX, previewY, currentTextData.fontSize * previewScale, currentTextData.lineHeight)
       
       console.log('✅ Режим "Мысли" отрисован на превью')
     },

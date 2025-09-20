@@ -40,7 +40,6 @@
                     ref="textManager"
                     :canvas="$refs.testCanvas"
                     :paper-scope="paperScope"
-                    :text-position="textDialogPosition"
                     @text-dialog-opened="onTextDialogOpened"
                     @text-dialog-closed="onTextDialogClosed"
                     @text-applied="onTextApplied"
@@ -8648,8 +8647,11 @@ export default {
       this.activeTab = 'text'
       console.log('🔄 Активирована вкладка "Тексты"')
       
-      // Закрываем диалог
-      this.closeTextDialog()
+      // Закрываем диалог TextManager
+      const textManager = this.$refs.textManager
+      if (textManager && typeof textManager.closeDialog === 'function') {
+        textManager.closeDialog()
+      }
     },
     
     // Создание текстового элемента на слое
@@ -9917,14 +9919,14 @@ export default {
           dpr: dpr,
           rasterScale: `${(1 / dpr).toFixed(3)}x`,
           textData: {
-            text: this.textDialogData.text,
-            fontSize: this.textDialogData.fontSize,
-            textColor: this.textDialogData.textColor,
-            fontWeight: this.textDialogData.fontWeight,
-            font: this.textDialogData.font,
-            hasImage: !!(this.textDialogData.textImage && this.textDialogDataImageText.cachedImage),
-            shadow: this.textDialogData.shadow,
-            stroke: this.textDialogData.stroke
+            text: currentTextData.text,
+            fontSize: currentTextData.fontSize,
+            textColor: currentTextData.textColor,
+            fontWeight: currentTextData.fontWeight,
+            font: currentTextData.font,
+            hasImage: !!(currentTextData.textImage && currentTextData.cachedImage),
+            shadow: currentTextData.shadow,
+            stroke: currentTextData.stroke
           }
         })
         

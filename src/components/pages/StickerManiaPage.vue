@@ -691,132 +691,15 @@ export default {
       maxIterations: 5000, // Максимальное количество попыток размещения
       overlapThreshold: 0.05, // Максимальное перекрытие (5%) - уменьшаем для более плотного размещения
       
-      // Режим добавления текста
-      showTextDialog: false, // Показать ли диалог добавления текста
-      textDialogPosition: null, // Позиция для размещения текста
-      textDialogActiveTab: 'conversation', // Активная вкладка в диалоге текста (conversation/thoughts)
-      isEditingText: false, // Флаг режима редактирования существующего текста
       editingLayerIndex: null, // Индекс слоя, который редактируется
       previewUpdateTimeout: null, // Таймаут для debounce обновления превью
       tailUpdateTimeout: null, // Таймаут для debounce обновления хвоста
       previewUpdateFrame: null, // requestAnimationFrame для throttling обновления превью
-      // Данные для каждой вкладки отдельно
-      textDialogDataConversation: {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'normal',
-        fontSize: 24,
-        textColor: '#000000',
-        backgroundColor: '#ffffff',
-        tailSize: 145,
-        tailWidth: 40,
-        tailAngle: 45,
-        backgroundWidth: 200,
-        backgroundHeight: 80,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 40,
-        shadowOffsetX: 8,
-        shadowOffsetY: 8,
-        shadowBlur: 1
-      },
-      
-      textDialogDataThoughts: {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'normal',
-        fontSize: 24,
-        textColor: '#000000',
-        backgroundColor: '#ffffff',
-        tailSize: 145,
-        tailWidth: 40,
-        tailAngle: 45,
-        backgroundWidth: 200,
-        backgroundHeight: 80,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 40,
-        shadowOffsetX: 8,
-        shadowOffsetY: 8,
-        shadowBlur: 1
-      },
-      
-      textDialogDataStandard: {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'normal',
-        fontSize: 24,
-        textColor: '#000000',
-        backgroundColor: '#ffffff',
-        backgroundWidth: 200,
-        backgroundHeight: 80,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 40,
-        shadowOffsetX: 8,
-        shadowOffsetY: 8,
-        shadowBlur: 1
-      },
-      
-      textDialogDataImageText: {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'bold',
-        fontSize: 135,
-        textColor: '#FFFFFF',
-        textImage: null,
-        cachedImage: null,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 4,
-        strokeColor: '#FFFFFF',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 85,
-        shadowOffsetX: 11,
-        shadowOffsetY: 6,
-        shadowBlur: 1
-      },
       
       // Свойства для перетаскивания удалены - Paper.js управляет перетаскиванием автоматически
     }
   },
   computed: {
-    // Получаем данные для активной вкладки
-    textDialogData() {
-      switch (this.textDialogActiveTab) {
-        case 'conversation':
-          return this.textDialogDataConversation
-        case 'thoughts':
-          return this.textDialogDataThoughts
-        case 'standard':
-          return this.textDialogDataStandard
-        case 'image-text':
-          return this.textDialogDataImageText
-        default:
-          return this.textDialogDataConversation
-      }
-    },
     
     // Размеры для превью канваса - логические размеры (без HiDPI)
     previewCanvasWidth() {
@@ -835,66 +718,6 @@ export default {
       return containerHeight
     }
   },
-  watch: {
-        // Единый watch-ер для всех изменений textDialogData с оптимизацией
-        textDialogData: {
-          handler(newVal, oldVal) {
-            // Обновляем превью только если диалог открыт
-            if (this.showTextDialog) {
-              // Проверяем, изменились ли параметры хвоста (они требуют более частого обновления)
-              const tailParamsChanged = oldVal && (
-                newVal.tailAngle !== oldVal.tailAngle ||
-                newVal.tailSize !== oldVal.tailSize ||
-                newVal.tailWidth !== oldVal.tailWidth
-              )
-              
-              if (tailParamsChanged) {
-                // Для параметров хвоста используем более быстрое обновление
-                this.updatePreviewCanvasTailOptimized()
-              } else {
-                // Для остальных параметров используем стандартное обновление
-                this.updatePreviewCanvasOptimized()
-              }
-            }
-          },
-          deep: true // Отслеживаем изменения во всех вложенных свойствах
-    },
-    
-    // Вотчер для переключения вкладок
-    'textDialogActiveTab'() {
-      console.log('🔄 Переключение вкладки на:', this.textDialogActiveTab)
-      console.log('🎯 Доступные канвасы:', {
-        conversation: !!this.$refs.previewCanvas,
-        thoughts: !!this.$refs.previewCanvasThoughts,
-        standard: !!this.$refs.previewCanvasStandard,
-        imageText: !!this.$refs.previewCanvasImageText
-      })
-      
-      // Дополнительная проверка для режима "Текст с изображением"
-      if (this.textDialogActiveTab === 'image-text') {
-        console.log('🔍 Детальная проверка previewCanvasImageText:', {
-          ref: this.$refs.previewCanvasImageText,
-          exists: !!this.$refs.previewCanvasImageText,
-          element: this.$refs.previewCanvasImageText,
-          display: this.$refs.previewCanvasImageText ? window.getComputedStyle(this.$refs.previewCanvasImageText).display : 'N/A'
-        })
-      }
-      
-      // Принудительно обновляем превью при переключении
-      this.$nextTick(() => {
-        console.log('🔄 Принудительное обновление после переключения вкладки')
-        this.updatePreviewCanvas()
-        
-        // Дополнительное обновление для режима "Мысли"
-        if (this.textDialogActiveTab === 'thoughts') {
-          console.log('🧠 Дополнительное обновление режима "Мысли"')
-      this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-      })
-        }
-      })
-    }
-    },
   mounted() {
     console.log('🚀 Компонент смонтирован')
       this.$nextTick(() => {
@@ -5657,103 +5480,8 @@ export default {
     
     
     
-    // Открытие диалога добавления текста с размещением по центру
-    openTextDialogInCenter() {
-      console.log('🔄 Открываем диалог добавления текста в центре')
-      console.log('🎯 Текущая активная вкладка:', this.textDialogActiveTab)
-      
-      // Устанавливаем позицию по центру канваса (используем логические размеры)
-      // Сначала пробуем получить размеры из активного превью канваса
-      let previewCanvas = null
-      
-      // Определяем активный превью канвас в зависимости от вкладки
-      if (this.textDialogActiveTab === 'thoughts') {
-        previewCanvas = this.$refs.previewCanvasThoughts
-        console.log('🧠 Ищем канвас для режима "Мысли":', previewCanvas)
-      } else if (this.textDialogActiveTab === 'standard') {
-        previewCanvas = this.$refs.previewCanvasStandard
-        console.log('⭐ Ищем канвас для режима "Стандарт":', previewCanvas)
-      } else if (this.textDialogActiveTab === 'image-text') {
-        previewCanvas = this.$refs.previewCanvasImageText
-        console.log('🖼️ Ищем канвас для режима "Текст с изображением":', previewCanvas)
-      } else {
-        previewCanvas = this.$refs.previewCanvas // Режим "Разговор"
-        console.log('💬 Ищем канвас для режима "Разговор":', previewCanvas)
-      }
-      
-      if (previewCanvas) {
-        const rect = previewCanvas.getBoundingClientRect()
-        const centerX = rect.width / 2
-        const centerY = rect.height / 2
-        this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
-        console.log('📍 Позиция из активного превью канваса:', { 
-          centerX, 
-          centerY, 
-          logicalSize: `${rect.width}x${rect.height}`,
-          activeTab: this.textDialogActiveTab
-        })
-      } else {
-        // Если превью канвас не найден, используем основной канвас
-        const mainCanvas = this.$refs.testCanvas
-        if (mainCanvas) {
-          const containerWidth = mainCanvas.parentElement ? mainCanvas.parentElement.clientWidth : 400
-          const containerHeight = (containerWidth * 9) / 19
-          const centerX = containerWidth / 2
-          const centerY = containerHeight / 2
-          this.textDialogPosition = new this.paperScope.Point(centerX, centerY)
-          console.log('📍 Позиция из основного канваса:', { centerX, centerY, logicalSize: `${containerWidth}x${containerHeight}` })
-        }
-      }
-      
-      // Открываем диалог
-      this.showTextDialog = true
-      this.resetTextDialogData()
-      
-      // Обновляем превью канвас после открытия диалога
-      this.$nextTick(() => {
-        // Настраиваем HiDPI для всех превью канвасов
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvas)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasThoughts)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasStandard)
-        this.setupPreviewCanvasHiDPI(this.$refs.previewCanvasImageText)
-        
-        this.updatePreviewCanvas()
-      })
-      
-      console.log('✅ Диалог открыт, позиция текста:', this.textDialogPosition)
-    },
     
-    // Закрытие диалога добавления текста
-    closeTextDialog() {
-      this.showTextDialog = false
-      this.textDialogPosition = null
-      
-      // Сбрасываем данные только если это НЕ режим редактирования
-      if (!this.isEditingText) {
-      this.resetTextDialogData()
-        console.log('🔄 Данные диалога сброшены (режим создания)')
-      } else {
-        console.log('🔄 Данные диалога сохранены (режим редактирования)')
-      }
-      
-      // Сбрасываем флаги редактирования
-      this.isEditingText = false
-      this.editingLayerIndex = null
-      
-      console.log('🔄 Диалог закрыт, флаги редактирования сброшены')
-    },
     
-    // Переключение вкладок в диалоге текста
-    switchTextDialogTab(tabName) {
-      this.textDialogActiveTab = tabName
-      console.log('🔄 Переключение на вкладку:', tabName)
-
-      // Принудительно обновляем превью канвасы при переключении вкладок (оптимизированно)
-      this.$nextTick(() => {
-        this.updatePreviewCanvasOptimized()
-        console.log('🔄 Превью канвасы обновлены после переключения вкладки (оптимизированно)')
-      })
-    },
 
     // Настройка инструментов Paper.js для перетаскивания
     setupPaperTools() {
@@ -6643,21 +6371,6 @@ export default {
       }
     },
 
-    // Получение текущего data-свойства для активной вкладки
-    getCurrentTextDialogDataProperty() {
-      switch (this.textDialogActiveTab) {
-        case 'conversation':
-          return this.textDialogDataConversation
-        case 'thoughts':
-          return this.textDialogDataThoughts
-        case 'standard':
-          return this.textDialogDataStandard
-        case 'image-text':
-          return this.textDialogDataImageText
-        default:
-          return this.textDialogDataConversation
-      }
-    },
 
     // === МЕТОДЫ ОБРАБОТКИ СОБЫТИЙ TEXTMANAGER ===
 
@@ -6688,65 +6401,6 @@ export default {
       }
     },
     
-    // Сброс данных диалога
-    resetTextDialogData() {
-      // Сбрасываем данные для всех вкладок
-      const resetData = {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'normal',
-        fontSize: 24,
-        textColor: '#000000',
-        backgroundColor: '#ffffff',
-        tailSize: 145,
-        tailWidth: 40,
-        tailAngle: 45,
-        backgroundWidth: 200,
-        backgroundHeight: 80,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 50,
-        shadowOffsetX: 2,
-        shadowOffsetY: 2,
-        shadowBlur: 1
-      }
-      
-      // Сбрасываем данные для каждой вкладки
-      Object.assign(this.textDialogDataConversation, resetData)
-      Object.assign(this.textDialogDataThoughts, resetData)
-      Object.assign(this.textDialogDataStandard, resetData)
-      
-      // Для вкладки "Текст с изображением" используем другие значения по умолчанию
-      Object.assign(this.textDialogDataImageText, {
-        text: '',
-        font: 'Arial',
-        fontWeight: 'bold',
-        fontSize: 135,
-        textColor: '#FFFFFF',
-        textImage: null,
-        cachedImage: null,
-        padding: 15,
-        textAlign: 'center',
-        lineHeight: 1.2,
-        stroke: true,
-        strokeWidth: 3,
-        strokeColor: '#000000',
-        shadow: true,
-        shadowColor: '#000000',
-        shadowOpacity: 50,
-        shadowOffsetX: 2,
-        shadowOffsetY: 2,
-        shadowBlur: 1
-      })
-      
-      console.log('🔄 Данные диалога сброшены для всех вкладок')
-    },
     
     
     // Обновление превью канваса
@@ -11267,46 +10921,8 @@ export default {
   }
 }
 
-/* === СТИЛИ ДЛЯ ДИАЛОГА ДОБАВЛЕНИЯ ТЕКСТА === */
 
-.text-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 20px;
-  box-sizing: border-box;
-}
 
-.text-dialog {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-  width: 100%;
-  max-width: 1200px;
-  height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  /* Поддерживаем sticky позиционирование */
-  position: relative;
-}
-
-.text-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
 
 .text-dialog-title {
   margin: 0;

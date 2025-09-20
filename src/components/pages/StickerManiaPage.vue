@@ -26,12 +26,12 @@
                 <div class="col" style="padding: 0;">
                   <button 
                     @click="handleGenerateClick" 
-                    class="btn btn-primary"
+                    class="btn btn-primary gen-sticker-button-1"
                     :disabled="isLoading"
                     style="background-color: #007bff; border-color: #007bff;"
                   >
                     <i class="bi bi-lightning-fill me-2"></i>
-                    {{ isLoading ? 'Генерация...' : 'Сгенерировать стикеры' }}
+                    {{ isLoading ? 'Генерация...' : 'Генерировать стикеры' }}
                   </button>
                 </div>
                 
@@ -2744,8 +2744,28 @@ export default {
         const tempCtx = tempCanvas.getContext('2d')
         
         // Создаем canvas с высоким разрешением
-        const backgroundWidth = layer.textData.backgroundWidth || 200
-        const backgroundHeight = layer.textData.backgroundHeight || 100
+        let backgroundWidth = layer.textData.backgroundWidth || 200
+        let backgroundHeight = layer.textData.backgroundHeight || 100
+        
+        // Для режима "image-text" вычисляем реальные размеры текста
+        if (layer.textData.backgroundMode === 'image-text') {
+          // Создаем временный контекст для измерения текста
+          const tempCtxForMeasure = document.createElement('canvas').getContext('2d')
+          tempCtxForMeasure.font = `${layer.textData.fontWeight || 'normal'} ${layer.textData.fontSize * scale}px ${layer.textData.font}`
+          const textMetrics = tempCtxForMeasure.measureText(layer.textData.text)
+          const textWidth = textMetrics.width
+          const textHeight = layer.textData.fontSize * scale * layer.textData.lineHeight
+          
+          // Используем максимальный размер из переданных размеров подложки и реальных размеров текста
+          backgroundWidth = Math.max(backgroundWidth, textWidth / scale)
+          backgroundHeight = Math.max(backgroundHeight, textHeight / scale)
+          
+          console.log('🖼️ Размеры для режима "image-text":', {
+            originalBackground: `${layer.textData.backgroundWidth || 200}x${layer.textData.backgroundHeight || 100}`,
+            textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+            finalBackground: `${backgroundWidth.toFixed(1)}x${backgroundHeight.toFixed(1)}`
+          })
+        }
         
         // Масштабируем размеры подложки
         const scaledBackgroundWidth = backgroundWidth * scale
@@ -2793,7 +2813,8 @@ export default {
         // НЕ применяем scale к контексту - рисуем сразу в высоком разрешении
         
         // Рисуем подложку если есть (рисуем прямо на основном canvas)
-        if (layer.textData.backgroundMode) {
+        // Для режима "image-text" подложки быть не должно
+        if (layer.textData.backgroundMode && layer.textData.backgroundMode !== 'image-text') {
           console.log('🎨 Рисуем подложку для текста в высоком разрешении')
           
           // Создаем временный слой для передачи в методы
@@ -2816,14 +2837,14 @@ export default {
             await this.drawStandardBackgroundInHighDPI(tempCtx, tempLayer, scale)
           } else if (layer.textData.backgroundMode === 'thoughts') {
             await this.drawThoughtsBackgroundInHighDPI(tempCtx, tempLayer, scale)
-          } else if (layer.textData.backgroundMode === 'image-text') {
-            await this.drawImageTextBackgroundInHighDPI(tempCtx, tempLayer, scale)
           }
           
           // Восстанавливаем контекст
           tempCtx.restore()
           
           console.log('✅ Подложка нарисована:', layer.textData.backgroundColor, 'режим:', layer.textData.backgroundMode)
+        } else if (layer.textData.backgroundMode === 'image-text') {
+          console.log('🖼️ Режим "Текст с изображением" - подложка не нужна')
         } else {
           console.log('⚠️ У текста нет подложки')
         }
@@ -3305,19 +3326,51 @@ export default {
       // Размеры подложки
       const width = layer.bounds.width
       const height = layer.bounds.height
+      const centerX = width / 2
+      const centerY = height / 2
       
-      // Если есть изображение фона, рисуем его
-      if (textData.backgroundImage) {
-        const img = new Image()
-        await new Promise((resolve) => {
-          img.onload = resolve
-          img.src = textData.backgroundImage
+      console.log('🖼️ Рисуем подложку "Текст с изображением" в высоком разрешении:', {
+        size: `${width}x${height}`,
+        scale: scale,
+        hasImage: !!(textData.textImage && textData.cachedImage),
+        text: textData.text
+      })
+      
+      // Если есть изображение для заливки текста, рисуем текст с изображением
+      if (textData.textImage && textData.cachedImage) {
+        const img = textData.cachedImage
+        
+        // Вычисляем размеры текста для правильного позиционирования изображения
+        ctx.font = `${textData.fontWeight} ${textData.fontSize * scale}px ${textData.font}`
+        const textWidth = ctx.measureText(textData.text).width
+        const textHeight = textData.fontSize * scale * textData.lineHeight
+        
+        // Используем точные размеры текста для изображения
+        const drawWidth = textWidth
+        const drawHeight = textHeight
+        const drawX = centerX - drawWidth / 2
+        const drawY = centerY - drawHeight / 2
+        
+        console.log('🖼️ Позиционирование изображения в высоком разрешении:', {
+          textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+          drawArea: `${drawX.toFixed(1)}, ${drawY.toFixed(1)}, ${drawWidth.toFixed(1)}, ${drawHeight.toFixed(1)}`
         })
         
-        ctx.drawImage(img, 0, 0, width, height)
+        // Рисуем изображение
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        
+        // Создаем маску из текста
+        ctx.globalCompositeOperation = 'destination-in'
+        ctx.font = `${textData.fontWeight} ${textData.fontSize * scale}px ${textData.font}`
+        ctx.textAlign = textData.textAlign || 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = 'white'
+        this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize * scale, textData.lineHeight, textData)
+        ctx.globalCompositeOperation = 'source-over'
       } else {
-        // Иначе рисуем обычную подложку
-        await this.drawStandardBackgroundInHighDPI(ctx, layer)
+        // Если нет изображения, рисуем обычную подложку (как стандарт)
+        console.log('🖼️ Нет изображения, рисуем стандартную подложку')
+        await this.drawStandardBackgroundInHighDPI(ctx, layer, scale)
       }
     },
     
@@ -3328,7 +3381,8 @@ export default {
         hasTextData: !!textData,
         text: textData?.text,
         fontSize: textData?.fontSize,
-        font: textData?.font
+        font: textData?.font,
+        backgroundMode: textData?.backgroundMode
       })
       
       if (!textData) {
@@ -3338,25 +3392,106 @@ export default {
       
       // Настраиваем шрифт
       ctx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font}`
-      ctx.fillStyle = textData.textColor
       ctx.textAlign = textData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       
-      // НЕ применяем тень к тексту - тень должна быть у подложки
-      
-      // Разбиваем текст на строки
-      const lines = textData.text.split('\n')
-      const lineHeight = textData.lineHeight || textData.fontSize * 1.2
-      
       // Центрируем текст
+      const centerX = layer.bounds.width / 2
       const centerY = layer.bounds.height / 2
-      const startY = centerY - (lines.length - 1) * lineHeight / 2
       
-      // Рисуем каждую строку
-      lines.forEach((line, index) => {
-        const y = startY + index * lineHeight
-        ctx.fillText(line, layer.bounds.width / 2, y)
-      })
+      // Для режима "Текст с изображением" рисуем текст с изображением или цветом
+      if (textData.backgroundMode === 'image-text') {
+        console.log('🖼️ Рисуем текст в режиме "Текст с изображением" в высоком разрешении')
+        
+        // Применяем тень к тексту если включена (для режима image-text тень применяется к самому тексту)
+        if (textData.shadow) {
+          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+          ctx.globalAlpha = textData.shadowOpacity / 100
+          
+          // Рисуем тень текста
+          this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight, textData)
+          
+          // Сбрасываем настройки тени
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+          ctx.globalAlpha = 1
+        }
+        
+        // Рисуем основной текст с поддержкой изображения
+        if (textData.textImage && textData.cachedImage) {
+          console.log('🖼️ Рисуем текст с изображением в высоком разрешении')
+          const img = textData.cachedImage
+          
+          // Вычисляем размеры текста для правильного позиционирования изображения
+          const textWidth = ctx.measureText(textData.text).width
+          const textHeight = textData.fontSize * textData.lineHeight
+          
+          // Используем точные размеры текста для изображения
+          const drawWidth = textWidth
+          const drawHeight = textHeight
+          const drawX = centerX - drawWidth / 2
+          const drawY = centerY - drawHeight / 2
+          
+          console.log('🖼️ Позиционирование изображения в высоком разрешении:', {
+            textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+            drawArea: `${drawX.toFixed(1)}, ${drawY.toFixed(1)}, ${drawWidth.toFixed(1)}, ${drawHeight.toFixed(1)}`
+          })
+          
+          // Создаем временный канвас для текста с изображением
+          const textCanvas = document.createElement('canvas')
+          textCanvas.width = layer.bounds.width
+          textCanvas.height = layer.bounds.height
+          const textCtx = textCanvas.getContext('2d')
+          
+          // Рисуем изображение на временном канвасе
+          textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+          
+          // Создаем маску из текста
+          textCtx.globalCompositeOperation = 'destination-in'
+          textCtx.font = ctx.font
+          textCtx.textAlign = ctx.textAlign
+          textCtx.textBaseline = ctx.textBaseline
+          textCtx.fillStyle = 'white'
+          this.drawMultilineTextWithData(textCtx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight, textData)
+          
+          // Рисуем результат на основном канвасе
+          ctx.drawImage(textCanvas, 0, 0)
+        } else {
+          // Если нет изображения, используем обычную заливку цветом
+          console.log('🖼️ Рисуем текст без изображения в высоком разрешении')
+          ctx.fillStyle = textData.textColor
+          this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight, textData)
+        }
+        
+        // Применяем обводку к тексту если включена (для режима image-text обводка применяется к самому тексту)
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor
+          ctx.lineWidth = textData.strokeWidth * 2 // Увеличиваем толщину обводки в 2 раза для высокого разрешения
+          this.drawMultilineTextStrokeWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight, textData)
+        }
+      } else {
+        // Для других режимов рисуем обычный текст (без тени и обводки - они у подложки)
+        console.log('📝 Рисуем обычный текст для режима:', textData.backgroundMode)
+        ctx.fillStyle = textData.textColor
+        
+        // Разбиваем текст на строки
+        const lines = textData.text.split('\n')
+        const lineHeight = textData.lineHeight || textData.fontSize * 1.2
+        
+        // Центрируем текст
+        const startY = centerY - (lines.length - 1) * lineHeight / 2
+        
+        // Рисуем каждую строку
+        lines.forEach((line, index) => {
+          const y = startY + index * lineHeight
+          ctx.fillText(line, centerX, y)
+        })
+      }
     },
 
     // Инициализация Paper.js
@@ -10713,14 +10848,35 @@ export default {
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
+        // Вычисляем реальные размеры текста для правильного размера канваса
+        const tempCtxForMeasure = document.createElement('canvas').getContext('2d')
+        tempCtxForMeasure.font = `${currentTextData.fontWeight} ${currentTextData.fontSize}px ${currentTextData.font}`
+        const textMetrics = tempCtxForMeasure.measureText(currentTextData.text)
+        const textWidth = textMetrics.width
+        const textHeight = currentTextData.fontSize * currentTextData.lineHeight
+        
+        // Используем максимальный размер из переданных размеров подложки и реальных размеров текста
+        const actualBackgroundWidth = Math.max(backgroundWidth, textWidth)
+        const actualBackgroundHeight = Math.max(backgroundHeight, textHeight)
+        
         // Добавляем отступы для тени и обводки
         const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
         const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
         
         const padding = Math.max(shadowPadding, strokePadding) + 30 // Увеличенный дополнительный отступ для тени
         
-        const canvasWidth = backgroundWidth + padding * 2
-        const canvasHeight = backgroundHeight + padding * 2
+        const canvasWidth = actualBackgroundWidth + padding * 2
+        const canvasHeight = actualBackgroundHeight + padding * 2
+        
+        console.log('🖼️ Размеры канваса для "Текст с изображением":', {
+          originalBackground: `${backgroundWidth}x${backgroundHeight}`,
+          textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+          actualBackground: `${actualBackgroundWidth.toFixed(1)}x${actualBackgroundHeight.toFixed(1)}`,
+          padding: padding,
+          finalCanvas: `${canvasWidth.toFixed(1)}x${canvasHeight.toFixed(1)}`,
+          shadowPadding: shadowPadding,
+          strokePadding: strokePadding
+        })
         
         const tempCanvas = document.createElement('canvas')
         tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
@@ -10779,10 +10935,10 @@ export default {
           
           // Создаем временный канвас для текста с изображением с ЛОГИЧЕСКИМИ размерами
           const textCanvas = document.createElement('canvas')
-          textCanvas.width = containerWidth // Логический размер (без HiDPI!)
-          textCanvas.height = containerHeight
-          textCanvas.style.width = containerWidth + 'px' // Логический размер
-          textCanvas.style.height = containerHeight + 'px'
+          textCanvas.width = canvasWidth // Логический размер (без HiDPI!)
+          textCanvas.height = canvasHeight
+          textCanvas.style.width = canvasWidth + 'px' // Логический размер
+          textCanvas.style.height = canvasHeight + 'px'
           const textCtx = textCanvas.getContext('2d')
           // НЕ масштабируем контекст - работаем в логических координатах!
           
@@ -10796,9 +10952,9 @@ export default {
           const drawHeight = textHeight
           
           // ВАЖНО: Координаты должны быть относительно временного канваса, а не основного!
-          // Временный канвас имеет размеры containerWidth x containerHeight
-          const textCanvasCenterX = containerWidth / 2
-          const textCanvasCenterY = containerHeight / 2
+          // Временный канвас имеет размеры canvasWidth x canvasHeight
+          const textCanvasCenterX = canvasWidth / 2
+          const textCanvasCenterY = canvasHeight / 2
           const drawX = textCanvasCenterX - drawWidth / 2
           const drawY = textCanvasCenterY - drawHeight / 2
           
@@ -10812,7 +10968,7 @@ export default {
               y: drawY.toFixed(1)
             },
             canvasCenter: `${canvasCenterX}, ${canvasCenterY}`,
-            containerSize: `${containerWidth}x${containerHeight}`,
+            containerSize: `${canvasWidth}x${canvasHeight}`,
             dpr: dpr,
             fontSize: currentTextData.fontSize,
             lineHeight: currentTextData.lineHeight
@@ -10827,7 +10983,7 @@ export default {
             textHeight: textHeight,
             textCanvasCenterX: textCanvasCenterX,
             textCanvasCenterY: textCanvasCenterY,
-            containerSize: `${containerWidth}x${containerHeight}`,
+            containerSize: `${canvasWidth}x${canvasHeight}`,
             calculation: {
               drawX_calc: `${textCanvasCenterX} - ${drawWidth} / 2 = ${drawX}`,
               drawY_calc: `${textCanvasCenterY} - ${drawHeight} / 2 = ${drawY}`,
@@ -10871,7 +11027,7 @@ export default {
           console.log('🖼️ Маска с изображением нарисована (ЛОГИЧЕСКИЕ размеры):', {
             textCanvasSize: `${textCanvas.width}x${textCanvas.height}`,
             tempCanvasSize: `${tempCanvas.width}x${tempCanvas.height}`,
-            tempCanvasLogicalSize: `${containerWidth}x${containerHeight}`,
+            tempCanvasLogicalSize: `${canvasWidth}x${canvasHeight}`,
             dpr: dpr,
             note: 'Временный канвас теперь использует логические размеры - растр будет правильного размера!'
           })
@@ -11356,8 +11512,19 @@ export default {
       layerInfo.layer = textLayer
       layerInfo.backgroundItem = backgroundItem
       layerInfo.textItem = null
+      
+      // Глубокое копирование данных текста с сохранением cachedImage для режима "image-text"
+      const updatedTextData = { ...textData }
+      if (originalMode === 'image-text' && textData.cachedImage) {
+        updatedTextData.cachedImage = textData.cachedImage
+        console.log('🖼️ Сохраняем cachedImage при обновлении слоя:', {
+          hasImage: !!textData.cachedImage,
+          imageSize: textData.cachedImage ? `${textData.cachedImage.width}x${textData.cachedImage.height}` : 'none'
+        })
+      }
+      
       layerInfo.textData = { 
-        ...textData,
+        ...updatedTextData,
         backgroundMode: originalMode
       }
       layerInfo.position = { ...position }
@@ -11369,10 +11536,28 @@ export default {
         newPosition: position
       })
       
-      // Обновляем 3D модель
-      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-        this.$refs.threeRenderer.forceUpdate()
-      }
+      // Обновляем 3D модель с задержками для корректного отображения изменений
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
+            console.log('🔄 3D модель обновлена после редактирования текста')
+          }
+        }, 100)
+        
+        setTimeout(() => {
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
+            console.log('🔄 3D модель обновлена повторно после редактирования текста')
+          }
+        }, 300)
+        
+        // Также обновляем Paper.js view
+        if (this.paperScope && this.paperScope.view) {
+          this.paperScope.view.update()
+          console.log('🔄 Paper.js view обновлен после редактирования текста')
+        }
+      })
     },
     
     // Оптимизированное обновление превью с debounce для улучшения производительности
@@ -12620,6 +12805,12 @@ export default {
   fill: #dc3545 !important;
   stroke: #ffffff !important;
   stroke-width: 2 !important;
+}
+
+/* Стили для кнопки генерации стикеров */
+.gen-sticker-button-1 {
+  width: 240px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 </style>

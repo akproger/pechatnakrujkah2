@@ -1798,11 +1798,11 @@
                           <div class="layer-details">
                             <div class="layer-name">{{ text.text || 'Пустой текст' }}</div>
                             <div class="layer-meta">
-                              Шрифт: {{ text.font || 'Arial' }} | 
-                              Размер: {{ text.fontSize || 16 }}px |
-                              <span v-if="text.color">Цвет: {{ text.color }}</span>
+                            Шрифт: {{ text.font || 'Arial' }} | 
+                            Размер: {{ text.fontSize || 16 }}px |
+                            <span v-if="text.color">Цвет: {{ text.color }}</span>
                               <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
-                            </div>
+                        </div>
                             <div class="layer-number">Слой #{{ text.layerIndex || (index + 1) }}</div>
                           </div>
                         </div>
@@ -1947,7 +1947,7 @@
                     <i class="bi bi-layer-group me-2"></i>
                     Управление слоями стикеров
                   </h5>
-                </div>
+      </div>
                 <div class="card-body">
                   <div class="row">
                     <div class="col-12">
@@ -3350,8 +3350,8 @@ export default {
       const centerY = height / 2
       
       // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
-      // Используем правильную логику из buildThoughtsModePath
-      this.buildThoughtsModePath(ctx, centerX, centerY, width, height, scale, true, textData.backgroundColor, textData)
+      // Используем правильную логику из buildThoughtsModePath с увеличенной толщиной обводки для высокого разрешения
+      this.buildThoughtsModePath(ctx, centerX, centerY, width, height, scale, true, textData.backgroundColor, textData, true)
       
       console.log('✅ Подложка "Мысли" нарисована в высоком разрешении')
     },
@@ -8712,7 +8712,7 @@ export default {
     },
     
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
-    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null) {
+    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null, isHighDPI = false) {
       // Используем переданные данные или данные по умолчанию
       const currentTextData = textData || this.textDialogData
       
@@ -8737,10 +8737,12 @@ export default {
         ctx.shadowOffsetY = 0
       }
       
-      // Добавляем обводку если включена (такая же как у овалов хвоста)
+      // Добавляем обводку если включена (толще для высокого разрешения)
       if (currentTextData.stroke) {
         ctx.strokeStyle = currentTextData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * 0.49))
+        // Для высокого разрешения делаем обводку в 2 раза толще
+        const strokeMultiplier = isHighDPI ? 0.98 : 0.49
+        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * strokeMultiplier))
         ctx.stroke()
       }
       
@@ -8867,10 +8869,12 @@ export default {
           ctx.shadowOffsetY = 0
         }
         
-        // Добавляем обводку если включена (точный размер)
+        // Добавляем обводку если включена (толще для высокого разрешения)
         if (currentTextData.stroke) {
           ctx.strokeStyle = currentTextData.strokeColor
-          ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * 0.49))
+          // Для высокого разрешения делаем обводку в 2 раза толще
+          const strokeMultiplier = isHighDPI ? 0.98 : 0.49
+          ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * strokeMultiplier))
           ctx.stroke()
         }
       }

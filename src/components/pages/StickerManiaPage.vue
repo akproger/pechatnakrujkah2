@@ -11746,7 +11746,10 @@ export default {
   background-color: #e8f5e8;
   padding: 2px 6px;
   border-radius: 4px;
-  display: inline-block;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-layer-item .layer-actions {

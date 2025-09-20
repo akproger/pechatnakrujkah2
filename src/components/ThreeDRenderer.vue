@@ -125,7 +125,7 @@ export default {
       const aspect = rect.width / rect.height
       
       this.threeInstance.camera = markRaw(new THREE.PerspectiveCamera(75, aspect, 0.1, 1000))
-      this.threeInstance.camera.position.set(0, 0, 15)
+      this.threeInstance.camera.position.set(0, 0, 23)
       
       // Создаем рендерер с высоким качеством
       this.threeInstance.renderer = markRaw(new THREE.WebGLRenderer({ 
@@ -170,6 +170,10 @@ export default {
       
       // Создаем группу для объединения кружки и поверхности печати
       this.threeInstance.mugGroup = markRaw(new THREE.Group())
+      
+      // Увеличиваем масштаб группы в 2 раза
+      this.threeInstance.mugGroup.scale.set(2, 2, 2)
+      
       this.threeInstance.scene.add(this.threeInstance.mugGroup)
       
       // Добавляем кружку в группу
@@ -191,6 +195,10 @@ export default {
       
       this.isInitialized = true
       console.log('✅ Three.js компонент инициализирован')
+      
+      // Убеждаемся, что автоматическое вращение запущено по умолчанию
+      this.mouseState.autoRotationSpeed = 0.01
+      this.mouseState.currentRotationSpeed = 0.01
       
       // Эмитим событие готовности
       this.$emit('initialized')
@@ -638,6 +646,7 @@ export default {
   padding-bottom: 100%; /* Квадратное соотношение для 3D превью */
   position: relative;
   background: transparent;
+  overflow: hidden;
 }
 
 .three-canvas {
@@ -645,6 +654,11 @@ export default {
   height: 100%;
   display: block;
   cursor: grab; /* Курсор для перетаскивания */
+}
+
+.preview-container > canvas {
+  position: relative;
+  top: -30px;
 }
 
 .rotation-controls {

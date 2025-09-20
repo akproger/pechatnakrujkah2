@@ -1926,7 +1926,7 @@
                       <p class="text-muted mb-3">
                         Стикеры расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
                         <i class="bi bi-info-circle me-1"></i>
-                        Перетаскивайте слои для изменения их порядка. Двойной клик на стикер перемещает его на верхний слой.
+                        Перетаскивайте слои для изменения их порядка или двойной клик на стикер на канвасе.
                       </p>
                       
                       <!-- Список слоев стикеров -->
@@ -1980,13 +1980,6 @@
                             </div>
                           </div>
                           <div class="layer-actions">
-                            <button 
-                              class="btn btn-sm btn-outline-primary"
-                              @click.stop="moveStickerToTop(index)"
-                              title="Переместить на верхний слой"
-                            >
-                              <i class="bi bi-arrow-up"></i>
-                            </button>
                             <button 
                               class="btn btn-sm btn-outline-danger"
                               @click.stop="deleteSticker(index)"
@@ -4416,6 +4409,9 @@ export default {
       }
       console.log(`✅ Завершено: ${this.stickers.length} стикеров (цель: 40 стикеров), покрытие ${this.coveragePercentage}%`)
       
+      // Статистика распределения масок и изображений
+      this.logDistributionStats(selectedMasks, selectedImages)
+      
       // Финальное обновление канваса
       this.paperScope.view.draw()
       
@@ -4675,6 +4671,9 @@ export default {
         }
         console.log(`✅ Создан новый слой: ${iterations} стикеров (цель: 40 стикеров), покрытие: ${this.coveragePercentage}%`)
         
+        // Статистика распределения масок и изображений
+        this.logDistributionStats(selectedMasks, selectedImages)
+        
         // Обновляем канвас только один раз в конце
         this.paperScope.view.draw()
         
@@ -4697,21 +4696,76 @@ export default {
       }
     },
     
+    // Логирование статистики распределения масок и изображений
+    logDistributionStats(selectedMasks, selectedImages) {
+      console.log('📊 Статистика распределения стикеров:')
+      
+      // Подсчитываем использование масок
+      const maskUsage = {}
+      selectedMasks.forEach(mask => {
+        maskUsage[mask.name] = 0
+      })
+      
+      // Подсчитываем использование изображений
+      const imageUsage = {}
+      selectedImages.forEach(image => {
+        imageUsage[image.name] = 0
+      })
+      
+      // Подсчитываем комбинации
+      const combinationUsage = {}
+      
+      this.stickers.forEach((sticker, index) => {
+        maskUsage[sticker.mask]++
+        imageUsage[sticker.image]++
+        
+        const combination = `${sticker.mask} + ${sticker.image}`
+        combinationUsage[combination] = (combinationUsage[combination] || 0) + 1
+      })
+      
+      console.log('🎭 Использование масок:')
+      Object.entries(maskUsage).forEach(([mask, count]) => {
+        const percentage = ((count / this.stickers.length) * 100).toFixed(1)
+        console.log(`  ${mask}: ${count} раз (${percentage}%)`)
+      })
+      
+      console.log('🖼️ Использование изображений:')
+      Object.entries(imageUsage).forEach(([image, count]) => {
+        const percentage = ((count / this.stickers.length) * 100).toFixed(1)
+        console.log(`  ${image}: ${count} раз (${percentage}%)`)
+      })
+      
+      console.log('🎨 Уникальные комбинации:')
+      Object.entries(combinationUsage).forEach(([combination, count]) => {
+        const percentage = ((count / this.stickers.length) * 100).toFixed(1)
+        console.log(`  ${combination}: ${count} раз (${percentage}%)`)
+      })
+      
+      console.log(`📈 Всего уникальных комбинаций: ${Object.keys(combinationUsage).length}/${selectedMasks.length * selectedImages.length}`)
+    },
+    
     // Создание оптимального стикера
     createOptimalSticker(masks, images, x, y, size, originalNumber) {
-      // Случайная маска
-      const randomMask = masks[Math.floor(Math.random() * masks.length)]
-      // Случайное изображение
-      const randomImage = images[Math.floor(Math.random() * images.length)]
+      // Поочередный выбор маски и изображения для равномерного распределения
+      // Используем более сбалансированную логику распределения
+      const totalCombinations = masks.length * images.length
+      const combinationIndex = (originalNumber - 1) % totalCombinations
       
-      console.log(`🎨 Создаем стикер: ${randomMask.name} + ${randomImage.name} в позиции (${x}, ${y}) размером ${size}`)
+      const maskIndex = combinationIndex % masks.length
+      const imageIndex = Math.floor(combinationIndex / masks.length) % images.length
+      
+      const selectedMask = masks[maskIndex]
+      const selectedImage = images[imageIndex]
+      
+      console.log(`🎨 Создаем стикер ${originalNumber}: ${selectedMask.name} + ${selectedImage.name} в позиции (${x}, ${y}) размером ${size}`)
+      console.log(`📊 Распределение: комбинация ${combinationIndex + 1}/${totalCombinations}, маска=${maskIndex}/${masks.length-1}, изображение=${imageIndex}/${images.length-1}`)
       
       // Убираем случайный поворот - стикеры создаются без поворота
       const rotation = 0
       
       return new Promise((resolve) => {
         // Загружаем SVG маску (как в addMaskToCanvas)
-        fetch(randomMask.url)
+        fetch(selectedMask.url)
           .then(response => response.text())
           .then(svgText => {
             this.paperScope.project.importSVG(svgText, {
@@ -4748,11 +4802,11 @@ export default {
                   }
                   
                   // Создаем растр из изображения (новый для каждого стикера)
-                  const raster = new this.paperScope.Raster(randomImage.url)
+                  const raster = new this.paperScope.Raster(selectedImage.url)
                   raster.visible = false // Скрываем оригинальный растр
                   
                   raster.onLoad = () => {
-                    console.log(`🖼️ Растр загружен: ${randomImage.name}, размеры: ${raster.image.width}x${raster.image.height}`)
+                    console.log(`🖼️ Растр загружен: ${selectedImage.name}, размеры: ${raster.image.width}x${raster.image.height}`)
                     
                     // Создаем временный canvas для обрезки изображения
                     const tempCanvas = document.createElement('canvas')
@@ -4760,7 +4814,7 @@ export default {
                     
                     // Получаем размеры маски
                     const maskBounds = path.bounds
-                    console.log(`📐 Размеры маски ${randomMask.name}: ${maskBounds.width}x${maskBounds.height}`)
+                    console.log(`📐 Размеры маски ${selectedMask.name}: ${maskBounds.width}x${maskBounds.height}`)
                     
                     tempCanvas.width = maskBounds.width
                     tempCanvas.height = maskBounds.height
@@ -4943,8 +4997,8 @@ export default {
                         y: y,
                         size: size,
                         rotation: rotation,
-                        mask: randomMask.name,
-                        image: randomImage.name,
+                        mask: selectedMask.name,
+                        image: selectedImage.name,
                         originalNumber: originalNumber
                       })
                     }
@@ -7346,31 +7400,6 @@ export default {
       }
     },
     
-    moveStickerToTop(index) {
-      if (index >= 0 && index < this.stickers.length) {
-        const sticker = this.stickers[index]
-        
-        // Перемещаем стикер в начало массива (позиция 0 = самый верхний слой)
-        const [movedSticker] = this.stickers.splice(index, 1)
-        this.stickers.unshift(movedSticker)
-        
-        // Переупорядочиваем все стикеры в Paper.js
-        this.reorderStickersInPaperJS()
-        
-        // Обновляем индекс выбранного стикера (теперь он на позиции 0)
-        this.selectedStickerIndex = 0
-        
-        console.log(`✅ Стикер ${index} перемещен на верхний слой (позиция 0 в списке)`)
-        
-        // Обновляем превью
-        this.updateStickerPreviews()
-        
-        // Обновляем 3D модель
-        if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-          this.$refs.threeRenderer.forceUpdate()
-        }
-      }
-    },
     
     deleteSticker(index) {
       if (index >= 0 && index < this.stickers.length) {

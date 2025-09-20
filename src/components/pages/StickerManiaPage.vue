@@ -1764,47 +1764,75 @@
                     <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
                   </div>
                   <div v-else>
-                    <div v-for="(text, index) in createdTexts" :key="text.id || index" class="border-bottom pb-3 mb-3">
-                      <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                          <h6 class="mb-1">{{ text.text || 'Пустой текст' }}</h6>
-                          <small class="text-muted">
-                            Шрифт: {{ text.font || 'Arial' }} | 
-                            Размер: {{ text.fontSize || 16 }}px |
-                            <span v-if="text.color">Цвет: {{ text.color }}</span>
-                            <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
-                          </small>
-                          <div class="mt-1">
-                            <small class="badge bg-secondary">Слой #{{ text.layerIndex || (index + 1) }}</small>
+                    <div class="mb-3">
+                      <p class="text-muted mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка или двойной клик на текст на канвасе.
+                      </p>
+                    </div>
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
+                      <div 
+                        v-for="(text, index) in createdTexts" 
+                        :key="text.id || index" 
+                        class="text-layer-item"
+                        :class="{ 
+                          'dragging': draggedTextIndex === index,
+                          'drag-over': dragOverTextIndex === index
+                        }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
+                      >
+                        <div class="layer-info">
+                          <!-- Иконка перетаскивания -->
+                          <div class="drag-handle">
+                            <i class="bi bi-grip-vertical"></i>
+                          </div>
+                          
+                          <!-- Информация о слое -->
+                          <div class="layer-details">
+                            <div class="layer-name">{{ text.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta">
+                              Шрифт: {{ text.font || 'Arial' }} | 
+                              Размер: {{ text.fontSize || 16 }}px |
+                              <span v-if="text.color">Цвет: {{ text.color }}</span>
+                              <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
+                            </div>
+                            <div class="layer-number">Слой #{{ text.layerIndex || (index + 1) }}</div>
                           </div>
                         </div>
-                        <div class="text-end">
-                          <div class="btn-group btn-group-sm" role="group">
-                            <button 
-                              type="button" 
-                              class="btn btn-outline-primary btn-sm"
-                              @click="editTextLayer(text.layerIndex || (index + 1))"
-                              title="Редактировать"
-                            >
-                              <i class="bi bi-pencil"></i>
-                            </button>
-                            <button 
-                              type="button" 
-                              class="btn btn-outline-secondary btn-sm"
-                              @click="toggleTextLayerVisibility(text.layerIndex || (index + 1))"
-                              title="Показать/скрыть"
-                            >
-                              <i class="bi bi-eye"></i>
-                            </button>
-                            <button 
-                              type="button" 
-                              class="btn btn-outline-danger btn-sm"
-                              @click="removeTextLayer(text.layerIndex || (index + 1))"
-                              title="Удалить"
-                            >
-                              <i class="bi bi-trash"></i>
-                            </button>
-                          </div>
+                        
+                        <!-- Действия со слоем -->
+                        <div class="layer-actions">
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            @click="editTextLayer(text.layerIndex || (index + 1))"
+                            title="Редактировать"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            @click="toggleTextLayerVisibility(text.layerIndex || (index + 1))"
+                            title="Показать/скрыть"
+                          >
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            @click="removeTextLayer(text.layerIndex || (index + 1))"
+                            title="Удалить"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2096,6 +2124,9 @@ export default {
       // Перетаскивание слоев
       draggedIndex: -1,
       dragOverIndex: -1,
+      // Перетаскивание текстовых слоев
+      draggedTextIndex: -1,
+      dragOverTextIndex: -1,
       // Настройки генерации
       minStickerSize: 50, // Минимальный размер стикера (50% от базового)
       maxStickerSize: 150, // Максимальный размер стикера (150% от базового)
@@ -7751,6 +7782,115 @@ export default {
       console.log('✅ Переупорядочивание стикеров завершено')
     },
     
+    // ========== МЕТОДЫ ДЛЯ УПРАВЛЕНИЯ ТЕКСТОВЫМИ СЛОЯМИ ==========
+    
+    // Переупорядочивание текстовых слоев в Paper.js
+    reorderTextLayersInPaperJS() {
+      console.log('🔄 Переупорядочивание текстовых слоев в Paper.js...')
+      
+      // Сначала перемещаем все текстовые слои на задний план
+      this.textLayers.forEach((layer, index) => {
+        if (layer.layer) {
+          layer.layer.sendToBack()
+        }
+      })
+      
+      // Затем перемещаем их в правильном порядке
+      // Индекс 0 = самый верхний слой (первый в списке)
+      // Индекс N = самый нижний слой (последний в списке)
+      // Идем в обратном порядке, чтобы индекс 0 стал самым верхним
+      for (let i = this.textLayers.length - 1; i >= 0; i--) {
+        const layer = this.textLayers[i]
+        if (layer.layer) {
+          layer.layer.bringToFront()
+          console.log(`📌 Текстовый слой ${i} - ${i === 0 ? 'самый верхний' : 'слой ' + i}`)
+        }
+      }
+      
+      // Обновляем Paper.js view
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.update()
+      }
+      
+      console.log('✅ Переупорядочивание текстовых слоев завершено')
+    },
+    
+    // Обработчики перетаскивания для текстовых слоев
+    handleTextDragStart(index, event) {
+      this.draggedTextIndex = index
+      event.dataTransfer.effectAllowed = 'move'
+      console.log(`🖱️ Начато перетаскивание текстового слоя ${index}`)
+    },
+    
+    handleTextDragEnd() {
+      this.draggedTextIndex = -1
+      this.dragOverTextIndex = -1
+      console.log('🖱️ Завершено перетаскивание текстового слоя')
+    },
+    
+    handleTextDragOver(index, event) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      
+      if (this.draggedTextIndex !== index) {
+        this.dragOverTextIndex = index
+      }
+    },
+    
+    handleTextDragLeave() {
+      this.dragOverTextIndex = -1
+    },
+    
+    // Сброс текстового слоя
+    handleTextDrop(targetIndex, event) {
+      event.preventDefault()
+      
+      if (this.draggedTextIndex === -1 || this.draggedTextIndex === targetIndex) {
+        return
+      }
+      
+      console.log(`🎯 Перемещение текстового слоя с позиции ${this.draggedTextIndex} на позицию ${targetIndex}`)
+      console.log(`📋 Новая логика: позиция ${targetIndex} = ${targetIndex === 0 ? 'самый верхний' : targetIndex === this.textLayers.length - 1 ? 'самый нижний' : 'средний'} слой`)
+      
+      // Перемещаем текстовый слой в массиве
+      const draggedLayer = this.textLayers[this.draggedTextIndex]
+      this.textLayers.splice(this.draggedTextIndex, 1)
+      this.textLayers.splice(targetIndex, 0, draggedLayer)
+      
+      // Обновляем индексы в Paper.js для корректного отображения слоев
+      this.reorderTextLayersInPaperJS()
+      
+      // Обновляем 3D модель
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+        this.$refs.threeRenderer.forceUpdate()
+      }
+      
+      // Сбрасываем состояния перетаскивания
+      this.draggedTextIndex = -1
+      this.dragOverTextIndex = -1
+      
+      console.log('✅ Текстовый слой успешно перемещен')
+    },
+    
+    // Перемещение текстового слоя на верхний уровень
+    moveTextLayerToTop(index) {
+      if (index >= 0 && index < this.textLayers.length) {
+        // Перемещаем текстовый слой в начало массива (позиция 0 = самый верхний слой)
+        const [movedLayer] = this.textLayers.splice(index, 1)
+        this.textLayers.unshift(movedLayer)
+        
+        // Переупорядочиваем все текстовые слои в Paper.js
+        this.reorderTextLayersInPaperJS()
+        
+        console.log(`✅ Текстовый слой ${index} перемещен на верхний слой (позиция 0 в списке)`)
+        
+        // Обновляем 3D модель
+        if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+          this.$refs.threeRenderer.forceUpdate()
+        }
+      }
+    },
+    
     // Обновление превью после изменения порядка
     updateStickerPreviews() {
       // Очищаем старые превью
@@ -7914,8 +8054,33 @@ export default {
           } else {
             console.warn('⚠️ Стикер не найден в массиве stickers')
           }
+        } else if (item.className === 'Raster' || item.className === 'Group') {
+          // Проверяем, что это текстовый слой
+          const textLayerIndex = this.textLayers.findIndex(layer => layer.layer === item || layer.backgroundItem === item)
+          if (textLayerIndex !== -1) {
+            console.log('🎯 Двойной клик на текстовый слой, перемещаем на верхний слой')
+            
+            // Перемещаем текстовый слой в начало массива (верхний слой)
+            const [movedLayer] = this.textLayers.splice(textLayerIndex, 1)
+            this.textLayers.unshift(movedLayer)
+            
+            // Переупорядочиваем все текстовые слои в Paper.js
+            this.reorderTextLayersInPaperJS()
+            
+            console.log(`✅ Текстовый слой перемещен на верхний слой. Новый порядок: ${this.textLayers.length} слоев`)
+            
+            // Принудительно обновляем Vue для отображения изменений в списке слоев
+            this.$forceUpdate()
+            
+            // Обновляем 3D рендер
+            if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
+          } else {
+            console.log('ℹ️ Двойной клик не на текстовый слой')
+          }
         } else {
-          console.log('ℹ️ Двойной клик не на стикер')
+          console.log('ℹ️ Двойной клик не на стикер или текстовый слой')
         }
       } else {
         console.log('ℹ️ Двойной клик не попал на элемент')
@@ -10232,9 +10397,13 @@ export default {
         createdAt: new Date().toISOString()
       }
       
-      this.textLayers.push(layerInfo)
+      // Добавляем новый текстовый слой в начало массива (позиция 0 = самый верхний слой)
+      this.textLayers.unshift(layerInfo)
       
-      // Добавляем в список созданных текстов для отображения во вкладке
+      // Переупорядочиваем текстовые слои в Paper.js согласно порядку в массиве
+      this.reorderTextLayersInPaperJS()
+      
+      // Добавляем в список созданных текстов для отображения во вкладке (тоже в начало)
       const newText = {
         id: layerIndex,
         text: textData.text || 'Пустой текст',
@@ -10249,7 +10418,8 @@ export default {
           hasTextInRaster: !!textData.text // Флаг что текст включен в Raster
       }
       
-      this.createdTexts.push(newText)
+      // Добавляем новый текст в начало списка (позиция 0 = самый верхний слой)
+      this.createdTexts.unshift(newText)
       console.log('📝 Новый текст добавлен в слой:', layerInfo)
       
       // Обновляем 3D модель с небольшой задержкой для корректного отображения
@@ -13296,6 +13466,101 @@ export default {
 }
 
 .layer-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Стили для вкладки "Тексты" */
+.text-layers-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.text-layer-item:hover {
+  background-color: #f8f9fa;
+}
+
+.text-layer-item:last-child {
+  border-bottom: none;
+}
+
+/* Стили для перетаскивания текстовых слоев */
+.text-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.text-layer-item.drag-over {
+  border-top: 3px solid #28a745;
+  background-color: #e8f5e8;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.text-layer-item:hover {
+  background-color: #f8f9fa;
+  cursor: grab;
+}
+
+.text-layer-item.dragging:hover {
+  cursor: grabbing;
+}
+
+/* Стили для информации о текстовом слое */
+.text-layer-item .layer-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.text-layer-item .layer-details {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.text-layer-item .layer-name {
+  font-weight: 500;
+  color: #212529;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.text-layer-item .layer-meta {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.text-layer-item .layer-number {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 12px;
+  background-color: #e8f5e8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.text-layer-item .layer-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.text-layer-item .layer-actions .btn {
   padding: 4px 8px;
   font-size: 12px;
 }

@@ -9253,7 +9253,7 @@ export default {
       
       // Рисуем основной текст
       if (this.textDialogData.textImage && this.textDialogDataImageText.cachedImage) {
-        // Если есть изображение, используем его как маску для заливки текста
+        // Если есть изображение, используем его как маску для заливки текста (как в основном канвасе)
         const img = this.textDialogDataImageText.cachedImage
         
         // Создаем временный канвас для текста с изображением
@@ -9262,34 +9262,20 @@ export default {
         textCanvas.height = canvas.height
         const textCtx = textCanvas.getContext('2d')
         
-        // Вычисляем размеры текста для правильного позиционирования изображения
+        // Вычисляем размеры дефолтного текста для правильного позиционирования изображения
         const textWidth = ctx.measureText('Текст').width
-        const textHeight = this.textDialogData.fontSize * previewScale
+        const textHeight = this.textDialogData.fontSize * previewScale * this.textDialogData.lineHeight
         
-        // Вычисляем правильные пропорции изображения
-        const imgAspectRatio = img.width / img.height
-        const textAspectRatio = textWidth / textHeight
-        
-        let drawWidth, drawHeight, drawX, drawY
-        
-        if (imgAspectRatio > textAspectRatio) {
-          // Изображение шире - подгоняем по высоте
-          drawHeight = textHeight
-          drawWidth = drawHeight * imgAspectRatio
-          drawX = previewX - drawWidth / 2
-          drawY = previewY - textHeight / 2
-        } else {
-          // Изображение выше - подгоняем по ширине
-          drawWidth = textWidth
-          drawHeight = drawWidth / imgAspectRatio
-          drawX = previewX - textWidth / 2
-          drawY = previewY - drawHeight / 2
-        }
+        // Используем точные размеры текста для изображения (как в основном канвасе)
+        const drawWidth = textWidth
+        const drawHeight = textHeight
+        const drawX = previewX - drawWidth / 2
+        const drawY = previewY - drawHeight / 2
         
         // Рисуем изображение на временном канвасе
         textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
         
-        // Создаем маску из текста
+        // Создаем маску из текста (destination-in как в основном канвасе)
         textCtx.globalCompositeOperation = 'destination-in'
         textCtx.font = ctx.font
         textCtx.textAlign = ctx.textAlign

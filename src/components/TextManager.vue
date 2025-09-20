@@ -2468,7 +2468,7 @@ export default {
       
       // Рисуем основной текст с поддержкой переноса строк
       if (this.textDialogDataImageText.textImage && this.textDialogDataImageText.cachedImage) {
-        // Если есть изображение, используем его как маску для заливки текста
+        // Если есть изображение, используем его как маску для заливки текста (как в основном канвасе)
         const img = this.textDialogDataImageText.cachedImage
         
         // Создаем временный канвас для текста с изображением
@@ -2477,16 +2477,26 @@ export default {
         textCanvas.height = canvas.height
         const textCtx = textCanvas.getContext('2d')
         
-        // Рисуем текст на временном канвасе
+        // Вычисляем размеры текста для правильного позиционирования изображения
+        const textWidth = ctx.measureText(this.textDialogDataImageText.text).width
+        const textHeight = fontSize * previewScale * this.textDialogDataImageText.lineHeight
+        
+        // Используем точные размеры текста для изображения (как в основном канвасе)
+        const drawWidth = textWidth
+        const drawHeight = textHeight
+        const drawX = previewX - drawWidth / 2
+        const drawY = previewY - drawHeight / 2
+        
+        // Рисуем изображение на временном канвасе
+        textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        
+        // Создаем маску из текста (destination-in как в основном канвасе)
+        textCtx.globalCompositeOperation = 'destination-in'
         textCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
         textCtx.textAlign = this.textDialogDataImageText.textAlign || 'center'
         textCtx.textBaseline = 'middle'
-        textCtx.fillStyle = 'black'
+        textCtx.fillStyle = 'white'
         this.drawMultilineText(textCtx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
-        
-        // Применяем изображение как маску
-        textCtx.globalCompositeOperation = 'source-in'
-        textCtx.drawImage(img, 0, 0, canvas.width, canvas.height)
         
         // Применяем обводку к тексту если включена (на временном канвасе)
         if (this.textDialogDataImageText.stroke) {
@@ -2707,17 +2717,28 @@ export default {
         textCanvas.height = canvas.height
         const textCtx = textCanvas.getContext('2d')
         
-        // Рисуем дефолтный текст "Текст" на временном канвасе
+        // Вычисляем размеры дефолтного текста для правильного позиционирования изображения
         textCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+        const textWidth = textCtx.measureText('Текст').width
+        const textHeight = this.textDialogDataImageText.fontSize * this.textDialogDataImageText.lineHeight
+        
+        // Используем точные размеры текста для изображения (как в основном канвасе)
+        const drawWidth = textWidth
+        const drawHeight = textHeight
+        const drawX = x - drawWidth / 2
+        const drawY = y - drawHeight / 2
+        
+        const imageToUse = this.textDialogDataImageText.cachedImage || textImage
+        
+        // Рисуем изображение на временном канвасе
+        textCtx.drawImage(imageToUse, drawX, drawY, drawWidth, drawHeight)
+        
+        // Создаем маску из текста (destination-in как в основном канвасе)
+        textCtx.globalCompositeOperation = 'destination-in'
         textCtx.textAlign = this.textDialogDataImageText.textAlign
         textCtx.textBaseline = 'middle'
-        textCtx.fillStyle = 'black'
+        textCtx.fillStyle = 'white'
         textCtx.fillText('Текст', x, y)
-        
-        // Применяем изображение как маску
-        textCtx.globalCompositeOperation = 'source-in'
-        const imageToUse = this.textDialogDataImageText.cachedImage || textImage
-        textCtx.drawImage(imageToUse, 0, 0, canvas.width, canvas.height)
         
         // Сначала рисуем тень к тексту с изображением если включена
         if (this.textDialogDataImageText.shadow) {

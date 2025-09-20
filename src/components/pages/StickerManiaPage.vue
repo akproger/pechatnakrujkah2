@@ -1638,7 +1638,7 @@
                 role="tab" 
                 aria-controls="stickers" 
                 aria-selected="activeTab === 'stickers'"
-                @click="activeTab = 'stickers'"
+                @click="switchToStickersTab()"
               >
                 <i class="bi bi-layer-group me-2"></i>
                 Стикеры ({{ stickers.length }})
@@ -1938,6 +1938,23 @@
                           @click="selectSticker(index)"
                         >
                           <div class="layer-info">
+                            <!-- Превью стикера -->
+                            <div class="sticker-preview">
+                              <img 
+                                v-if="stickerPreviews[`${sticker.mask}_${sticker.image}_${index}`]"
+                                :src="stickerPreviews[`${sticker.mask}_${sticker.image}_${index}`]"
+                                :alt="`Превью ${sticker.mask}`"
+                                class="preview-image"
+                                @error="handlePreviewError(index)"
+                              />
+                              <div 
+                                v-else 
+                                class="preview-placeholder"
+                                :title="`Генерация превью для ${sticker.mask}...`"
+                              >
+                                <i class="bi bi-image"></i>
+                              </div>
+                            </div>
                             <div class="layer-number">{{ sticker.originalNumber }}</div>
                             <div class="layer-details">
                               <div class="layer-name">Стикер {{ sticker.originalNumber }}</div>
@@ -2064,6 +2081,7 @@ export default {
       
       // Стикеры
       stickers: [],
+      stickerPreviews: {}, // Хранилище превью стикеров
       coveragePercentage: 0,
       // Настройки генерации
       minStickerSize: 50, // Минимальный размер стикера (50% от базового)
@@ -4358,6 +4376,9 @@ export default {
               this.coveragePercentage = Math.round(currentCoverage)
               
               console.log(`📊 Итерация ${iterations}: ${this.stickers.length} стикеров, покрытие ${this.coveragePercentage}%`)
+              
+              // Обновляем отображение слоев стикеров для генерации превью
+              this.updateStickerLayersDisplay()
             }
           } catch (error) {
             console.error('Ошибка создания стикера:', error)
@@ -4613,6 +4634,9 @@ export default {
                 this.coveragePercentage = Math.round(currentCoverage)
                 
                 console.log(`📊 Добавлен стикер ${iterations}: покрытие ${this.coveragePercentage}%`)
+                
+                // Обновляем отображение слоев стикеров для генерации превью
+                this.updateStickerLayersDisplay()
               }
             } catch (error) {
               console.error('Ошибка создания стикера:', error)
@@ -7347,6 +7371,201 @@ export default {
         totalStickers: this.stickers.length,
         selectedIndex: this.selectedStickerIndex,
         activeTab: this.activeTab
+      })
+      
+      // Генерируем превью для стикеров, у которых их еще нет
+      this.stickers.forEach((sticker, index) => {
+        const previewKey = `${sticker.mask}_${sticker.image}_${index}`
+        if (!this.stickerPreviews[previewKey]) {
+          console.log(`🔄 Генерируем превью для стикера ${index}: ${sticker.mask} + ${sticker.image}`)
+          this.generateStickerPreview(sticker).then(previewDataURL => {
+            if (previewDataURL) {
+              this.stickerPreviews[previewKey] = previewDataURL
+              console.log(`🖼️ Превью создано для стикера ${index}: ${sticker.mask} + ${sticker.image}`)
+              // Принудительно обновляем Vue для отображения нового превью
+              this.$nextTick(() => {
+                // Vue 3 автоматически отслеживает изменения в реактивных объектах
+                console.log(`✅ Превью добавлено в реактивное хранилище: ${previewKey}`)
+              })
+            } else {
+              console.warn(`⚠️ Не удалось создать превью для стикера ${index}`)
+            }
+          }).catch(error => {
+            console.error(`❌ Ошибка создания превью для стикера ${index}:`, error)
+          })
+        }
+      })
+    },
+    
+    // Генерация превью стикера для списка слоев
+    generateStickerPreview(sticker) {
+      console.log('🎨 Начинаем генерацию превью для стикера:', {
+        mask: sticker.mask,
+        image: sticker.image,
+        position: { x: sticker.x, y: sticker.y },
+        size: sticker.size
+      })
+      
+      return new Promise((resolve) => {
+        // Создаем временный canvas для превью
+        const previewCanvas = document.createElement('canvas')
+        const previewCtx = previewCanvas.getContext('2d')
+        
+        // Размер превью
+        const previewSize = 60
+        previewCanvas.width = previewSize
+        previewCanvas.height = previewSize
+        
+        // Находим маску и изображение
+        const mask = this.stickerMasks.find(m => m.name === sticker.mask)
+        const image = this.uploadedImages.find(img => img.name === sticker.image)
+        
+        console.log('🔍 Поиск данных для превью:', {
+          stickerMask: sticker.mask,
+          stickerImage: sticker.image,
+          availableMasks: this.stickerMasks.map(m => m.name),
+          availableImages: this.uploadedImages.map(img => img.name),
+          foundMask: !!mask,
+          foundImage: !!image
+        })
+        
+        if (!mask || !image) {
+          console.warn('⚠️ Не найдены маска или изображение для превью:', { 
+            mask: sticker.mask, 
+            image: sticker.image,
+            availableMasks: this.stickerMasks.map(m => m.name),
+            availableImages: this.uploadedImages.map(img => img.name)
+          })
+          resolve(null)
+          return
+        }
+        
+        // Загружаем SVG маску
+        fetch(mask.url)
+          .then(response => response.text())
+          .then(svgText => {
+            // Создаем временный Paper scope для импорта SVG
+            const tempScope = new paper.PaperScope()
+            const tempCanvas = document.createElement('canvas')
+            tempCanvas.width = 200
+            tempCanvas.height = 200
+            tempScope.setup(tempCanvas)
+            
+            tempScope.project.importSVG(svgText, {
+              onLoad: (item) => {
+                // Находим путь в SVG
+                let path = null
+                const findPath = (node) => {
+                  if (node.className === 'Path') {
+                    path = node
+                    return true
+                  }
+                  if (node.children) {
+                    for (let child of node.children) {
+                      if (findPath(child)) return true
+                    }
+                  }
+                  return false
+                }
+                
+                findPath(item)
+                
+                if (!path) {
+                  path = item.children[0]
+                }
+                
+                // Создаем растр из изображения
+                const raster = new tempScope.Raster(image.url)
+                raster.visible = false
+                
+                raster.onLoad = () => {
+                  // Получаем размеры маски
+                  const maskBounds = path.bounds
+                  
+                  // Создаем временный canvas для обрезки
+                  const tempCanvas = document.createElement('canvas')
+                  const tempCtx = tempCanvas.getContext('2d')
+                  tempCanvas.width = maskBounds.width
+                  tempCanvas.height = maskBounds.height
+                  
+                  // Очищаем canvas
+                  tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+                  
+                  // Рисуем путь маски
+                  tempCtx.save()
+                  tempCtx.beginPath()
+                  
+                  if (path.pathData) {
+                    const pathCommands = this.parseSVGPath(path.pathData)
+                    tempCtx.translate(-maskBounds.x, -maskBounds.y)
+                    tempCtx.fillRule = 'evenodd'
+                    
+                    for (const command of pathCommands) {
+                      if (command.type === 'M') {
+                        tempCtx.moveTo(command.x, command.y)
+                      } else if (command.type === 'L') {
+                        tempCtx.lineTo(command.x, command.y)
+                      } else if (command.type === 'C') {
+                        tempCtx.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y)
+                      } else if (command.type === 'Z') {
+                        tempCtx.closePath()
+                      }
+                    }
+                    
+                    // Обрезаем изображение по маске
+                    tempCtx.clip()
+                    
+                    // Рисуем изображение
+                    const imgWidth = raster.image.width
+                    const imgHeight = raster.image.height
+                    const canvasWidth = maskBounds.width
+                    const canvasHeight = maskBounds.height
+                    
+                    const scaleX = canvasWidth / imgWidth
+                    const scaleY = canvasHeight / imgHeight
+                    const scale = Math.max(scaleX, scaleY) * 1.1
+                    
+                    const scaledWidth = imgWidth * scale
+                    const scaledHeight = imgHeight * scale
+                    const offsetX = (canvasWidth - scaledWidth) / 2
+                    const offsetY = (canvasHeight - scaledHeight) / 2
+                    
+                    tempCtx.drawImage(raster.image, offsetX, offsetY, scaledWidth, scaledHeight)
+                  }
+                  
+                  tempCtx.restore()
+                  
+                  // Масштабируем на превью размер
+                  previewCtx.save()
+                  previewCtx.drawImage(tempCanvas, 0, 0, previewSize, previewSize)
+                  previewCtx.restore()
+                  
+                  // Конвертируем в data URL
+                  const previewDataURL = previewCanvas.toDataURL('image/png')
+                  resolve(previewDataURL)
+                }
+              }
+            })
+          })
+          .catch(error => {
+            console.error('❌ Ошибка создания превью стикера:', error)
+            resolve(null)
+          })
+      })
+    },
+    
+    // Обработка ошибок загрузки превью
+    handlePreviewError(index) {
+      console.warn(`⚠️ Ошибка загрузки превью для стикера ${index}`)
+      // Можно добавить логику для повторной генерации превью
+    },
+    
+    // Переключение на вкладку стикеров
+    switchToStickersTab() {
+      this.activeTab = 'stickers'
+      // Обновляем отображение слоев стикеров и генерируем превью
+      this.$nextTick(() => {
+        this.updateStickerLayersDisplay()
       })
     },
     
@@ -12787,6 +13006,38 @@ export default {
   display: flex;
   align-items: center;
   flex: 1;
+}
+
+/* Превью стикера */
+.sticker-preview {
+  width: 50px;
+  height: 50px;
+  margin-right: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 18px;
+  background-color: #f8f9fa;
 }
 
 .layer-number {

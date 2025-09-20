@@ -1924,8 +1924,9 @@
                   <div class="row">
                     <div class="col-12">
                       <p class="text-muted mb-3">
-                        Стикеры расположены в порядке слоев (снизу вверх). 
-                        Двойной клик на стикер перемещает его на верхний слой.
+                        Стикеры расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка. Двойной клик на стикер перемещает его на верхний слой.
                       </p>
                       
                       <!-- Список слоев стикеров -->
@@ -1934,10 +1935,25 @@
                           v-for="(sticker, index) in stickers" 
                           :key="index"
                           class="sticker-layer-item"
-                          :class="{ 'active': selectedStickerIndex === index }"
+                          :class="{ 
+                            'active': selectedStickerIndex === index,
+                            'dragging': draggedIndex === index,
+                            'drag-over': dragOverIndex === index
+                          }"
+                          draggable="true"
                           @click="selectSticker(index)"
+                          @dragstart="handleDragStart(index, $event)"
+                          @dragend="handleDragEnd"
+                          @dragover="handleDragOver(index, $event)"
+                          @dragleave="handleDragLeave"
+                          @drop="handleDrop(index, $event)"
                         >
                           <div class="layer-info">
+                            <!-- Иконка перетаскивания -->
+                            <div class="drag-handle">
+                              <i class="bi bi-grip-vertical"></i>
+                            </div>
+                            
                             <!-- Превью стикера -->
                             <div class="sticker-preview">
                               <img 
@@ -2083,6 +2099,10 @@ export default {
       stickers: [],
       stickerPreviews: {}, // Хранилище превью стикеров
       coveragePercentage: 0,
+      
+      // Перетаскивание слоев
+      draggedIndex: -1,
+      dragOverIndex: -1,
       // Настройки генерации
       minStickerSize: 50, // Минимальный размер стикера (50% от базового)
       maxStickerSize: 150, // Максимальный размер стикера (150% от базового)
@@ -4399,6 +4419,9 @@ export default {
       // Финальное обновление канваса
       this.paperScope.view.draw()
       
+      // Переупорядочиваем стикеры в Paper.js согласно порядку в массиве
+      this.reorderStickersInPaperJS()
+      
       // Обновляем стили всех стикеров
       this.updateStickerStyles()
       
@@ -4654,6 +4677,9 @@ export default {
         
         // Обновляем канвас только один раз в конце
         this.paperScope.view.draw()
+        
+        // Переупорядочиваем стикеры в Paper.js согласно порядку в массиве
+        this.reorderStickersInPaperJS()
         
         // Обновляем 3D текстуру
         this.$nextTick(() => {
@@ -5394,6 +5420,10 @@ export default {
       
       console.log('✅ Все слои созданы последовательно')
       this.paperScope.view.draw()
+      
+      // Переупорядочиваем стикеры в Paper.js согласно порядку в массиве
+      this.reorderStickersInPaperJS()
+      
       console.log('🎨 Канвас перерисован')
     },
     
@@ -5541,6 +5571,9 @@ export default {
               console.warn(`❌ Не удалось добавить текст ${index + 1}`)
             }
           })
+          
+          // Переупорядочиваем стикеры в Paper.js согласно порядку в массиве
+          this.reorderStickersInPaperJS()
           
           // Принудительно обновляем 3D текстуру
           this.forceUpdate3DTexture()
@@ -7249,11 +7282,14 @@ export default {
             // Обновляем порядок в массиве стикеров
             const stickerIndex = this.stickers.findIndex(sticker => sticker.group === stickerGroup)
             if (stickerIndex !== -1) {
-              // Перемещаем стикер в конец массива (верхний слой)
+              // Перемещаем стикер в начало массива (позиция 0 = самый верхний слой)
               const [movedSticker] = this.stickers.splice(stickerIndex, 1)
-              this.stickers.push(movedSticker)
+              this.stickers.unshift(movedSticker)
               
-              console.log(`✅ Стикер перемещен на верхний слой. Новый порядок: ${this.stickers.length} стикеров`)
+              // Переупорядочиваем все стикеры в Paper.js
+              this.reorderStickersInPaperJS()
+              
+              console.log(`✅ Стикер перемещен на верхний слой (позиция 0 в списке). Новый порядок: ${this.stickers.length} стикеров`)
               
               // Обновляем отображение слоев если вкладка "Стикеры" активна
               if (this.activeTab === 'stickers') {
@@ -7314,23 +7350,25 @@ export default {
       if (index >= 0 && index < this.stickers.length) {
         const sticker = this.stickers[index]
         
-        // Перемещаем стикер на верхний слой в Paper.js
-        sticker.group.bringToFront()
-        
-        // Перемещаем стикер в начало массива (верхний слой)
+        // Перемещаем стикер в начало массива (позиция 0 = самый верхний слой)
         const [movedSticker] = this.stickers.splice(index, 1)
         this.stickers.unshift(movedSticker)
+        
+        // Переупорядочиваем все стикеры в Paper.js
+        this.reorderStickersInPaperJS()
         
         // Обновляем индекс выбранного стикера (теперь он на позиции 0)
         this.selectedStickerIndex = 0
         
-        console.log(`✅ Стикер ${index} перемещен на верхний слой`)
+        console.log(`✅ Стикер ${index} перемещен на верхний слой (позиция 0 в списке)`)
         
-        // Принудительно обновляем Vue для отображения изменений в списке слоев
-        this.$forceUpdate()
+        // Обновляем превью
+        this.updateStickerPreviews()
         
-        // Обновляем отображение
-        this.updateStickerLayersDisplay()
+        // Обновляем 3D модель
+        if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+          this.$refs.threeRenderer.forceUpdate()
+        }
       }
     },
     
@@ -7564,6 +7602,132 @@ export default {
     switchToStickersTab() {
       this.activeTab = 'stickers'
       // Обновляем отображение слоев стикеров и генерируем превью
+      this.$nextTick(() => {
+        this.updateStickerLayersDisplay()
+      })
+    },
+    
+    // === МЕТОДЫ ПЕРЕТАСКИВАНИЯ СЛОЕВ ===
+    
+    // Начало перетаскивания
+    handleDragStart(index, event) {
+      this.draggedIndex = index
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/html', event.target.outerHTML)
+      
+      // Добавляем класс для визуальной обратной связи
+      event.target.style.opacity = '0.5'
+      
+      console.log(`🔄 Начато перетаскивание слоя ${index}`)
+    },
+    
+    // Завершение перетаскивания
+    handleDragEnd(event) {
+      event.target.style.opacity = '1'
+      this.draggedIndex = -1
+      this.dragOverIndex = -1
+      
+      console.log('✅ Перетаскивание завершено')
+    },
+    
+    // Перетаскивание над элементом
+    handleDragOver(index, event) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      
+      if (index !== this.draggedIndex) {
+        this.dragOverIndex = index
+      }
+    },
+    
+    // Покидание области перетаскивания
+    handleDragLeave(event) {
+      // Проверяем, что мы действительно покинули элемент (а не его дочерний элемент)
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        this.dragOverIndex = -1
+      }
+    },
+    
+    // Сброс слоя
+    handleDrop(targetIndex, event) {
+      event.preventDefault()
+      
+      if (this.draggedIndex === -1 || this.draggedIndex === targetIndex) {
+        return
+      }
+      
+      console.log(`🎯 Перемещение слоя с позиции ${this.draggedIndex} на позицию ${targetIndex}`)
+      console.log(`📋 Новая логика: позиция ${targetIndex} = ${targetIndex === 0 ? 'самый верхний' : targetIndex === this.stickers.length - 1 ? 'самый нижний' : 'средний'} слой`)
+      
+      // Перемещаем стикер в массиве
+      const draggedSticker = this.stickers[this.draggedIndex]
+      this.stickers.splice(this.draggedIndex, 1)
+      this.stickers.splice(targetIndex, 0, draggedSticker)
+      
+      // Обновляем индексы в Paper.js для корректного отображения слоев
+      this.reorderStickersInPaperJS()
+      
+      // Обновляем выбранный индекс если необходимо
+      if (this.selectedStickerIndex === this.draggedIndex) {
+        this.selectedStickerIndex = targetIndex
+      } else if (this.selectedStickerIndex > this.draggedIndex && this.selectedStickerIndex <= targetIndex) {
+        this.selectedStickerIndex--
+      } else if (this.selectedStickerIndex < this.draggedIndex && this.selectedStickerIndex >= targetIndex) {
+        this.selectedStickerIndex++
+      }
+      
+      // Обновляем превью
+      this.updateStickerPreviews()
+      
+      // Обновляем 3D модель
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+        this.$refs.threeRenderer.forceUpdate()
+      }
+      
+      // Сбрасываем состояния перетаскивания
+      this.draggedIndex = -1
+      this.dragOverIndex = -1
+      
+      console.log('✅ Слой успешно перемещен')
+    },
+    
+    // Переупорядочивание стикеров в Paper.js
+    reorderStickersInPaperJS() {
+      console.log('🔄 Переупорядочивание стикеров в Paper.js...')
+      
+      // Сначала перемещаем все стикеры на задний план
+      this.stickers.forEach((sticker, index) => {
+        if (sticker.group) {
+          sticker.group.sendToBack()
+        }
+      })
+      
+      // Затем перемещаем их в правильном порядке
+      // Индекс 0 = самый верхний слой (первый в списке)
+      // Индекс N = самый нижний слой (последний в списке)
+      // Идем в обратном порядке, чтобы индекс 0 стал самым верхним
+      for (let i = this.stickers.length - 1; i >= 0; i--) {
+        const sticker = this.stickers[i]
+        if (sticker.group) {
+          sticker.group.bringToFront()
+          console.log(`📌 Стикер ${i} (${sticker.mask}) - ${i === 0 ? 'самый верхний' : 'слой ' + i}`)
+        }
+      }
+      
+      // Обновляем Paper.js view
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.update()
+      }
+      
+      console.log('✅ Переупорядочивание стикеров завершено')
+    },
+    
+    // Обновление превью после изменения порядка
+    updateStickerPreviews() {
+      // Очищаем старые превью
+      this.stickerPreviews = {}
+      
+      // Генерируем новые превью в правильном порядке
       this.$nextTick(() => {
         this.updateStickerLayersDisplay()
       })
@@ -13002,10 +13166,52 @@ export default {
   border-bottom: none;
 }
 
+/* Стили для перетаскивания */
+.sticker-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.sticker-layer-item.drag-over {
+  border-top: 3px solid #2196f3;
+  background-color: #e3f2fd;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.sticker-layer-item:hover {
+  background-color: #f8f9fa;
+  cursor: grab;
+}
+
+.sticker-layer-item.dragging:hover {
+  cursor: grabbing;
+}
+
 .layer-info {
   display: flex;
   align-items: center;
   flex: 1;
+}
+
+/* Иконка перетаскивания */
+.drag-handle {
+  margin-right: 8px;
+  color: #6c757d;
+  cursor: grab;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #495057;
+  background-color: #f8f9fa;
+}
+
+.drag-handle i {
+  font-size: 14px;
 }
 
 /* Превью стикера */

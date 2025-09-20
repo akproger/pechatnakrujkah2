@@ -1401,7 +1401,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1427,7 +1427,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1450,7 +1450,7 @@ export default {
         textColor: '#000000',
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1473,7 +1473,7 @@ export default {
         textColor: '#FFFFFF',
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1731,7 +1731,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1757,7 +1757,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1780,7 +1780,7 @@ export default {
         textColor: '#000000',
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -1803,7 +1803,7 @@ export default {
         textColor: '#FFFFFF',
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -2079,7 +2079,7 @@ export default {
     // Рисование хвоста для разговора
     drawTailBackground(ctx, centerX, centerY, textData) {
       const width = textData.backgroundWidth || 200
-      const height = textData.backgroundHeight || 100
+      const height = textData.backgroundHeight || 80
       const tailSize = textData.tailSize || 20
       const tailWidth = textData.tailWidth || 15
       const tailAngle = textData.tailAngle || 0
@@ -2113,7 +2113,7 @@ export default {
     // Рисование облачка для мыслей
     drawCloudBackground(ctx, centerX, centerY, textData) {
       const width = textData.backgroundWidth || 200
-      const height = textData.backgroundHeight || 100
+      const height = textData.backgroundHeight || 80
       
       ctx.save()
       ctx.fillStyle = textData.backgroundColor || '#ffffff'
@@ -2144,7 +2144,7 @@ export default {
     // Рисование простой подложки
     drawSimpleBackground(ctx, centerX, centerY, textData) {
       const width = textData.backgroundWidth || 200
-      const height = textData.backgroundHeight || 100
+      const height = textData.backgroundHeight || 80
       
       ctx.save()
       ctx.fillStyle = textData.backgroundColor || '#ffffff'
@@ -2530,7 +2530,7 @@ export default {
       
       // Рисуем подложку (как в оригинале)
       const bgWidth = this.textDialogData.backgroundWidth || 200
-      const bgHeight = this.textDialogData.backgroundHeight || 100
+      const bgHeight = this.textDialogData.backgroundHeight || 80
       
       // Для режима "Разговор" рисуем подложку с хвостом
       if (this.textDialogActiveTab === 'conversation') {
@@ -2600,7 +2600,7 @@ export default {
       
       // Размеры дефолтной подложки - используем из настроек
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       
       console.log('🧠 Дефолтная подложка - параметры:', {
         backgroundWidth: backgroundWidth,
@@ -2643,7 +2643,7 @@ export default {
       
       // Рисуем подложку с использованием настроек из textDialogDataStandard
       const bgWidth = this.textDialogData.backgroundWidth || 200
-      const bgHeight = this.textDialogData.backgroundHeight || 100
+      const bgHeight = this.textDialogData.backgroundHeight || 80
       
       // Рисуем тень если включена
       if (this.textDialogData.shadow) {

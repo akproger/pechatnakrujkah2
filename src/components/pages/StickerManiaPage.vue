@@ -2094,7 +2094,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -2120,7 +2120,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -2143,7 +2143,7 @@ export default {
         textColor: '#000000',
         backgroundColor: '#ffffff',
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -2745,10 +2745,10 @@ export default {
         
         // Создаем canvas с высоким разрешением
         let backgroundWidth = layer.textData.backgroundWidth || 200
-        let backgroundHeight = layer.textData.backgroundHeight || 100
+        let backgroundHeight = layer.textData.backgroundHeight || 80
         
-        // Для режима "image-text" вычисляем реальные размеры текста
-        if (layer.textData.backgroundMode === 'image-text') {
+        // Для режимов "image-text" и "standard" вычисляем реальные размеры текста
+        if (layer.textData.backgroundMode === 'image-text' || layer.textData.backgroundMode === 'standard') {
           // Создаем временный контекст для измерения текста
           const tempCtxForMeasure = document.createElement('canvas').getContext('2d')
           tempCtxForMeasure.font = `${layer.textData.fontWeight || 'normal'} ${layer.textData.fontSize * scale}px ${layer.textData.font}`
@@ -2756,15 +2756,34 @@ export default {
           const textWidth = textMetrics.width
           const textHeight = layer.textData.fontSize * scale * layer.textData.lineHeight
           
-          // Используем максимальный размер из переданных размеров подложки и реальных размеров текста
-          backgroundWidth = Math.max(backgroundWidth, textWidth / scale)
-          backgroundHeight = Math.max(backgroundHeight, textHeight / scale)
-          
-          console.log('🖼️ Размеры для режима "image-text":', {
-            originalBackground: `${layer.textData.backgroundWidth || 200}x${layer.textData.backgroundHeight || 100}`,
-            textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
-            finalBackground: `${backgroundWidth.toFixed(1)}x${backgroundHeight.toFixed(1)}`
-          })
+          // Для режима "standard" добавляем внутренние отступы
+          if (layer.textData.backgroundMode === 'standard') {
+            const textPadding = (layer.textData.padding || 15) * scale // Масштабируем padding
+            const textWidthWithPadding = textWidth + textPadding * 2 // Отступы слева и справа
+            const textHeightWithPadding = textHeight + textPadding * 2 // Отступы сверху и снизу
+            
+            // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
+            backgroundWidth = Math.max(backgroundWidth, textWidthWithPadding / scale)
+            backgroundHeight = Math.max(backgroundHeight, textHeightWithPadding / scale)
+            
+            console.log('⭐ Размеры для режима "standard" (высокое разрешение):', {
+              originalBackground: `${layer.textData.backgroundWidth || 200}x${layer.textData.backgroundHeight || 80}`,
+              textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+              textPadding: textPadding,
+              textSizeWithPadding: `${textWidthWithPadding.toFixed(1)}x${textHeightWithPadding.toFixed(1)}`,
+              finalBackground: `${backgroundWidth.toFixed(1)}x${backgroundHeight.toFixed(1)}`
+            })
+          } else {
+            // Для режима "image-text" используем размеры без отступов
+            backgroundWidth = Math.max(backgroundWidth, textWidth / scale)
+            backgroundHeight = Math.max(backgroundHeight, textHeight / scale)
+            
+            console.log('🖼️ Размеры для режима "image-text":', {
+              originalBackground: `${layer.textData.backgroundWidth || 200}x${layer.textData.backgroundHeight || 100}`,
+              textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+              finalBackground: `${backgroundWidth.toFixed(1)}x${backgroundHeight.toFixed(1)}`
+            })
+          }
         }
         
         // Масштабируем размеры подложки
@@ -7550,7 +7569,7 @@ export default {
         tailWidth: 40,
         tailAngle: 45,
         backgroundWidth: 200,
-        backgroundHeight: 100,
+        backgroundHeight: 80,
         padding: 15,
         textAlign: 'center',
         lineHeight: 1.2,
@@ -8093,7 +8112,7 @@ export default {
       
       // Размеры дефолтной подложки - увеличиваем для лучшей видимости
       const backgroundWidth = 200
-      const backgroundHeight = 100
+      const backgroundHeight = 80
       
       console.log('🧠 Дефолтная подложка - параметры:', {
         backgroundWidth: backgroundWidth,
@@ -9926,11 +9945,11 @@ export default {
       let backgroundItem = null
       
       if (mode === 'conversation') {
-        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
       } else if (mode === 'standard') {
-        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
       } else if (mode === 'thoughts') {
-        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
       } else if (mode === 'image-text') {
         backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
       }
@@ -9959,14 +9978,14 @@ export default {
       const previewScale = 1
       
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Создание подложки "Разговор" в Paper.js С масштабированием:', {
         previewScale,
         originalWidth: this.textDialogData.backgroundWidth || 200,
         scaledWidth: backgroundWidth,
-        originalHeight: this.textDialogData.backgroundHeight || 100,
+        originalHeight: this.textDialogData.backgroundHeight || 80,
         scaledHeight: backgroundHeight,
         position: `${x}, ${y}`
       })
@@ -10463,6 +10482,30 @@ export default {
       
       try {
         
+        // Вычисляем реальные размеры текста для правильного размера канваса
+        const tempCtxForMeasure = document.createElement('canvas').getContext('2d')
+        tempCtxForMeasure.font = `${currentTextData.fontWeight} ${currentTextData.fontSize}px ${currentTextData.font}`
+        const textMetrics = tempCtxForMeasure.measureText(currentTextData.text)
+        const textWidth = textMetrics.width
+        const textHeight = currentTextData.fontSize * currentTextData.lineHeight
+        
+        // Добавляем внутренние отступы к размерам текста
+        const textPadding = currentTextData.padding || 15 // Используем padding из настроек
+        const textWidthWithPadding = textWidth + textPadding * 2 // Отступы слева и справа
+        const textHeightWithPadding = textHeight + textPadding * 2 // Отступы сверху и снизу
+        
+        // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
+        const actualBackgroundWidth = Math.max(backgroundWidth, textWidthWithPadding)
+        const actualBackgroundHeight = Math.max(backgroundHeight, textHeightWithPadding)
+        
+        console.log('⭐ Размеры канваса для "Стандарт":', {
+          originalBackground: `${backgroundWidth}x${backgroundHeight}`,
+          textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+          textPadding: textPadding,
+          textSizeWithPadding: `${textWidthWithPadding.toFixed(1)}x${textHeightWithPadding.toFixed(1)}`,
+          actualBackground: `${actualBackgroundWidth.toFixed(1)}x${actualBackgroundHeight.toFixed(1)}`
+        })
+        
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
         
@@ -10472,8 +10515,8 @@ export default {
         
         const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ для режима standard
         
-        const canvasWidth = backgroundWidth + padding * 2
-        const canvasHeight = backgroundHeight + padding * 2
+        const canvasWidth = actualBackgroundWidth + padding * 2
+        const canvasHeight = actualBackgroundHeight + padding * 2
         
         const tempCanvas = document.createElement('canvas')
         tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
@@ -10492,7 +10535,7 @@ export default {
         const canvasCenterY = canvasHeight / 2
         
         // Рисуем стандартную подложку в центре временного Canvas (точно как в превью)
-        this.drawStandardModeShapeWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, 1, backgroundColor, currentTextData)
+        this.drawStandardModeShapeWithData(tempCtx, canvasCenterX, canvasCenterY, actualBackgroundWidth, actualBackgroundHeight, 1, backgroundColor, currentTextData)
         
         // Сбрасываем тень
         if (currentTextData.shadow) {
@@ -10506,12 +10549,12 @@ export default {
         if (currentTextData.stroke) {
           tempCtx.strokeStyle = currentTextData.strokeColor
           tempCtx.lineWidth = currentTextData.strokeWidth
-          tempCtx.strokeRect(canvasCenterX - backgroundWidth / 2, canvasCenterY - backgroundHeight / 2, backgroundWidth, backgroundHeight)
+          tempCtx.strokeRect(canvasCenterX - actualBackgroundWidth / 2, canvasCenterY - actualBackgroundHeight / 2, actualBackgroundWidth, actualBackgroundHeight)
         }
         
         // Добавляем текст в Raster (как в превью)
         if (currentTextData.text && currentTextData.text.trim() !== '') {
-          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, backgroundWidth, backgroundHeight, currentTextData, 1)
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, actualBackgroundWidth, actualBackgroundHeight, currentTextData, 1)
         }
         
         // Конвертируем Canvas в Paper.js Raster
@@ -11192,14 +11235,14 @@ export default {
       const previewScale = 1
       
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Создание подложки "Стандарт" в Paper.js С масштабированием:', {
         previewScale,
         originalWidth: this.textDialogData.backgroundWidth || 200,
         scaledWidth: backgroundWidth,
-        originalHeight: this.textDialogData.backgroundHeight || 100,
+        originalHeight: this.textDialogData.backgroundHeight || 80,
         scaledHeight: backgroundHeight,
         position: `${x}, ${y}`
       })
@@ -11230,14 +11273,14 @@ export default {
       const previewScale = 1
       
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Создание подложки "Мысли" в Paper.js С масштабированием:', {
         previewScale,
         originalWidth: this.textDialogData.backgroundWidth || 200,
         scaledWidth: backgroundWidth,
-        originalHeight: this.textDialogData.backgroundHeight || 100,
+        originalHeight: this.textDialogData.backgroundHeight || 80,
         scaledHeight: backgroundHeight,
         position: `${x}, ${y}`
       })
@@ -11281,7 +11324,7 @@ export default {
     // Отрисовка подложки "Разговор" на Canvas API (точная копия логики превью)
     drawConversationBackgroundOnCanvas(ctx, x, y) {
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Отрисовка подложки "Разговор" на Canvas API БЕЗ масштабирования:', {
@@ -11304,7 +11347,7 @@ export default {
     // Отрисовка подложки "Стандарт" на Canvas API (точная копия логики превью)
     drawStandardBackgroundOnCanvas(ctx, x, y) {
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Отрисовка подложки "Стандарт" на Canvas API БЕЗ масштабирования:', {
@@ -11320,7 +11363,7 @@ export default {
     // Отрисовка подложки "Мысли" на Canvas API (точная копия логики превью)
     drawThoughtsBackgroundOnCanvas(ctx, x, y) {
       const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 100
+      const backgroundHeight = this.textDialogData.backgroundHeight || 80
       const backgroundColor = this.textDialogData.backgroundColor || '#ffffff'
       
       console.log('🎨 Отрисовка подложки "Мысли" на Canvas API БЕЗ масштабирования:', {

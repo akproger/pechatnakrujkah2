@@ -35,6 +35,17 @@
                   </button>
                 </div>
                 
+                <!-- Кнопка добавления текста -->
+                <div class="col" style="padding: 0;">
+                  <button 
+                    @click="openTextDialogInCenter" 
+                    class="btn btn-success"
+                    style="background-color: #28a745; border-color: #28a745;"
+                  >
+                    <i class="bi bi-type me-2"></i>
+                    Текст
+                  </button>
+                </div>
                 <div class="col" style="padding: 0;">
                   <TextManager 
                     ref="textManager"

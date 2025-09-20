@@ -1099,10 +1099,27 @@ export default {
         }
         
         // 3. Перерисовываем все текстовые элементы с подложками (тексты сверху)
-        console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев`)
-        for (let i = 0; i < this.textLayers.length; i++) {
-          const layer = this.textLayers[i]
-          console.log(`📝 Слой ${i + 1}:`, {
+        console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев в правильном порядке`)
+        
+        // Сортируем текстовые слои по их реальному z-index (порядку наложения на канвасе)
+        const sortedTextLayers = [...this.textLayers].sort((a, b) => {
+          // Получаем z-index из Paper.js слоя, если он есть
+          const aZIndex = a.layer?.index || a.id || 0
+          const bZIndex = b.layer?.index || b.id || 0
+          return aZIndex - bZIndex
+        })
+        
+        console.log('📊 Порядок текстовых слоев при сохранении:', sortedTextLayers.map((layer, index) => ({
+          originalIndex: this.textLayers.indexOf(layer),
+          savedIndex: index,
+          zIndex: layer.layer?.index || layer.id || 0,
+          text: layer.textData?.text?.substring(0, 20) + '...'
+        })))
+        
+        for (let i = 0; i < sortedTextLayers.length; i++) {
+          const layer = sortedTextLayers[i]
+          const originalIndex = this.textLayers.indexOf(layer)
+          console.log(`📝 Слой ${originalIndex + 1} (z-index: ${layer.layer?.index || layer.id || 0}, сохранение ${i + 1}):`, {
             hasTextData: !!layer.textData,
             hasBackground: !!layer.textData?.backgroundMode,
             backgroundMode: layer.textData?.backgroundMode,
@@ -1111,9 +1128,9 @@ export default {
           })
           try {
             await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale, canvasWidth, canvasHeight)
-            console.log(`✅ Слой ${i + 1} успешно обработан`)
+            console.log(`✅ Слой ${originalIndex + 1} успешно обработан`)
           } catch (error) {
-            console.error(`❌ Ошибка в слое ${i + 1}:`, error)
+            console.error(`❌ Ошибка в слое ${originalIndex + 1}:`, error)
           }
         }
         

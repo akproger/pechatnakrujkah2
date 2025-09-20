@@ -3,6 +3,17 @@
     <div class="preview-container">
       <canvas ref="threeCanvas" class="three-canvas"></canvas>
     </div>
+    <div class="rotation-controls">
+      <button 
+        @click="toggleAutoRotation" 
+        class="rotation-toggle-btn"
+        :class="{ 
+          'disabled': !isAutoRotationEnabled
+        }"
+      >
+        Автоматическое вращение
+      </button>
+    </div>
   </div>
 </template>
 
@@ -72,7 +83,9 @@ export default {
         mouseDown: null,
         mouseMove: null,
         mouseUp: null
-      }
+      },
+      // Состояние автоматического вращения (управляется кнопкой)
+      isAutoRotationEnabled: true
     }
   },
   mounted() {
@@ -358,6 +371,10 @@ export default {
     // Обработчик входа мыши в область
     handleMouseEnter(event) {
       this.mouseState.isMouseOver = true
+      
+      // Останавливаем вращение при наведении
+      this.mouseState.currentRotationSpeed = 0
+      
       console.log('🖱️ Мышь над 3D моделью - вращение остановлено')
     },
     
@@ -366,10 +383,12 @@ export default {
       this.mouseState.isMouseOver = false
       this.mouseState.isDragging = false
       
-      // Возвращаем автоматическую скорость вращения
-      this.mouseState.currentRotationSpeed = this.mouseState.autoRotationSpeed
+      // Отключаем автоматическое вращение при уводе мыши
+      this.isAutoRotationEnabled = false
+      this.mouseState.autoRotationSpeed = 0
+      this.mouseState.currentRotationSpeed = 0
       
-      console.log('🖱️ Мышь покинула 3D модель - автоматическое вращение возобновлено')
+      console.log('🖱️ Мышь покинула 3D модель - автоматическое вращение отключено')
     },
     
     // Обработчик нажатия мыши
@@ -505,6 +524,24 @@ export default {
       this.mouseState.currentRotationSpeed = 0.01
     },
     
+    // Переключение автоматического вращения кнопкой
+    toggleAutoRotation() {
+      this.isAutoRotationEnabled = !this.isAutoRotationEnabled
+      
+      if (this.isAutoRotationEnabled) {
+        // Включаем автоматическое вращение
+        this.mouseState.autoRotationSpeed = 0.01
+        // Запускаем вращение сразу (независимо от положения мыши)
+        this.mouseState.currentRotationSpeed = 0.01
+        console.log('🔄 Автоматическое вращение включено кнопкой')
+      } else {
+        // Выключаем автоматическое вращение
+        this.mouseState.autoRotationSpeed = 0
+        this.mouseState.currentRotationSpeed = 0
+        console.log('⏹️ Автоматическое вращение выключено кнопкой')
+      }
+    },
+    
     // Очистка обработчиков мыши
     cleanupMouseControls() {
       const canvas = this.$refs.threeCanvas
@@ -609,6 +646,49 @@ export default {
   display: block;
   cursor: grab; /* Курсор для перетаскивания */
 }
+
+.rotation-controls {
+  position: relative;
+  top: -71px;
+  margin-top: 10px;
+  text-align: center;
+  padding: 15px;
+}
+
+.rotation-toggle-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.rotation-toggle-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.rotation-toggle-btn:active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.rotation-toggle-btn.disabled {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.rotation-toggle-btn.disabled:hover {
+  background: linear-gradient(135deg, #5a6268 0%, #3d4043 100%);
+  transform: none;
+  box-shadow: none;
+}
+
 
 .three-canvas:active {
   cursor: grabbing; /* Курсор при активном перетаскивании */

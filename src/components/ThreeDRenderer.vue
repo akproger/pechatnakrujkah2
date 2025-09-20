@@ -55,7 +55,24 @@ export default {
         animationId: null
       }),
       isInitialized: false,
-      resizeHandler: null
+      resizeHandler: null,
+      // Состояние мыши для интерактивного вращения
+      mouseState: {
+        isMouseOver: false,
+        isDragging: false,
+        lastMouseX: 0,
+        dragSensitivity: 0.01, // Чувствительность перетаскивания
+        autoRotationSpeed: 0.01, // Скорость автоматического вращения
+        currentRotationSpeed: 0.01 // Текущая скорость вращения
+      },
+      // Ссылки на методы для правильной очистки обработчиков
+      mouseHandlers: {
+        mouseEnter: null,
+        mouseLeave: null,
+        mouseDown: null,
+        mouseMove: null,
+        mouseUp: null
+      }
     }
   },
   mounted() {
@@ -155,6 +172,9 @@ export default {
       // Обработчик изменения размера
       this.resizeHandler = this.handleResize.bind(this)
       window.addEventListener('resize', this.resizeHandler)
+      
+      // Добавляем обработчики мыши для интерактивного вращения
+      this.setupMouseControls()
       
       this.isInitialized = true
       console.log('✅ Three.js компонент инициализирован')
@@ -281,7 +301,11 @@ export default {
     // Анимация
     animate() {
       this.threeInstance.animationId = requestAnimationFrame(this.animate.bind(this))
-      this.threeInstance.mugGroup.rotation.y += this.rotationSpeed
+      
+      // Используем динамическую скорость вращения
+      const currentSpeed = this.mouseState.isMouseOver ? 0 : this.mouseState.currentRotationSpeed
+      this.threeInstance.mugGroup.rotation.y += currentSpeed
+      
       this.threeInstance.renderer.render(this.threeInstance.scene, this.threeInstance.camera)
     },
     
@@ -304,6 +328,91 @@ export default {
       this.threeInstance.renderer.setSize(targetWidth, targetHeight, false)
       canvas.style.width = rect.width + 'px'
       canvas.style.height = rect.height + 'px'
+    },
+    
+    // Настройка обработчиков мыши для интерактивного вращения
+    setupMouseControls() {
+      const canvas = this.$refs.threeCanvas
+      if (!canvas) return
+      
+      // Сохраняем ссылки на методы для правильной очистки
+      this.mouseHandlers.mouseEnter = this.handleMouseEnter.bind(this)
+      this.mouseHandlers.mouseLeave = this.handleMouseLeave.bind(this)
+      this.mouseHandlers.mouseDown = this.handleMouseDown.bind(this)
+      this.mouseHandlers.mouseMove = this.handleMouseMove.bind(this)
+      this.mouseHandlers.mouseUp = this.handleMouseUp.bind(this)
+      
+      // Добавляем обработчики событий
+      canvas.addEventListener('mouseenter', this.mouseHandlers.mouseEnter)
+      canvas.addEventListener('mouseleave', this.mouseHandlers.mouseLeave)
+      canvas.addEventListener('mousedown', this.mouseHandlers.mouseDown)
+      canvas.addEventListener('mousemove', this.mouseHandlers.mouseMove)
+      canvas.addEventListener('mouseup', this.mouseHandlers.mouseUp)
+      
+      // Обработчик отпускания мыши вне области (для случая, когда мышь выходит за границы)
+      document.addEventListener('mouseup', this.mouseHandlers.mouseUp)
+      
+      console.log('🖱️ Обработчики мыши для 3D модели настроены')
+    },
+    
+    // Обработчик входа мыши в область
+    handleMouseEnter(event) {
+      this.mouseState.isMouseOver = true
+      console.log('🖱️ Мышь над 3D моделью - вращение остановлено')
+    },
+    
+    // Обработчик выхода мыши из области
+    handleMouseLeave(event) {
+      this.mouseState.isMouseOver = false
+      this.mouseState.isDragging = false
+      
+      // Возвращаем автоматическую скорость вращения
+      this.mouseState.currentRotationSpeed = this.mouseState.autoRotationSpeed
+      
+      console.log('🖱️ Мышь покинула 3D модель - автоматическое вращение возобновлено')
+    },
+    
+    // Обработчик нажатия мыши
+    handleMouseDown(event) {
+      if (!this.mouseState.isMouseOver) return
+      
+      this.mouseState.isDragging = true
+      this.mouseState.lastMouseX = event.clientX
+      
+      // Изменяем курсор
+      const canvas = this.$refs.threeCanvas
+      canvas.style.cursor = 'grabbing'
+      
+      console.log('🖱️ Начато перетаскивание 3D модели')
+    },
+    
+    // Обработчик движения мыши
+    handleMouseMove(event) {
+      if (!this.mouseState.isDragging) return
+      
+      const deltaX = event.clientX - this.mouseState.lastMouseX
+      const rotationDelta = deltaX * this.mouseState.dragSensitivity
+      
+      // Применяем вращение к модели
+      this.threeInstance.mugGroup.rotation.y += rotationDelta
+      
+      // Обновляем позицию мыши для следующего кадра
+      this.mouseState.lastMouseX = event.clientX
+      
+      console.log(`🖱️ Перетаскивание: deltaX=${deltaX.toFixed(2)}, rotation=${rotationDelta.toFixed(4)}`)
+    },
+    
+    // Обработчик отпускания мыши
+    handleMouseUp(event) {
+      if (!this.mouseState.isDragging) return
+      
+      this.mouseState.isDragging = false
+      
+      // Возвращаем обычный курсор
+      const canvas = this.$refs.threeCanvas
+      canvas.style.cursor = 'grab'
+      
+      console.log('🖱️ Перетаскивание завершено')
     },
     
     // Обновление текстуры
@@ -382,15 +491,53 @@ export default {
     },
     
     setRotationSpeed(speed) {
-      this.rotationSpeed = speed
+      this.mouseState.autoRotationSpeed = speed
+      this.mouseState.currentRotationSpeed = speed
     },
     
     pauseRotation() {
-      this.rotationSpeed = 0
+      this.mouseState.autoRotationSpeed = 0
+      this.mouseState.currentRotationSpeed = 0
     },
     
     resumeRotation() {
-      this.rotationSpeed = 0.01
+      this.mouseState.autoRotationSpeed = 0.01
+      this.mouseState.currentRotationSpeed = 0.01
+    },
+    
+    // Очистка обработчиков мыши
+    cleanupMouseControls() {
+      const canvas = this.$refs.threeCanvas
+      if (!canvas) return
+      
+      // Удаляем все обработчики событий мыши, используя сохраненные ссылки
+      if (this.mouseHandlers.mouseEnter) {
+        canvas.removeEventListener('mouseenter', this.mouseHandlers.mouseEnter)
+      }
+      if (this.mouseHandlers.mouseLeave) {
+        canvas.removeEventListener('mouseleave', this.mouseHandlers.mouseLeave)
+      }
+      if (this.mouseHandlers.mouseDown) {
+        canvas.removeEventListener('mousedown', this.mouseHandlers.mouseDown)
+      }
+      if (this.mouseHandlers.mouseMove) {
+        canvas.removeEventListener('mousemove', this.mouseHandlers.mouseMove)
+      }
+      if (this.mouseHandlers.mouseUp) {
+        canvas.removeEventListener('mouseup', this.mouseHandlers.mouseUp)
+        document.removeEventListener('mouseup', this.mouseHandlers.mouseUp)
+      }
+      
+      // Очищаем ссылки
+      this.mouseHandlers = {
+        mouseEnter: null,
+        mouseLeave: null,
+        mouseDown: null,
+        mouseMove: null,
+        mouseUp: null
+      }
+      
+      console.log('🖱️ Обработчики мыши для 3D модели удалены')
     },
     
     // Очистка ресурсов
@@ -434,6 +581,9 @@ export default {
         window.removeEventListener('resize', this.resizeHandler)
         this.resizeHandler = null
       }
+      
+      // Удаляем обработчики мыши
+      this.cleanupMouseControls()
     }
   }
 }
@@ -457,5 +607,10 @@ export default {
   width: 100%;
   height: 100%;
   display: block;
+  cursor: grab; /* Курсор для перетаскивания */
+}
+
+.three-canvas:active {
+  cursor: grabbing; /* Курсор при активном перетаскивании */
 }
 </style>

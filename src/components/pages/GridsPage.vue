@@ -657,7 +657,7 @@ export default {
       // Текстовые слои
       textLayers: [],
       selectedTextLayerIndex: -1,
-      nextTextLayerId: 1
+      nextTextLayerId: 1,
     }
   },
   
@@ -987,6 +987,11 @@ export default {
       this.isLoading = true
       
       paper.project.clear()
+      
+      // Очищаем текстовые слои
+      this.textLayers = []
+      this.selectedTextLayerIndex = -1
+      this.nextTextLayerId = 1
       
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
@@ -2341,34 +2346,71 @@ export default {
     },
     
     applyTextToCanvas(textData, position, mode) {
+      if (!position || !this.paperScope) return
+      
       console.log('✅ Применение текста на канвас:', textData)
-      console.log('🎯 Координаты для применения:', position)
+      console.log('🎯 Координаты для применения:', {
+        x: position.x,
+        y: position.y,
+        mode: mode,
+        isEditing: false,
+        editingLayerIndex: null
+      })
       
-      // Создаем подложку напрямую (без отдельного слоя, как в других местах GridsPage)
-      const layerId = this.nextTextLayerId++
-      const backgroundItem = this.createBackgroundItemDirectly(layerId, textData, position, mode)
+      let layerIndex
+      let textLayer
       
-      // Сохраняем информацию о текстовом слое
-      const textLayer = {
-        id: layerId,
-        layer: null, // Не используем отдельный слой
-        textItem: null, // Текст включен в backgroundItem
+      // РЕЖИМ СОЗДАНИЯ: Создаем новый слой
+      layerIndex = this.nextTextLayerId
+      this.nextTextLayerId += 10 // Следующий слой будет на 10 больше
+      console.log('➕ Создание нового слоя:', layerIndex)
+      
+      // Создаем новый слой в Paper.js (используем paperScope как в StickerManiaPage)
+      textLayer = new this.paperScope.Layer()
+      textLayer.name = `textLayer_${layerIndex}`
+      
+      // Устанавливаем z-index для слоя (чем больше индекс, тем выше слой)
+      textLayer.data = { layerIndex: layerIndex }
+      
+      // Создаем подложку с включенным текстом на слое
+      const backgroundItem = this.createBackgroundItemOnLayer(textLayer, layerIndex, textData, position, mode)
+      
+      // Текст уже включен в Raster подложки, отдельный текстовый элемент не нужен
+      const textItem = null // Текст включен в backgroundItem
+      
+      console.log('✅ Создана подложка с включенным текстом:', {
+        backgroundType: backgroundItem ? backgroundItem.type : 'none',
+        hasText: !!textData.text
+      })
+      
+      // РЕЖИМ СОЗДАНИЯ: Добавляем новую информацию
+      const layerInfo = {
+        id: layerIndex,
+        layer: textLayer,
+        textItem: textItem,
         backgroundItem: backgroundItem,
-        textData: textData,
-        position: position,
-        mode: mode
+        textData: { 
+          ...textData,
+          backgroundMode: mode // Добавляем backgroundMode для сохранения
+        }, // Используем переданные данные
+        position: { ...position }, // Используем переданную позицию
+        mode: mode, // Используем переданный режим
+        createdAt: new Date().toISOString()
       }
       
-      this.textLayers.push(textLayer)
-      this.selectedTextLayerIndex = this.textLayers.length - 1
+      // Добавляем новый текстовый слой в начало массива (позиция 0 = самый верхний слой)
+      this.textLayers.unshift(layerInfo)
       
-      console.log('📝 Новый текст добавлен:', textLayer)
+      // Переупорядочиваем текстовые слои в Paper.js согласно порядку в массиве
+      this.reorderTextLayersInPaperJS()
       
       // Активируем вкладку "Тексты"
       this.activeTab = 'texts'
       
+      console.log('📝 Новый текст добавлен:', layerInfo)
+      
       // Обновляем канвас
-      paper.view.draw()
+      this.paperScope.view.draw()
     },
     
     updateExistingTextLayer(layerIndex, textData, position, mode) {
@@ -2380,11 +2422,17 @@ export default {
           textLayer.backgroundItem.remove()
         }
         
-        // Создаем новый элемент с обновленными данными
+        // Создаем новый слой с обновленными данными
         const layerId = textLayer.id
-        const backgroundItem = this.createBackgroundItemDirectly(layerId, textData, position, mode)
+        const layer = new this.paperScope.Layer()
+        layer.name = `textLayer_${layerId}`
+        layer.data = { layerIndex: layerId }
+        
+        // Создаем новую подложку с обновленными данными
+        const backgroundItem = this.createBackgroundItemOnLayer(layer, layerId, textData, position, mode)
         
         // Обновляем информацию о текстовом слое
+        textLayer.layer = layer
         textLayer.backgroundItem = backgroundItem
         textLayer.textData = textData
         textLayer.position = position
@@ -2392,8 +2440,11 @@ export default {
         
         console.log('📝 Текстовый слой обновлен:', textLayer)
         
+        // Переупорядочиваем текстовые слои
+        this.reorderTextLayersInPaperJS()
+        
         // Обновляем канвас
-        paper.view.draw()
+        this.paperScope.view.draw()
       }
     },
     
@@ -2418,9 +2469,9 @@ export default {
       if (index >= 0 && index < this.textLayers.length) {
         const textLayer = this.textLayers[index]
         
-        // Удаляем элемент из Paper.js
-        if (textLayer.backgroundItem) {
-          textLayer.backgroundItem.remove()
+        // Удаляем слой из Paper.js
+        if (textLayer.layer) {
+          textLayer.layer.remove()
         }
         
         // Удаляем из массива
@@ -2434,7 +2485,7 @@ export default {
         console.log('📝 Текстовый слой удален:', index)
         
         // Обновляем канвас
-        paper.view.draw()
+        this.paperScope.view.draw()
       }
     },
     
@@ -2447,11 +2498,134 @@ export default {
       }
     },
     
-    // Создание подложки напрямую (без отдельного слоя, как в других местах GridsPage)
-    createBackgroundItemDirectly(layerIndex, textData, position, mode) {
-      if (!position) return null
+    // Вычисление крайних точек суперподложки (прямоугольник + хвост)
+    calculateExtremePointsForSuperBackground(x, y, backgroundWidth, backgroundHeight, textData) {
+      try {
+        // Параметры хвоста
+        const tailSize = Number(textData.tailSize) / 100
+        const tailWidth = Number(textData.tailWidth) / 100
+        const tailAngle = Number(textData.tailAngle)
+        
+        // Базовые координаты прямоугольника
+        const halfWidth = backgroundWidth / 2
+        const halfHeight = backgroundHeight / 2
+        
+        let minX = x - halfWidth
+        let maxX = x + halfWidth
+        let minY = y - halfHeight
+        let maxY = y + halfHeight
+        
+        // Если есть хвост, учитываем его координаты
+        if (tailSize > 0) {
+          const minDimension = Math.min(backgroundWidth, backgroundHeight)
+          const tailLength = minDimension * tailSize
+          const tailWidthPixels = minDimension * tailWidth
+          
+          // Вычисляем координаты хвоста
+          const tailAngleRad = tailAngle * Math.PI / 180
+          const tailEndX = x + tailLength * Math.cos(tailAngleRad)
+          const tailEndY = y + tailLength * Math.sin(tailAngleRad)
+          
+          // Учитываем ширину хвоста
+          const tailHalfWidth = tailWidthPixels / 2
+          const perpAngle = tailAngleRad + Math.PI / 2
+          const tailLeftX = tailEndX + tailHalfWidth * Math.cos(perpAngle)
+          const tailLeftY = tailEndY + tailHalfWidth * Math.sin(perpAngle)
+          const tailRightX = tailEndX - tailHalfWidth * Math.cos(perpAngle)
+          const tailRightY = tailEndY - tailHalfWidth * Math.sin(perpAngle)
+          
+          // Обновляем границы с учетом хвоста
+          minX = Math.min(minX, tailEndX, tailLeftX, tailRightX)
+          maxX = Math.max(maxX, tailEndX, tailLeftX, tailRightX)
+          minY = Math.min(minY, tailEndY, tailLeftY, tailRightY)
+          maxY = Math.max(maxY, tailEndY, tailLeftY, tailRightY)
+        }
+        
+        // Учитываем тень если включена
+        if (textData.shadow) {
+          const shadowBlur = Number(textData.shadowBlur) || 0
+          const shadowOffsetX = Number(textData.shadowOffsetX) || 0
+          const shadowOffsetY = Number(textData.shadowOffsetY) || 0
+          const shadowPadding = shadowBlur + Math.abs(shadowOffsetX) + Math.abs(shadowOffsetY)
+          
+          minX -= shadowPadding
+          maxX += shadowPadding
+          minY -= shadowPadding
+          maxY += shadowPadding
+        }
+        
+        // Учитываем обводку если включена + дополнительный отступ
+        if (textData.stroke) {
+          const strokeWidth = Number(textData.strokeWidth) || 0
+          const strokePadding = strokeWidth / 2 + 5 // Добавляем 5px для безопасности
+          
+          minX -= strokePadding
+          maxX += strokePadding
+          minY -= strokePadding
+          maxY += strokePadding
+        }
+        
+        return {
+          minX: minX,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
+          width: maxX - minX,
+          height: maxY - minY
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка расчета крайних точек суперподложки:', error)
+        // Fallback на простой прямоугольник
+        const halfWidth = backgroundWidth / 2
+        const halfHeight = backgroundHeight / 2
+        return {
+          minX: x - halfWidth,
+          maxX: x + halfWidth,
+          minY: y - halfHeight,
+          maxY: y + halfHeight,
+          width: backgroundWidth,
+          height: backgroundHeight
+        }
+      }
+    },
+    
+    // Переупорядочивание текстовых слоев в Paper.js
+    reorderTextLayersInPaperJS() {
+      console.log('🔄 Переупорядочивание текстовых слоев в Paper.js...')
       
-      console.log('🎨 Создание подложки напрямую через Paper.js:', layerIndex)
+      // Сначала перемещаем все текстовые слои на задний план
+      this.textLayers.forEach((layer, index) => {
+        if (layer.layer) {
+          layer.layer.sendToBack()
+        }
+      })
+      
+      // Затем перемещаем их в правильном порядке
+      // Индекс 0 = самый верхний слой (первый в списке)
+      // Индекс N = самый нижний слой (последний в списке)
+      // Идем в обратном порядке, чтобы индекс 0 стал самым верхним
+      for (let i = this.textLayers.length - 1; i >= 0; i--) {
+        const layer = this.textLayers[i]
+        if (layer.layer) {
+          layer.layer.bringToFront()
+          console.log(`📌 Текстовый слой ${i} - ${i === 0 ? 'самый верхний' : 'слой ' + i}`)
+        }
+      }
+      
+      // Обновляем Paper.js view
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.update()
+      }
+      
+      console.log('✅ Переупорядочивание текстовых слоев завершено')
+    },
+    
+    // Создание подложки на слое (используем Paper.js напрямую для точного контроля размеров)
+    createBackgroundItemOnLayer(layer, layerIndex, textData, position, mode) {
+      if (!position || !this.paperScope) return null
+      
+      console.log('🎨 Создание подложки на слое через Paper.js:', layerIndex)
       
       const x = position.x
       const y = position.y
@@ -2466,49 +2640,43 @@ export default {
       } else if (mode === 'thoughts') {
         backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
       } else if (mode === 'image-text') {
-        // Для режима "Текст с изображением" создаем текстовый элемент напрямую
-        console.log('🖼️ Режим "Текст с изображением" - создаем текстовый элемент напрямую')
-        backgroundItem = this.createTextItemDirectly(layerIndex, textData, position, mode)
+        // Для режима "Текст с изображением" подложка не создается
+        console.log('🖼️ Режим "Текст с изображением" - подложка не создается')
+        backgroundItem = null
+        
+        // Для режима "image-text" создаем текстовый элемент напрямую
+        const textItem = this.createTextItemOnLayer(layer, layerIndex, textData, position, mode)
+        console.log('🖼️ Создан текстовый элемент для режима "Текст с изображением":', textItem)
       }
       
+      // Добавляем подложку на слой если она создана
       if (backgroundItem) {
-        // Метаданные
         backgroundItem.data = {
           isTextBackground: true,
           layerIndex: layerIndex,
           mode: mode
         }
-        
-        // Добавляем напрямую в проект (как в других местах GridsPage)
-        try {
-          paper.project.addChild(backgroundItem)
-          console.log('✅ Подложка добавлена в проект напрямую')
-        } catch (error) {
-          console.error('❌ Ошибка добавления подложки в проект:', error)
-        }
-        
-        backgroundItem.bringToFront()
+        layer.addChild(backgroundItem)
       }
       
-      console.log('✅ Подложка создана напрямую через Paper.js:', {
-        backgroundItem: backgroundItem ? 'создана' : 'не создана',
+      console.log('✅ Подложка создана через Paper.js:', {
+        backgroundItem: backgroundItem,
         position: `${x}, ${y}`,
         mode: mode
       })
-      
       return backgroundItem
     },
     
-    // Создание текстового элемента напрямую
-    createTextItemDirectly(layerIndex, textData, position, mode) {
-      if (!position) return null
+    // Создание текстового элемента на слое
+    createTextItemOnLayer(layer, layerIndex, textData, position, mode) {
+      if (!position || !this.paperScope) return null
       
-      console.log('📝 Создание текстового элемента напрямую:', layerIndex)
+      console.log('📝 Создание текстового элемента на слое:', layerIndex)
       
       const x = position.x
       const y = position.y
       
-      const textItem = new paper.PointText(new paper.Point(x, y))
+      const textItem = new this.paperScope.PointText(new this.paperScope.Point(x, y))
       
       textItem.content = textData.text || 'Текст'
       textItem.fontSize = textData.fontSize || 24
@@ -2516,7 +2684,7 @@ export default {
       textItem.fillColor = textData.textColor || '#000000'
       textItem.justification = this.getJustificationFromAlign(textData.textAlign || 'center')
       
-      textItem.point = new paper.Point(x, y)
+      textItem.point = new this.paperScope.Point(x, y)
       
       textItem.data = {
         isTextOverlay: true,
@@ -2528,63 +2696,261 @@ export default {
       textItem.visible = true
       textItem.opacity = 1
       
-      // Добавляем напрямую в проект
-      try {
-        paper.project.addChild(textItem)
-        console.log('✅ Текстовый элемент добавлен в проект напрямую')
-      } catch (error) {
-        console.error('❌ Ошибка добавления текстового элемента в проект:', error)
-      }
+      // Добавляем на слой
+      layer.addChild(textItem)
       
+      // Принудительно перемещаем текст на передний план слоя
       textItem.bringToFront()
       
-      console.log('✅ Текстовый элемент создан напрямую:', textItem)
+      console.log('✅ Текстовый элемент создан:', textItem)
       return textItem
     },
     
     
     // Создание подложки используя существующую логику из превью
     createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Используем переданные данные напрямую
       const currentTextData = textData
       
       try {
+        
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
-        const canvasWidth = backgroundWidth + 200
-        const canvasHeight = backgroundHeight + 200
+        
+        console.log('🔍 HiDPI информация:', {
+          dpr: dpr,
+          note: 'Если dpr > 1, то размеры будут масштабироваться'
+        })
+        
+        // Вычисляем точные координаты крайних точек суперподложки
+        const extremePoints = this.calculateExtremePointsForSuperBackground(x, y, backgroundWidth, backgroundHeight, currentTextData)
+        
+        console.log('🎯 Расчет крайних точек суперподложки:', {
+          center: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`,
+          tailSize: currentTextData.tailSize,
+          tailAngle: currentTextData.tailAngle,
+          extremePoints: extremePoints,
+          note: 'Эти границы будут использоваться для размера канваса'
+        })
+        
+        // Вычисляем размеры канваса на основе крайних точек
+        const minX = extremePoints.minX
+        const maxX = extremePoints.maxX
+        const minY = extremePoints.minY
+        const maxY = extremePoints.maxY
+        
+        // Вычисляем размеры канваса для центрированного рисования
+        // Нужно учесть, что суперподложка будет рисоваться в центре канваса
+        const originalCanvasWidth = maxX - minX
+        const originalCanvasHeight = maxY - minY
+        
+        // Увеличиваем размер канваса, чтобы хвост не обрезался
+        // Добавляем отступы для хвоста и тени (еще чуть-чуть увеличены)
+        const tailPadding = 180 // Отступ для хвоста (увеличен с 150 до 180)
+        const shadowPadding = 100 // Отступ для тени (увеличен с 80 до 100)
+        const canvasWidth = Math.max(originalCanvasWidth + tailPadding, backgroundWidth + tailPadding)
+        const canvasHeight = Math.max(originalCanvasHeight + shadowPadding, backgroundHeight + shadowPadding)
+        
+        console.log('📏 Расчет размеров канваса (с отступами для хвоста):', {
+          extremePoints: extremePoints,
+          originalCanvasSize: `${originalCanvasWidth}x${originalCanvasHeight}`,
+          canvasWidth,
+          canvasHeight,
+          tailPadding,
+          shadowPadding,
+          note: 'Канвас увеличен для предотвращения обрезания хвоста'
+        })
         
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = canvasWidth * dpr
-        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.width = canvasWidth // Физический размер = логический размер (как в StickerManiaPage)
+        tempCanvas.height = canvasHeight
         tempCanvas.style.width = canvasWidth + 'px'
         tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.scale(dpr, dpr)
+        // НЕ масштабируем контекст - рисуем в логических координатах (как в StickerManiaPage)
         
+        // Очищаем канвас
         tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
-        const centerX = canvasWidth / 2
-        const centerY = canvasHeight / 2
+        // ВАЖНО: НЕ смещаем элементы к началу канваса!
+        // Вместо этого рисуем суперподложку точно в центре tempCanvas
+        const offsetX = 0
+        const offsetY = 0
         
-        // Рисуем простую прямоугольную подложку с хвостом
-        this.drawConversationBackground(tempCtx, centerX, centerY, backgroundWidth, backgroundHeight, backgroundColor, currentTextData)
-        
-        // Рисуем текст
-        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
-        
-        // Создаем Raster
-        const raster = new paper.Raster(tempCanvas.toDataURL())
-        raster.position = new paper.Point(x, y)
-        
-        console.log('✅ Подложка "Разговор" создана:', {
+        console.log('🎯 ДЕТАЛЬНОЕ позиционирование на канвасе:', {
+          originalPosition: `${x}, ${y}`,
+          extremePoints: extremePoints,
+          minX: minX,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
           canvasSize: `${canvasWidth}x${canvasHeight}`,
+          offset: `${offsetX}, ${offsetY}`,
+          adjustedPosition: `${canvasWidth/2}, ${canvasHeight/2}`,
+          note: 'Суперподложка рисуется в центре канваса'
+        })
+        
+        console.log('🧮 МАТЕМАТИКА позиционирования:', {
+          step1: 'Целевая позиция центра суперподложки на основном канвасе',
+          targetCenter: `${x}, ${y}`,
+          step2: 'Где нарисован центр суперподложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Размер tempCanvas',
+          tempCanvasSize: `${canvasWidth}x${canvasHeight}`,
+          step4: 'Центр tempCanvas',
+          tempCanvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step5: 'Смещение центра суперподложки относительно центра tempCanvas',
+          centerOffset: `${(canvasWidth/2) - canvasWidth/2}, ${(canvasHeight/2) - canvasHeight/2} = 0, 0`,
+          step6: 'Позиция Raster для выравнивания центров',
           rasterPosition: `${x}, ${y}`
         })
         
+        // Применяем тень если включена (точно как в превью)
+        if (currentTextData.shadow) {
+          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur)) // Логические координаты
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX // Логические координаты
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY
+          
+          console.log('🔍 Применение тени к контексту:', {
+            shadowColor: tempCtx.shadowColor,
+            shadowBlur: tempCtx.shadowBlur,
+            shadowOffsetX: tempCtx.shadowOffsetX,
+            shadowOffsetY: tempCtx.shadowOffsetY,
+            originalData: {
+              shadowColor: currentTextData.shadowColor,
+              shadowBlur: currentTextData.shadowBlur,
+              shadowOffsetX: currentTextData.shadowOffsetX,
+              shadowOffsetY: currentTextData.shadowOffsetY,
+              shadowOpacity: currentTextData.shadowOpacity
+            }
+          })
+        }
+        
+        // Рисуем объединенную фигуру в центре канваса (логические координаты)
+        this.drawCombinedShape(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, backgroundColor, true, currentTextData)
+        
+        // Сбрасываем тень
+        if (currentTextData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена (логические координаты)
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth // Логические координаты (как в StickerManiaPage)
+          this.strokeCombinedShape(tempCtx, canvasWidth/2, canvasHeight/2, backgroundWidth, backgroundHeight, 1, currentTextData)
+        }
+        
+        // Добавляем текст в Raster (размеры остаются теми же)
+        console.log('🔍 Проверка текста для добавления в Raster:', {
+          hasText: !!currentTextData.text,
+          text: currentTextData.text,
+          textLength: currentTextData.text ? currentTextData.text.length : 0,
+          fontSize: currentTextData.fontSize,
+          textColor: currentTextData.textColor,
+          fontFamily: currentTextData.font,
+          fontWeight: currentTextData.fontWeight,
+          textAlign: currentTextData.textAlign
+        })
+        
+        // 2. ЗАТЕМ рисуем основной текст с поддержкой изображения (как в превью)
+        if (currentTextData.textImage && currentTextData.cachedImage) {
+          console.log('🖼️ Рисуем текст с изображением:', {
+            text: currentTextData.text,
+            hasImage: true,
+            imageSize: `${currentTextData.cachedImage.width}x${currentTextData.cachedImage.height}`
+          })
+          // Если есть изображение, используем его как маску для заливки текста
+          const img = currentTextData.cachedImage
+          
+          // Создаем временный канвас для текста с изображением с ЛОГИЧЕСКИМИ размерами
+          const textCanvas = document.createElement('canvas')
+          textCanvas.width = canvasWidth // Логический размер (без HiDPI!)
+          textCanvas.height = canvasHeight
+          textCanvas.style.width = canvasWidth + 'px' // Логический размер
+          textCanvas.style.height = canvasHeight + 'px'
+          const textCtx = textCanvas.getContext('2d')
+          // НЕ масштабируем контекст - работаем в логических координатах!
+          
+          // Вычисляем размеры текста для правильного позиционирования изображения (логические координаты)
+          const textWidth = tempCtx.measureText(currentTextData.text).width
+          const textHeight = currentTextData.fontSize * 1 * currentTextData.lineHeight
+          
+          // Используем точные размеры текста для изображения
+          // Изображение должно точно заполнить область текста
+          const drawWidth = textWidth
+          const drawHeight = textHeight
+          
+          // ВАЖНО: Координаты должны быть относительно временного канваса, а не основного!
+          const textX = canvasWidth/2 - drawWidth/2
+          const textY = canvasHeight/2 - drawHeight/2
+          
+          console.log('🖼️ Позиционирование изображения в тексте:', {
+            textSize: `${textWidth}x${textHeight}`,
+            imageSize: `${drawWidth}x${drawHeight}`,
+            textPosition: `${textX}, ${textY}`,
+            canvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+            note: 'Изображение позиционируется относительно центра tempCanvas'
+          })
+          
+          // Рисуем изображение на временном канвасе
+          textCtx.drawImage(img, textX, textY, drawWidth, drawHeight)
+          
+          // Создаем маску из текста (destination-in как в основном канвасе)
+          textCtx.globalCompositeOperation = 'destination-in'
+          textCtx.font = tempCtx.font
+          textCtx.textAlign = tempCtx.textAlign
+          textCtx.textBaseline = tempCtx.textBaseline
+          textCtx.fillStyle = 'white'
+          textCtx.fillText(currentTextData.text, canvasWidth/2, canvasHeight/2)
+          
+          // Рисуем результат на основном канвасе
+          tempCtx.drawImage(textCanvas, 0, 0)
+          
+          console.log('✅ Текст с изображением добавлен в Raster')
+        } else {
+          // Обычный текст без изображения (как в превью)
+          console.log('📝 Рисуем обычный текст без изображения')
+          
+          // Настраиваем стили текста (точно как в превью)
+          tempCtx.font = `${currentTextData.fontWeight || 'normal'} ${currentTextData.fontSize || 24}px ${currentTextData.font || 'Arial'}`
+          tempCtx.textAlign = currentTextData.textAlign || 'center'
+          tempCtx.textBaseline = 'middle'
+          tempCtx.fillStyle = currentTextData.textColor || '#000000'
+          
+          // Рисуем текст в центре канваса
+          tempCtx.fillText(currentTextData.text || 'Текст', canvasWidth/2, canvasHeight/2)
+          
+          console.log('✅ Обычный текст добавлен в Raster')
+        }
+        
+        // Создаем Raster из временного Canvas
+        const raster = new this.paperScope.Raster(tempCanvas.toDataURL())
+        raster.position = new this.paperScope.Point(x, y)
+        
+        console.log('✅ Подложка "Разговор" создана:', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          note: 'БЕЗ HiDPI масштабирования - как в превью'
+        })
+        
         return raster
+        
       } catch (error) {
-        console.error('❌ Ошибка создания подложки:', error)
-        return null
+        console.error('❌ Ошибка создания подложки из логики превью:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
       }
     },
     
@@ -2636,8 +3002,8 @@ export default {
         this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
         
         // Создаем Raster
-        const raster = new paper.Raster(tempCanvas.toDataURL())
-        raster.position = new paper.Point(x, y)
+        const raster = new this.paperScope.Raster(tempCanvas.toDataURL())
+        raster.position = new this.paperScope.Point(x, y)
         
         return raster
       } catch (error) {
@@ -2651,49 +3017,612 @@ export default {
       const currentTextData = textData
       
       try {
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
-        const canvasWidth = backgroundWidth + 200
-        const canvasHeight = backgroundHeight + 200
+        
+        console.log('🔍 HiDPI информация для режима "Мысли":', {
+          dpr: dpr,
+          note: 'Если dpr > 1, то размеры будут масштабироваться'
+        })
+        
+        // Используем фиксированные размеры канваса (как в других режимах)
+        // Добавляем отступы для тени и обводки
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
+        const strokePadding = currentTextData.stroke ? (currentTextData.strokeWidth / 2 + 2) : 0
+        const tailPadding = 50 // Отступ для хвоста
+        
+        const canvasWidth = backgroundWidth + shadowPadding + strokePadding + tailPadding
+        const canvasHeight = backgroundHeight + shadowPadding + strokePadding + tailPadding
+        
+        console.log('📏 Расчет размеров канваса (фиксированные размеры):', {
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`,
+          shadowPadding: shadowPadding,
+          strokePadding: strokePadding,
+          tailPadding: tailPadding,
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          note: 'Используем фиксированные размеры как в других режимах'
+        })
+        
+        // Смещение для центрирования в канвасе
+        const offsetX = 0
+        const offsetY = 0
+        
+        console.log('🎯 ДЕТАЛЬНОЕ позиционирование на канвасе:', {
+          originalPosition: `${x}, ${y}`,
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          offset: `${offsetX}, ${offsetY}`
+        })
+        
+        console.log('🧮 МАТЕМАТИКА позиционирования:', {
+          step1: 'Целевая позиция центра подложки на основном канвасе',
+          targetCenter: `${x}, ${y}`,
+          step2: 'Где нарисован центр подложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Размер tempCanvas',
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          step4: 'Позиция Raster на основном канвасе',
+          rasterPosition: `${x}, ${y}`
+        })
         
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = canvasWidth * dpr
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
         tempCanvas.height = canvasHeight * dpr
-        tempCanvas.style.width = canvasWidth + 'px'
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
         tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.scale(dpr, dpr)
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
+        // Очищаем канвас
         tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
+        // ЭКСПЕРИМЕНТ: Суперподложка правильного размера, только текст уменьшаем
+        const backgroundScale = 0.5 // Суперподложка правильного размера
+        const textScale = 0.5 // Текст правильного размера
+        const scaledBackgroundWidth = backgroundWidth * backgroundScale
+        const scaledBackgroundHeight = backgroundHeight * backgroundScale
+        
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
         const centerX = canvasWidth / 2
         const centerY = canvasHeight / 2
         
-        // Рисуем овальную подложку
-        tempCtx.beginPath()
-        tempCtx.ellipse(centerX, centerY, backgroundWidth / 2, backgroundHeight / 2, 0, 0, 2 * Math.PI)
-        tempCtx.fillStyle = backgroundColor || '#ffffff'
-        tempCtx.fill()
+        console.log('🎨 Рисуем режим "Мысли" в центре tempCanvas:', {
+          tempCanvasSize: `${canvasWidth}x${canvasHeight}`,
+          centerPosition: `${centerX}, ${centerY}`,
+          scaledBackground: `${scaledBackgroundWidth}x${scaledBackgroundHeight}`,
+          note: 'Режим "Мысли" рисуется в центре tempCanvas'
+        })
         
-        // Рисуем обводку если есть
-        if (currentTextData.stroke) {
-          tempCtx.strokeStyle = currentTextData.strokeColor || '#000000'
-          tempCtx.lineWidth = currentTextData.strokeWidth || 3
-          tempCtx.stroke()
-        }
+        // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
+        this.drawThoughtsModeShape(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, 1, backgroundColor, false, true)
         
-        // Рисуем текст
+        // Рисуем текст в центре временного Canvas
         this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
         
-        // Создаем Raster
-        const raster = new paper.Raster(tempCanvas.toDataURL())
-        raster.position = new paper.Point(x, y)
+        // Создаем Raster из временного Canvas
+        const raster = new this.paperScope.Raster(tempCanvas.toDataURL())
+        raster.position = new this.paperScope.Point(x, y)
+        
+        console.log('✅ Подложка "Мысли" создана:', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          dpr: dpr
+        })
         
         return raster
+        
       } catch (error) {
         console.error('❌ Ошибка создания подложки "Мысли":', error)
         return null
       }
+    },
+    
+    // Рисование режима "Мысли" - овальная подложка с множественными хвостами
+    drawThoughtsModeShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true) {
+      console.log('🧠 Отрисовка режима "Мысли" - овальная подложка с множественными хвостами')
+      
+      // Рисуем каждый овал отдельно, чтобы избежать создания общего пути
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail, backgroundColor)
+      
+      console.log('✅ Режим "Мысли" отрисован - только овалы, без треугольников!')
+    },
+    
+    // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
+    buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null, isHighDPI = false) {
+      console.log('🧠 Построение пути режима "Мысли" с параметрами:', {
+        center: `${centerX}, ${centerY}`,
+        size: `${bgWidth}x${bgHeight}`,
+        scale: scale,
+        drawTail: drawTail,
+        backgroundColor: backgroundColor
+      })
+      
+      // Рисуем основной овал
+      ctx.beginPath()
+      ctx.ellipse(centerX, centerY, bgWidth / 2, bgHeight / 2, 0, 0, 2 * Math.PI)
+      ctx.fillStyle = backgroundColor || '#ffffff'
+      ctx.fill()
+      
+      // Рисуем обводку если включена
+      if (textData && textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = (textData.strokeWidth || 3) * scale
+        ctx.stroke()
+      }
+      
+      // Рисуем хвост если включен
+      if (drawTail && textData) {
+        this.drawThoughtsTail(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData)
+      }
+    },
+    
+    // Рисование хвоста для режима "Мысли"
+    drawThoughtsTail(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData) {
+      const tailSize = Number(textData.tailSize) / 100
+      const tailWidth = Number(textData.tailWidth) / 100
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      if (tailSize <= 0) return
+      
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * tailSize
+      const tailWidthPixels = minDimension * tailWidth
+      
+      // Координаты начала хвоста (на краю основного овала)
+      const tailStartX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
+      const tailStartY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      
+      // Координаты конца хвоста
+      const tailEndX = tailStartX + tailLength * Math.cos(tailAngle)
+      const tailEndY = tailStartY + tailLength * Math.sin(tailAngle)
+      
+      // Рисуем множественные овалы для хвоста
+      const numOvals = Math.max(3, Math.floor(tailLength / 20))
+      
+      for (let i = 0; i < numOvals; i++) {
+        const progress = i / (numOvals - 1)
+        const ovalX = tailStartX + (tailEndX - tailStartX) * progress
+        const ovalY = tailStartY + (tailEndY - tailStartY) * progress
+        
+        // Размер овала уменьшается к концу
+        const ovalSize = tailWidthPixels * (1 - progress * 0.7)
+        
+        ctx.beginPath()
+        ctx.ellipse(ovalX, ovalY, ovalSize / 2, ovalSize / 2, tailAngle, 0, 2 * Math.PI)
+        ctx.fillStyle = backgroundColor || '#ffffff'
+        ctx.fill()
+        
+        // Обводка для овала хвоста
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor || '#000000'
+          ctx.lineWidth = (textData.strokeWidth || 3) * scale * (1 - progress * 0.5)
+          ctx.stroke()
+        }
+      }
+    },
+    
+    // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
+    drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData
+      
+      // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, currentTextData)
+      
+      // Создаем путь для объединенной фигуры по внешним границам
+      ctx.beginPath()
+      
+      // Строим объединенную фигуру как единый путь с кэшированной точкой
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, currentTextData)
+      
+      // Заполняем объединенную фигуру
+      ctx.fillStyle = backgroundColor
+      ctx.fill()
+    },
+    
+    // Обводка объединенной фигуры (подложка + хвост) как единое целое
+    strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData
+      
+      // ИСПОЛЬЗУЕМ КЭШИРОВАННУЮ точку пересечения
+      const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, currentTextData)
+      
+      // Создаем путь для объединенной фигуры по внешним границам
+      ctx.beginPath()
+      
+      // Строим объединенную фигуру как единый путь с кэшированной точкой
+      this.buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, currentTextData)
+      
+      // Обводим объединенную фигуру
+      ctx.stroke()
+    },
+    
+    // КЭШИРОВАНИЕ точки пересечения для стабильности
+    getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight, textData = null) {
+      const currentTextData = textData
+      
+      // Параметры хвоста
+      const tailSize = Number(currentTextData.tailSize) / 100
+      const tailWidth = Number(currentTextData.tailWidth) / 100
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (точно как в StickerManiaPage для основного канваса)
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в StickerManiaPage)
+      // Используем формулу из StickerManiaPage для расчета границ: minDimension * 0.3 * tailWidth
+      const tailWidthPixels = minDimension * 0.3 * tailWidth
+      
+      console.log('🔍 getCachedTailIntersection DEBUG:', {
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        tailWidthPixels: tailWidthPixels
+      })
+      
+      // Вычисляем точку пересечения хвоста с подложкой
+      return this.calculateTailIntersection(centerX, centerY, bgWidth, bgHeight, tailAngle, tailLength, tailWidthPixels)
+    },
+    
+    // Построение пути для суперподложки с кэшированной точкой пересечения
+    buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection, textData = null) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData
+      
+      // Параметры хвоста
+      const tailSize = Number(currentTextData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100% (уже в правильном формате)
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (точно как в StickerManiaPage для основного канваса)
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в StickerManiaPage)
+      
+      console.log('🔍 buildUnifiedShapePathWithCache DEBUG:', {
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        scale: scale
+      })
+      
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      if (cachedIntersection) {
+        // Создаем суперподложку с хвостом используя КЭШИРОВАННУЮ точку
+        this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
+                                   cachedIntersection, tailAngle, tailLength, tailWidth, currentTextData, scale)
+      } else {
+        // Если нет пересечения, рисуем обычную подложку
+        this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
+      }
+    },
+    
+    // Построение пути суперподложки с хвостом
+    buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
+                           intersectionPoint, tailAngle, tailLength, tailWidth, textData = null, scale = 1) {
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData
+      
+      // Вычисляем параметры хвоста
+      const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(currentTextData.tailWidth) / 100)
+      const tailSizePercent = Number(currentTextData.tailSize) / 100
+      
+      console.log('🔍 buildSuperBackgroundPath DEBUG:', {
+        passedTailWidth: tailWidth,
+        currentTextDataTailWidth: currentTextData.tailWidth,
+        finalTailWidthPercent: tailWidthPercent,
+        tailSizePercent,
+        scale
+      })
+      
+      // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
+      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      
+      // Определяем, с какой стороны подложки выходит хвост
+      const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      
+      // Проверяем, находится ли точка пересечения в углу подложки
+      const isCorner = this.isIntersectionAtCorner(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      
+      // Строим путь суперподложки
+      ctx.beginPath()
+      
+      if (isCorner) {
+        // Если хвост выходит из угла, строим специальный путь
+        this.buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                    intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+      } else {
+        // Обычный путь для стороны
+        this.buildSideTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                                  intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+      }
+      
+      ctx.closePath()
+    },
+    
+    // Построение простого пути подложки без хвоста
+    buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight) {
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+    },
+    
+    // Определение стороны выхода хвоста по точке пересечения
+    getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 1
+      
+      // Верхняя сторона
+      if (Math.abs(intersectionPoint.y - bgY) < tolerance) return 'top'
+      // Правая сторона
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance) return 'right'
+      // Нижняя сторона
+      if (Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return 'bottom'
+      // Левая сторона
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance) return 'left'
+      
+      return 'top' // По умолчанию
+    },
+    
+    // Проверка, находится ли точка пересечения в углу подложки
+    isIntersectionAtCorner(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 2
+      
+      // Левый верхний угол
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) return true
+      // Правый верхний угол
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) return true
+      // Правый нижний угол
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return true
+      // Левый нижний угол
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return true
+      
+      return false
+    },
+    
+    // Построение пути суперподложки с хвостом из угла
+    buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                            intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
+      // Определяем, какой это угол
+      const tolerance = 2
+      let isTopLeft = false, isTopRight = false, isBottomRight = false, isBottomLeft = false
+      
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) {
+        isTopLeft = true
+      } else if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) {
+        isTopRight = true
+      } else if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) {
+        isBottomRight = true
+      } else if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) {
+        isBottomLeft = true
+      }
+      
+      // Вычисляем ширину хвоста точно как в StickerManiaPage для основного канваса
+      const minDimension = Math.min(bgWidth, bgHeight)
+      // Используем формулу из StickerManiaPage: tailWidthPercent * 50 * scale, умножаем на 2 для правильной ширины
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      
+      if (isTopLeft) {
+        // Левый верхний угол - строим путь с хвостом
+        const point1X = bgX + tailWidthPixels
+        const point1Y = bgY
+        const point2X = bgX
+        const point2Y = bgY + tailWidthPixels
+        
+        ctx.moveTo(bgX, bgY)  // A
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX, bgY)  // A (замыкаем)
+      } else if (isTopRight) {
+        // Правый верхний угол
+        const point1X = bgX + bgWidth - tailWidthPixels
+        const point1Y = bgY
+        const point2X = bgX + bgWidth
+        const point2Y = bgY + tailWidthPixels
+        
+        ctx.moveTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+      } else if (isBottomRight) {
+        // Правый нижний угол
+        const point1X = bgX + bgWidth
+        const point1Y = bgY + bgHeight - tailWidthPixels
+        const point2X = bgX + bgWidth - tailWidthPixels
+        const point2Y = bgY + bgHeight
+        
+        ctx.moveTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+      } else if (isBottomLeft) {
+        // Левый нижний угол
+        const point1X = bgX
+        const point1Y = bgY + bgHeight - tailWidthPixels
+        const point2X = bgX + tailWidthPixels
+        const point2Y = bgY + bgHeight
+        
+        ctx.moveTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+      }
+    },
+    
+    // Построение пути суперподложки с хвостом со стороны (не из угла)
+    buildSideTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
+                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
+      // Вычисляем ширину хвоста точно как в StickerManiaPage для основного канваса
+      const minDimension = Math.min(bgWidth, bgHeight)
+      // Используем формулу из StickerManiaPage: tailWidthPercent * 50 * scale, умножаем на 2 для правильной ширины
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      
+      if (tailSide === 'top') {
+        // Хвост сверху
+        const point1X = intersectionPoint.x - tailWidthPixels / 2
+        const point1Y = bgY
+        const point2X = intersectionPoint.x + tailWidthPixels / 2
+        const point2Y = bgY
+        
+        ctx.moveTo(bgX, bgY)  // A
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A (замыкаем)
+      } else if (tailSide === 'right') {
+        // Хвост справа
+        const point1X = bgX + bgWidth
+        const point1Y = intersectionPoint.y - tailWidthPixels / 2
+        const point2X = bgX + bgWidth
+        const point2Y = intersectionPoint.y + tailWidthPixels / 2
+        
+        ctx.moveTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+      } else if (tailSide === 'bottom') {
+        // Хвост снизу
+        const point1X = intersectionPoint.x + tailWidthPixels / 2
+        const point1Y = bgY + bgHeight
+        const point2X = intersectionPoint.x - tailWidthPixels / 2
+        const point2Y = bgY + bgHeight
+        
+        ctx.moveTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+      } else if (tailSide === 'left') {
+        // Хвост слева
+        const point1X = bgX
+        const point1Y = intersectionPoint.y + tailWidthPixels / 2
+        const point2X = bgX
+        const point2Y = intersectionPoint.y - tailWidthPixels / 2
+        
+        ctx.moveTo(bgX, bgY + bgHeight)  // D
+        ctx.lineTo(point1X, point1Y)     // точка1
+        ctx.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        ctx.lineTo(point2X, point2Y)     // точка2
+        ctx.lineTo(bgX, bgY)  // A
+        ctx.lineTo(bgX + bgWidth, bgY)  // B
+        ctx.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        ctx.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+      }
+    },
+    
+    // Вычисление точки пересечения хвоста с подложкой
+    calculateTailIntersection(centerX, centerY, bgWidth, bgHeight, tailAngle, tailLength, tailWidth) {
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      // Вычисляем точку пересечения линии хвоста с границей подложки
+      return this.getTailIntersectionWithBackground(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight)
+    },
+    
+    // Вычисление точки пересечения линии хвоста с границей подложки
+    getTailIntersectionWithBackground(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight) {
+      // Координаты углов подложки
+      const bgLeft = bgX
+      const bgRight = bgX + bgWidth
+      const bgTop = bgY
+      const bgBottom = bgY + bgHeight
+      
+      // Длина линии хвоста (достаточно длинная для пересечения с любой стороной)
+      const tailLength = Math.max(bgWidth, bgHeight) * 2
+      
+      // Координаты конца хвоста
+      const tailEndX = centerX + tailLength * Math.cos(tailAngle)
+      const tailEndY = centerY + tailLength * Math.sin(tailAngle)
+      
+      // Проверяем пересечение с каждой стороной подложки
+      const sides = [
+        { x1: bgLeft, y1: bgTop, x2: bgRight, y2: bgTop }, // Верх
+        { x1: bgRight, y1: bgTop, x2: bgRight, y2: bgBottom }, // Право
+        { x1: bgRight, y1: bgBottom, x2: bgLeft, y2: bgBottom }, // Низ
+        { x1: bgLeft, y1: bgBottom, x2: bgLeft, y2: bgTop } // Лево
+      ]
+      
+      for (const side of sides) {
+        const intersection = this.getLineIntersection(
+          centerX, centerY, tailEndX, tailEndY,
+          side.x1, side.y1, side.x2, side.y2
+        )
+        
+        if (intersection) {
+          // Проверяем, что точка пересечения находится на отрезке
+          if (this.isPointOnLineSegment(intersection.x, intersection.y, side.x1, side.y1, side.x2, side.y2)) {
+            return intersection
+          }
+        }
+      }
+      
+      return null
+    },
+    
+    // Вычисление пересечения двух линий
+    getLineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(den) < 1e-10) return null // Линии параллельны
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
+      
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
+      }
+      
+      return null
+    },
+    
+    // Проверка, находится ли точка на отрезке
+    isPointOnLineSegment(px, py, x1, y1, x2, y2) {
+      const tolerance = 1e-10
+      
+      // Проверяем, что точка лежит на линии
+      const crossProduct = Math.abs((px - x1) * (y2 - y1) - (py - y1) * (x2 - x1))
+      if (crossProduct > tolerance) return false
+      
+      // Проверяем, что точка находится между концами отрезка
+      const dotProduct = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)
+      const squaredLength = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+      
+      return dotProduct >= 0 && dotProduct <= squaredLength
     },
     
     // Рисование текста на канвасе

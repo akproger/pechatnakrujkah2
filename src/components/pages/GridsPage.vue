@@ -3093,20 +3093,83 @@ export default {
           note: 'Режим "Мысли" рисуется в центре tempCanvas'
         })
         
-        // Рисуем режим "Мысли" - овальная подложка с множественными хвостами
-        this.drawThoughtsModeShape(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, 1, backgroundColor, false, true)
+        // Применяем тень если включена (для суперподложки)
+        if (currentTextData.shadow) {
+          tempCtx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          tempCtx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * backgroundScale))
+          tempCtx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * backgroundScale)
+          tempCtx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * backgroundScale)
+        }
         
-        // Рисуем текст в центре временного Canvas
-        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
+        console.log('🧠 ЭКСПЕРИМЕНТ: Вызываем drawThoughtsModeShapeWithData с правильными размерами:', {
+          centerX: centerX,
+          centerY: centerY,
+          originalSize: `${backgroundWidth}x${backgroundHeight}`,
+          scaledSize: `${scaledBackgroundWidth}x${scaledBackgroundHeight}`,
+          backgroundScale: backgroundScale,
+          textScale: textScale,
+          backgroundColor: backgroundColor,
+          withShadow: true,
+          drawTail: true,
+          hasTextData: !!currentTextData
+        })
+        this.drawThoughtsModeShapeWithData(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, 1, backgroundColor, true, true, currentTextData)
         
-        // Создаем Raster из временного Canvas
-        const raster = new this.paperScope.Raster(tempCanvas.toDataURL())
+        // Сбрасываем тень
+        if (currentTextData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена (для суперподложки - нормальная толщина)
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = Math.max(1, currentTextData.strokeWidth * backgroundScale)
+          // Для режима "Мысли" обводка применяется к основному овалу
+          tempCtx.beginPath()
+          this.drawOval(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight)
+          tempCtx.stroke()
+        }
+        
+        // Добавляем текст в Raster (уменьшенный)
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          this.drawTextInRasterWithData(tempCtx, centerX, centerY, scaledBackgroundWidth, scaledBackgroundHeight, currentTextData, textScale)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
         raster.position = new this.paperScope.Point(x, y)
         
-        console.log('✅ Подложка "Мысли" создана:', {
+        console.log('🎯 Raster создан с правильными размерами (Thoughts):', {
           canvasSize: `${canvasWidth}x${canvasHeight}`,
+          originalPosition: `${x}, ${y}`,
+          offset: `${offsetX}, ${offsetY}`,
           rasterPosition: `${x}, ${y}`,
-          dpr: dpr
+          rasterScaling: 'none (логические координаты)',
+          note: 'Raster позиционирован точно в целевую точку'
+        })
+        
+        console.log('🧮 ПРОВЕРКА математики позиционирования:', {
+          step1: 'Целевая позиция центра подложки',
+          target: `${x}, ${y}`,
+          step2: 'Центр подложки внутри tempCanvas',
+          drawnCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step3: 'Центр tempCanvas',
+          canvasCenter: `${canvasWidth/2}, ${canvasHeight/2}`,
+          step4: 'Позиция Raster на основном канвасе',
+          finalPosition: `${x}, ${y}`,
+          result: 'Центр Raster совпадает с целевой позицией'
+        })
+        
+        console.log('✅ Подложка "Мысли" создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`
         })
         
         return raster
@@ -3126,80 +3189,184 @@ export default {
       
       console.log('✅ Режим "Мысли" отрисован - только овалы, без треугольников!')
     },
+
+    drawThoughtsModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, drawTail = true, textData = null) {
+      console.log('🧠 Отрисовка режима "Мысли" с переданными данными - овальная подложка с множественными хвостами')
+      this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail, backgroundColor, textData)
+      console.log('✅ Режим "Мысли" отрисован с переданными данными - только овалы, без треугольников!')
+    },
     
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
     buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null, isHighDPI = false) {
-      console.log('🧠 Построение пути режима "Мысли" с параметрами:', {
-        center: `${centerX}, ${centerY}`,
-        size: `${bgWidth}x${bgHeight}`,
-        scale: scale,
-        drawTail: drawTail,
-        backgroundColor: backgroundColor
-      })
+      // Используем переданные данные или данные по умолчанию
+      const currentTextData = textData || this.textDialogData
       
-      // Рисуем основной овал
+      // 1️⃣ Рисуем основной овал (подложка) с тенью если включена
+      if (currentTextData.shadow) {
+        ctx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * scale)
+      }
+      
       ctx.beginPath()
-      ctx.ellipse(centerX, centerY, bgWidth / 2, bgHeight / 2, 0, 0, 2 * Math.PI)
-      ctx.fillStyle = backgroundColor || '#ffffff'
+      this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
+      ctx.fillStyle = backgroundColor || currentTextData.backgroundColor
       ctx.fill()
       
-      // Рисуем обводку если включена
-      if (textData && textData.stroke) {
-        ctx.strokeStyle = textData.strokeColor || '#000000'
-        ctx.lineWidth = (textData.strokeWidth || 3) * scale
+      // Сбрасываем тень
+      if (currentTextData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Добавляем обводку если включена (толще для высокого разрешения)
+      if (currentTextData.stroke) {
+        ctx.strokeStyle = currentTextData.strokeColor
+        // Для высокого разрешения делаем обводку в 2 раза толще
+        const strokeMultiplier = isHighDPI ? 0.98 : 0.49
+        ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * strokeMultiplier))
         ctx.stroke()
       }
       
-      // Рисуем хвост если включен
-      if (drawTail && textData) {
-        this.drawThoughtsTail(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData)
+      // Если не нужно рисовать хвост (для дефолтной подложки), выходим
+      if (!drawTail) {
+        console.log('🧠 Режим "Мысли" - только основной овал, хвост не рисуем')
+        return
       }
-    },
-    
-    // Рисование хвоста для режима "Мысли"
-    drawThoughtsTail(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData) {
-      const tailSize = Number(textData.tailSize) / 100
-      const tailWidth = Number(textData.tailWidth) / 100
-      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
-      if (tailSize <= 0) return
+      console.log('🧠 Режим "Мысли" - рисуем хвост с параметрами:', {
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailAngle: currentTextData.tailAngle,
+        drawTail: drawTail
+      })
       
+      // Параметры хвоста из настроек
+      const tailSize = Number(currentTextData.tailSize) / 100 // Длина хвоста (от 100% до 750%)
+      const tailWidth = Number(currentTextData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (используем ту же логику что и в превью)
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * tailSize
-      const tailWidthPixels = minDimension * tailWidth
+      const tailLength = minDimension * tailSize // Длина хвоста (как в превью)
+      const tailWidthPixels = minDimension * tailWidth // Ширина хвоста в пикселях (как в превью)
       
-      // Координаты начала хвоста (на краю основного овала)
-      const tailStartX = centerX + (bgWidth / 2) * Math.cos(tailAngle)
-      const tailStartY = centerY + (bgHeight / 2) * Math.sin(tailAngle)
+      console.log('🧠 Параметры хвоста:', {
+        tailSize: currentTextData.tailSize,
+        tailWidth: currentTextData.tailWidth,
+        tailAngle: currentTextData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailAngleDeg: (tailAngle * 180 / Math.PI).toFixed(1),
+        tailLength: tailLength.toFixed(1),
+        tailWidthPixels: tailWidthPixels.toFixed(1),
+        minDimension: minDimension.toFixed(1)
+      })
       
-      // Координаты конца хвоста
-      const tailEndX = tailStartX + tailLength * Math.cos(tailAngle)
-      const tailEndY = tailStartY + tailLength * Math.sin(tailAngle)
+      // Проверяем, что параметры хвоста не слишком маленькие
+      if (tailLength < 10 || tailWidthPixels < 5) {
+        console.log('⚠️ Параметры хвоста слишком маленькие, используем минимальные значения')
+        const minTailLength = Math.max(10, minDimension * 0.3)
+        const minTailWidth = Math.max(5, 50 * 0.2) // 50 - это базовая ширина хвоста
+        console.log('🧠 Скорректированные параметры:', {
+          tailLength: minTailLength.toFixed(1),
+          tailWidthPixels: minTailWidth.toFixed(1)
+        })
+      }
       
-      // Рисуем множественные овалы для хвоста
-      const numOvals = Math.max(3, Math.floor(tailLength / 20))
+      // 2️⃣ ЛОГИКА ИЗ ПРЕВЬЮ: рисуем овалы хвоста точно как в TextManager
+      // Упрощенная логика: рисуем только 2 овала (большой и маленький)
+      const tailCount = 2
       
-      for (let i = 0; i < numOvals; i++) {
-        const progress = i / (numOvals - 1)
-        const ovalX = tailStartX + (tailEndX - tailStartX) * progress
-        const ovalY = tailStartY + (tailEndY - tailStartY) * progress
+      console.log('🧠 Количество овалов хвоста:', tailCount)
+      
+      // 3️⃣ Отступ от основного овала (как в превью)
+      const offsetFromMain = tailWidthPixels * 0.1
+      
+      // 4️⃣ Рисуем овалы хвоста с правильным расположением (как в превью)
+      console.log('🧠 Начинаем рисование овалов хвоста (логика из превью):', {
+        tailCount: tailCount,
+        tailLength: tailLength,
+        tailWidthPixels: tailWidthPixels,
+        offsetFromMain: offsetFromMain
+      })
+      
+      for (let i = 0; i < tailCount; i++) {
+        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького (как в превью)
+        let distanceFromCenter
+        if (i === 0) {
+          // Первый овал (большой) - на 35% длины хвоста от маленького овала
+          const smallOvalDistance = offsetFromMain + (tailLength - offsetFromMain) // Маленький в конце
+          const distanceFromSmall = (tailLength - offsetFromMain) * 0.35 // 35% длины хвоста
+          distanceFromCenter = smallOvalDistance - distanceFromSmall
+        } else {
+          // Второй овал (маленький) - в конце хвоста
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain)
+        }
         
-        // Размер овала уменьшается к концу
-        const ovalSize = tailWidthPixels * (1 - progress * 0.7)
+        // Размер овала (только 2 овала) - точно как в превью
+        let sizeMultiplier
+        if (i === 0) {
+          // Первый овал (большой) - увеличиваем на 60%
+          sizeMultiplier = 1.6 // 1.0 + 60% = 1.6
+        } else {
+          // Второй овал (маленький) - базовый размер
+          sizeMultiplier = 1.0
+        }
         
+        // Размеры овала (точно как в превью)
+        const ovalWidth = tailWidthPixels * sizeMultiplier
+        const ovalHeight = tailWidthPixels * sizeMultiplier * 0.6 // Овалы немного сплющены (как в превью)
+        
+        // Позиция овала (центр совпадает с линией хвоста)
+        const ovalX = centerX + Math.cos(tailAngle) * distanceFromCenter
+        const ovalY = centerY + Math.sin(tailAngle) * distanceFromCenter
+        
+        console.log(`🧠 Овал ${i + 1}:`, {
+          distanceFromCenter: distanceFromCenter.toFixed(1),
+          sizeMultiplier: sizeMultiplier.toFixed(2),
+          ovalSize: `${ovalWidth.toFixed(1)}x${ovalHeight.toFixed(1)}`,
+          position: { x: ovalX.toFixed(1), y: ovalY.toFixed(1) }
+        })
+        
+        // Рисуем овал хвоста с тенью если включена
+        if (currentTextData.shadow) {
+          ctx.shadowColor = currentTextData.shadowColor + Math.round(currentTextData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(currentTextData.shadowBlur * scale))
+          ctx.shadowOffsetX = Math.round(currentTextData.shadowOffsetX * scale)
+          ctx.shadowOffsetY = Math.round(currentTextData.shadowOffsetY * scale)
+        }
+        
+        // Рисуем овал хвоста с собственным заполнением
         ctx.beginPath()
-        ctx.ellipse(ovalX, ovalY, ovalSize / 2, ovalSize / 2, tailAngle, 0, 2 * Math.PI)
-        ctx.fillStyle = backgroundColor || '#ffffff'
+        this.drawOval(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
+        ctx.fillStyle = backgroundColor || currentTextData.backgroundColor
         ctx.fill()
         
-        // Обводка для овала хвоста
-        if (textData.stroke) {
-          ctx.strokeStyle = textData.strokeColor || '#000000'
-          ctx.lineWidth = (textData.strokeWidth || 3) * scale * (1 - progress * 0.5)
+        // Сбрасываем тень
+        if (currentTextData.shadow) {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
+        
+        // Добавляем обводку если включена (толще для высокого разрешения)
+        if (currentTextData.stroke) {
+          ctx.strokeStyle = currentTextData.strokeColor
+          // Для высокого разрешения делаем обводку в 2 раза толще
+          const strokeMultiplier = isHighDPI ? 0.98 : 0.49
+          ctx.lineWidth = Math.max(1, Math.round(currentTextData.strokeWidth * scale * strokeMultiplier))
           ctx.stroke()
         }
       }
+      
+      console.log('🧠 Режим "Мысли" - хвост отрисован успешно!')
     },
+    
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false, textData = null) {
@@ -3656,6 +3823,112 @@ export default {
       }
       
       ctx.restore()
+    },
+
+    drawTextOnCanvasWithScale(ctx, centerX, centerY, textData, scale) {
+      ctx.save()
+      
+      const fontSize = (textData.fontSize || 16) * scale
+      const fontFamily = textData.font || 'Arial'
+      const fontWeight = textData.fontWeight || 'normal'
+      
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Рисуем тень если есть (с масштабированием)
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor || '#000000'
+        ctx.shadowBlur = (textData.shadowBlur || 10) * scale
+        ctx.shadowOffsetX = (textData.shadowOffsetX || 5) * scale
+        ctx.shadowOffsetY = (textData.shadowOffsetY || 5) * scale
+      }
+      
+      ctx.fillText(textData.text, centerX, centerY)
+      
+      // Рисуем обводку если есть (с масштабированием)
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = (textData.strokeWidth || 3) * scale
+        ctx.strokeText(textData.text, centerX, centerY)
+      }
+      
+      ctx.restore()
+    },
+
+    // Отрисовка текста в Raster с переданными данными
+    drawTextInRasterWithData(ctx, x, y, backgroundWidth, backgroundHeight, textData, dpr = 1) {
+      try {
+        console.log('🎨 Начинаем отрисовку текста в Raster с данными:', {
+          text: textData.text,
+          position: `${x}, ${y}`,
+          backgroundSize: `${backgroundWidth}x${backgroundHeight}`
+        })
+        
+        // Настройки текста из переданных данных (с масштабированием)
+        const fontSize = textData.fontSize * dpr // Масштабируем размер шрифта
+        const fontFamily = textData.font
+        const fontWeight = textData.fontWeight
+        const textColor = textData.textColor
+        
+        console.log('🎨 Настройки текста (с масштабированием):', {
+          originalFontSize: textData.fontSize,
+          scaledFontSize: fontSize,
+          dpr: dpr,
+          fontFamily,
+          fontWeight,
+          textColor
+        })
+        
+        // Устанавливаем стиль шрифта
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+        ctx.textAlign = textData.textAlign || 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = textColor
+        
+        // НЕ применяем тень к тексту - тень должна быть у подложки
+        
+        console.log('🎨 Контекст настроен:', {
+          font: ctx.font,
+          textAlign: ctx.textAlign,
+          textBaseline: ctx.textBaseline,
+          fillStyle: ctx.fillStyle
+        })
+        
+        // Рисуем текст с поддержкой переноса строк
+        this.drawMultilineText(ctx, textData.text, x, y, fontSize, textData.lineHeight)
+        
+        console.log('✅ Текст добавлен в Raster с данными:', {
+          position: `${x}, ${y}`,
+          content: textData.text,
+          fontSize: fontSize,
+          fontFamily: fontFamily
+        })
+        
+      } catch (error) {
+        console.error('❌ Ошибка добавления текста в Raster с данными:', error)
+      }
+    },
+
+    // Рисование многострочного текста
+    drawMultilineText(ctx, text, x, y, fontSize, lineHeight = 1.2) {
+      if (!text) return
+      
+      const lines = text.split('\n')
+      const lineHeightPixels = fontSize * lineHeight
+      const startY = y - (lines.length - 1) * lineHeightPixels / 2
+      
+      lines.forEach((line, index) => {
+        const lineY = startY + index * lineHeightPixels
+        ctx.fillText(line, x, lineY)
+      })
+    },
+
+    // Вспомогательный метод для отрисовки овала
+    drawOval(ctx, centerX, centerY, width, height) {
+      // Используем эллипс для отрисовки овала
+      ctx.ellipse(centerX, centerY, width / 2, height / 2, 0, 0, 2 * Math.PI)
     },
     
     // Рисование фона для режима "Разговор"

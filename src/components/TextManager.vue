@@ -1704,6 +1704,46 @@ export default {
       this.$emit('text-dialog-closed')
     },
 
+    // Алиасы для совместимости
+    openDialog() {
+      return this.openTextDialog()
+    },
+
+    closeDialog() {
+      return this.closeTextDialog()
+    },
+
+    // Открытие диалога для редактирования текста
+    editTextLayer(textData, position, mode, layerIndex) {
+      this.showTextDialog = true
+      this.isEditingText = true
+      this.editingLayerIndex = layerIndex
+      
+      // Устанавливаем режим редактирования
+      this.textDialogActiveTab = mode
+      
+      // Копируем данные текста в соответствующий объект
+      if (mode === 'conversation') {
+        Object.assign(this.textDialogDataConversation, textData)
+      } else if (mode === 'thoughts') {
+        Object.assign(this.textDialogDataThoughts, textData)
+      } else if (mode === 'standard') {
+        Object.assign(this.textDialogDataStandard, textData)
+      } else if (mode === 'image-text') {
+        Object.assign(this.textDialogDataImageText, textData)
+      }
+      
+      // Устанавливаем позицию
+      this.currentTextPosition = position
+      
+      this.$emit('text-dialog-opened')
+      
+      // Обновляем превью после открытия диалога
+      this.$nextTick(() => {
+        this.updatePreviewCanvas()
+      })
+    },
+
     // Обработчик изменения размера окна
     handleResize() {
       if (this.showTextDialog) {

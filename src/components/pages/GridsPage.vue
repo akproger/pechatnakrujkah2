@@ -80,6 +80,18 @@
       <div class="row">
         <div class="col-md-8">
           <div class="card">
+            <!-- Кнопка добавления текста -->
+            <div class="card-header">
+              <div class="d-flex justify-content-start">
+                <button 
+                  @click="openTextDialog" 
+                  class="btn canvas-button"
+                >
+                  <i class="bi bi-type me-2"></i>
+                  Текст 2
+                </button>
+              </div>
+            </div>
             <div class="card-body p-0">
               <div class="canvas-container">
                 <canvas 
@@ -175,6 +187,24 @@
               >
                 <i class="bi bi-palette me-2"></i>
                 Фон
+              </button>
+            </li>
+            
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'texts' }"
+                id="texts-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#texts" 
+                type="button" 
+                role="tab" 
+                aria-controls="texts" 
+                aria-selected="activeTab === 'texts'"
+                @click="activeTab = 'texts'"
+              >
+                <i class="bi bi-type me-2"></i>
+                Тексты
               </button>
             </li>
           </ul>
@@ -496,10 +526,71 @@
           </div>
         </div>
 
+        <!-- Таб "Тексты" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'texts' }" id="texts" role="tabpanel" aria-labelledby="texts-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <!-- Список текстовых слоев -->
+                  <div class="text-layers-container">
+                    <h6 class="text-muted mb-3">Текстовые слои</h6>
+                    <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
+                      <i class="bi bi-type fs-1 d-block mb-2"></i>
+                      <p>Текстовые слои не добавлены</p>
+                      <p class="small">Нажмите кнопку "Текст 2" для добавления текста</p>
+                    </div>
+                    <div v-else class="text-layers-list">
+                      <div 
+                        v-for="(layer, index) in textLayers" 
+                        :key="layer.id"
+                        class="text-layer-item"
+                        :class="{ 'active': selectedTextLayerIndex === index }"
+                        @click="selectTextLayer(index)"
+                      >
+                        <div class="layer-info">
+                          <div class="layer-number">Слой {{ index + 1 }}</div>
+                          <div class="layer-text">{{ layer.textData?.text || 'Текст' }}</div>
+                        </div>
+                        <div class="layer-actions">
+                          <button 
+                            class="btn btn-sm btn-outline-primary"
+                            @click.stop="editTextLayer(index)"
+                            title="Редактировать"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button 
+                            class="btn btn-sm btn-outline-danger"
+                            @click.stop="deleteTextLayer(index)"
+                            title="Удалить"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
       
 
     </div>
+    
+    <!-- TextManager компонент -->
+    <TextManager 
+      ref="textManager"
+      :canvas="$refs.paperCanvas"
+      :paper-scope="paperScope"
+      @text-dialog-opened="onTextDialogOpened"
+      @text-dialog-closed="onTextDialogClosed"
+      @text-applied="onTextApplied"
+    />
   </div>
 </template>
 
@@ -508,11 +599,13 @@ import paper from 'paper'
 import * as THREE from 'three'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
+import TextManager from '../TextManager.vue'
 
 export default {
   name: 'GridsPage',
   components: {
-    ThreeDRenderer
+    ThreeDRenderer,
+    TextManager
   },
   data() {
     return {
@@ -559,7 +652,12 @@ export default {
         mugGroup: null,
         texture: null,
         animationId: null
-      })
+      }),
+      
+      // Текстовые слои
+      textLayers: [],
+      selectedTextLayerIndex: -1,
+      nextTextLayerId: 1
     }
   },
   
@@ -627,6 +725,7 @@ export default {
     
 
   },
+  
   
   watch: {
     // Автоматическое применение изменений ползунков
@@ -2203,6 +2302,469 @@ export default {
     
     onTextureError(error) {
       console.error('❌ Ошибка текстуры ThreeDRenderer:', error)
+    },
+    
+    // Методы для работы с текстами
+    openTextDialog() {
+      const textManager = this.$refs.textManager
+      if (textManager) {
+        textManager.openDialog()
+      }
+    },
+    
+    onTextDialogOpened() {
+      console.log('📝 TextManager: диалог открыт в GridsPage')
+    },
+    
+    onTextDialogClosed() {
+      console.log('📝 TextManager: диалог закрыт в GridsPage')
+    },
+    
+    onTextApplied(event) {
+      console.log('📝 TextManager: применение текста в GridsPage', event)
+      
+      const { textData, mode, position, isEditing, editingLayerIndex } = event
+      
+      if (isEditing && editingLayerIndex !== null) {
+        // Редактирование существующего текста
+        this.updateExistingTextLayer(editingLayerIndex, textData, position, mode)
+      } else {
+        // Создание нового текста
+        this.applyTextToCanvas(textData, position, mode)
+      }
+      
+      // Закрываем диалог TextManager после применения текста
+      const textManager = this.$refs.textManager
+      if (textManager && typeof textManager.closeDialog === 'function') {
+        textManager.closeDialog()
+      }
+    },
+    
+    applyTextToCanvas(textData, position, mode) {
+      console.log('✅ Применение текста на канвас:', textData)
+      console.log('🎯 Координаты для применения:', position)
+      
+      // Создаем подложку напрямую (без отдельного слоя, как в других местах GridsPage)
+      const layerId = this.nextTextLayerId++
+      const backgroundItem = this.createBackgroundItemDirectly(layerId, textData, position, mode)
+      
+      // Сохраняем информацию о текстовом слое
+      const textLayer = {
+        id: layerId,
+        layer: null, // Не используем отдельный слой
+        textItem: null, // Текст включен в backgroundItem
+        backgroundItem: backgroundItem,
+        textData: textData,
+        position: position,
+        mode: mode
+      }
+      
+      this.textLayers.push(textLayer)
+      this.selectedTextLayerIndex = this.textLayers.length - 1
+      
+      console.log('📝 Новый текст добавлен:', textLayer)
+      
+      // Активируем вкладку "Тексты"
+      this.activeTab = 'texts'
+      
+      // Обновляем канвас
+      paper.view.draw()
+    },
+    
+    updateExistingTextLayer(layerIndex, textData, position, mode) {
+      if (layerIndex >= 0 && layerIndex < this.textLayers.length) {
+        const textLayer = this.textLayers[layerIndex]
+        
+        // Удаляем старый элемент
+        if (textLayer.backgroundItem) {
+          textLayer.backgroundItem.remove()
+        }
+        
+        // Создаем новый элемент с обновленными данными
+        const layerId = textLayer.id
+        const backgroundItem = this.createBackgroundItemDirectly(layerId, textData, position, mode)
+        
+        // Обновляем информацию о текстовом слое
+        textLayer.backgroundItem = backgroundItem
+        textLayer.textData = textData
+        textLayer.position = position
+        textLayer.mode = mode
+        
+        console.log('📝 Текстовый слой обновлен:', textLayer)
+        
+        // Обновляем канвас
+        paper.view.draw()
+      }
+    },
+    
+    selectTextLayer(index) {
+      this.selectedTextLayerIndex = index
+      console.log('📝 Выбран текстовый слой:', index)
+    },
+    
+    editTextLayer(index) {
+      if (index >= 0 && index < this.textLayers.length) {
+        const textLayer = this.textLayers[index]
+        
+        // Открываем диалог TextManager для редактирования
+        const textManager = this.$refs.textManager
+        if (textManager) {
+          textManager.editTextLayer(textLayer.textData, textLayer.position, textLayer.mode, index)
+        }
+      }
+    },
+    
+    deleteTextLayer(index) {
+      if (index >= 0 && index < this.textLayers.length) {
+        const textLayer = this.textLayers[index]
+        
+        // Удаляем элемент из Paper.js
+        if (textLayer.backgroundItem) {
+          textLayer.backgroundItem.remove()
+        }
+        
+        // Удаляем из массива
+        this.textLayers.splice(index, 1)
+        
+        // Обновляем выбранный индекс
+        if (this.selectedTextLayerIndex >= this.textLayers.length) {
+          this.selectedTextLayerIndex = this.textLayers.length - 1
+        }
+        
+        console.log('📝 Текстовый слой удален:', index)
+        
+        // Обновляем канвас
+        paper.view.draw()
+      }
+    },
+    
+    getJustificationFromAlign(align) {
+      switch (align) {
+        case 'left': return 'left'
+        case 'right': return 'right'
+        case 'center': 
+        default: return 'center'
+      }
+    },
+    
+    // Создание подложки напрямую (без отдельного слоя, как в других местах GridsPage)
+    createBackgroundItemDirectly(layerIndex, textData, position, mode) {
+      if (!position) return null
+      
+      console.log('🎨 Создание подложки напрямую через Paper.js:', layerIndex)
+      
+      const x = position.x
+      const y = position.y
+      
+      // Создаем подложку в зависимости от режима
+      let backgroundItem = null
+      
+      if (mode === 'conversation') {
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+      } else if (mode === 'standard') {
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+      } else if (mode === 'thoughts') {
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+      } else if (mode === 'image-text') {
+        // Для режима "Текст с изображением" создаем текстовый элемент напрямую
+        console.log('🖼️ Режим "Текст с изображением" - создаем текстовый элемент напрямую')
+        backgroundItem = this.createTextItemDirectly(layerIndex, textData, position, mode)
+      }
+      
+      if (backgroundItem) {
+        // Метаданные
+        backgroundItem.data = {
+          isTextBackground: true,
+          layerIndex: layerIndex,
+          mode: mode
+        }
+        
+        // Добавляем напрямую в проект (как в других местах GridsPage)
+        try {
+          paper.project.addChild(backgroundItem)
+          console.log('✅ Подложка добавлена в проект напрямую')
+        } catch (error) {
+          console.error('❌ Ошибка добавления подложки в проект:', error)
+        }
+        
+        backgroundItem.bringToFront()
+      }
+      
+      console.log('✅ Подложка создана напрямую через Paper.js:', {
+        backgroundItem: backgroundItem ? 'создана' : 'не создана',
+        position: `${x}, ${y}`,
+        mode: mode
+      })
+      
+      return backgroundItem
+    },
+    
+    // Создание текстового элемента напрямую
+    createTextItemDirectly(layerIndex, textData, position, mode) {
+      if (!position) return null
+      
+      console.log('📝 Создание текстового элемента напрямую:', layerIndex)
+      
+      const x = position.x
+      const y = position.y
+      
+      const textItem = new paper.PointText(new paper.Point(x, y))
+      
+      textItem.content = textData.text || 'Текст'
+      textItem.fontSize = textData.fontSize || 24
+      textItem.fontFamily = textData.font || 'Arial'
+      textItem.fillColor = textData.textColor || '#000000'
+      textItem.justification = this.getJustificationFromAlign(textData.textAlign || 'center')
+      
+      textItem.point = new paper.Point(x, y)
+      
+      textItem.data = {
+        isTextOverlay: true,
+        layerIndex: layerIndex,
+        mode: mode,
+        isDraggable: true
+      }
+      
+      textItem.visible = true
+      textItem.opacity = 1
+      
+      // Добавляем напрямую в проект
+      try {
+        paper.project.addChild(textItem)
+        console.log('✅ Текстовый элемент добавлен в проект напрямую')
+      } catch (error) {
+        console.error('❌ Ошибка добавления текстового элемента в проект:', error)
+      }
+      
+      textItem.bringToFront()
+      
+      console.log('✅ Текстовый элемент создан напрямую:', textItem)
+      return textItem
+    },
+    
+    
+    // Создание подложки используя существующую логику из превью
+    createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      const currentTextData = textData
+      
+      try {
+        const dpr = window.devicePixelRatio || 1
+        const canvasWidth = backgroundWidth + 200
+        const canvasHeight = backgroundHeight + 200
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = canvasWidth * dpr
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px'
+        tempCanvas.style.height = canvasHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr)
+        
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+        
+        const centerX = canvasWidth / 2
+        const centerY = canvasHeight / 2
+        
+        // Рисуем простую прямоугольную подложку с хвостом
+        this.drawConversationBackground(tempCtx, centerX, centerY, backgroundWidth, backgroundHeight, backgroundColor, currentTextData)
+        
+        // Рисуем текст
+        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
+        
+        // Создаем Raster
+        const raster = new paper.Raster(tempCanvas.toDataURL())
+        raster.position = new paper.Point(x, y)
+        
+        console.log('✅ Подложка "Разговор" создана:', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`
+        })
+        
+        return raster
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки:', error)
+        return null
+      }
+    },
+    
+    // Создание стандартной подложки
+    createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      const currentTextData = textData
+      
+      try {
+        const dpr = window.devicePixelRatio || 1
+        const canvasWidth = backgroundWidth + 100
+        const canvasHeight = backgroundHeight + 100
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = canvasWidth * dpr
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px'
+        tempCanvas.style.height = canvasHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr)
+        
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+        
+        const centerX = canvasWidth / 2
+        const centerY = canvasHeight / 2
+        
+        // Рисуем прямоугольную подложку
+        tempCtx.fillStyle = backgroundColor || '#ffffff'
+        tempCtx.fillRect(
+          centerX - backgroundWidth / 2,
+          centerY - backgroundHeight / 2,
+          backgroundWidth,
+          backgroundHeight
+        )
+        
+        // Рисуем обводку если есть
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor || '#000000'
+          tempCtx.lineWidth = currentTextData.strokeWidth || 3
+          tempCtx.strokeRect(
+            centerX - backgroundWidth / 2,
+            centerY - backgroundHeight / 2,
+            backgroundWidth,
+            backgroundHeight
+          )
+        }
+        
+        // Рисуем текст
+        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
+        
+        // Создаем Raster
+        const raster = new paper.Raster(tempCanvas.toDataURL())
+        raster.position = new paper.Point(x, y)
+        
+        return raster
+      } catch (error) {
+        console.error('❌ Ошибка создания стандартной подложки:', error)
+        return null
+      }
+    },
+    
+    // Создание подложки "Мысли"
+    createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      const currentTextData = textData
+      
+      try {
+        const dpr = window.devicePixelRatio || 1
+        const canvasWidth = backgroundWidth + 200
+        const canvasHeight = backgroundHeight + 200
+        
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = canvasWidth * dpr
+        tempCanvas.height = canvasHeight * dpr
+        tempCanvas.style.width = canvasWidth + 'px'
+        tempCanvas.style.height = canvasHeight + 'px'
+        
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.scale(dpr, dpr)
+        
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+        
+        const centerX = canvasWidth / 2
+        const centerY = canvasHeight / 2
+        
+        // Рисуем овальную подложку
+        tempCtx.beginPath()
+        tempCtx.ellipse(centerX, centerY, backgroundWidth / 2, backgroundHeight / 2, 0, 0, 2 * Math.PI)
+        tempCtx.fillStyle = backgroundColor || '#ffffff'
+        tempCtx.fill()
+        
+        // Рисуем обводку если есть
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor || '#000000'
+          tempCtx.lineWidth = currentTextData.strokeWidth || 3
+          tempCtx.stroke()
+        }
+        
+        // Рисуем текст
+        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
+        
+        // Создаем Raster
+        const raster = new paper.Raster(tempCanvas.toDataURL())
+        raster.position = new paper.Point(x, y)
+        
+        return raster
+      } catch (error) {
+        console.error('❌ Ошибка создания подложки "Мысли":', error)
+        return null
+      }
+    },
+    
+    // Рисование текста на канвасе
+    drawTextOnCanvas(ctx, centerX, centerY, textData) {
+      ctx.save()
+      
+      const fontSize = textData.fontSize || 16
+      const fontFamily = textData.font || 'Arial'
+      const fontWeight = textData.fontWeight || 'normal'
+      
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Рисуем тень если есть
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor || '#000000'
+        ctx.shadowBlur = textData.shadowBlur || 10
+        ctx.shadowOffsetX = textData.shadowOffsetX || 5
+        ctx.shadowOffsetY = textData.shadowOffsetY || 5
+      }
+      
+      ctx.fillText(textData.text, centerX, centerY)
+      
+      // Рисуем обводку если есть
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = textData.strokeWidth || 3
+        ctx.strokeText(textData.text, centerX, centerY)
+      }
+      
+      ctx.restore()
+    },
+    
+    // Рисование фона для режима "Разговор"
+    drawConversationBackground(ctx, centerX, centerY, backgroundWidth, backgroundHeight, backgroundColor, textData) {
+      // Рисуем основную прямоугольную подложку
+      const bgX = centerX - backgroundWidth / 2
+      const bgY = centerY - backgroundHeight / 2
+      
+      ctx.fillStyle = backgroundColor || '#ffffff'
+      ctx.fillRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      
+      // Рисуем простой хвост (треугольник)
+      if (textData.tailSize > 0) {
+        const tailAngle = (textData.tailAngle || 45) * Math.PI / 180
+        const tailLength = Math.min(backgroundWidth, backgroundHeight) * 0.5 * (textData.tailSize / 100)
+        const tailWidth = Math.min(backgroundWidth, backgroundHeight) * 0.2 * (textData.tailWidth / 100)
+        
+        // Позиция хвоста (выходит из правой стороны)
+        const tailStartX = bgX + backgroundWidth
+        const tailStartY = centerY
+        
+        const tailEndX = tailStartX + Math.cos(tailAngle) * tailLength
+        const tailEndY = tailStartY + Math.sin(tailAngle) * tailLength
+        
+        ctx.beginPath()
+        ctx.moveTo(tailStartX, tailStartY)
+        ctx.lineTo(tailEndX, tailEndY - tailWidth / 2)
+        ctx.lineTo(tailEndX, tailEndY + tailWidth / 2)
+        ctx.closePath()
+        ctx.fill()
+      }
+      
+      // Рисуем обводку если есть
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = textData.strokeWidth || 3
+        ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
+      }
     }
   }
 }
@@ -2419,6 +2981,123 @@ export default {
   }
 }
 
+/* Стили для кнопки "Текст 2" */
+.canvas-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.canvas-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  color: white !important;
+}
+
+.canvas-button:hover:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.canvas-button * {
+  color: white !important;
+}
+
+/* Стили для текстовых слоев */
+.text-layers-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.text-layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.text-layer-item:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.text-layer-item.active {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+.layer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.layer-number {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 12px;
+  background-color: #e8f5e8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-text {
+  font-size: 14px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.layer-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
 
 </style>
 

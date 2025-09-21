@@ -2959,56 +2959,116 @@ export default {
       const currentTextData = textData
       
       try {
+        
+        // Вычисляем реальные размеры текста для правильного размера канваса
+        const tempCtxForMeasure = document.createElement('canvas').getContext('2d')
+        tempCtxForMeasure.font = `${currentTextData.fontWeight} ${currentTextData.fontSize}px ${currentTextData.font}`
+        const textMetrics = tempCtxForMeasure.measureText(currentTextData.text)
+        const textWidth = textMetrics.width
+        const textHeight = currentTextData.fontSize * currentTextData.lineHeight
+        
+        // Добавляем внутренние отступы к размерам текста
+        const textPadding = currentTextData.padding || 15 // Используем padding из настроек
+        const textWidthWithPadding = textWidth + textPadding * 2 // Отступы слева и справа
+        const textHeightWithPadding = textHeight + textPadding * 2 // Отступы сверху и снизу
+        
+        // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
+        const actualBackgroundWidth = Math.max(backgroundWidth, textWidthWithPadding)
+        const actualBackgroundHeight = Math.max(backgroundHeight, textHeightWithPadding)
+        
+        console.log('⭐ Размеры канваса для "Стандарт":', {
+          originalBackground: `${backgroundWidth}x${backgroundHeight}`,
+          textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+          textPadding: textPadding,
+          textSizeWithPadding: `${textWidthWithPadding.toFixed(1)}x${textHeightWithPadding.toFixed(1)}`,
+          actualBackground: `${actualBackgroundWidth.toFixed(1)}x${actualBackgroundHeight.toFixed(1)}`
+        })
+        
+        // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
-        const canvasWidth = backgroundWidth + 100
-        const canvasHeight = backgroundHeight + 100
+        
+        // Добавляем отступы для тени и обводки (минимальные для режима standard)
+        const shadowPadding = currentTextData.shadow ? Math.min(currentTextData.shadowBlur + Math.abs(currentTextData.shadowOffsetX) + Math.abs(currentTextData.shadowOffsetY), 100) : 0
+        const strokePadding = currentTextData.stroke ? currentTextData.strokeWidth / 2 : 0
+        
+        const padding = Math.max(shadowPadding, strokePadding) + 10 // Минимальный дополнительный отступ для режима standard
+        
+        const canvasWidth = actualBackgroundWidth + padding * 2
+        const canvasHeight = actualBackgroundHeight + padding * 2
         
         const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = canvasWidth * dpr
+        tempCanvas.width = canvasWidth * dpr // Физический размер с учетом HiDPI
         tempCanvas.height = canvasHeight * dpr
-        tempCanvas.style.width = canvasWidth + 'px'
+        tempCanvas.style.width = canvasWidth + 'px' // Логический размер
         tempCanvas.style.height = canvasHeight + 'px'
         
         const tempCtx = tempCanvas.getContext('2d')
-        tempCtx.scale(dpr, dpr)
+        tempCtx.scale(dpr, dpr) // Масштабируем контекст для HiDPI
         
+        // Очищаем канвас
         tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
         
-        const centerX = canvasWidth / 2
-        const centerY = canvasHeight / 2
+        // Вычисляем центр временного Canvas для правильного позиционирования (логические координаты)
+        const canvasCenterX = canvasWidth / 2
+        const canvasCenterY = canvasHeight / 2
         
-        // Рисуем прямоугольную подложку
-        tempCtx.fillStyle = backgroundColor || '#ffffff'
-        tempCtx.fillRect(
-          centerX - backgroundWidth / 2,
-          centerY - backgroundHeight / 2,
-          backgroundWidth,
-          backgroundHeight
-        )
+        // Рисуем стандартную подложку в центре временного Canvas (точно как в превью)
+        this.drawStandardModeShapeWithData(tempCtx, canvasCenterX, canvasCenterY, actualBackgroundWidth, actualBackgroundHeight, 1, backgroundColor, currentTextData)
         
-        // Рисуем обводку если есть
-        if (currentTextData.stroke) {
-          tempCtx.strokeStyle = currentTextData.strokeColor || '#000000'
-          tempCtx.lineWidth = currentTextData.strokeWidth || 3
-          tempCtx.strokeRect(
-            centerX - backgroundWidth / 2,
-            centerY - backgroundHeight / 2,
-            backgroundWidth,
-            backgroundHeight
-          )
+        // Сбрасываем тень
+        if (currentTextData.shadow) {
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
         }
         
-        // Рисуем текст
-        this.drawTextOnCanvas(tempCtx, centerX, centerY, currentTextData)
+        // Добавляем обводку если включена
+        if (currentTextData.stroke) {
+          tempCtx.strokeStyle = currentTextData.strokeColor
+          tempCtx.lineWidth = currentTextData.strokeWidth
+          tempCtx.strokeRect(canvasCenterX - actualBackgroundWidth / 2, canvasCenterY - actualBackgroundHeight / 2, actualBackgroundWidth, actualBackgroundHeight)
+        }
         
-        // Создаем Raster
-        const raster = new this.paperScope.Raster(tempCanvas.toDataURL())
+        // Добавляем текст в Raster (как в превью)
+        if (currentTextData.text && currentTextData.text.trim() !== '') {
+          this.drawTextInRasterWithData(tempCtx, canvasCenterX, canvasCenterY, actualBackgroundWidth, actualBackgroundHeight, currentTextData, 1)
+        }
+        
+        // Конвертируем Canvas в Paper.js Raster
+        const raster = new this.paperScope.Raster(tempCanvas)
         raster.position = new this.paperScope.Point(x, y)
+        
+        // Масштабируем Raster чтобы сохранить тот же логический размер
+        // Поскольку Canvas имеет высокое разрешение (dpr), нам нужно уменьшить масштаб
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('🎯 Raster создан с правильными размерами (Standard):', {
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          rasterPosition: `${x}, ${y}`,
+          rasterScaling: `${1 / dpr}, ${1 / dpr}`,
+          padding: padding
+        })
+        
+        console.log('✅ Стандартная подложка создана из логики превью с высоким качеством:', {
+          position: `${x}, ${y}`,
+          size: `${backgroundWidth}x${backgroundHeight}`,
+          canvasResolution: `${tempCanvas.width}x${tempCanvas.height}`,
+          logicalSize: `${canvasWidth}x${canvasHeight}`,
+          dpr: dpr,
+          rasterScale: `${(1 / dpr).toFixed(3)}x`
+        })
         
         return raster
       } catch (error) {
-        console.error('❌ Ошибка создания стандартной подложки:', error)
-        return null
+        console.error('❌ Ошибка создания стандартной подложки из логики превью:', error)
+        // Fallback на простой прямоугольник
+        const rect = new this.paperScope.Path.Rectangle(
+          new this.paperScope.Point(x - backgroundWidth / 2, y - backgroundHeight / 2),
+          new this.paperScope.Point(x + backgroundWidth / 2, y + backgroundHeight / 2)
+        )
+        rect.fillColor = backgroundColor
+        return rect
       }
     },
     
@@ -3929,6 +3989,42 @@ export default {
     drawOval(ctx, centerX, centerY, width, height) {
       // Используем эллипс для отрисовки овала
       ctx.ellipse(centerX, centerY, width / 2, height / 2, 0, 0, 2 * Math.PI)
+    },
+
+    // Отрисовка формы для режима "Стандарт" с переданными данными (для основного канваса)
+    drawStandardModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData) {
+      console.log('⭐ Отрисовка формы "Стандарт" с переданными данными - только прямоугольник без хвоста')
+      
+      // Сначала рисуем тень если включена (точно как в превью)
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 2) // Добавляем множитель x2 для смещения
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 2) // Добавляем множитель x2 для смещения
+        
+        // Рисуем тень
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        // Сбрасываем настройки тени
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Затем рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // В конце применяем обводку если включена
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      }
+      
+      console.log('✅ Форма "Стандарт" с переданными данными отрисована - только прямоугольник')
     },
     
     // Рисование фона для режима "Разговор"

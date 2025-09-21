@@ -9064,7 +9064,7 @@ export default {
         // Если есть хвост, учитываем его координаты
         if (tailSize > 0) {
           const minDimension = Math.min(backgroundWidth, backgroundHeight)
-          const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в основном методе)
+          const tailLength = minDimension * 1.25 * tailSize // Базовая длина хвоста с учетом tailSize
           const tailBaseWidth = minDimension * 0.3 * tailWidth
           
           // Угол хвоста в радианах
@@ -9083,10 +9083,10 @@ export default {
           const base2Y = y - Math.sin(perpendicularAngle) * tailBaseHalfWidth
           
           // Расширяем границы с учетом всех точек хвоста + увеличенный отступ для кончика
-          const tailPadding = Math.max(tailLength * 0.2, 20) // 20% от длины хвоста или минимум 20px
+          const tailPadding = Math.max(tailLength * 0.3, 30) // 30% от длины хвоста или минимум 30px
           
           // Дополнительный отступ в направлении хвоста для кончика + тени
-          const tailTipPadding = Math.max(tailLength * 0.1, 15) // 10% от длины хвоста или минимум 15px
+          const tailTipPadding = Math.max(tailLength * 0.2, 25) // 20% от длины хвоста или минимум 25px
           const tipX = tailEndX + Math.cos(angleRad) * tailTipPadding
           const tipY = tailEndY + Math.sin(angleRad) * tailTipPadding
           

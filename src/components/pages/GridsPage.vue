@@ -870,11 +870,171 @@ export default {
       // Создаем базовую сетку
       this.generateGrid()
       
+      // Настраиваем инструменты Paper.js для перетаскивания
+      this.setupPaperTools()
+      
       // Обработчик изменения размера окна
       window.addEventListener('resize', this.resizeCanvas)
       
       // Обработчик изменения размера Three.js canvas
       window.addEventListener('resize', this.resizeThreeCanvas)
+    },
+
+    // Настройка инструментов Paper.js для перетаскивания
+    setupPaperTools() {
+      if (!this.paperScope) return
+      
+      // Создаем инструмент для перетаскивания
+      const dragTool = new this.paperScope.Tool()
+      
+      let dragItem = null
+      let offset = null
+      let clickCount = 0
+      let clickTimer = null
+      
+      // Функция для снятия выделения
+      const clearSelection = () => {
+        if (dragItem) {
+          dragItem.selected = false
+          dragItem = null
+          console.log('🎯 Выделение снято')
+        }
+      }
+      
+      dragTool.onMouseDown = (event) => {
+        // Обработка двойного клика
+        clickCount++
+        
+        if (clickCount === 1) {
+          clickTimer = setTimeout(() => {
+            // Одинарный клик - выбираем объект
+            this.handleSingleClick(event, clearSelection)
+            clickCount = 0
+          }, 300) // 300ms для двойного клика
+        } else if (clickCount === 2) {
+          clearTimeout(clickTimer)
+          clickCount = 0
+          
+          // Обрабатываем двойной клик
+          this.handleDoubleClick(event)
+          return // Не продолжаем с обычной логикой перетаскивания
+        }
+        
+        // Ищем элемент под курсором
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 10
+        })
+        
+        if (hitResult && hitResult.item) {
+          const item = hitResult.item
+          
+          // Проверяем, что это текстовый элемент или подложка
+          const isTextItem = item.className === 'TextItem' || 
+                           item.className === 'Group' || 
+                           item.className === 'Raster' ||
+                           (item.parent && item.parent.className === 'Layer') ||
+                           (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
+          
+          if (isTextItem) {
+            // Снимаем предыдущее выделение при начале перетаскивания
+            clearSelection()
+            
+            // Это текстовый элемент
+            dragItem = item
+            console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
+            
+            offset = event.point.subtract(dragItem.position)
+            dragItem.selected = true
+          }
+        }
+      }
+      
+      dragTool.onMouseDrag = (event) => {
+        if (dragItem) {
+          // Обычное перемещение
+          dragItem.position = event.point.subtract(offset)
+          
+          // Обновляем позицию в данных слоя для всех текстовых слоев
+          const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
+          if (layerInfo) {
+            layerInfo.position = { x: event.point.x, y: event.point.y }
+            console.log('📍 Обновлена позиция слоя при перетаскивании:', {
+              layerIndex: layerInfo.id,
+              position: layerInfo.position
+            })
+          }
+          
+          // Перерисовываем рендер кружки при перемещении
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }
+      }
+      
+      dragTool.onMouseUp = (event) => {
+        if (dragItem) {
+          dragItem.selected = false
+          console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          
+          dragItem = null
+          offset = null
+          
+          // Финальная перерисовка рендера кружки после завершения перемещения
+          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+            this.$refs.threeRenderer.forceUpdate()
+          }
+        }
+      }
+      
+      // Обработчик двойного клика для редактирования текстовых элементов
+      dragTool.onDoubleClick = (event) => {
+        console.log('🎯 Двойной клик зарегистрирован в точке:', event.point)
+        
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 15 // Увеличиваем tolerance для лучшего обнаружения
+        })
+        
+        if (hitResult && hitResult.item) {
+          const item = hitResult.item
+          
+          // Проверяем, что это текстовый элемент
+          const isTextItem = item.className === 'TextItem' || 
+                           item.className === 'Group' || 
+                           item.className === 'Raster' ||
+                           (item.parent && item.parent.className === 'Layer') ||
+                           (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
+          
+          if (isTextItem) {
+            // Находим соответствующий текстовый слой
+            const layerInfo = this.textLayers.find(layer => layer.backgroundItem === item || layer.layer === item)
+            if (layerInfo) {
+              // Открываем диалог редактирования
+              this.editTextLayer(this.textLayers.indexOf(layerInfo))
+              console.log('✏️ Открыто редактирование текстового слоя:', layerInfo.id)
+            }
+          }
+        }
+      }
+      
+      console.log('✅ Инструменты Paper.js настроены для перетаскивания')
+    },
+
+    // Обработка одинарного клика
+    handleSingleClick(event, clearSelection) {
+      // Здесь можно добавить логику для одинарного клика
+      console.log('🖱️ Одинарный клик в точке:', event.point)
+    },
+
+    // Обработка двойного клика
+    handleDoubleClick(event) {
+      // Логика двойного клика уже реализована в setupPaperTools
+      console.log('🖱️ Двойной клик в точке:', event.point)
     },
     
     // Динамический расчет толщины обводки в зависимости от размера маски
@@ -1151,6 +1311,9 @@ export default {
       this.reorderTextLayersInPaperJS()
 
       console.log(`✅ Восстановлено ${this.textLayers.length} текстовых слоев`)
+      
+      // Переинициализируем инструменты Paper.js для работы с восстановленными элементами
+      this.setupPaperTools()
     },
     
     handleImageUpload(event) {

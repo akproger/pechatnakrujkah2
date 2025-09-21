@@ -569,8 +569,8 @@
                           <!-- Иконка перетаскивания -->
                           <div class="drag-handle">
                             <i class="bi bi-grip-vertical"></i>
-                          </div>
-                          
+      </div>
+      
                           <!-- Информация о слое -->
                           <div class="layer-details">
                             <div class="layer-name">{{ text.textData?.text || 'Пустой текст' }}</div>
@@ -610,7 +610,7 @@
                           >
                             <i class="bi bi-trash"></i>
                           </button>
-                        </div>
+    </div>
                       </div>
                     </div>
                   </div>
@@ -2390,6 +2390,14 @@ export default {
       if (textManager && typeof textManager.closeDialog === 'function') {
         textManager.closeDialog()
       }
+      
+      // Обновляем 3D модель с небольшой задержкой для корректного отображения
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена после применения текста')
+        }, 100)
+      })
     },
     
     applyTextToCanvas(textData, position, mode) {
@@ -2492,6 +2500,14 @@ export default {
         
         // Обновляем канвас
         this.paperScope.view.draw()
+        
+        // Обновляем 3D модель с задержкой для корректного отображения изменений
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.update3DModel()
+            console.log('🔄 3D модель обновлена после редактирования текста')
+          }, 100)
+        })
       }
     },
     
@@ -2533,6 +2549,14 @@ export default {
         
         // Обновляем канвас
         this.paperScope.view.draw()
+        
+        // Обновляем 3D модель с небольшой задержкой
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.update3DModel()
+            console.log('🔄 3D модель обновлена после удаления текста')
+          }, 100)
+        })
       }
     },
     
@@ -2666,6 +2690,14 @@ export default {
       }
       
       console.log('✅ Переупорядочивание текстовых слоев завершено')
+      
+      // Обновляем 3D модель с небольшой задержкой
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена после переупорядочивания текстовых слоев')
+        }, 100)
+      })
     },
     
     // Создание подложки на слое (используем Paper.js напрямую для точного контроля размеров)
@@ -4453,6 +4485,16 @@ export default {
     },
 
     // Получение названия режима для отображения
+    // Обновление 3D модели
+    update3DModel() {
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+        this.$refs.threeRenderer.forceUpdate()
+        console.log('🔄 3D модель обновлена')
+      } else {
+        console.log('⚠️ ThreeDRenderer не готов для обновления')
+      }
+    },
+
     getModeDisplayName(mode) {
       const modeNames = {
         'standard': 'Стандарт',
@@ -4508,11 +4550,6 @@ export default {
       // Обновляем индексы в Paper.js для корректного отображения слоев
       this.reorderTextLayersInPaperJS()
       
-      // Обновляем 3D модель
-      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-        this.$refs.threeRenderer.forceUpdate()
-      }
-      
       // Сбрасываем состояния перетаскивания
       this.draggedTextIndex = -1
       this.dragOverTextIndex = -1
@@ -4526,6 +4563,14 @@ export default {
       if (layer && layer.layer) {
         layer.layer.visible = !layer.layer.visible
         console.log(`👁️ Видимость слоя ${index}: ${layer.layer.visible ? 'включена' : 'выключена'}`)
+        
+        // Обновляем 3D модель с небольшой задержкой
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.update3DModel()
+            console.log('🔄 3D модель обновлена после изменения видимости текста')
+          }, 100)
+        })
       }
     }
   }

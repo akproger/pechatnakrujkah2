@@ -26,9 +26,8 @@
                 <div class="col" style="padding: 0;">
                   <button 
                     @click="handleGenerateClick" 
-                    class="btn btn-primary gen-sticker-button-1"
+                    class="btn canvas-button gen-sticker-button-1"
                     :disabled="isLoading"
-                    style="background-color: #007bff; border-color: #007bff;"
                   >
                     <i class="bi bi-lightning-fill me-2"></i>
                     {{ isLoading ? 'Генерация...' : 'Генерировать стикеры' }}
@@ -254,9 +253,8 @@
                   >
                   <button 
                     @click="$refs.imageInput.click()" 
-                    class="btn"
+                    class="btn canvas-button"
                     :disabled="uploadedImages.length >= 5"
-                    style="background-color: #0d6efd; border: none; color: white;"
                   >
                     <i class="bi bi-cloud-upload me-2"></i>
                     <span v-if="uploadedImages.length >= 5">
@@ -11785,10 +11783,56 @@ export default {
   stroke-width: 2 !important;
 }
 
-/* Стили для кнопки генерации стикеров */
+/* Стили для всех кнопок над основным канвасом */
+.canvas-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.canvas-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  color: white !important;
+}
+
+.canvas-button:hover:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button * {
+  color: white !important;
+}
+
+.canvas-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Специальные размеры для разных кнопок */
 .gen-sticker-button-1 {
   width: 240px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 </style>

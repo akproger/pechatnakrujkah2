@@ -531,38 +531,81 @@
           <div class="row mt-3">
             <div class="col-12">
               <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Добавленные тексты</h5>
+                </div>
                 <div class="card-body">
-                  <!-- Список текстовых слоев -->
-                  <div class="text-layers-container">
-                    <h6 class="text-muted mb-3">Текстовые слои</h6>
-                    <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
-                      <i class="bi bi-type fs-1 d-block mb-2"></i>
-                      <p>Текстовые слои не добавлены</p>
-                      <p class="small">Нажмите кнопку "Текст 2" для добавления текста</p>
+                  <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p>Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст 2" над основным канвасом, затем кликните на канвас для добавления текста</p>
+                  </div>
+                  <div v-else>
+                    <div class="mb-3">
+                      <p class="text-muted mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка или двойной клик на текст на канвасе.
+                      </p>
                     </div>
-                    <div v-else class="text-layers-list">
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
                       <div 
-                        v-for="(layer, index) in textLayers" 
-                        :key="layer.id"
+                        v-for="(text, index) in textLayers" 
+                        :key="text.id || index" 
                         class="text-layer-item"
-                        :class="{ 'active': selectedTextLayerIndex === index }"
-                        @click="selectTextLayer(index)"
+                        :class="{ 
+                          'dragging': draggedTextIndex === index,
+                          'drag-over': dragOverTextIndex === index
+                        }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
                       >
                         <div class="layer-info">
-                          <div class="layer-number">Слой {{ index + 1 }}</div>
-                          <div class="layer-text">{{ layer.textData?.text || 'Текст' }}</div>
+                          <!-- Иконка перетаскивания -->
+                          <div class="drag-handle">
+                            <i class="bi bi-grip-vertical"></i>
+                          </div>
+                          
+                          <!-- Информация о слое -->
+                          <div class="layer-details">
+                            <div class="layer-name">{{ text.textData?.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta">
+                            Шрифт: {{ text.textData?.font || 'Arial' }} | 
+                            Размер: {{ text.textData?.fontSize || 16 }}px |
+                            <span v-if="text.textData?.textColor">Цвет: {{ text.textData.textColor }}</span>
+                              <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
                         </div>
+                            <div class="layer-number">Слой #{{ text.layerIndex || (index + 1) }}</div>
+                          </div>
+                        </div>
+                        
+                        <!-- Действия со слоем -->
                         <div class="layer-actions">
                           <button 
-                            class="btn btn-sm btn-outline-primary"
-                            @click.stop="editTextLayer(index)"
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            @click="editTextLayer(index)"
                             title="Редактировать"
                           >
                             <i class="bi bi-pencil"></i>
                           </button>
                           <button 
-                            class="btn btn-sm btn-outline-danger"
-                            @click.stop="deleteTextLayer(index)"
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            @click="toggleTextLayerVisibility(index)"
+                            title="Показать/скрыть"
+                          >
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            @click="deleteTextLayer(index)"
                             title="Удалить"
                           >
                             <i class="bi bi-trash"></i>
@@ -658,6 +701,10 @@ export default {
       textLayers: [],
       selectedTextLayerIndex: -1,
       nextTextLayerId: 1,
+      
+      // Переменные для перетаскивания текстовых слоев
+      draggedTextIndex: -1,
+      dragOverTextIndex: -1,
     }
   },
   
@@ -4403,6 +4450,83 @@ export default {
         ctx.lineWidth = textData.strokeWidth || 3
         ctx.strokeRect(bgX, bgY, backgroundWidth, backgroundHeight)
       }
+    },
+
+    // Получение названия режима для отображения
+    getModeDisplayName(mode) {
+      const modeNames = {
+        'standard': 'Стандарт',
+        'conversation': 'Разговор',
+        'thoughts': 'Мысли',
+        'image-text': 'Текст с изображением'
+      }
+      return modeNames[mode] || mode
+    },
+
+    // Обработчики перетаскивания для текстовых слоев
+    handleTextDragStart(index, event) {
+      this.draggedTextIndex = index
+      event.dataTransfer.effectAllowed = 'move'
+      console.log(`🖱️ Начато перетаскивание текстового слоя ${index}`)
+    },
+    
+    handleTextDragEnd() {
+      this.draggedTextIndex = -1
+      this.dragOverTextIndex = -1
+      console.log('🖱️ Завершено перетаскивание текстового слоя')
+    },
+    
+    handleTextDragOver(index, event) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      
+      if (this.draggedTextIndex !== index) {
+        this.dragOverTextIndex = index
+      }
+    },
+    
+    handleTextDragLeave() {
+      this.dragOverTextIndex = -1
+    },
+    
+    // Сброс текстового слоя
+    handleTextDrop(targetIndex, event) {
+      event.preventDefault()
+      
+      if (this.draggedTextIndex === -1 || this.draggedTextIndex === targetIndex) {
+        return
+      }
+      
+      console.log(`🎯 Перемещение текстового слоя с позиции ${this.draggedTextIndex} на позицию ${targetIndex}`)
+      console.log(`📋 Новая логика: позиция ${targetIndex} = ${targetIndex === 0 ? 'самый верхний' : targetIndex === this.textLayers.length - 1 ? 'самый нижний' : 'средний'} слой`)
+      
+      // Перемещаем текстовый слой в массиве
+      const draggedLayer = this.textLayers[this.draggedTextIndex]
+      this.textLayers.splice(this.draggedTextIndex, 1)
+      this.textLayers.splice(targetIndex, 0, draggedLayer)
+      
+      // Обновляем индексы в Paper.js для корректного отображения слоев
+      this.reorderTextLayersInPaperJS()
+      
+      // Обновляем 3D модель
+      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
+        this.$refs.threeRenderer.forceUpdate()
+      }
+      
+      // Сбрасываем состояния перетаскивания
+      this.draggedTextIndex = -1
+      this.dragOverTextIndex = -1
+      
+      console.log('✅ Текстовый слой успешно перемещен')
+    },
+
+    // Переключение видимости текстового слоя
+    toggleTextLayerVisibility(index) {
+      const layer = this.textLayers[index]
+      if (layer && layer.layer) {
+        layer.layer.visible = !layer.layer.visible
+        console.log(`👁️ Видимость слоя ${index}: ${layer.layer.visible ? 'включена' : 'выключена'}`)
+      }
     }
   }
 }
@@ -4667,48 +4791,81 @@ export default {
 }
 
 /* Стили для текстовых слоев */
-.text-layers-container {
+/* Стили для вкладки "Тексты" */
+.text-layers-list {
   max-height: 400px;
   overflow-y: auto;
-}
-
-.text-layers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
 }
 
 .text-layer-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  background: #f8f9fa;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .text-layer-item:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+  background-color: #f8f9fa;
 }
 
-.text-layer-item.active {
-  background: #e3f2fd;
-  border-color: #2196f3;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+.text-layer-item:last-child {
+  border-bottom: none;
 }
 
-.layer-info {
+/* Стили для перетаскивания текстовых слоев */
+.text-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.text-layer-item.drag-over {
+  border-top: 3px solid #28a745;
+  background-color: #e8f5e8;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.text-layer-item:hover {
+  background-color: #f8f9fa;
+  cursor: grab;
+}
+
+.text-layer-item.dragging:hover {
+  cursor: grabbing;
+}
+
+/* Стили для информации о текстовом слое */
+.text-layer-item .layer-info {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
   flex: 1;
 }
 
-.layer-number {
+.text-layer-item .layer-details {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.text-layer-item .layer-name {
+  font-weight: 500;
+  color: #212529;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.text-layer-item .layer-meta {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.text-layer-item .layer-number {
   font-weight: 600;
   color: #28a745;
   font-size: 12px;
@@ -4716,23 +4873,19 @@ export default {
   padding: 2px 6px;
   border-radius: 4px;
   min-width: 100px;
+  width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.layer-text {
-  font-size: 14px;
-  color: #495057;
-  font-weight: 500;
-}
-
-.layer-actions {
+.text-layer-item .layer-actions {
   display: flex;
   gap: 4px;
+  margin-left: 12px;
 }
 
-.layer-actions .btn {
+.text-layer-item .layer-actions .btn {
   padding: 4px 8px;
   font-size: 12px;
 }

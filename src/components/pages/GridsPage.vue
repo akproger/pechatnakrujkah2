@@ -1033,9 +1033,16 @@ export default {
       // Показываем прелоадер
       this.isLoading = true
       
+      // Сохраняем текстовые слои перед очисткой
+      const savedTextLayers = [...this.textLayers]
+      const savedSelectedTextLayerIndex = this.selectedTextLayerIndex
+      const savedNextTextLayerId = this.nextTextLayerId
+      
+      console.log('💾 Сохраняем текстовые слои перед перерисовкой сетки:', savedTextLayers.length)
+      
       paper.project.clear()
       
-      // Очищаем текстовые слои
+      // Временно очищаем текстовые слои для перерисовки сетки
       this.textLayers = []
       this.selectedTextLayerIndex = -1
       this.nextTextLayerId = 1
@@ -1067,6 +1074,9 @@ export default {
           break
       }
       
+      // Восстанавливаем текстовые слои после создания сетки
+      this.restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId)
+      
       paper.view.draw()
       
       // Обновляем текстуру Three.js после отрисовки сетки с увеличенной задержкой
@@ -1081,8 +1091,67 @@ export default {
         }, 500) // Увеличили задержку с 300 до 500мс
       })
     },
-    
 
+    // Восстановление текстовых слоев после перерисовки сетки
+    restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId) {
+      if (!savedTextLayers || savedTextLayers.length === 0) {
+        console.log('📝 Нет сохраненных текстовых слоев для восстановления')
+        return
+      }
+
+      console.log('🔄 Восстанавливаем текстовые слои:', savedTextLayers.length)
+
+      // Восстанавливаем состояние
+      this.textLayers = []
+      this.selectedTextLayerIndex = savedSelectedTextLayerIndex
+      this.nextTextLayerId = savedNextTextLayerId
+
+      // Восстанавливаем каждый текстовый слой
+      savedTextLayers.forEach((savedLayer, index) => {
+        try {
+          // Создаем новый слой
+          const layer = new this.paperScope.Layer()
+          layer.name = `textLayer_${savedLayer.id}`
+          layer.data = { layerIndex: savedLayer.id }
+
+          // Восстанавливаем подложку с теми же данными
+          const backgroundItem = this.createBackgroundItemOnLayer(
+            layer, 
+            savedLayer.id, 
+            savedLayer.textData, 
+            savedLayer.position, 
+            savedLayer.mode
+          )
+
+          // Восстанавливаем информацию о текстовом слое
+          const restoredLayer = {
+            id: savedLayer.id,
+            layer: layer,
+            textItem: savedLayer.textItem, // Может быть null для режимов с подложкой
+            backgroundItem: backgroundItem,
+            textData: savedLayer.textData,
+            position: savedLayer.position,
+            mode: savedLayer.mode
+          }
+
+          this.textLayers.push(restoredLayer)
+          console.log(`✅ Восстановлен текстовый слой ${index + 1}:`, {
+            id: savedLayer.id,
+            text: savedLayer.textData?.text,
+            mode: savedLayer.mode,
+            position: savedLayer.position
+          })
+
+        } catch (error) {
+          console.error(`❌ Ошибка восстановления текстового слоя ${index + 1}:`, error)
+        }
+      })
+
+      // Переупорядочиваем текстовые слои для правильного z-index
+      this.reorderTextLayersInPaperJS()
+
+      console.log(`✅ Восстановлено ${this.textLayers.length} текстовых слоев`)
+    },
     
     handleImageUpload(event) {
       const files = Array.from(event.target.files)

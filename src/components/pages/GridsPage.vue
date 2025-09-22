@@ -1513,13 +1513,17 @@ export default {
         }
         
         // Рисуем подложку в зависимости от режима
-        if (layerInfo.mode === 'conversation') {
+        if (layerInfo.textData.backgroundMode === 'conversation') {
+          console.log('💬 Рисуем подложку "Разговор" в высоком разрешении')
           await this.drawConversationBackgroundInHighDPI(tempCtx, tempLayer, scale)
-        } else if (layerInfo.mode === 'standard') {
+        } else if (layerInfo.textData.backgroundMode === 'standard') {
+          console.log('📋 Рисуем подложку "Стандарт" в высоком разрешении')
           await this.drawStandardBackgroundInHighDPI(tempCtx, tempLayer, scale)
-        } else if (layerInfo.mode === 'thoughts') {
+        } else if (layerInfo.textData.backgroundMode === 'thoughts') {
+          console.log('💭 Рисуем подложку "Мысли" в высоком разрешении')
           await this.drawThoughtsBackgroundInHighDPI(tempCtx, tempLayer, scale)
-        } else if (layerInfo.mode === 'image-text') {
+        } else if (layerInfo.textData.backgroundMode === 'image-text') {
+          console.log('🖼️ Рисуем подложку "Текст с изображением" в высоком разрешении')
           await this.drawImageTextBackgroundInHighDPI(tempCtx, tempLayer, scale)
         }
         
@@ -1958,6 +1962,7 @@ export default {
         })
         
         const raster = new tempPaperScope.Raster(imageSource)
+        raster.visible = false // Скрываем оригинальный растр (как в StickerManiaPage)
         
         // Ждем загрузки изображения через Promise с timeout (как в StickerManiaPage)
         await new Promise((resolve, reject) => {
@@ -2003,9 +2008,9 @@ export default {
         const imageX = bounds.center.x - (raster.bounds.width * imageScale) / 2
         const imageY = bounds.center.y - (raster.bounds.height * imageScale) / 2
         
-        // Рисуем изображение на временном Canvas
+        // Рисуем изображение на временном Canvas (используем raster.image как в StickerManiaPage)
         tempCtx.drawImage(
-          raster.canvas,
+          raster.image,
           imageX - bounds.x,
           imageY - bounds.y,
           raster.bounds.width * imageScale,

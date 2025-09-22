@@ -1385,15 +1385,21 @@ export default {
         // Создаем маски в зависимости от типа
         const viewWidth = canvasWidth * scale
         const viewHeight = canvasHeight * scale
-        const cellWidth = viewWidth / this.gridCols
-        const cellHeight = viewHeight / this.gridRows
+        
+        // Увеличиваем количество ячеек в 2 раза для правильного отображения при сохранении
+        const doubledCols = this.gridCols * 2
+        const doubledRows = this.gridRows * 2
+        const cellWidth = viewWidth / doubledCols
+        const cellHeight = viewHeight / doubledRows
         
         console.log('📏 Размеры ячейки в высоком разрешении:', {
           cellWidth,
           cellHeight,
           scale,
-          gridCols: this.gridCols,
-          gridRows: this.gridRows,
+          originalCols: this.gridCols,
+          originalRows: this.gridRows,
+          doubledCols,
+          doubledRows,
           viewWidth,
           viewHeight
         })
@@ -1419,19 +1425,19 @@ export default {
         switch (actualMaskType) {
           case 'rectangle':
             console.log('🔲 Выбран случай: rectangle')
-            await this.createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            await this.createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows)
             break
           case 'triangle':
             console.log('🔺 Выбран случай: triangle')
-            await this.createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            await this.createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows)
             break
           case 'diamond':
             console.log('💎 Выбран случай: diamond')
-            await this.createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            await this.createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows)
             break
           case 'hexagon':
             console.log('⬡ Выбран случай: hexagon')
-            await this.createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            await this.createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows)
             break
           default:
             console.log('⚠️ Неизвестный тип сетки:', this.gridType)
@@ -1659,14 +1665,16 @@ export default {
     },
 
     // Создание масок прямоугольников для высокого разрешения
-    async createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+    async createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('🔲 Создаем маски прямоугольников для высокого разрешения')
       console.log('📏 Параметры создания масок:', {
         cellWidth,
         cellHeight,
         scale,
-        gridCols: this.gridCols,
-        gridRows: this.gridRows,
+        originalCols: this.gridCols,
+        originalRows: this.gridRows,
+        doubledCols,
+        doubledRows,
         externalMargin: this.externalMargin
       })
       
@@ -1687,10 +1695,10 @@ export default {
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
-      console.log('🔄 Начинаем создание масок для', this.gridRows * this.gridCols, 'ячеек')
+      console.log('🔄 Начинаем создание масок для', doubledRows * doubledCols, 'ячеек')
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
+      for (let row = 0; row < doubledRows; row++) {
+        for (let col = 0; col < doubledCols; col++) {
           const x = col * cellWidth + margin - xOffset
           const y = row * cellHeight + margin - yOffset
           
@@ -1709,7 +1717,7 @@ export default {
           rect.strokeJoin = 'miter' // Убираем скругление углов
           
           // Получаем изображение для данной позиции
-          const image = this.getImageForPosition(row, col, gridImages.length)
+          const image = this.getImageForPosition(row, col, gridImages.length, doubledCols, doubledRows)
           
           // Применяем настройки обводки и тени (теперь асинхронно)
           await this.applyMaskStylesForHighDPI(rect, image, scale, tempPaperScope)
@@ -1735,7 +1743,7 @@ export default {
     },
 
     // Создание масок треугольников для высокого разрешения
-    async createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+    async createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('🔺 Создаем маски треугольников для высокого разрешения')
       
       const viewWidth = tempPaperScope.view.element.width
@@ -1749,8 +1757,8 @@ export default {
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
+      for (let row = 0; row < doubledRows; row++) {
+        for (let col = 0; col < doubledCols; col++) {
           const x = col * cellWidth + margin
           const y = row * cellHeight + margin
           
@@ -1773,7 +1781,7 @@ export default {
           triangle.closed = true
           
           // Получаем изображение для данной позиции
-          const image = this.getImageForPosition(row, col, gridImages.length)
+          const image = this.getImageForPosition(row, col, gridImages.length, doubledCols, doubledRows)
           
           // Применяем настройки обводки и тени (теперь асинхронно)
           await this.applyMaskStylesForHighDPI(triangle, image, scale, tempPaperScope)
@@ -1789,7 +1797,7 @@ export default {
     },
 
     // Создание масок ромбов для высокого разрешения
-    async createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+    async createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('💎 Создаем маски ромбов для высокого разрешения')
       
       // Применяем внешний отступ
@@ -1800,8 +1808,8 @@ export default {
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
+      for (let row = 0; row < doubledRows; row++) {
+        for (let col = 0; col < doubledCols; col++) {
           const x = col * cellWidth + margin
           const y = row * cellHeight + margin
           
@@ -1813,7 +1821,7 @@ export default {
           diamond.closed = true
           
           // Получаем изображение для данной позиции
-          const image = this.getImageForPosition(row, col, gridImages.length)
+          const image = this.getImageForPosition(row, col, gridImages.length, doubledCols, doubledRows)
           
           // Применяем настройки обводки и тени (теперь асинхронно)
           await this.applyMaskStylesForHighDPI(diamond, image, scale, tempPaperScope)
@@ -1829,7 +1837,7 @@ export default {
     },
 
     // Создание масок шестиугольников для высокого разрешения
-    async createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+    async createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('⬡ Создаем маски шестиугольников для высокого разрешения')
       
       // Применяем внешний отступ
@@ -1840,8 +1848,8 @@ export default {
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
-      for (let row = 0; row < this.gridRows; row++) {
-        for (let col = 0; col < this.gridCols; col++) {
+      for (let row = 0; row < doubledRows; row++) {
+        for (let col = 0; col < doubledCols; col++) {
           const x = col * cellWidth + margin
           const y = row * cellHeight + margin
           
@@ -1863,7 +1871,7 @@ export default {
           hexagon.closed = true
           
           // Получаем изображение для данной позиции
-          const image = this.getImageForPosition(row, col, gridImages.length)
+          const image = this.getImageForPosition(row, col, gridImages.length, doubledCols, doubledRows)
           
           // Применяем настройки обводки и тени (теперь асинхронно)
           await this.applyMaskStylesForHighDPI(hexagon, image, scale, tempPaperScope)
@@ -2594,16 +2602,22 @@ export default {
       return this.uploadedImages.filter(img => img.useInGrid)
     },
     
-      getImageForPosition(row, col, totalImages) {
+      getImageForPosition(row, col, totalImages, gridCols = null, gridRows = null) {
     // Отображаем изображение во всех масках
     const gridImages = this.getImagesForGrid()
+    
+    // Используем переданные размеры или текущие размеры сетки
+    const actualCols = gridCols || this.gridCols
+    const actualRows = gridRows || this.gridRows
     
     console.log('🖼️ getImageForPosition:', {
       row,
       col,
       totalImages,
       gridImagesLength: gridImages.length,
-      gridCols: this.gridCols
+      gridCols: this.gridCols,
+      actualCols,
+      actualRows
     })
     
     if (gridImages.length === 0) {
@@ -2614,7 +2628,7 @@ export default {
     // Вычисляем индекс изображения для позиции (row, col)
     // Смещаем начало каждой строки для равномерного распределения
     // Используем большее смещение для лучшего распределения
-    const baseIndex = row * this.gridCols + col
+    const baseIndex = row * actualCols + col
     const offset = row * 2 // Увеличиваем смещение
     const imageIndex = (baseIndex + offset) % gridImages.length
     

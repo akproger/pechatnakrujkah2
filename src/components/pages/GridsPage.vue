@@ -91,16 +91,18 @@
                   Текст 2
                 </button>
                 
-                <!-- Кнопка сохранения -->
-                <HighQualitySaveButton
-                  :save-function="saveCanvasForPrint"
-                  :save-params="{}"
-                  button-text="Сохранить в высоком качестве"
-                  size="medium"
-                  variant="primary"
+                <!-- Компонент сохранения сетки -->
+                <GridSaveCanvas
+                  :grid-cols="gridCols"
+                  :grid-rows="gridRows"
+                  :mask-type="maskType"
+                  :uploaded-images="uploadedImages"
+                  :stroke-color="strokeColor"
+                  :stroke-width="strokeWidth"
+                  :external-margin="externalMargin"
+                  :text-layers="textLayers"
                   @save-success="onSaveSuccess"
                   @save-error="onSaveError"
-                  @show-notification="showNotification"
                 />
               </div>
             </div>
@@ -655,14 +657,14 @@ import * as THREE from 'three'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import TextManager from '../TextManager.vue'
-import HighQualitySaveButton from '../common/HighQualitySaveButton.vue'
+import GridSaveCanvas from '../common/GridSaveCanvas.vue'
 
 export default {
   name: 'GridsPage',
   components: {
     ThreeDRenderer,
     TextManager,
-    HighQualitySaveButton
+    GridSaveCanvas
   },
   data() {
     return {
@@ -1917,31 +1919,35 @@ export default {
 
     // Применение стилей масок для высокого разрешения
     async applyMaskStylesForHighDPI(mask, image, scale, tempPaperScope) {
+      // Сначала применяем обводку к маске (как в обычном методе)
+      const shouldDisableStroke = image && image.disableStroke
+      
+      if (shouldDisableStroke) {
+        mask.strokeColor = 'transparent'
+        mask.strokeWidth = 0
+      } else {
+        mask.strokeColor = this.strokeColor
+        // Используем динамический расчет толщины обводки в зависимости от размера маски
+        mask.strokeWidth = this.getStrokeWidthForMask(mask.bounds) * scale
+      }
+      
       if (!image) {
         console.warn('⚠️ Изображение не найдено для маски, используем базовую заливку')
         // Применяем базовую заливку если нет изображения
         mask.fillColor = new tempPaperScope.Color('#f0f0f0')
-        mask.strokeColor = new tempPaperScope.Color('#cccccc')
-        mask.strokeWidth = 2 * scale
+        // Маска остается видимой с обводкой
         return
       }
 
+      // Если есть изображение, создаем растр, но оставляем маску видимой с обводкой
+      // mask.visible = false // Не скрываем маску, чтобы была видна обводка
+      
       console.log('🖼️ Создаем Raster для маски (новый подход):', {
         hasImage: !!image,
         imageType: typeof image,
         tempPaperScope: !!tempPaperScope,
         tempPaperScopeType: typeof tempPaperScope
       })
-      
-      if (!image) {
-        console.log('⚠️ Нет изображения, используем fallback заливку')
-        mask.fillColor = '#f0f0f0'
-        if (this.strokeWidth > 0) {
-          mask.strokeColor = this.strokeColor
-          mask.strokeWidth = this.strokeWidth * scale
-        }
-        return
-      }
       
       try {
         // ПОДХОД STICKERMANIAPAGE: Создаем временный Canvas и рисуем на нем
@@ -2016,6 +2022,81 @@ export default {
         const imageX = bounds.center.x - (raster.bounds.width * imageScale) / 2
         const imageY = bounds.center.y - (raster.bounds.height * imageScale) / 2
         
+        // Создаем путь маски на canvas в зависимости от типа маски (как в обычном методе)
+        // maskBounds уже объявлена выше
+        
+        // Уменьшаем размер маски для обрезки на половину величины обводки
+        const strokeInset = (this.getStrokeWidthForMask(maskBounds) || 0) / 2
+        
+        const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
+        const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
+        const clipOffsetX = strokeInset
+        const clipOffsetY = strokeInset
+        
+        tempCtx.save() // Сохраняем состояние
+        tempCtx.beginPath()
+        
+        // Создаем путь маски в зависимости от типа
+        if (mask.data && mask.data.type === 'rectangle') {
+          tempCtx.rect(clipOffsetX, clipOffsetY, clipWidth, clipHeight)
+        } else if (mask.data && mask.data.type === 'triangle') {
+          // Для треугольников учитываем ориентацию
+          const isInverted = (mask.data.row + mask.data.col) % 2 === 1
+          
+          if (isInverted) {
+            // Перевернутый треугольник
+            tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY + clipHeight)
+            tempCtx.lineTo(clipOffsetX, clipOffsetY)
+            tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY)
+          } else {
+            // Обычный треугольник
+            tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY)
+            tempCtx.lineTo(clipOffsetX, clipOffsetY + clipHeight)
+            tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY + clipHeight)
+          }
+          tempCtx.closePath()
+        } else if (mask.data && mask.data.type === 'diamond') {
+          // Для ромбов создаем ромбовидный путь
+          tempCtx.moveTo(clipOffsetX + clipWidth / 2, clipOffsetY)
+          tempCtx.lineTo(clipOffsetX, clipOffsetY + clipHeight / 2)
+          tempCtx.lineTo(clipOffsetX + clipWidth / 2, clipOffsetY + clipHeight)
+          tempCtx.lineTo(clipOffsetX + clipWidth, clipOffsetY + clipHeight / 2)
+          tempCtx.closePath()
+        } else if (mask.data && mask.data.type === 'hexagon') {
+          // Для шестигранников используем реальную геометрию маски
+          if (mask.segments && mask.segments.length > 0) {
+            const strokeHalf = strokeInset / 2
+            
+            // Первая точка
+            const firstPoint = mask.segments[0].point
+            const relativeFirstPoint = new tempPaperScope.Point(
+              firstPoint.x - maskBounds.x,
+              firstPoint.y - maskBounds.y
+            )
+            tempCtx.moveTo(relativeFirstPoint.x + strokeHalf, relativeFirstPoint.y + strokeHalf)
+            
+            // Остальные точки
+            for (let i = 1; i < mask.segments.length; i++) {
+              const point = mask.segments[i].point
+              const relativePoint = new tempPaperScope.Point(
+                point.x - maskBounds.x,
+                point.y - maskBounds.y
+              )
+              tempCtx.lineTo(relativePoint.x + strokeHalf, relativePoint.y + strokeHalf)
+            }
+            tempCtx.closePath()
+          } else {
+            // Fallback для шестигранника
+            tempCtx.rect(clipOffsetX, clipOffsetY, clipWidth, clipHeight)
+          }
+        } else {
+          // Fallback для неизвестных типов
+          tempCtx.rect(clipOffsetX, clipOffsetY, clipWidth, clipHeight)
+        }
+        
+        // Устанавливаем путь как область обрезки
+        tempCtx.clip()
+        
         // Рисуем изображение на временном Canvas (используем raster.image как в StickerManiaPage)
         tempCtx.drawImage(
           raster.image,
@@ -2025,21 +2106,61 @@ export default {
           raster.bounds.height * imageScale
         )
         
-        // Создаем новый Raster из временного Canvas
-        const canvasRaster = new tempPaperScope.Raster(tempCanvas)
-        canvasRaster.position = bounds.center
+        // Восстанавливаем состояние
+        tempCtx.restore()
         
-        // Добавляем Raster в проект
-        tempPaperScope.project.activeLayer.addChild(canvasRaster)
+        // Конвертируем canvas в dataURL (как в обычном методе)
+        const maskedImageUrl = tempCanvas.toDataURL()
         
-        // Применяем изображение как заливку маски
-        mask.fillColor = null
-        mask.fillColor = new tempPaperScope.Color(canvasRaster)
+        // Создаем новый растр с обрезанным изображением
+        const maskedRaster = new tempPaperScope.Raster(maskedImageUrl)
+        
+        // Ждем загрузки растра
+        await new Promise((resolve, reject) => {
+          if (maskedRaster.loaded) {
+            resolve()
+          } else {
+            const timeout = setTimeout(() => {
+              reject(new Error('Masked raster loading timeout'))
+            }, 2000)
+            
+            maskedRaster.onLoad = () => {
+              clearTimeout(timeout)
+              resolve()
+            }
+            
+            maskedRaster.onError = (error) => {
+              clearTimeout(timeout)
+              reject(error)
+            }
+          }
+        })
+        
+        // Устанавливаем позицию точно в центр маски
+        maskedRaster.position = bounds.center
+        
+        // Копируем данные маски
+        maskedRaster.data = mask.data
+        
+        // Добавляем растр с обрезанным изображением в проект
+        tempPaperScope.project.activeLayer.addChild(maskedRaster)
+        
+        // Создаем маску с обводкой поверх изображения
+        const strokeMask = mask.clone()
+        strokeMask.fillColor = 'transparent'
+        strokeMask.strokeColor = this.strokeColor
+        strokeMask.strokeWidth = this.getStrokeWidthForMask(mask.bounds) * scale
+        
+        // Скрываем оригинальную маску
+        mask.visible = false
+        
+        // Добавляем маску с обводкой в проект
+        tempPaperScope.project.activeLayer.addChild(strokeMask)
         
         console.log('✅ Изображение применено к маске (новый подход):', {
           imageScale,
-          position: canvasRaster.position,
-          maskFillColor: mask.fillColor,
+          position: maskedRaster.position,
+          maskBounds: bounds,
           canvasSize: `${tempCanvas.width}x${tempCanvas.height}`
         })
         

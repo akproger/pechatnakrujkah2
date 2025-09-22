@@ -893,9 +893,9 @@ export default {
         // Создаем обводку для маски
         this.createStrokeForMask(mask, maskedRaster)
         
-        // Применяем тени к маске если они настроены
+        // Применяем тени напрямую к maskedRaster (как на основном канвасе)
         if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
-          this.applyShadowToMask(mask, maskedRaster)
+          this.applyShadowToRaster(maskedRaster)
         }
         
         console.log('✅ Изображение применено к маске:', mask.data?.type)
@@ -1057,6 +1057,40 @@ export default {
         bounds: shadowMask.bounds.toString(),
         color: shadowColor.toString(),
         note: 'Тень с увеличенным смещением для видимости'
+      })
+    },
+    
+    // Применение теней к Raster (как на основном канвасе)
+    applyShadowToRaster(raster) {
+      console.log('🌫️ Применяем тень к Raster:', {
+        shadowBlur: this.shadowBlur,
+        shadowOffsetX: this.shadowOffsetX,
+        shadowOffsetY: this.shadowOffsetY,
+        shadowOpacity: this.shadowOpacity
+      })
+      
+      // Проверяем, есть ли активные параметры тени
+      const hasAnyShadow = this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0 || this.shadowOpacity > 0
+      
+      if (!hasAnyShadow) {
+        console.log('🚫 Нет активных параметров тени')
+        return
+      }
+      
+      // Применяем настройки тени к Raster (точно как на основном канвасе)
+      const shadowColor = new this.paperScope.Color(0, 0, 0, this.shadowOpacity / 100)
+      raster.shadowColor = shadowColor
+      raster.shadowBlur = this.shadowBlur
+      raster.shadowOffset = new this.paperScope.Point(this.shadowOffsetX, this.shadowOffsetY)
+      
+      // Принудительно обновляем отображение
+      raster.shadowColor = shadowColor
+      
+      console.log('✅ Тень применена к Raster:', {
+        shadowColor: shadowColor.toString(),
+        shadowBlur: raster.shadowBlur,
+        shadowOffset: raster.shadowOffset.toString(),
+        visible: raster.visible
       })
     },
     

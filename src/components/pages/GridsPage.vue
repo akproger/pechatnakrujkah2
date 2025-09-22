@@ -2280,7 +2280,7 @@ export default {
         mask.fillColor = '#f0f0f0'
         if (this.strokeWidth > 0) {
           mask.strokeColor = this.strokeColor
-          mask.strokeWidth = this.strokeWidth * scale
+          mask.strokeWidth = this.getStrokeWidthForMask(mask.bounds) * scale
         }
         
         console.log('✅ Fallback заливка применена к маске')
@@ -2289,7 +2289,7 @@ export default {
       // Настройки обводки с масштабированием
       if (this.strokeWidth > 0) {
         mask.strokeColor = this.strokeColor
-        mask.strokeWidth = this.strokeWidth * scale
+        mask.strokeWidth = this.getStrokeWidthForMask(mask.bounds) * scale
       } else {
         mask.strokeWidth = 0
       }
@@ -2376,17 +2376,12 @@ export default {
       })
     },
     
-    // Динамический расчет толщины обводки в зависимости от размера маски
+    // Фиксированный расчет толщины обводки независимо от размера маски
     getStrokeWidthForMask(maskBounds) {
-      if (!maskBounds) {
-        // Fallback к базовому размеру
-        const baseSize = 80
-        return (this.strokeWidth / 100) * baseSize
-      }
-      
-      // Используем меньшую сторону маски как базовый размер для более точного расчета
-      const minDimension = Math.min(maskBounds.width, maskBounds.height)
-      return (this.strokeWidth / 100) * minDimension
+      // Всегда используем фиксированный размер обводки в пикселях
+      // Базовый размер для расчета процентов (не зависит от размера маски)
+      const baseSize = 80
+      return (this.strokeWidth / 100) * baseSize
     },
     
     createBackgroundLayer() {

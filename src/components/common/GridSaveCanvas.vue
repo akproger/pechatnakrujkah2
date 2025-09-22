@@ -2,7 +2,7 @@
   <div class="grid-save-canvas">
     <!-- Кнопка сохранения -->
     <button 
-      @click="handleSave" 
+      @click.prevent="handleSaveWithLog" 
       :disabled="isSaving"
       class="save-btn"
       :class="{ 'saving': isSaving }"
@@ -15,7 +15,7 @@
           <polyline points="7,3 7,8 15,8"/>
         </svg>
         <span class="btn-text">
-          {{ isSaving ? 'Сохранение...' : 'Сохранить сетку' }}
+          {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
         </span>
       </div>
     </button>
@@ -61,11 +61,37 @@ export default {
     },
     strokeWidth: {
       type: Number,
-      default: 2
+      default: 0
     },
     externalMargin: {
       type: Number,
       default: 10
+    },
+    // Настройки теней
+    shadowBlur: {
+      type: Number,
+      default: 0
+    },
+    shadowOffsetX: {
+      type: Number,
+      default: 0
+    },
+    shadowOffsetY: {
+      type: Number,
+      default: 0
+    },
+    shadowOpacity: {
+      type: Number,
+      default: 0
+    },
+    // Настройки фона
+    solidBackgroundColor: {
+      type: String,
+      default: '#ffffff'
+    },
+    solidBackgroundOpacity: {
+      type: Number,
+      default: 100
     },
     // Текстовые слои
     textLayers: {
@@ -138,10 +164,46 @@ export default {
       })
     },
     
+    handleSaveWithLog() {
+      console.log('🔥 Кнопка нажата!')
+      this.handleSave()
+    },
+    
     async handleSave() {
-      if (this.isSaving) return
+      console.log('🖨️ handleSave вызван - начало метода')
+      console.log('🖨️ Состояние кнопки:', {
+        isSaving: this.isSaving,
+        buttonDisabled: this.isSaving,
+        maskType: this.maskType,
+        uploadedImages: this.uploadedImages?.length || 0
+      })
       
-      console.log('🖨️ handleSave вызван')
+      if (this.isSaving) {
+        console.log('⚠️ Сохранение уже в процессе, пропускаем')
+        return
+      }
+      
+      console.log('🖨️ handleSave продолжается')
+      console.log('🎨 Параметры сохранения:', {
+        strokeColor: this.strokeColor,
+        strokeWidth: this.strokeWidth,
+        shadowBlur: this.shadowBlur,
+        shadowOffsetX: this.shadowOffsetX,
+        shadowOffsetY: this.shadowOffsetY,
+        shadowOpacity: this.shadowOpacity,
+        solidBackgroundColor: this.solidBackgroundColor,
+        solidBackgroundOpacity: this.solidBackgroundOpacity
+      })
+      
+      console.log('🔍 Проверка теней:', {
+        willCreateShadow: this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0 || this.shadowOpacity > 0,
+        shadowConditions: {
+          hasBlur: this.shadowBlur > 0,
+          hasOffsetX: this.shadowOffsetX !== 0,
+          hasOffsetY: this.shadowOffsetY !== 0,
+          hasOpacity: this.shadowOpacity > 0
+        }
+      })
       
       // Уведомляем родительский компонент о начале сохранения ПЕРЕД установкой флага
       console.log('📤 Эмитим событие save-start')
@@ -299,15 +361,27 @@ export default {
     },
     
     createBackgroundLayer() {
-      // Создаем белый фон
+      // Создаем фон с настраиваемым цветом и прозрачностью
       const background = new this.paperScope.Path.Rectangle({
         point: [0, 0],
         size: [this.canvasWidth, this.canvasHeight]
       })
-      background.fillColor = 'white'
+      
+      // Применяем цвет фона с прозрачностью
+      const opacity = this.solidBackgroundOpacity / 100
+      background.fillColor = new this.paperScope.Color(this.solidBackgroundColor)
+      background.fillColor.alpha = opacity
       background.strokeColor = null
       
-      console.log('✅ Фоновый слой создан')
+      // Добавляем фон в активный слой (в самый низ)
+      this.paperScope.project.activeLayer.addChild(background)
+      background.sendToBack()
+      
+      console.log('✅ Фоновый слой создан:', {
+        color: this.solidBackgroundColor,
+        opacity: opacity,
+        finalColor: background.fillColor.toString()
+      })
     },
     
     async createRectangleMasks(group, cellWidth, cellHeight) {
@@ -614,14 +688,12 @@ export default {
       // Проверяем, нужно ли отключить обводку и тень для изображений
       const shouldDisableStroke = image && image.disableStroke
       
-      // Применяем настройки обводки
-      if (shouldDisableStroke) {
-        mask.strokeColor = 'transparent'
-        mask.strokeWidth = 0
-      } else {
-        mask.strokeColor = this.strokeColor
-        mask.strokeWidth = this.strokeWidth
-      }
+      console.log('🎨 Настройки обводки:', {
+        shouldDisableStroke,
+        strokeColor: this.strokeColor,
+        strokeWidth: this.strokeWidth,
+        hasImage: !!image
+      })
       
       if (image) {
         // Если есть изображение, скрываем маску и создаем растр
@@ -818,14 +890,174 @@ export default {
         // ВАЖНО: Добавляем maskedRaster в активный слой проекта
         this.paperScope.project.activeLayer.addChild(maskedRaster)
         
+        // Создаем обводку для маски
+        this.createStrokeForMask(mask, maskedRaster)
+        
+        // Применяем тени к маске если они настроены
+        if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
+          this.applyShadowToMask(mask, maskedRaster)
+        }
+        
         console.log('✅ Изображение применено к маске:', mask.data?.type)
       } else {
         // Если нет изображения, применяем базовую заливку
         mask.fillColor = '#f0f0f0'
+        
+        // Применяем обводку
+        if (mask.strokeColor && mask.strokeWidth > 0) {
+          console.log('✅ Обводка применена к маске без изображения')
+        }
+        
+        // Применяем тени к маске если они настроены
+        if (this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0) {
+          this.applyShadowToMask(mask, mask)
+        }
       }
       
       // Увеличиваем счетчик отрисованных элементов
       this.incrementRenderedElements()
+    },
+    
+    // Создание обводки для маски
+    createStrokeForMask(originalMask, maskedRaster) {
+      console.log('🖌️ Создаем обводку для маски:', {
+        strokeColor: this.strokeColor,
+        strokeWidth: this.strokeWidth,
+        shouldDisableStroke: originalMask.data?.disableStroke,
+        hasStrokeWidth: this.strokeWidth > 0,
+        hasStrokeColor: !!this.strokeColor
+      })
+      
+      // Проверяем, нужно ли отключить обводку
+      const shouldDisableStroke = originalMask.data?.disableStroke
+      
+      // Проверяем, есть ли настройки для обводки
+      if (shouldDisableStroke || this.strokeWidth <= 0 || !this.strokeColor) {
+        console.log('🚫 Обводка отключена или не настроена:', {
+          shouldDisableStroke,
+          strokeWidth: this.strokeWidth,
+          strokeColor: this.strokeColor
+        })
+        return
+      }
+      
+      // Создаем клон маски для обводки
+      const strokeMask = originalMask.clone()
+      
+      // Настраиваем обводку
+      strokeMask.fillColor = 'transparent'
+      strokeMask.strokeColor = this.strokeColor
+      strokeMask.strokeWidth = this.strokeWidth
+      strokeMask.visible = true
+      
+      // Делаем обводку немного меньше маски и отцентрируем её
+      const strokeInset = this.strokeWidth / 4 // Четверть толщины обводки для отступа внутрь
+      const scaleFactor = 1 - (strokeInset / Math.min(originalMask.bounds.width, originalMask.bounds.height))
+      const finalScale = Math.max(scaleFactor, 0.95) // Минимум 95% размера
+      
+      // Сохраняем центр перед масштабированием
+      const center = originalMask.bounds.center
+      strokeMask.scale(finalScale)
+      
+      // Центрируем обводку относительно оригинальной маски
+      strokeMask.position = center
+      
+      // Добавляем обводку ПОВЕРХ maskedRaster
+      this.paperScope.project.activeLayer.addChild(strokeMask)
+      strokeMask.bringToFront()
+      
+      console.log('✅ Обводка создана для маски:', {
+        strokeColor: strokeMask.strokeColor.toString(),
+        strokeWidth: strokeMask.strokeWidth,
+        position: strokeMask.position.toString(),
+        originalBounds: originalMask.bounds.toString(),
+        strokeBounds: strokeMask.bounds.toString(),
+        scaleFactor: finalScale,
+        strokeInset: strokeInset,
+        note: 'Обводка немного меньше маски и отцентрирована'
+      })
+    },
+    
+    // Применение теней к маске
+    applyShadowToMask(originalMask, maskedRaster) {
+      console.log('🌫️ Применяем тень к маске:', {
+        shadowBlur: this.shadowBlur,
+        shadowOffsetX: this.shadowOffsetX,
+        shadowOffsetY: this.shadowOffsetY,
+        shadowOpacity: this.shadowOpacity,
+        hasOffset: this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0,
+        hasBlur: this.shadowBlur > 0
+      })
+      
+      // Проверяем, нужна ли тень (должна быть хотя бы одна настройка активна)
+      if (this.shadowBlur <= 0 && this.shadowOffsetX === 0 && this.shadowOffsetY === 0 && this.shadowOpacity <= 0) {
+        console.log('🚫 Тень отключена (все параметры равны 0)')
+        return
+      }
+      
+      // Принудительно создаем тень если есть хотя бы один параметр
+      const hasAnyShadow = this.shadowBlur > 0 || this.shadowOffsetX !== 0 || this.shadowOffsetY !== 0 || this.shadowOpacity > 0
+      if (!hasAnyShadow) {
+        console.log('🚫 Нет активных параметров тени')
+        return
+      }
+      
+      // Создаем клон оригинальной маски для тени
+      const shadowMask = originalMask.clone()
+      
+      // Применяем настройки тени с максимальной видимостью
+      const shadowOpacity = Math.max(this.shadowOpacity / 100, 0.8) // Минимум 80% видимости
+      const shadowColor = new this.paperScope.Color(0.2, 0.2, 0.2, shadowOpacity) // Темно-серый цвет
+      
+      shadowMask.fillColor = shadowColor
+      shadowMask.strokeColor = null
+      shadowMask.visible = true
+      
+      // Смещаем тень
+      const offsetX = this.shadowOffsetX
+      const offsetY = this.shadowOffsetY
+      
+      console.log('🔍 Тень создается:', {
+        shadowOpacity: shadowOpacity,
+        shadowColor: shadowColor.toString(),
+        bounds: shadowMask.bounds.toString(),
+        visible: shadowMask.visible,
+        originalMaskBounds: originalMask.bounds.toString(),
+        hasOffset: offsetX !== 0 || offsetY !== 0,
+        hasBlur: this.shadowBlur > 0
+      })
+      
+      // Увеличиваем смещение для лучшей видимости теней
+      const enhancedOffsetX = offsetX + (offsetX > 0 ? 3 : -3)
+      const enhancedOffsetY = offsetY + (offsetY > 0 ? 3 : -3)
+      
+      if (enhancedOffsetX !== 0 || enhancedOffsetY !== 0) {
+        shadowMask.position = shadowMask.position.add(new this.paperScope.Point(enhancedOffsetX, enhancedOffsetY))
+      }
+      
+      // Применяем размытие
+      if (this.shadowBlur > 0) {
+        const blurScale = 1 + (this.shadowBlur / 100) // Более консервативное размытие
+        shadowMask.scale(blurScale)
+      }
+      
+      // Добавляем тень в активный слой
+      this.paperScope.project.activeLayer.addChild(shadowMask)
+      
+      // Размещаем тень в самом низу слоя
+      shadowMask.sendToBack()
+      
+      
+      console.log('✅ Тень применена к маске:', {
+        finalOpacity: shadowOpacity,
+        originalOffset: `(${offsetX}, ${offsetY})`,
+        enhancedOffset: `(${enhancedOffsetX}, ${enhancedOffsetY})`,
+        finalScale: this.shadowBlur > 0 ? 1 + (this.shadowBlur / 100) : 1,
+        position: shadowMask.position.toString(),
+        bounds: shadowMask.bounds.toString(),
+        color: shadowColor.toString(),
+        note: 'Тень с увеличенным смещением для видимости'
+      })
     },
     
     async addTextLayers() {
@@ -934,8 +1166,8 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  z-index: 1000;
   overflow: hidden;
-  min-width: 200px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);

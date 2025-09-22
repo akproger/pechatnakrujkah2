@@ -39,7 +39,15 @@
                     </label>
                   </div>
                 </div>
-                
+                <div class="col">
+                  <button 
+                    @click="openTextDialog" 
+                    class="btn canvas-button"
+                  >
+                    <i class="bi bi-type me-2"></i>
+                    Текст
+                  </button>
+                </div>
                 <!-- Ползунки управления -->
                 <div class="d-flex gap-4 ms-auto" style="width: 330px;">
                   <div class="form-group mb-0" style="width: 150px;">
@@ -68,6 +76,28 @@
                     >
                   </div>
                 </div>
+                <div class="col">
+                  <!-- Компонент сохранения сетки -->
+                  <GridSaveCanvas
+                    :grid-cols="gridCols"
+                    :grid-rows="gridRows"
+                    :mask-type="maskType"
+                    :uploaded-images="uploadedImages"
+                    :stroke-color="strokeColor"
+                    :stroke-width="strokeWidthPxForSave"
+                    :external-margin="externalMargin"
+                    :shadow-blur="shadowBlurPxForSave"
+                    :shadow-offset-x="shadowOffsetXPxForSave"
+                    :shadow-offset-y="shadowOffsetYPxForSave"
+                    :shadow-opacity="shadowOpacity"
+                    :solid-background-color="solidBackgroundColor"
+                    :solid-background-opacity="solidBackgroundOpacity"
+                    :text-layers="textLayers"
+                    @save-start="onSaveStart"
+                    @save-success="onSaveSuccess"
+                    @save-error="onSaveError"
+                  />
+                </div>
               </div>
               
 
@@ -83,28 +113,9 @@
             <!-- Кнопки управления -->
             <div class="card-header">
               <div class="d-flex justify-content-between align-items-center">
-                <button 
-                  @click="openTextDialog" 
-                  class="btn canvas-button"
-                >
-                  <i class="bi bi-type me-2"></i>
-                  Текст 2
-                </button>
+
                 
-                <!-- Компонент сохранения сетки -->
-                <GridSaveCanvas
-                  :grid-cols="gridCols"
-                  :grid-rows="gridRows"
-                  :mask-type="maskType"
-                  :uploaded-images="uploadedImages"
-                  :stroke-color="strokeColor"
-                  :stroke-width="strokeWidth"
-                  :external-margin="externalMargin"
-                  :text-layers="textLayers"
-                  @save-start="onSaveStart"
-                  @save-success="onSaveSuccess"
-                  @save-error="onSaveError"
-                />
+
               </div>
             </div>
             <div class="card-body p-0">
@@ -752,6 +763,12 @@ export default {
       return (this.strokeWidth / 100) * baseSize
     },
     
+    // Отдельные параметры для сохранения (увеличенные)
+    strokeWidthPxForSave() {
+      const baseSize = 80
+      return (this.strokeWidth / 100) * baseSize * 2 // Увеличиваем в 2 раза для сохранения
+    },
+    
     shadowBlurPx() {
       const baseSize = 60 // базовый размер для размытия тени
       return (this.shadowBlur / 100) * baseSize
@@ -765,6 +782,22 @@ export default {
     shadowOffsetYPx() {
       const baseSize = 40 // базовый размер для смещения тени по Y
       return (this.shadowOffsetY / 100) * baseSize
+    },
+    
+    // Отдельные параметры для сохранения (увеличенные)
+    shadowBlurPxForSave() {
+      const baseSize = 60
+      return (this.shadowBlur / 100) * baseSize * 2 // Увеличиваем в 2 раза для сохранения
+    },
+    
+    shadowOffsetXPxForSave() {
+      const baseSize = 40
+      return (this.shadowOffsetX / 100) * baseSize * 2 // Увеличиваем в 2 раза для сохранения
+    },
+    
+    shadowOffsetYPxForSave() {
+      const baseSize = 40
+      return (this.shadowOffsetY / 100) * baseSize * 2 // Увеличиваем в 2 раза для сохранения
     },
     
 
@@ -6223,8 +6256,8 @@ export default {
 
 .card-header {
   background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  padding: 1rem;
+  padding: 0;
+  border: 0;
 }
 
 .card-title {

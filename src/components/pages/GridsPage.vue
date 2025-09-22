@@ -80,9 +80,9 @@
       <div class="row">
         <div class="col-md-8">
           <div class="card">
-            <!-- Кнопка добавления текста -->
+            <!-- Кнопки управления -->
             <div class="card-header">
-              <div class="d-flex justify-content-start">
+              <div class="d-flex justify-content-between align-items-center">
                 <button 
                   @click="openTextDialog" 
                   class="btn canvas-button"
@@ -90,6 +90,18 @@
                   <i class="bi bi-type me-2"></i>
                   Текст 2
                 </button>
+                
+                <!-- Кнопка сохранения -->
+                <HighQualitySaveButton
+                  :save-function="saveCanvasForPrint"
+                  :save-params="{}"
+                  button-text="Сохранить в высоком качестве"
+                  size="medium"
+                  variant="primary"
+                  @save-success="onSaveSuccess"
+                  @save-error="onSaveError"
+                  @show-notification="showNotification"
+                />
               </div>
             </div>
             <div class="card-body p-0">
@@ -643,12 +655,14 @@ import * as THREE from 'three'
 import { markRaw } from 'vue'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
 import TextManager from '../TextManager.vue'
+import HighQualitySaveButton from '../common/HighQualitySaveButton.vue'
 
 export default {
   name: 'GridsPage',
   components: {
     ThreeDRenderer,
-    TextManager
+    TextManager,
+    HighQualitySaveButton
   },
   data() {
     return {
@@ -921,6 +935,11 @@ export default {
         }
         
         // Ищем элемент под курсором
+        if (!this.paperScope.project) {
+          console.warn('⚠️ paperScope.project не найден')
+          return
+        }
+        
         const hitResult = this.paperScope.project.hitTest(event.point, {
           segments: true,
           stroke: true,
@@ -953,7 +972,7 @@ export default {
       }
       
       dragTool.onMouseDrag = (event) => {
-        if (dragItem) {
+        if (dragItem && this.paperScope && this.paperScope.project) {
           // Обычное перемещение
           dragItem.position = event.point.subtract(offset)
           
@@ -975,7 +994,7 @@ export default {
       }
       
       dragTool.onMouseUp = (event) => {
-        if (dragItem) {
+        if (dragItem && this.paperScope && this.paperScope.project) {
           dragItem.selected = false
           console.log('🎯 Завершено перетаскивание Paper.js элемента')
           
@@ -992,6 +1011,11 @@ export default {
       // Обработчик двойного клика для редактирования текстовых элементов
       dragTool.onDoubleClick = (event) => {
         console.log('🎯 Двойной клик зарегистрирован в точке:', event.point)
+        
+        if (!this.paperScope || !this.paperScope.project) {
+          console.warn('⚠️ paperScope.project не найден при двойном клике')
+          return
+        }
         
         const hitResult = this.paperScope.project.hitTest(event.point, {
           segments: true,
@@ -1035,6 +1059,1078 @@ export default {
     handleDoubleClick(event) {
       // Логика двойного клика уже реализована в setupPaperTools
       console.log('🖱️ Двойной клик в точке:', event.point)
+    },
+
+    // Обработчики событий для кнопки сохранения
+    onSaveSuccess(result) {
+      console.log('✅ Сохранение завершено успешно:', result)
+      this.showNotification({
+        type: 'success',
+        message: 'Файл успешно сохранен в высоком качестве!'
+      })
+    },
+    
+    onSaveError(error) {
+      console.error('❌ Ошибка при сохранении:', error)
+      this.showNotification({
+        type: 'error',
+        message: 'Ошибка при сохранении файла. Попробуйте еще раз.'
+      })
+    },
+    
+    showNotification(notification) {
+      // Здесь можно добавить логику показа уведомлений
+      // Например, через toast или другой компонент уведомлений
+      console.log('📢 Уведомление:', notification)
+      
+      // Простое уведомление через alert (временное решение)
+      if (notification.type === 'success') {
+        alert('✅ ' + notification.message)
+      } else if (notification.type === 'error') {
+        alert('❌ ' + notification.message)
+      }
+    },
+
+    // Сохранение холста в высоком разрешении для печати
+    async saveCanvasForPrint() {
+      console.log('🖨️ Начинаем сохранение холста для печати в 300 DPI')
+      
+      return new Promise(async (resolve, reject) => {
+        try {
+          const canvas = this.$refs.paperCanvas
+          if (!canvas) {
+            console.error('❌ Основной холст не найден')
+            reject(new Error('Холст не найден'))
+            return
+          }
+
+          // Параметры для печати (300 DPI - стандарт для качественной печати)
+          const printDPI = 300
+          const screenDPI = 96 // Стандартный DPI экрана
+          
+          // Получаем размеры холста
+          const canvasWidth = canvas.width
+          const canvasHeight = canvas.height
+          
+          // Вычисляем размеры для печати (увеличиваем в 3.125 раза для 300 DPI)
+          const printWidth = Math.round(canvasWidth * (printDPI / screenDPI))
+          const printHeight = Math.round(canvasHeight * (printDPI / screenDPI))
+          const scale = printDPI / screenDPI
+          
+          console.log('📏 Размеры для печати:', {
+            original: `${canvasWidth}x${canvasHeight}`,
+            print: `${printWidth}x${printHeight}`,
+            scale: scale.toFixed(2)
+          })
+
+          // Создаем временный холст в высоком разрешении
+          const printCanvas = document.createElement('canvas')
+          printCanvas.width = printWidth
+          printCanvas.height = printHeight
+          const printCtx = printCanvas.getContext('2d')
+
+          // Устанавливаем белый фон (будет создан в tempPaperScope)
+
+          // Настраиваем высокое качество рендеринга
+          printCtx.imageSmoothingEnabled = true
+          printCtx.imageSmoothingQuality = 'high'
+          
+          // Отладочная информация
+          console.log('🔍 Отладочная информация для сохранения:')
+          console.log('- textLayers:', this.textLayers.length, this.textLayers)
+          console.log('- backgroundImage:', !!this.backgroundImage)
+          
+          // Создаем новый Paper.js canvas с высоким разрешением
+          console.log('🎨 Создаем новый Paper.js canvas с высоким разрешением')
+          
+          if (this.paperScope && this.paperScope.project) {
+            try {
+              // Создаем временный PaperScope с высоким разрешением
+              const tempPaperScope = new paper.PaperScope()
+              const tempCanvas = document.createElement('canvas')
+              tempCanvas.width = printWidth
+              tempCanvas.height = printHeight
+              // ВАЖНО: Устанавливаем стили для правильного масштабирования
+              tempCanvas.style.width = canvasWidth + 'px'
+              tempCanvas.style.height = canvasHeight + 'px'
+              tempPaperScope.setup(tempCanvas)
+              
+              // Создаем белый фон в tempPaperScope
+              const whiteBackground = new tempPaperScope.Path.Rectangle({
+                point: [0, 0],
+                size: [printWidth, printHeight]
+              })
+              whiteBackground.fillColor = '#FFFFFF'
+              whiteBackground.name = 'whiteBackground'
+              tempPaperScope.project.activeLayer.addChild(whiteBackground)
+              
+              // Перерисовываем все элементы в высоком разрешении
+              await this.redrawAllElementsInHighDPI(tempPaperScope, scale, printWidth, printHeight)
+              
+              // Ждем загрузки всех изображений с timeout
+              await new Promise(resolve => {
+                let attempts = 0
+                const maxAttempts = 50 // 5 секунд максимум
+                
+                const checkLoaded = () => {
+                  attempts++
+                  const allRasters = tempPaperScope.project.getItems({ class: tempPaperScope.Raster })
+                  const loadedRasters = allRasters.filter(raster => raster.loaded)
+                  console.log('🔍 Проверка загрузки изображений:', {
+                    attempt: attempts,
+                    total: allRasters.length,
+                    loaded: loadedRasters.length,
+                    allLoaded: allRasters.length === loadedRasters.length,
+                    maxAttempts
+                  })
+                  
+                  if (allRasters.length === loadedRasters.length || attempts >= maxAttempts) {
+                    if (attempts >= maxAttempts) {
+                      console.warn('⚠️ Timeout ожидания загрузки изображений, продолжаем с загруженными')
+                    }
+                    resolve()
+                  } else {
+                    setTimeout(checkLoaded, 100)
+                  }
+                }
+                checkLoaded()
+              })
+              
+              // ВАЖНО: Обновляем view после создания всех элементов
+              tempPaperScope.view.update()
+              
+              // Дополнительная проверка после обновления
+              console.log('🔍 Проверка после обновления view:', {
+                projectChildren: tempPaperScope.project.activeLayer.children.length,
+                projectItems: tempPaperScope.project.activeLayer.children.map(child => ({
+                  name: child.name,
+                  className: child.className,
+                  visible: child.visible,
+                  bounds: child.bounds ? {
+                    x: Math.round(child.bounds.x),
+                    y: Math.round(child.bounds.y),
+                    width: Math.round(child.bounds.width),
+                    height: Math.round(child.bounds.height)
+                  } : 'no bounds'
+                }))
+              })
+              
+              console.log('🔍 Проверяем элементы в tempPaperScope:', {
+                layers: tempPaperScope.project.layers.length,
+                children: tempPaperScope.project.activeLayer.children.length,
+                items: tempPaperScope.project.activeLayer.children.map(child => ({
+                  name: child.name,
+                  className: child.className,
+                  visible: child.visible,
+                  bounds: child.bounds ? {
+                    x: Math.round(child.bounds.x),
+                    y: Math.round(child.bounds.y),
+                    width: Math.round(child.bounds.width),
+                    height: Math.round(child.bounds.height)
+                  } : 'no bounds'
+                }))
+              })
+              
+              // Проверяем, что canvas не пустой (проверяем только небольшую область для производительности)
+              try {
+                const sampleSize = Math.min(100, tempCanvas.width, tempCanvas.height)
+                const canvasData = tempCanvas.getContext('2d').getImageData(0, 0, sampleSize, sampleSize)
+                const hasNonWhitePixels = Array.from(canvasData.data).some((value, index) => {
+                  if (index % 4 === 3) return false // Skip alpha channel
+                  return value !== 255 // Not white
+                })
+                console.log('🎨 Canvas содержит не-белые пиксели (проверка области):', hasNonWhitePixels)
+              } catch (error) {
+                console.log('🎨 Проверка пикселей пропущена из-за размера canvas:', tempCanvas.width, 'x', tempCanvas.height)
+              }
+              
+              // Копируем результат на printCanvas
+              printCtx.drawImage(tempCanvas, 0, 0)
+              
+              // Очищаем временный PaperScope
+              tempPaperScope.project.clear()
+              
+            } catch (error) {
+              console.error('❌ Ошибка при создании высокого разрешения:', error)
+              
+              // Fallback: простое масштабирование
+              printCtx.drawImage(
+                canvas,
+                0, 0, canvasWidth, canvasHeight,
+                0, 0, printWidth, printHeight
+              )
+            }
+          } else {
+            console.error('❌ Paper.js project не найден')
+            // Fallback: простое масштабирование HTML canvas
+            printCtx.drawImage(
+              canvas,
+              0, 0, canvasWidth, canvasHeight,
+              0, 0, printWidth, printHeight
+            )
+          }
+
+          // Создаем ссылку для скачивания
+          const filename = `grid-design-${new Date().toISOString().slice(0, 10)}.png`
+          const link = document.createElement('a')
+          link.download = filename
+          
+          // Конвертируем в blob с высоким качеством
+          printCanvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob)
+              link.href = url
+              
+              // Запускаем скачивание
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              
+              // Очищаем URL
+              URL.revokeObjectURL(url)
+              
+              console.log('✅ Файл успешно сохранен:', link.download)
+              
+              // Показываем уведомление пользователю
+              this.$nextTick(() => {
+                console.log('🎉 Изображение сохранено в высоком качестве для печати!')
+              })
+            } else {
+              console.error('❌ Ошибка при создании blob')
+              reject(new Error('Ошибка при создании файла'))
+            }
+          }, 'image/png', 1.0) // Максимальное качество
+
+          resolve({
+            success: true,
+            filename: filename,
+            size: { width: printWidth, height: printHeight },
+            scale: scale
+          })
+
+        } catch (error) {
+          console.error('❌ Ошибка при сохранении холста:', error)
+          reject(error)
+        }
+      })
+    },
+
+    // Перерисовка всех элементов в высоком разрешении для печати
+    async redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight) {
+      console.log('🎨 Перерисовываем все элементы в высоком разрешении')
+      console.log('📊 Статистика элементов:')
+      console.log('- textLayers:', this.textLayers.length)
+      
+      try {
+        // 1. Перерисовываем фоновые элементы сетки
+        console.log('🎨 Рисуем фоновые элементы сетки')
+        await this.redrawGridBackgroundInHighDPI(tempPaperScope, scale, canvasWidth / scale, canvasHeight / scale)
+        
+        // 2. Перерисовываем все текстовые элементы с подложками
+        console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев в правильном порядке`)
+        
+        // Сортируем текстовые слои по их реальному z-index (порядку наложения на канвасе)
+        const sortedTextLayers = [...this.textLayers].sort((a, b) => {
+          // Получаем z-index из Paper.js слоя, если он есть
+          const aZIndex = a.layer?.index || a.id || 0
+          const bZIndex = b.layer?.index || b.id || 0
+          return aZIndex - bZIndex
+        })
+        
+        console.log('📊 Порядок текстовых слоев при сохранении:', sortedTextLayers.map((layer, index) => ({
+          id: layer.id,
+          text: layer.textData?.text,
+          mode: layer.mode,
+          position: layer.position,
+          zIndex: layer.layer?.index || layer.id || 0,
+          order: index + 1
+        })))
+        
+        for (let i = 0; i < sortedTextLayers.length; i++) {
+          const layer = sortedTextLayers[i]
+          const originalIndex = this.textLayers.indexOf(layer)
+          
+          console.log(`📝 Текстовый слой ${originalIndex + 1} (z-index: ${layer.layer?.index || layer.id || 0}, слой ${i + 1}):`, {
+            id: layer.id,
+            text: layer.textData?.text,
+            mode: layer.mode,
+            position: layer.position,
+            zIndex: layer.layer?.index || layer.id || 0
+          })
+          
+          try {
+            await this.redrawTextLayerInHighDPI(tempPaperScope, layer, scale)
+            console.log(`✅ Текстовый слой ${originalIndex + 1} успешно обработан`)
+          } catch (error) {
+            console.error(`❌ Ошибка в текстовом слое ${originalIndex + 1}:`, error)
+          }
+        }
+        
+        console.log('✅ Все элементы перерисованы в высоком разрешении')
+        
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке элементов в высоком разрешении:', error)
+        throw error
+      }
+    },
+
+    // Перерисовка фоновых элементов сетки в высоком разрешении
+    async redrawGridBackgroundInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight) {
+      console.log('🎨 Перерисовываем фоновые элементы сетки')
+      
+      try {
+        // Создаем фоновые слои
+        this.createBackgroundLayerForHighDPI(tempPaperScope, scale)
+        
+        // Создаем маски в зависимости от типа
+        const viewWidth = canvasWidth * scale
+        const viewHeight = canvasHeight * scale
+        const cellWidth = viewWidth / this.gridCols
+        const cellHeight = viewHeight / this.gridRows
+        
+        console.log('📏 Размеры ячейки в высоком разрешении:', {
+          cellWidth,
+          cellHeight,
+          scale,
+          gridCols: this.gridCols,
+          gridRows: this.gridRows,
+          viewWidth,
+          viewHeight
+        })
+        
+        console.log('🔍 Информация о типе сетки:', {
+          gridType: this.gridType,
+          maskType: this.maskType,
+          gridTypeType: typeof this.gridType,
+          maskTypeType: typeof this.maskType
+        })
+        
+        // Создаем группу для масок
+        const maskGroup = new tempPaperScope.Group()
+        maskGroup.name = 'masks'
+        
+        // ВАЖНО: Добавляем группу масок в активный слой проекта
+        tempPaperScope.project.activeLayer.addChild(maskGroup)
+        
+        // Используем maskType вместо gridType, так как gridType undefined
+        const actualMaskType = this.maskType || this.gridType
+        console.log('🔄 Начинаем создание масок для типа:', actualMaskType)
+        
+        switch (actualMaskType) {
+          case 'rectangle':
+            console.log('🔲 Выбран случай: rectangle')
+            await this.createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            break
+          case 'triangle':
+            console.log('🔺 Выбран случай: triangle')
+            await this.createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            break
+          case 'diamond':
+            console.log('💎 Выбран случай: diamond')
+            await this.createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            break
+          case 'hexagon':
+            console.log('⬡ Выбран случай: hexagon')
+            await this.createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale)
+            break
+          default:
+            console.log('⚠️ Неизвестный тип сетки:', this.gridType)
+            break
+        }
+        
+        console.log('✅ Фоновые элементы сетки перерисованы в высоком разрешении')
+        
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке фоновых элементов:', error)
+      }
+    },
+
+    // Перерисовка текстового слоя в высоком разрешении
+    async redrawTextLayerInHighDPI(tempPaperScope, layerInfo, scale) {
+      console.log('📝 Перерисовываем текстовый слой:', layerInfo.id)
+      
+      try {
+        // Создаем временный canvas для рендеринга в высоком разрешении
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Получаем размеры из оригинального элемента
+        let bounds
+        if (layerInfo.backgroundItem && layerInfo.backgroundItem.bounds) {
+          bounds = layerInfo.backgroundItem.bounds
+        } else {
+          // Используем примерные размеры
+          bounds = {
+            width: 200,
+            height: 100,
+            x: 0,
+            y: 0
+          }
+        }
+        
+        console.log('📏 Размеры слоя:', bounds)
+        
+        // Создаем canvas с высоким разрешением
+        let backgroundWidth = layerInfo.textData.backgroundWidth || 200
+        let backgroundHeight = layerInfo.textData.backgroundHeight || 80
+        
+        // Вычисляем размеры в высоком разрешении
+        const scaledBackgroundWidth = backgroundWidth * scale
+        const scaledBackgroundHeight = backgroundHeight * scale
+        const highResWidth = Math.max(scaledBackgroundWidth, 200 * scale)
+        const highResHeight = Math.max(scaledBackgroundHeight, 100 * scale)
+        
+        // Устанавливаем размеры canvas
+        tempCanvas.width = highResWidth
+        tempCanvas.height = highResHeight
+        
+        // Добавляем отступы для тени и обводки
+        const padding = Math.max(20 * scale, 20)
+        const totalWidth = highResWidth + padding * 2
+        const totalHeight = highResHeight + padding * 2
+        
+        tempCanvas.width = totalWidth
+        tempCanvas.height = totalHeight
+        
+        // Настраиваем контекст для высокого качества
+        tempCtx.imageSmoothingEnabled = true
+        tempCtx.imageSmoothingQuality = 'high'
+        
+        // Рисуем подложку в высоком разрешении
+        console.log('🎨 Рисуем подложку для текста в высоком разрешении')
+        
+        // Сохраняем контекст и применяем отступы
+        tempCtx.save()
+        tempCtx.translate(padding, padding)
+        
+        // Создаем временный слой для передачи в методы
+        const tempLayer = {
+          textData: layerInfo.textData,
+          bounds: {
+            width: scaledBackgroundWidth,
+            height: scaledBackgroundHeight
+          }
+        }
+        
+        // Рисуем подложку в зависимости от режима
+        if (layerInfo.mode === 'conversation') {
+          await this.drawConversationBackgroundInHighDPI(tempCtx, tempLayer, scale)
+        } else if (layerInfo.mode === 'standard') {
+          await this.drawStandardBackgroundInHighDPI(tempCtx, tempLayer, scale)
+        } else if (layerInfo.mode === 'thoughts') {
+          await this.drawThoughtsBackgroundInHighDPI(tempCtx, tempLayer, scale)
+        } else if (layerInfo.mode === 'image-text') {
+          await this.drawImageTextBackgroundInHighDPI(tempCtx, tempLayer, scale)
+        }
+        
+        // Восстанавливаем контекст
+        tempCtx.restore()
+        
+        // Рисуем текст в высоком разрешении
+        console.log('✍️ Рисуем текст в высоком разрешении')
+        this.drawTextInHighDPI(tempCtx, { 
+          ...layerInfo, 
+          bounds: { width: highResWidth, height: highResHeight },
+          textData: {
+            ...layerInfo.textData,
+            fontSize: layerInfo.textData.fontSize * scale  // Масштабируем размер шрифта
+          }
+        })
+        
+        // Создаем Raster из временного canvas
+        const textRaster = new tempPaperScope.Raster(tempCanvas.toDataURL('image/png', 1.0))
+        
+        // Ждем загрузки
+        await new Promise((resolve) => {
+          textRaster.onLoad = resolve
+        })
+        
+        // Позиционируем в высоком разрешении
+        const position = layerInfo.position || { x: 0, y: 0 }
+        const scaledX = position.x * scale
+        const scaledY = position.y * scale
+        
+        console.log('📍 Позиция текста:', {
+          original: position,
+          scaled: { x: scaledX, y: scaledY },
+          canvasSize: { width: tempPaperScope.view.element.width, height: tempPaperScope.view.element.height },
+          textSize: { width: textRaster.bounds.width, height: textRaster.bounds.height }
+        })
+        
+        textRaster.position = new tempPaperScope.Point(scaledX, scaledY)
+        
+        // Добавляем на слой
+        tempPaperScope.project.activeLayer.addChild(textRaster)
+        
+        console.log('✅ Текстовый слой добавлен в высоком разрешении:', textRaster.bounds)
+        
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке текстового слоя:', error)
+        throw error
+      }
+    },
+
+    // Создание фонового слоя для высокого разрешения
+    createBackgroundLayerForHighDPI(tempPaperScope, scale) {
+      console.log('🎨 Создаем фоновый слой для высокого разрешения')
+      
+      // Используем размеры canvas в высоком разрешении
+      const viewWidth = tempPaperScope.view.element.width
+      const viewHeight = tempPaperScope.view.element.height
+      
+      console.log('📏 Размеры canvas в высоком разрешении:', {
+        viewWidth,
+        viewHeight,
+        scale
+      })
+      
+      // Создаем основной слой фона
+      const backgroundGroup = new tempPaperScope.Group()
+      backgroundGroup.name = 'background'
+      
+      // ВАЖНО: Добавляем группу в активный слой проекта
+      tempPaperScope.project.activeLayer.addChild(backgroundGroup)
+      
+      // Слой 1: Фоновое изображение (самый нижний)
+      console.log('🖼️ Проверка фонового изображения:', {
+        hasBackgroundImage: !!this.backgroundImage,
+        enableBackgroundImage: this.enableBackgroundImage,
+        backgroundImageType: typeof this.backgroundImage
+      })
+      
+      if (this.backgroundImage && this.enableBackgroundImage) {
+        console.log('🖼️ Создаем фоновое изображение в высоком разрешении')
+        const bgRaster = new tempPaperScope.Raster(this.backgroundImage)
+        bgRaster.name = 'backgroundImage'
+        bgRaster.onLoad = () => {
+          // Масштабируем изображение под размер канваса
+          const scaleX = viewWidth / bgRaster.bounds.width
+          const scaleY = viewHeight / bgRaster.bounds.height
+          const imageScale = Math.max(scaleX, scaleY) // Сохраняем пропорции
+          
+          bgRaster.scale(imageScale)
+          bgRaster.position = new tempPaperScope.Point(viewWidth / 2, viewHeight / 2)
+          
+          // Добавляем в группу фона
+          backgroundGroup.addChild(bgRaster)
+          
+          console.log('✅ Фоновое изображение добавлено в высоком разрешении:', {
+            imageScale,
+            position: bgRaster.position,
+            bounds: bgRaster.bounds
+          })
+        }
+      }
+      
+      // Слой 2: Солидная заливка (поверх изображения)
+      console.log('🎨 Проверка солидной заливки:', {
+        enableSolidBackground: this.enableSolidBackground,
+        solidBackgroundOpacity: this.solidBackgroundOpacity,
+        solidBackgroundColor: this.solidBackgroundColor
+      })
+      
+      if (this.enableSolidBackground && this.solidBackgroundOpacity > 0) {
+        console.log('🎨 Создаем солидную заливку в высоком разрешении')
+        const solidRect = new tempPaperScope.Path.Rectangle({
+          point: [0, 0],
+          size: [viewWidth, viewHeight]
+        })
+        
+        solidRect.fillColor = this.solidBackgroundColor
+        solidRect.opacity = this.solidBackgroundOpacity / 100
+        solidRect.name = 'solidBackground'
+        
+        backgroundGroup.addChild(solidRect)
+      }
+      
+      console.log('✅ Фоновый слой для высокого разрешения создан:', {
+        backgroundGroupChildren: backgroundGroup.children.length,
+        backgroundGroupBounds: backgroundGroup.bounds ? {
+          x: Math.round(backgroundGroup.bounds.x),
+          y: Math.round(backgroundGroup.bounds.y),
+          width: Math.round(backgroundGroup.bounds.width),
+          height: Math.round(backgroundGroup.bounds.height)
+        } : 'no bounds'
+      })
+    },
+
+    // Создание масок прямоугольников для высокого разрешения
+    async createRectangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+      console.log('🔲 Создаем маски прямоугольников для высокого разрешения')
+      console.log('📏 Параметры создания масок:', {
+        cellWidth,
+        cellHeight,
+        scale,
+        gridCols: this.gridCols,
+        gridRows: this.gridRows,
+        externalMargin: this.externalMargin
+      })
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      let adjustedWidth = cellWidth - margin * 2
+      let adjustedHeight = cellHeight - margin * 2
+      
+      // Увеличиваем размер на 0.5% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.005 // 0.5%
+      adjustedWidth += adjustedWidth * sizeIncrease
+      adjustedHeight += adjustedHeight * sizeIncrease
+      
+      // Корректируем позицию для центрирования увеличенного прямоугольника
+      const xOffset = (adjustedWidth - (cellWidth - margin * 2)) / 2
+      const yOffset = (adjustedHeight - (cellHeight - margin * 2)) / 2
+      
+      // Получаем изображения для сетки
+      const gridImages = this.getImagesForGrid()
+      
+      console.log('🔄 Начинаем создание масок для', this.gridRows * this.gridCols, 'ячеек')
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const x = col * cellWidth + margin - xOffset
+          const y = row * cellHeight + margin - yOffset
+          
+          console.log(`📐 Создаем маску для ячейки [${row}, ${col}]:`, {
+            position: { x, y },
+            size: { width: adjustedWidth, height: adjustedHeight },
+            margin,
+            xOffset,
+            yOffset
+          })
+          
+          const rect = new tempPaperScope.Path.Rectangle({
+            point: [x, y],
+            size: [adjustedWidth, adjustedHeight]
+          })
+          rect.strokeJoin = 'miter' // Убираем скругление углов
+          
+          // Получаем изображение для данной позиции
+          const image = this.getImageForPosition(row, col, gridImages.length)
+          
+          // Применяем настройки обводки и тени (теперь асинхронно)
+          await this.applyMaskStylesForHighDPI(rect, image, scale, tempPaperScope)
+          
+          // Добавляем маску в группу
+          maskGroup.addChild(rect)
+          
+          rect.data = { row, col, type: 'rectangle' }
+          
+          console.log(`✅ Маска [${row}, ${col}] создана и добавлена в группу`)
+        }
+      }
+      
+      console.log('✅ Маски прямоугольников для высокого разрешения созданы:', {
+        maskCount: maskGroup.children.length,
+        maskGroupBounds: maskGroup.bounds ? {
+          x: Math.round(maskGroup.bounds.x),
+          y: Math.round(maskGroup.bounds.y),
+          width: Math.round(maskGroup.bounds.width),
+          height: Math.round(maskGroup.bounds.height)
+        } : 'no bounds'
+      })
+    },
+
+    // Создание масок треугольников для высокого разрешения
+    async createTriangleMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+      console.log('🔺 Создаем маски треугольников для высокого разрешения')
+      
+      const viewWidth = tempPaperScope.view.element.width
+      const viewHeight = tempPaperScope.view.element.height
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      let adjustedWidth = cellWidth - margin * 2
+      let adjustedHeight = cellHeight - margin * 2
+      
+      // Получаем изображения для сетки
+      const gridImages = this.getImagesForGrid()
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const x = col * cellWidth + margin
+          const y = row * cellHeight + margin
+          
+          // Определяем направление треугольника в шахматном порядке
+          const isUpward = (row + col) % 2 === 0
+          
+          const triangle = new tempPaperScope.Path()
+          if (isUpward) {
+            // Треугольник направлен вверх
+            triangle.add(new tempPaperScope.Point(x, y + adjustedHeight))
+            triangle.add(new tempPaperScope.Point(x + adjustedWidth / 2, y))
+            triangle.add(new tempPaperScope.Point(x + adjustedWidth, y + adjustedHeight))
+          } else {
+            // Треугольник направлен вниз
+            triangle.add(new tempPaperScope.Point(x, y))
+            triangle.add(new tempPaperScope.Point(x + adjustedWidth / 2, y + adjustedHeight))
+            triangle.add(new tempPaperScope.Point(x + adjustedWidth, y))
+          }
+          
+          triangle.closed = true
+          
+          // Получаем изображение для данной позиции
+          const image = this.getImageForPosition(row, col, gridImages.length)
+          
+          // Применяем настройки обводки и тени (теперь асинхронно)
+          await this.applyMaskStylesForHighDPI(triangle, image, scale, tempPaperScope)
+          
+          // Добавляем маску в группу
+          maskGroup.addChild(triangle)
+          
+          triangle.data = { row, col, type: 'triangle' }
+        }
+      }
+      
+      console.log('✅ Маски треугольников для высокого разрешения созданы')
+    },
+
+    // Создание масок ромбов для высокого разрешения
+    async createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+      console.log('💎 Создаем маски ромбов для высокого разрешения')
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      let adjustedWidth = cellWidth - margin * 2
+      let adjustedHeight = cellHeight - margin * 2
+      
+      // Получаем изображения для сетки
+      const gridImages = this.getImagesForGrid()
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const x = col * cellWidth + margin
+          const y = row * cellHeight + margin
+          
+          const diamond = new tempPaperScope.Path()
+          diamond.add(new tempPaperScope.Point(x + adjustedWidth / 2, y)) // Верх
+          diamond.add(new tempPaperScope.Point(x + adjustedWidth, y + adjustedHeight / 2)) // Право
+          diamond.add(new tempPaperScope.Point(x + adjustedWidth / 2, y + adjustedHeight)) // Низ
+          diamond.add(new tempPaperScope.Point(x, y + adjustedHeight / 2)) // Лево
+          diamond.closed = true
+          
+          // Получаем изображение для данной позиции
+          const image = this.getImageForPosition(row, col, gridImages.length)
+          
+          // Применяем настройки обводки и тени (теперь асинхронно)
+          await this.applyMaskStylesForHighDPI(diamond, image, scale, tempPaperScope)
+          
+          // Добавляем маску в группу
+          maskGroup.addChild(diamond)
+          
+          diamond.data = { row, col, type: 'diamond' }
+        }
+      }
+      
+      console.log('✅ Маски ромбов для высокого разрешения созданы')
+    },
+
+    // Создание масок шестиугольников для высокого разрешения
+    async createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale) {
+      console.log('⬡ Создаем маски шестиугольников для высокого разрешения')
+      
+      // Применяем внешний отступ
+      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      let adjustedWidth = cellWidth - margin * 2
+      let adjustedHeight = cellHeight - margin * 2
+      
+      // Получаем изображения для сетки
+      const gridImages = this.getImagesForGrid()
+      
+      for (let row = 0; row < this.gridRows; row++) {
+        for (let col = 0; col < this.gridCols; col++) {
+          const x = col * cellWidth + margin
+          const y = row * cellHeight + margin
+          
+          // Создаем шестиугольник
+          const hexagon = new tempPaperScope.Path()
+          const centerX = x + adjustedWidth / 2
+          const centerY = y + adjustedHeight / 2
+          const radiusX = adjustedWidth / 2
+          const radiusY = adjustedHeight / 2
+          
+          // Создаем 6 точек шестиугольника
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3
+            const hexX = centerX + radiusX * Math.cos(angle)
+            const hexY = centerY + radiusY * Math.sin(angle)
+            hexagon.add(new tempPaperScope.Point(hexX, hexY))
+          }
+          
+          hexagon.closed = true
+          
+          // Получаем изображение для данной позиции
+          const image = this.getImageForPosition(row, col, gridImages.length)
+          
+          // Применяем настройки обводки и тени (теперь асинхронно)
+          await this.applyMaskStylesForHighDPI(hexagon, image, scale, tempPaperScope)
+          
+          // Добавляем маску в группу
+          maskGroup.addChild(hexagon)
+          
+          hexagon.data = { row, col, type: 'hexagon' }
+        }
+      }
+      
+      console.log('✅ Маски шестиугольников для высокого разрешения созданы')
+    },
+
+    // Создание подложки на слое для высокого разрешения
+    createBackgroundItemOnLayerForHighDPI(layer, layerIndex, textData, position, mode, scale) {
+      console.log('🎨 Создаем подложку для высокого разрешения:', { layerIndex, mode, position, scale })
+      
+      // Масштабируем данные текста для высокого разрешения
+      const scaledTextData = { ...textData }
+      if (scaledTextData.fontSize) {
+        scaledTextData.fontSize = scaledTextData.fontSize * scale
+      }
+      if (scaledTextData.strokeWidth) {
+        scaledTextData.strokeWidth = scaledTextData.strokeWidth * scale
+      }
+      if (scaledTextData.shadowBlur) {
+        scaledTextData.shadowBlur = scaledTextData.shadowBlur * scale
+      }
+      if (scaledTextData.shadowOffsetX) {
+        scaledTextData.shadowOffsetX = scaledTextData.shadowOffsetX * scale
+      }
+      if (scaledTextData.shadowOffsetY) {
+        scaledTextData.shadowOffsetY = scaledTextData.shadowOffsetY * scale
+      }
+      
+      // Создаем подложку с масштабированными данными
+      const backgroundItem = this.createBackgroundItemOnLayer(layer, layerIndex, scaledTextData, position, mode)
+      
+      console.log('✅ Подложка для высокого разрешения создана')
+      return backgroundItem
+    },
+
+    // Применение стилей масок для высокого разрешения
+    async applyMaskStylesForHighDPI(mask, image, scale, tempPaperScope) {
+      if (!image) {
+        console.warn('⚠️ Изображение не найдено для маски, используем базовую заливку')
+        // Применяем базовую заливку если нет изображения
+        mask.fillColor = new tempPaperScope.Color('#f0f0f0')
+        mask.strokeColor = new tempPaperScope.Color('#cccccc')
+        mask.strokeWidth = 2 * scale
+        return
+      }
+
+      console.log('🖼️ Создаем Raster для маски (новый подход):', {
+        hasImage: !!image,
+        imageType: typeof image,
+        tempPaperScope: !!tempPaperScope,
+        tempPaperScopeType: typeof tempPaperScope
+      })
+      
+      if (!image) {
+        console.log('⚠️ Нет изображения, используем fallback заливку')
+        mask.fillColor = '#f0f0f0'
+        if (this.strokeWidth > 0) {
+          mask.strokeColor = this.strokeColor
+          mask.strokeWidth = this.strokeWidth * scale
+        }
+        return
+      }
+      
+      try {
+        // ПОДХОД STICKERMANIAPAGE: Создаем временный Canvas и рисуем на нем
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Получаем размеры маски
+        const maskBounds = mask.bounds
+        console.log('📐 Размеры маски:', maskBounds.width, 'x', maskBounds.height)
+        
+        // Устанавливаем размеры временного Canvas
+        tempCanvas.width = maskBounds.width
+        tempCanvas.height = maskBounds.height
+        
+        // Очищаем canvas
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+        
+        // Создаем Raster для загрузки изображения (как в StickerManiaPage)
+        // Используем image.url если есть, иначе сам объект image
+        const imageSource = image.url || image
+        console.log('🖼️ Источник изображения:', {
+          hasUrl: !!image.url,
+          url: image.url,
+          imageType: typeof image,
+          imageSourceType: typeof imageSource
+        })
+        
+        const raster = new tempPaperScope.Raster(imageSource)
+        
+        // Ждем загрузки изображения через Promise с timeout (как в StickerManiaPage)
+        await new Promise((resolve, reject) => {
+          if (raster.loaded) {
+            console.log('🖼️ Raster уже загружен, применяем сразу')
+            resolve()
+          } else {
+            console.log('🖼️ Raster не загружен, ждем загрузки...')
+            
+            // Устанавливаем timeout на 5 секунд
+            const timeout = setTimeout(() => {
+              console.warn('⚠️ Timeout загрузки Raster, используем fallback')
+              reject(new Error('Raster loading timeout'))
+            }, 5000)
+            
+            raster.onLoad = () => {
+              clearTimeout(timeout)
+              console.log('🖼️ Raster загружен через onLoad')
+              resolve()
+            }
+            
+            raster.onError = (error) => {
+              clearTimeout(timeout)
+              console.error('❌ Ошибка загрузки Raster:', error)
+              reject(error)
+            }
+          }
+        })
+        
+        console.log('🖼️ Raster изображение загружено:', {
+          bounds: raster.bounds,
+          maskBounds: mask.bounds,
+          imageSize: raster.image ? `${raster.image.width}x${raster.image.height}` : 'нет данных'
+        })
+        
+        // Масштабируем изображение под размер маски
+        const bounds = mask.bounds
+        const scaleX = bounds.width / raster.bounds.width
+        const scaleY = bounds.height / raster.bounds.height
+        const imageScale = Math.max(scaleX, scaleY)
+        
+        // Позиционируем изображение в центре маски
+        const imageX = bounds.center.x - (raster.bounds.width * imageScale) / 2
+        const imageY = bounds.center.y - (raster.bounds.height * imageScale) / 2
+        
+        // Рисуем изображение на временном Canvas
+        tempCtx.drawImage(
+          raster.canvas,
+          imageX - bounds.x,
+          imageY - bounds.y,
+          raster.bounds.width * imageScale,
+          raster.bounds.height * imageScale
+        )
+        
+        // Создаем новый Raster из временного Canvas
+        const canvasRaster = new tempPaperScope.Raster(tempCanvas)
+        canvasRaster.position = bounds.center
+        
+        // Добавляем Raster в проект
+        tempPaperScope.project.activeLayer.addChild(canvasRaster)
+        
+        // Применяем изображение как заливку маски
+        mask.fillColor = null
+        mask.fillColor = new tempPaperScope.Color(canvasRaster)
+        
+        console.log('✅ Изображение применено к маске (новый подход):', {
+          imageScale,
+          position: canvasRaster.position,
+          maskFillColor: mask.fillColor,
+          canvasSize: `${tempCanvas.width}x${tempCanvas.height}`
+        })
+        
+      } catch (error) {
+        console.error('❌ Ошибка при применении изображения к маске:', error)
+        
+        // Fallback заливка
+        mask.fillColor = '#f0f0f0'
+        if (this.strokeWidth > 0) {
+          mask.strokeColor = this.strokeColor
+          mask.strokeWidth = this.strokeWidth * scale
+        }
+        
+        console.log('✅ Fallback заливка применена к маске')
+      }
+      
+      // Настройки обводки с масштабированием
+      if (this.strokeWidth > 0) {
+        mask.strokeColor = this.strokeColor
+        mask.strokeWidth = this.strokeWidth * scale
+      } else {
+        mask.strokeWidth = 0
+      }
+      
+      // Настройки тени с масштабированием
+      if (this.shadowBlur > 0) {
+        mask.shadowColor = new tempPaperScope.Color(0, 0, 0, this.shadowOpacity / 100)
+        mask.shadowBlur = this.shadowBlur * scale
+        mask.shadowOffset = new tempPaperScope.Point(
+          this.shadowOffsetX * scale,
+          this.shadowOffsetY * scale
+        )
+      }
+      
+      console.log('✅ Стили маски для высокого разрешения применены')
+    },
+
+    // Рисование подложки "Разговор" в высоком разрешении
+    async drawConversationBackgroundInHighDPI(ctx, layer, scale) {
+      console.log('💬 Рисуем подложку "Разговор" в высоком разрешении')
+      // Здесь будет логика рисования подложки "Разговор" в высоком разрешении
+      // Пока что используем простую реализацию
+      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
+      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+    },
+
+    // Рисование подложки "Стандарт" в высоком разрешении
+    async drawStandardBackgroundInHighDPI(ctx, layer, scale) {
+      console.log('📝 Рисуем подложку "Стандарт" в высоком разрешении')
+      // Здесь будет логика рисования подложки "Стандарт" в высоком разрешении
+      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
+      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+    },
+
+    // Рисование подложки "Мысли" в высоком разрешении
+    async drawThoughtsBackgroundInHighDPI(ctx, layer, scale) {
+      console.log('🧠 Рисуем подложку "Мысли" в высоком разрешении')
+      // Здесь будет логика рисования подложки "Мысли" в высоком разрешении
+      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
+      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+    },
+
+    // Рисование подложки "Текст с изображением" в высоком разрешении
+    async drawImageTextBackgroundInHighDPI(ctx, layer, scale) {
+      console.log('🖼️ Рисуем подложку "Текст с изображением" в высоком разрешении')
+      // Здесь будет логика рисования подложки "Текст с изображением" в высоком разрешении
+      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
+      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+    },
+
+    // Рисование текста в высоком разрешении
+    drawTextInHighDPI(ctx, layer) {
+      const textData = layer.textData
+      console.log('✍️ drawTextInHighDPI вызван:', {
+        hasTextData: !!textData,
+        text: textData?.text,
+        fontSize: textData?.fontSize,
+        font: textData?.font,
+        backgroundMode: textData?.backgroundMode
+      })
+      
+      if (!textData) {
+        console.log('⚠️ Нет данных текста, выходим')
+        return
+      }
+      
+      // Настраиваем шрифт
+      ctx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font}`
+      ctx.textAlign = textData.textAlign || 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = textData.textColor || '#000000'
+      
+      // Центрируем текст
+      const centerX = layer.bounds.width / 2
+      const centerY = layer.bounds.height / 2
+      
+      // Рисуем текст
+      ctx.fillText(textData.text, centerX, centerY)
+      
+      console.log('✅ Текст нарисован в высоком разрешении:', {
+        text: textData.text,
+        fontSize: textData.fontSize,
+        position: { x: centerX, y: centerY }
+      })
     },
     
     // Динамический расчет толщины обводки в зависимости от размера маски
@@ -1251,7 +2347,7 @@ export default {
         }, 500) // Увеличили задержку с 300 до 500мс
       })
     },
-
+    
     // Восстановление текстовых слоев после перерисовки сетки
     restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId) {
       if (!savedTextLayers || savedTextLayers.length === 0) {
@@ -1496,7 +2592,17 @@ export default {
       getImageForPosition(row, col, totalImages) {
     // Отображаем изображение во всех масках
     const gridImages = this.getImagesForGrid()
+    
+    console.log('🖼️ getImageForPosition:', {
+      row,
+      col,
+      totalImages,
+      gridImagesLength: gridImages.length,
+      gridCols: this.gridCols
+    })
+    
     if (gridImages.length === 0) {
+      console.warn('⚠️ Нет изображений для сетки')
       return null
     }
     
@@ -1507,7 +2613,16 @@ export default {
     const offset = row * 2 // Увеличиваем смещение
     const imageIndex = (baseIndex + offset) % gridImages.length
     
-    return gridImages[imageIndex]
+    const selectedImage = gridImages[imageIndex]
+    console.log('🖼️ Выбрано изображение:', {
+      baseIndex,
+      offset,
+      imageIndex,
+      selectedImage: selectedImage ? 'есть' : 'нет',
+      imageType: typeof selectedImage
+    })
+    
+    return selectedImage
   },
     
     getHexagonPoints(width, height) {

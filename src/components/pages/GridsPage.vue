@@ -101,6 +101,7 @@
                   :stroke-width="strokeWidth"
                   :external-margin="externalMargin"
                   :text-layers="textLayers"
+                  @save-start="onSaveStart"
                   @save-success="onSaveSuccess"
                   @save-error="onSaveError"
                 />
@@ -701,6 +702,7 @@ export default {
       
       // Состояния включения слоев фона (удалено - теперь используются computed свойства)
       isLoading: false, // Состояние загрузки для прелоадера
+      isSaving: false, // Флаг сохранения для предотвращения случайной очистки канваса
       // Three.js данные
       threeInstance: markRaw({
         scene: null,
@@ -794,53 +796,68 @@ export default {
     // Автоматическое применение изменений ползунков
     'gridSettings': {
       handler() {
+        if (this.isSaving) return
         this.generateGrid()
       },
       deep: true
     },
     maskType() {
+      console.log('👀 maskType watcher вызван:', { isSaving: this.isSaving })
+      if (this.isSaving) return
       this.generateGrid()
     },
     // Дополнительные настройки
     externalMargin() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     strokeColor() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     strokeWidth() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     shadowBlur() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     shadowOffsetX() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     shadowOffsetY() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     shadowOpacity() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     
     // Настройки фона
     backgroundImage() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     solidBackgroundColor() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     solidBackgroundOpacity() {
+      if (this.isSaving) return
       this.generateGrid()
     },
 
     
     // Состояния включения слоев фона
     enableBackgroundImage() {
+      if (this.isSaving) return
       this.generateGrid()
     },
     enableSolidBackground() {
+      if (this.isSaving) return
       this.generateGrid()
     },
 
@@ -848,6 +865,13 @@ export default {
     // Обновляем сетку при изменении изображений
     uploadedImages: {
       handler() {
+        console.log('👀 uploadedImages watcher вызван:', { isSaving: this.isSaving })
+        // Защита от случайного вызова во время сохранения
+        if (this.isSaving) {
+          console.log('⚠️ Пропускаем обновление сетки во время сохранения')
+          return
+        }
+        
         this.generateGrid()
         // Также обновляем Three.js текстуру с увеличенной задержкой
         this.$nextTick(() => {
@@ -1064,8 +1088,28 @@ export default {
     },
 
     // Обработчики событий для кнопки сохранения
+    onSaveStart() {
+      console.log('🔄 Начинается сохранение, устанавливаем флаг isSaving')
+      console.log('🔍 Состояние до установки флага:', {
+        isSaving: this.isSaving,
+        textLayersCount: this.textLayers.length,
+        paperProjectChildren: this.paperScope?.project?.children?.length || 0
+      })
+      this.isSaving = true
+      console.log('🔍 Состояние после установки флага:', {
+        isSaving: this.isSaving,
+        textLayersCount: this.textLayers.length,
+        paperProjectChildren: this.paperScope?.project?.children?.length || 0
+      })
+    },
+    
     onSaveSuccess(result) {
       console.log('✅ Сохранение завершено успешно:', result)
+      this.isSaving = false // Сбрасываем флаг сохранения
+      
+      // Восстанавливаем основной канвас после сохранения
+      this.restoreMainCanvasAfterSave()
+      
       this.showNotification({
         type: 'success',
         message: 'Файл успешно сохранен в высоком качестве!'
@@ -1074,9 +1118,46 @@ export default {
     
     onSaveError(error) {
       console.error('❌ Ошибка при сохранении:', error)
+      this.isSaving = false // Сбрасываем флаг сохранения
+      
+      // Восстанавливаем основной канвас даже при ошибке сохранения
+      this.restoreMainCanvasAfterSave()
+      
       this.showNotification({
         type: 'error',
         message: 'Ошибка при сохранении файла. Попробуйте еще раз.'
+      })
+    },
+    
+    // Открытие диалога добавления текста
+    openTextDialog() {
+      // Передаем событие в TextManager
+      if (this.$refs.textManager) {
+        this.$refs.textManager.openTextDialog()
+      }
+    },
+    
+    // Восстановление основного канваса после сохранения
+    restoreMainCanvasAfterSave() {
+      console.log('🔄 Восстанавливаем основной канвас после сохранения')
+      
+      // Небольшая задержка чтобы убедиться что сохранение полностью завершено
+      this.$nextTick(() => {
+        setTimeout(() => {
+          console.log('🎨 Перерисовываем основной канвас')
+          
+          // Принудительно перерисовываем сетку
+          this.generateGrid()
+          
+          // Обновляем 3D модель
+          this.$nextTick(() => {
+            if (this.$refs.threeRenderer) {
+              this.$refs.threeRenderer.forceUpdate()
+            }
+          })
+          
+          console.log('✅ Основной канвас восстановлен')
+        }, 100) // Небольшая задержка
       })
     },
     
@@ -1085,12 +1166,7 @@ export default {
       // Например, через toast или другой компонент уведомлений
       console.log('📢 Уведомление:', notification)
       
-      // Простое уведомление через alert (временное решение)
-      if (notification.type === 'success') {
-        alert('✅ ' + notification.message)
-      } else if (notification.type === 'error') {
-        alert('❌ ' + notification.message)
-      }
+      // Уведомления выводятся только в консоль (alert убран)
     },
 
     // Сохранение холста в высоком разрешении для печати
@@ -2419,6 +2495,25 @@ export default {
     
     generateGrid() {
       if (!this.paperScope) return
+      
+      console.log('🔄 generateGrid вызван:', {
+        isSaving: this.isSaving,
+        stackTrace: new Error().stack
+      })
+      
+      // Защита от вызова во время сохранения
+      if (this.isSaving) {
+        console.log('⚠️ Пропускаем generateGrid во время сохранения')
+        return
+      }
+      
+      // Дополнительная проверка - если канвас пустой и есть изображения, перерисовываем
+      const hasImages = this.uploadedImages && this.uploadedImages.length > 0
+      const canvasEmpty = !this.paperScope.project.children || this.paperScope.project.children.length === 0
+      
+      if (hasImages && canvasEmpty) {
+        console.log('🔧 Обнаружен пустой канвас при наличии изображений - перерисовываем')
+      }
       
       // Показываем прелоадер
       this.isLoading = true
@@ -6321,6 +6416,9 @@ export default {
 .canvas-button * {
   color: white !important;
 }
+
+
+
 
 /* Стили для текстовых слоев */
 /* Стили для вкладки "Тексты" */

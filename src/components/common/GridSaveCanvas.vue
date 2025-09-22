@@ -141,7 +141,14 @@ export default {
     async handleSave() {
       if (this.isSaving) return
       
+      console.log('🖨️ handleSave вызван')
+      
+      // Уведомляем родительский компонент о начале сохранения ПЕРЕД установкой флага
+      console.log('📤 Эмитим событие save-start')
+      this.$emit('save-start')
+      
       this.isSaving = true
+      console.log('🔄 isSaving установлен в true')
       
       try {
         console.log('🖨️ Начинаем сохранение сетки')
@@ -835,27 +842,46 @@ export default {
       return this.uploadedImages.filter(img => img.useInGrid)
     },
     
-    getImageForPosition(row, col, totalImages) {
+    getImageForPosition(row, col, totalImages, gridCols = null, gridRows = null) {
+      // Отображаем изображение во всех масках
       const gridImages = this.getImagesForGrid()
       
+      // Используем переданные размеры или текущие размеры сетки
+      const actualCols = gridCols || this.gridCols
+      const actualRows = gridRows || this.gridRows
+      
+      console.log('🖼️ getImageForPosition:', {
+        row,
+        col,
+        totalImages,
+        gridImagesLength: gridImages.length,
+        gridCols: this.gridCols,
+        actualCols,
+        actualRows
+      })
+      
       if (gridImages.length === 0) {
-        console.log('⚠️ Нет изображений для сетки')
+        console.warn('⚠️ Нет изображений для сетки')
         return null
       }
       
       // Вычисляем индекс изображения для позиции (row, col)
-      const baseIndex = row * this.gridCols + col
-      const imageIndex = baseIndex % gridImages.length
+      // Смещаем начало каждой строки для равномерного распределения
+      // Используем большее смещение для лучшего распределения
+      const baseIndex = row * actualCols + col
+      const offset = row * 2 // Увеличиваем смещение
+      const imageIndex = (baseIndex + offset) % gridImages.length
       
-      const image = gridImages[imageIndex]
-      console.log(`🖼️ Изображение для позиции [${row}, ${col}]:`, {
+      const selectedImage = gridImages[imageIndex]
+      console.log('🖼️ Выбрано изображение:', {
         baseIndex,
+        offset,
         imageIndex,
-        hasImage: !!image,
-        imageUrl: image?.url
+        selectedImage: selectedImage ? 'есть' : 'нет',
+        imageType: typeof selectedImage
       })
       
-      return image
+      return selectedImage
     },
     
     async saveImage() {

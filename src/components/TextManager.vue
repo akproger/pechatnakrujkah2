@@ -1871,6 +1871,40 @@ export default {
         tailWidth: textData.tailWidth
       })
       
+      // Эмитим событие text-apply для совместимости с StickerManiaPage
+      const textToEmit = typeof textData.text === 'string' ? textData.text : String(textData.text || '')
+      console.log('📊 Формат данных перед эмитом text-apply:', {
+        textType: typeof textToEmit,
+        text: textToEmit
+      })
+      
+      this.$emit('text-apply', {
+        text: textToEmit,
+        style: {
+          fontFamily: textData.font,
+          fontSize: textData.fontSize,
+          color: textData.textColor,
+          backgroundColor: textData.backgroundColor,
+          fontWeight: textData.fontWeight,
+          padding: textData.padding,
+          shadow: textData.shadow,
+          shadowColor: textData.shadowColor,
+          shadowBlur: textData.shadowBlur,
+          shadowOffsetX: textData.shadowOffsetX,
+          shadowOffsetY: textData.shadowOffsetY,
+          shadowOpacity: textData.shadowOpacity,
+          stroke: textData.stroke,
+          strokeColor: textData.strokeColor,
+          strokeWidth: textData.strokeWidth,
+          borderRadius: textData.borderRadius,
+          lineHeight: textData.lineHeight,
+          textAlign: textData.textAlign,
+          withImage: !!textData.textImage
+        },
+        mode: mode
+      })
+      
+      // Эмитим событие text-applied для совместимости с GridsPage
       this.$emit('text-applied', {
         textData,
         mode,
@@ -1917,9 +1951,15 @@ export default {
     // === МЕТОДЫ ДЛЯ РАБОТЫ С ПРЕВЬЮ КАНВАСАМИ (СКОПИРОВАНО ИЗ StickerManiaPage) ===
 
     // Отрисовка обводки многострочного текста
-    drawMultilineTextStroke(ctx, text, x, y, fontSize, lineHeight = 1.2) {
+    drawMultilineTextStroke(ctx, text, x, y, fontSize, lineHeight = 1.2, isImageMode = false) {
+      // Если это режим с изображением, запрещаем перенос текста
+      let processedText = text
+      if (isImageMode) {
+        processedText = processedText.replace(/\n/g, ' ')
+      }
+      
       // Разбиваем текст на строки по символу \n
-      const lines = text.split('\n')
+      const lines = processedText.split('\n')
       
       // Определяем правильные данные в зависимости от активной вкладки
       const textData = this.textDialogActiveTab === 'image-text' ? this.textDialogDataImageText : this.textDialogData
@@ -1981,21 +2021,21 @@ export default {
       // Обновляем превью канвасы только если диалог открыт
       if (this.showTextDialog) {
         // Обновляем все превью канвасы
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasConversation)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
-        this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+        if (this.$refs.previewCanvasConversation) this.updateSinglePreviewCanvas(this.$refs.previewCanvasConversation)
+        if (this.$refs.previewCanvasThoughts) this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+        if (this.$refs.previewCanvasStandard) this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+        if (this.$refs.previewCanvasImageText) this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
         
         // Принудительно обновляем активную вкладку
         if (this.textDialogActiveTab === 'thoughts') {
           console.log('🧠 Принудительное обновление режима "Мысли"')
           this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
+            if (this.$refs.previewCanvasThoughts) this.updateSinglePreviewCanvas(this.$refs.previewCanvasThoughts)
           })
         } else if (this.textDialogActiveTab === 'standard') {
           console.log('⭐ Принудительное обновление режима "Стандарт"')
           this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
+            if (this.$refs.previewCanvasStandard) this.updateSinglePreviewCanvas(this.$refs.previewCanvasStandard)
           })
         } else if (this.textDialogActiveTab === 'image-text') {
           console.log('🖼️ Принудительное обновление режима "Текст с изображением"')
@@ -2004,7 +2044,7 @@ export default {
             exists: !!this.$refs.previewCanvasImageText
           })
           this.$nextTick(() => {
-            this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
+            if (this.$refs.previewCanvasImageText) this.updateSinglePreviewCanvas(this.$refs.previewCanvasImageText)
           })
         }
       } else {
@@ -2489,7 +2529,7 @@ export default {
         shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
         
         // Рисуем тень текста
-        this.drawMultilineText(shadowCtx, this.textDialogDataImageText.text, previewX, previewY, this.textDialogDataImageText.fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        this.drawMultilineText(shadowCtx, this.textDialogDataImageText.text, previewX, previewY, this.textDialogDataImageText.fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
         
         // Рисуем тень на основном канвасе
         ctx.drawImage(shadowCanvas, 0, 0)
@@ -2506,48 +2546,141 @@ export default {
         textCanvas.height = canvas.height
         const textCtx = textCanvas.getContext('2d')
         
-        // Вычисляем размеры текста для правильного позиционирования изображения
-        const textWidth = ctx.measureText(this.textDialogDataImageText.text).width
-        const textHeight = fontSize * previewScale * this.textDialogDataImageText.lineHeight
+        // Вычисляем размеры текста для правильного позиционирования изображения (как в основном канвасе)
+        const textSize = this.calculateMultilineTextSize(ctx, this.textDialogDataImageText.text, fontSize, this.textDialogDataImageText.lineHeight)
+        const textWidth = textSize.width
+        const textHeight = textSize.height
         
         // Используем точные размеры текста для изображения (как в основном канвасе)
         const drawWidth = textWidth
         const drawHeight = textHeight
-        const drawX = previewX - drawWidth / 2
-        const drawY = previewY - drawHeight / 2
+        
+        // ВАЖНО: В превью нужно использовать центр канваса, а не previewX/previewY!
+        // previewX/previewY - это координаты клика, которые могут быть где угодно
+        // Для заливки изображением нужно использовать центр канваса
+        const canvasCenterX = canvas.width / 2
+        const canvasCenterY = canvas.height / 2
+        
+        const drawX = canvasCenterX - drawWidth / 2
+        const drawY = canvasCenterY - drawHeight / 2
         
         // Рисуем изображение на временном канвасе
         textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
         
+        console.log('🖼️ ПРЕВЬЮ: Изображение нарисовано на textCanvas (ИСПРАВЛЕНО):', {
+          img: `${img.width}x${img.height}`,
+          drawTo: `${drawX}, ${drawY}, ${drawWidth}, ${drawHeight}`,
+          textCanvas: `${textCanvas.width}x${textCanvas.height}`,
+          canvasCenter: `${canvasCenterX}, ${canvasCenterY}`,
+          note: 'Превью: изображение нарисовано в центре канваса!'
+        })
+        
+        // Проверяем, есть ли данные в канвасе после рисования изображения
+        const imageDataBeforeMask = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height)
+        const hasImagePixels = Array.from(imageDataBeforeMask.data).some((value, index) => {
+          // Проверяем альфа-канал (каждый 4-й элемент)
+          return index % 4 === 3 && value > 0
+        })
+        
+        console.log('🖼️ ПРЕВЬЮ: Анализ данных канваса после рисования изображения:', {
+          hasImagePixels,
+          imageDataSize: `${imageDataBeforeMask.width}x${imageDataBeforeMask.height}`,
+          note: hasImagePixels ? 'Изображение нарисовано успешно' : 'Изображение не нарисовано!'
+        })
+        
         // Создаем маску из текста (destination-in как в основном канвасе)
         textCtx.globalCompositeOperation = 'destination-in'
         textCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
-        textCtx.textAlign = this.textDialogDataImageText.textAlign || 'center'
+        textCtx.textAlign = 'center' // Всегда центрируем для маски
         textCtx.textBaseline = 'middle'
         textCtx.fillStyle = 'white'
-        this.drawMultilineText(textCtx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        
+        // ВАЖНО: Маска должна создаваться в той же позиции, что и изображение!
+        // Изображение рисуется в позиции (drawX, drawY) с размерами (drawWidth, drawHeight)
+        // Маска должна создаваться в центре этой области
+        const maskCenterX = drawX + drawWidth / 2
+        const maskCenterY = drawY + drawHeight / 2
+        
+        console.log('🖼️ ПРЕВЬЮ: Детальный расчет позиции маски (ИСПРАВЛЕНО):', {
+          drawX, drawY, drawWidth, drawHeight,
+          maskCenterX, maskCenterY,
+          canvasCenter: `${canvasCenterX}, ${canvasCenterY}`,
+          calculation: {
+            maskCenterX_calc: `${drawX} + ${drawWidth} / 2 = ${maskCenterX}`,
+            maskCenterY_calc: `${drawY} + ${drawHeight} / 2 = ${maskCenterY}`
+          },
+          note: 'Теперь маска создается в центре изображения!'
+        })
+        
+        // Создаем копию данных текста с принудительным центрированием для маски
+        const maskTextData = { ...this.textDialogDataImageText, textAlign: 'center' }
+        
+        console.log('🖼️ ПРЕВЬЮ: Создаем маску с данными:', {
+          text: this.textDialogDataImageText.text,
+          fontSize: fontSize * previewScale,
+          lineHeight: this.textDialogDataImageText.lineHeight,
+          textAlign: 'center',
+          imagePosition: `${drawX}, ${drawY}`,
+          maskPosition: `${maskCenterX}, ${maskCenterY}`
+        })
+        
+        // Используем drawMultilineText с правильным позиционированием маски
+        this.drawMultilineText(textCtx, this.textDialogDataImageText.text, maskCenterX, maskCenterY, fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
+        
+        console.log('🖼️ ПРЕВЬЮ: Маска создана, рисуем на основном канвасе')
+        console.log('🖼️ ПРЕВЬЮ: ДЕТАЛЬНАЯ ОТЛАДКА МАСКИ:', {
+          textLines: this.textDialogDataImageText.text.split('\n'),
+          maskPosition: `${maskCenterX}, ${maskCenterY}`,
+          fontSize: fontSize * previewScale,
+          lineHeight: this.textDialogDataImageText.lineHeight,
+          textAlign: 'center',
+          globalCompositeOperation: textCtx.globalCompositeOperation,
+          fillStyle: textCtx.fillStyle,
+          note: 'Проверяем параметры создания маски'
+        })
         
         // Применяем обводку к тексту если включена (на временном канвасе)
         if (this.textDialogDataImageText.stroke) {
           textCtx.globalCompositeOperation = 'source-over'
           textCtx.strokeStyle = this.textDialogDataImageText.strokeColor
           textCtx.lineWidth = this.textDialogDataImageText.strokeWidth * previewScale
-          this.drawMultilineTextStroke(textCtx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+          this.drawMultilineTextStroke(textCtx, this.textDialogDataImageText.text, maskCenterX, maskCenterY, fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
         }
+        
+        console.log('🖼️ ПРЕВЬЮ: Состояние textCanvas после создания маски:', {
+          textCanvasSize: `${textCanvas.width}x${textCanvas.height}`,
+          globalCompositeOperation: textCtx.globalCompositeOperation,
+          note: 'Проверяем, что маска создана правильно'
+        })
+        
+        // Проверяем, есть ли данные в канвасе после создания маски
+        const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height)
+        const hasNonTransparentPixels = Array.from(imageData.data).some((value, index) => {
+          // Проверяем альфа-канал (каждый 4-й элемент)
+          return index % 4 === 3 && value > 0
+        })
+        
+        console.log('🖼️ ПРЕВЬЮ: Анализ данных канваса после маски:', {
+          hasNonTransparentPixels,
+          imageDataSize: `${imageData.width}x${imageData.height}`,
+          note: hasNonTransparentPixels ? 'В канвасе есть непрозрачные пиксели' : 'Канвас полностью прозрачный!'
+        })
         
         // Рисуем результат на основном канвасе
         ctx.drawImage(textCanvas, 0, 0)
+        
+        console.log('🖼️ ПРЕВЬЮ: Маска с изображением нарисована на основном канвасе')
       } else {
         // Если нет изображения, рисуем обычный текст
         ctx.fillStyle = textColor
         ctx.textAlign = this.textDialogDataImageText.textAlign || 'center'
-        this.drawMultilineText(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+        this.drawMultilineText(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
         
         // Применяем обводку к тексту если включена
         if (this.textDialogDataImageText.stroke) {
           ctx.strokeStyle = this.textDialogDataImageText.strokeColor
           ctx.lineWidth = this.textDialogDataImageText.strokeWidth * previewScale
-          this.drawMultilineTextStroke(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight)
+          this.drawMultilineTextStroke(ctx, this.textDialogDataImageText.text, previewX, previewY, fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
         }
       }
       
@@ -3647,8 +3780,18 @@ export default {
       return { width: maxWidth, height: totalHeight }
     },
     
-    drawMultilineText(ctx, text, x, y, fontSize, lineHeight) {
-      const lines = text.split('\n')
+    drawMultilineText(ctx, text, x, y, fontSize, lineHeight, isImageMode = false) {
+      // Если это режим с изображением, запрещаем перенос текста
+      let processedText = text
+      if (isImageMode) {
+        processedText = processedText.replace(/\n/g, ' ')
+        console.log('🖼️ Запрещен перенос текста в режиме с изображением (TextManager):', {
+          original: text,
+          processed: processedText
+        })
+      }
+      
+      const lines = processedText.split('\n')
       const totalHeight = lines.length * fontSize * lineHeight
       const startY = y - totalHeight / 2
       

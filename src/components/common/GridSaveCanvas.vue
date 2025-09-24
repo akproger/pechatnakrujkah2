@@ -232,6 +232,9 @@ export default {
         // Ждем завершения всех загрузок изображений
         await this.waitForAllImagesToLoad()
         
+        // ИСПРАВЛЕНИЕ: Добавляем небольшую задержку для стабилизации
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
         // Добавляем текстовые слои
         await this.addTextLayers()
         
@@ -1096,11 +1099,195 @@ export default {
     
     async addTextLayers() {
       console.log('📝 Добавляем текстовые слои:', this.textLayers.length)
+      console.log('📝 Тип маски:', this.maskType)
+      console.log('📝 Размеры канваса:', { width: this.canvasWidth, height: this.canvasHeight })
+      console.log('📝 Детали текстовых слоев:', this.textLayers.map(layer => ({
+        id: layer.id,
+        hasBackgroundItem: !!layer.backgroundItem,
+        hasBounds: !!layer.backgroundItem?.bounds,
+        backgroundMode: layer.textData?.backgroundMode,
+        text: layer.textData?.text
+      })))
       
-      // TODO: Добавить логику для текстовых слоев
-      // Пока что просто логируем
-      for (const textLayer of this.textLayers) {
-        console.log('📝 Текстовый слой:', textLayer)
+      if (!this.textLayers || this.textLayers.length === 0) {
+        console.log('📝 Нет текстовых слоев для добавления')
+        return
+      }
+      
+      // Сортируем текстовые слои по их реальному z-index (порядку наложения на канвасе)
+      const sortedTextLayers = [...this.textLayers].sort((a, b) => {
+        const aZIndex = a.layer?.index || a.id || 0
+        const bZIndex = b.layer?.index || b.id || 0
+        return aZIndex - bZIndex
+      })
+      
+      console.log('📊 Порядок текстовых слоев при сохранении:', sortedTextLayers.map((layer, index) => ({
+        id: layer.id,
+        text: layer.textData?.text,
+        mode: layer.mode,
+        position: layer.position,
+        zIndex: layer.layer?.index || layer.id || 0,
+        order: index + 1
+      })))
+      
+      for (let i = 0; i < sortedTextLayers.length; i++) {
+        const layer = sortedTextLayers[i]
+        const originalIndex = this.textLayers.indexOf(layer)
+        
+        console.log(`📝 Текстовый слой ${originalIndex + 1} (z-index: ${layer.layer?.index || layer.id || 0}, сохранение ${i + 1}):`, {
+          id: layer.id,
+          text: layer.textData?.text,
+          mode: layer.mode,
+          position: layer.position,
+          zIndex: layer.layer?.index || layer.id || 0,
+          hasBackgroundItem: !!layer.backgroundItem,
+          hasBounds: !!layer.backgroundItem?.bounds,
+          backgroundMode: layer.textData?.backgroundMode
+        })
+        
+        try {
+          await this.redrawTextLayerInHighDPI(layer)
+          console.log(`✅ Текстовый слой ${originalIndex + 1} успешно обработан`)
+        } catch (error) {
+          console.error(`❌ Ошибка в текстовом слое ${originalIndex + 1}:`, error)
+        }
+      }
+      
+      console.log('✅ Все текстовые слои добавлены в высоком разрешении')
+    },
+    
+    // Перерисовка текстового слоя в высоком разрешении
+    async redrawTextLayerInHighDPI(layerInfo) {
+      console.log('📝 Перерисовываем текстовый слой:', layerInfo.id)
+      
+      try {
+        // Проверяем, есть ли готовый backgroundItem (растр) в слое
+        // Исключаем режим "Текст с изображением" из этой проверки
+        if (layerInfo.backgroundItem && layerInfo.backgroundItem.bounds && layerInfo.textData?.backgroundMode !== 'image-text') {
+          console.log('📝 Используем готовый растр из backgroundItem')
+          
+          // Создаем копию растра для высокого разрешения
+          const originalRaster = layerInfo.backgroundItem
+          const rasterDataURL = originalRaster.toDataURL('image/png', 1.0)
+          
+          // Создаем новый растр в высоком разрешении
+          const highResRaster = new this.paperScope.Raster(rasterDataURL)
+          
+          // Ждем загрузки
+          await new Promise((resolve) => {
+            highResRaster.onLoad = resolve
+          })
+          
+          // ИСПРАВЛЕНИЕ: Не применяем масштаб к готовому растру для сохранения качества
+          // Вместо этого используем правильное позиционирование
+          const scale = 1 // Не масштабируем готовый растр
+          
+          console.log('📏 Используем готовый растр без дополнительного масштабирования для сохранения качества')
+          
+          // Позиционируем с учетом масштаба и размера канваса
+          const position = layerInfo.position || { x: 0, y: 0 }
+          
+          // ИСПРАВЛЕНИЕ: Правильное масштабирование координат для высокого разрешения
+          // Основной канвас имеет размер с учетом devicePixelRatio * 2
+          // GridSaveCanvas имеет размер 1900x900
+          const mainCanvasScale = 1900 / 856 // Масштаб от превью к основному канвасу
+          const scaledX = position.x * mainCanvasScale
+          const scaledY = position.y * mainCanvasScale
+          
+          console.log('📍 Позиция текста в высоком разрешении:', {
+            original: position,
+            scaled: { x: scaledX, y: scaledY },
+            scale: scale,
+            backgroundMode: layerInfo.textData?.backgroundMode,
+            originalBounds: originalRaster.bounds,
+            scaledBounds: highResRaster.bounds
+          })
+          
+          highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
+          
+          // Добавляем на слой
+          this.paperScope.project.activeLayer.addChild(highResRaster)
+          
+          console.log('✅ Текстовый слой добавлен в высоком разрешении:', highResRaster.bounds)
+        } else if (layerInfo.textData && layerInfo.textData.backgroundMode === 'image-text') {
+          console.log('🖼️ Режим "Текст с изображением": проверяем наличие данных')
+          console.log('🖼️ Данные текста:', {
+            hasText: !!layerInfo.textData.text,
+            hasTextImage: !!layerInfo.textData.textImage,
+            hasCachedImage: !!layerInfo.textData.cachedImage,
+            hasSavedCanvas: !!layerInfo.textData.savedCanvas,
+            hasBackgroundItem: !!layerInfo.backgroundItem
+          })
+          
+          // ИСПРАВЛЕНИЕ: Для режима "Текст с изображением" используем backgroundItem если есть
+          if (layerInfo.backgroundItem && layerInfo.backgroundItem.bounds) {
+            console.log('🖼️ Используем backgroundItem для режима "Текст с изображением"')
+            
+            // Создаем копию растра для высокого разрешения
+            const originalRaster = layerInfo.backgroundItem
+            const rasterDataURL = originalRaster.toDataURL('image/png', 1.0)
+            
+            // Создаем новый растр в высоком разрешении
+            const highResRaster = new this.paperScope.Raster(rasterDataURL)
+            
+            // Ждем загрузки
+            await new Promise((resolve) => {
+              highResRaster.onLoad = resolve
+            })
+            
+            // Позиционируем
+            const position = layerInfo.position || { x: 0, y: 0 }
+            const mainCanvasScale = 1900 / 856
+            const scaledX = position.x * mainCanvasScale
+            const scaledY = position.y * mainCanvasScale
+            
+            highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
+            
+            // Добавляем на слой
+            this.paperScope.project.activeLayer.addChild(highResRaster)
+            
+            console.log('✅ Текстовый слой "Текст с изображением" добавлен в высоком разрешении')
+          } else if (layerInfo.textData.savedCanvas) {
+            console.log('🖼️ Создаем растр из savedCanvas для режима "Текст с изображением"')
+            
+            // Создаем растр из savedCanvas
+            const imageDataURL = layerInfo.textData.savedCanvas.toDataURL('image/png', 1.0)
+            const highResRaster = new this.paperScope.Raster(imageDataURL)
+            
+            // Ждем загрузки
+            await new Promise((resolve) => {
+              highResRaster.onLoad = resolve
+            })
+            
+            // Позиционируем
+            const position = layerInfo.position || { x: 0, y: 0 }
+            const mainCanvasScale = 1900 / 856
+            const scaledX = position.x * mainCanvasScale
+            const scaledY = position.y * mainCanvasScale
+            
+            highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
+            
+            // Добавляем на слой
+            this.paperScope.project.activeLayer.addChild(highResRaster)
+            
+            console.log('✅ Текстовый слой "Текст с изображением" добавлен в высоком разрешении')
+          } else {
+            console.warn('⚠️ Режим "Текст с изображением": нет ни backgroundItem, ни savedCanvas для создания растра')
+          }
+          return
+        } else {
+          console.warn('⚠️ Нет готового растра в backgroundItem, пропускаем слой:', layerInfo.id)
+          console.warn('⚠️ Данные слоя:', {
+            hasBackgroundItem: !!layerInfo.backgroundItem,
+            hasBounds: layerInfo.backgroundItem?.bounds,
+            backgroundMode: layerInfo.textData?.backgroundMode,
+            text: layerInfo.textData?.text
+          })
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка при перерисовке текстового слоя:', error)
+        throw error
       }
     },
     

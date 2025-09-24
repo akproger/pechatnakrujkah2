@@ -2341,9 +2341,64 @@ export default {
     // Рисование подложки "Стандарт" в высоком разрешении
     async drawStandardBackgroundInHighDPI(ctx, layer, scale) {
       console.log('📝 Рисуем подложку "Стандарт" в высоком разрешении')
-      // Здесь будет логика рисования подложки "Стандарт" в высоком разрешении
-      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
-      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+      
+      const textData = layer.textData
+      const backgroundColor = textData.backgroundColor || '#FFFFFF'
+      const centerX = layer.bounds.width / 2
+      const centerY = layer.bounds.height / 2
+      const bgWidth = layer.bounds.width
+      const bgHeight = layer.bounds.height
+      
+      console.log('📝 Параметры подложки "Стандарт" в высоком разрешении:', {
+        centerX,
+        centerY,
+        bgWidth,
+        bgHeight,
+        scale,
+        backgroundColor,
+        hasShadow: !!textData.shadow,
+        hasStroke: !!textData.stroke,
+        backgroundMode: textData.backgroundMode
+      })
+      
+      // Используем ту же логику, что и в drawStandardModeShapeWithData, но с масштабированием для высокого разрешения
+      // Сначала рисуем тень если включена
+      // ИСПРАВЛЕНИЕ: Тень у подложки применяется для режимов "Разговор", "Мысли", "Стандарт", но НЕ для "Текст с изображением"
+      if (textData.shadow && textData.backgroundMode !== 'image-text') {
+        console.log('📝 Применяем тень к подложке "Стандарт" в высоком разрешении')
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
+        
+        // Рисуем тень
+        ctx.fillStyle = backgroundColor
+        ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        // Сбрасываем настройки тени
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        
+        console.log('✅ Тень подложки "Стандарт" нарисована в высоком разрешении')
+      }
+      
+      // Затем рисуем основную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // В конце применяем обводку если включена
+      if (textData.stroke) {
+        console.log('📝 Применяем обводку к подложке "Стандарт" в высоком разрешении')
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        
+        console.log('✅ Обводка подложки "Стандарт" нарисована в высоком разрешении')
+      }
+      
+      console.log('✅ Подложка "Стандарт" полностью нарисована в высоком разрешении')
     },
 
     // Рисование подложки "Мысли" в высоком разрешении
@@ -2370,7 +2425,9 @@ export default {
         text: textData?.text,
         fontSize: textData?.fontSize,
         font: textData?.font,
-        backgroundMode: textData?.backgroundMode
+        backgroundMode: textData?.backgroundMode,
+        hasShadow: !!textData?.shadow,
+        hasStroke: !!textData?.stroke
       })
       
       if (!textData) {
@@ -2378,11 +2435,13 @@ export default {
         return
       }
       
+      // Сохраняем оригинальные значения для восстановления
+      const originalShadow = textData.shadow
+      const originalStroke = textData.stroke
+      
       // ИСПРАВЛЕНИЕ: Тень у текста применяется только для режима "Текст с изображением"
       if (textData.backgroundMode !== 'image-text' && textData.shadow) {
         console.log(`📝 Режим "${textData.backgroundMode}": отключаем тень для текста (тень только для "Текст с изображением")`)
-        // Временно отключаем тень для всех режимов кроме "Текст с изображением"
-        const originalShadow = textData.shadow
         textData.shadow = false
       }
       
@@ -2396,20 +2455,45 @@ export default {
       const centerX = layer.bounds.width / 2
       const centerY = layer.bounds.height / 2
       
+      // Применяем тень к тексту только для режима "Текст с изображением"
+      if (textData.backgroundMode === 'image-text' && textData.shadow) {
+        console.log('📝 Применяем тень к тексту в режиме "Текст с изображением"')
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+      }
+      
       // Рисуем текст с поддержкой переносов строк
       this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight || 1.2, textData)
       
-      // Восстанавливаем оригинальное значение тени
-      if (textData.backgroundMode !== 'image-text') {
-        textData.shadow = originalShadow
+      // Сбрасываем тень
+      if (textData.backgroundMode === 'image-text' && textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
+      
+      // Применяем обводку к тексту только для режима "Текст с изображением"
+      if (textData.backgroundMode === 'image-text' && textData.stroke) {
+        console.log('📝 Применяем обводку к тексту в режиме "Текст с изображением"')
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = textData.strokeWidth || 3
+        this.drawMultilineTextStrokeWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight || 1.2, textData)
+      }
+      
+      // Восстанавливаем оригинальные значения
+      textData.shadow = originalShadow
+      textData.stroke = originalStroke
       
       console.log('✅ Текст нарисован в высоком разрешении:', {
         text: textData.text,
         fontSize: textData.fontSize,
         position: { x: centerX, y: centerY },
         backgroundMode: textData.backgroundMode,
-        shadowDisabled: textData.backgroundMode !== 'image-text'
+        shadowApplied: textData.backgroundMode === 'image-text' && originalShadow,
+        strokeApplied: textData.backgroundMode === 'image-text' && originalStroke
       })
     },
     

@@ -232,11 +232,14 @@ export default {
         // Ждем завершения всех загрузок изображений
         await this.waitForAllImagesToLoad()
         
-        // ИСПРАВЛЕНИЕ: Добавляем небольшую задержку для стабилизации
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // ИСПРАВЛЕНИЕ: Увеличиваем задержку для стабилизации всех типов сеток
+        await new Promise(resolve => setTimeout(resolve, 500))
         
         // Добавляем текстовые слои
         await this.addTextLayers()
+        
+        // ИСПРАВЛЕНИЕ: Дополнительная задержка после добавления текстов для стабилизации
+        await new Promise(resolve => setTimeout(resolve, 200))
         
         // Сохраняем изображение
         const result = await this.saveImage()
@@ -1098,7 +1101,7 @@ export default {
     },
     
     async addTextLayers() {
-      console.log('📝 Добавляем текстовые слои:', this.textLayers.length)
+      console.log('📝 Добавляем текстовые слои (новый подход):', this.textLayers.length)
       console.log('📝 Тип маски:', this.maskType)
       console.log('📝 Размеры канваса:', { width: this.canvasWidth, height: this.canvasHeight })
       console.log('📝 Детали текстовых слоев:', this.textLayers.map(layer => ({
@@ -1113,6 +1116,10 @@ export default {
         console.log('📝 Нет текстовых слоев для добавления')
         return
       }
+      
+      // ИСПРАВЛЕНИЕ: Дополнительная задержка для стабилизации всех типов сеток
+      console.log('📝 Дополнительная задержка для стабилизации текстовых слоев')
+      await new Promise(resolve => setTimeout(resolve, 300))
       
       // Сортируем текстовые слои по их реальному z-index (порядку наложения на канвасе)
       const sortedTextLayers = [...this.textLayers].sort((a, b) => {
@@ -1130,164 +1137,1015 @@ export default {
         order: index + 1
       })))
       
+      // ИСПРАВЛЕННЫЙ ПОДХОД: Используем Paper.js для создания отдельных слоев
+      console.log('📝 Создаем отдельные Paper.js слои для каждого текстового слоя')
+      
       for (let i = 0; i < sortedTextLayers.length; i++) {
         const layer = sortedTextLayers[i]
         const originalIndex = this.textLayers.indexOf(layer)
         
-        console.log(`📝 Текстовый слой ${originalIndex + 1} (z-index: ${layer.layer?.index || layer.id || 0}, сохранение ${i + 1}):`, {
+        console.log(`📝 Создаем Paper.js слой для текстового слоя ${originalIndex + 1} (z-index: ${layer.layer?.index || layer.id || 0}):`, {
           id: layer.id,
           text: layer.textData?.text,
           mode: layer.mode,
           position: layer.position,
           zIndex: layer.layer?.index || layer.id || 0,
-          hasBackgroundItem: !!layer.backgroundItem,
-          hasBounds: !!layer.backgroundItem?.bounds,
           backgroundMode: layer.textData?.backgroundMode
         })
         
         try {
-          await this.redrawTextLayerInHighDPI(layer)
-          console.log(`✅ Текстовый слой ${originalIndex + 1} успешно обработан`)
+          // Создаем Paper.js слой для этого текстового слоя
+          await this.createPaperTextLayer(layer)
+          console.log(`✅ Paper.js слой для текстового слоя ${originalIndex + 1} создан`)
         } catch (error) {
-          console.error(`❌ Ошибка в текстовом слое ${originalIndex + 1}:`, error)
+          console.error(`❌ Ошибка при создании Paper.js слоя для текстового слоя ${originalIndex + 1}:`, error)
         }
       }
       
-      console.log('✅ Все текстовые слои добавлены в высоком разрешении')
+      console.log('✅ Все текстовые слои добавлены в высоком разрешении (новый подход)')
     },
     
     // Перерисовка текстового слоя в высоком разрешении
-    async redrawTextLayerInHighDPI(layerInfo) {
-      console.log('📝 Перерисовываем текстовый слой:', layerInfo.id)
+    // ИСПРАВЛЕННЫЙ ПОДХОД: Создаем Paper.js слой для каждого текстового слоя
+    async createPaperTextLayer(layerInfo) {
+      console.log('📝 Создаем Paper.js слой для текстового слоя:', layerInfo.id)
       
       try {
-        // Проверяем, есть ли готовый backgroundItem (растр) в слое
-        // Исключаем режим "Текст с изображением" из этой проверки
-        if (layerInfo.backgroundItem && layerInfo.backgroundItem.bounds && layerInfo.textData?.backgroundMode !== 'image-text') {
-          console.log('📝 Используем готовый растр из backgroundItem')
-          
-          // Создаем копию растра для высокого разрешения
-          const originalRaster = layerInfo.backgroundItem
-          const rasterDataURL = originalRaster.toDataURL('image/png', 1.0)
-          
-          // Создаем новый растр в высоком разрешении
-          const highResRaster = new this.paperScope.Raster(rasterDataURL)
-          
-          // Ждем загрузки
-          await new Promise((resolve) => {
-            highResRaster.onLoad = resolve
-          })
-          
-          // ИСПРАВЛЕНИЕ: Не применяем масштаб к готовому растру для сохранения качества
-          // Вместо этого используем правильное позиционирование
-          const scale = 1 // Не масштабируем готовый растр
-          
-          console.log('📏 Используем готовый растр без дополнительного масштабирования для сохранения качества')
-          
-          // Позиционируем с учетом масштаба и размера канваса
-          const position = layerInfo.position || { x: 0, y: 0 }
-          
-          // ИСПРАВЛЕНИЕ: Правильное масштабирование координат для высокого разрешения
-          // Основной канвас имеет размер с учетом devicePixelRatio * 2
-          // GridSaveCanvas имеет размер 1900x900
-          const mainCanvasScale = 1900 / 856 // Масштаб от превью к основному канвасу
-          const scaledX = position.x * mainCanvasScale
-          const scaledY = position.y * mainCanvasScale
-          
-          console.log('📍 Позиция текста в высоком разрешении:', {
-            original: position,
-            scaled: { x: scaledX, y: scaledY },
-            scale: scale,
-            backgroundMode: layerInfo.textData?.backgroundMode,
-            originalBounds: originalRaster.bounds,
-            scaledBounds: highResRaster.bounds
-          })
-          
-          highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
-          
-          // Добавляем на слой
-          this.paperScope.project.activeLayer.addChild(highResRaster)
-          
-          console.log('✅ Текстовый слой добавлен в высоком разрешении:', highResRaster.bounds)
-        } else if (layerInfo.textData && layerInfo.textData.backgroundMode === 'image-text') {
-          console.log('🖼️ Режим "Текст с изображением": проверяем наличие данных')
-          console.log('🖼️ Данные текста:', {
-            hasText: !!layerInfo.textData.text,
-            hasTextImage: !!layerInfo.textData.textImage,
-            hasCachedImage: !!layerInfo.textData.cachedImage,
-            hasSavedCanvas: !!layerInfo.textData.savedCanvas,
-            hasBackgroundItem: !!layerInfo.backgroundItem
-          })
-          
-          // ИСПРАВЛЕНИЕ: Для режима "Текст с изображением" используем backgroundItem если есть
-          if (layerInfo.backgroundItem && layerInfo.backgroundItem.bounds) {
-            console.log('🖼️ Используем backgroundItem для режима "Текст с изображением"')
-            
-            // Создаем копию растра для высокого разрешения
-            const originalRaster = layerInfo.backgroundItem
-            const rasterDataURL = originalRaster.toDataURL('image/png', 1.0)
-            
-            // Создаем новый растр в высоком разрешении
-            const highResRaster = new this.paperScope.Raster(rasterDataURL)
-            
-            // Ждем загрузки
-            await new Promise((resolve) => {
-              highResRaster.onLoad = resolve
-            })
-            
-            // Позиционируем
-            const position = layerInfo.position || { x: 0, y: 0 }
-            const mainCanvasScale = 1900 / 856
-            const scaledX = position.x * mainCanvasScale
-            const scaledY = position.y * mainCanvasScale
-            
-            highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
-            
-            // Добавляем на слой
-            this.paperScope.project.activeLayer.addChild(highResRaster)
-            
-            console.log('✅ Текстовый слой "Текст с изображением" добавлен в высоком разрешении')
-          } else if (layerInfo.textData.savedCanvas) {
-            console.log('🖼️ Создаем растр из savedCanvas для режима "Текст с изображением"')
-            
-            // Создаем растр из savedCanvas
-            const imageDataURL = layerInfo.textData.savedCanvas.toDataURL('image/png', 1.0)
-            const highResRaster = new this.paperScope.Raster(imageDataURL)
-            
-            // Ждем загрузки
-            await new Promise((resolve) => {
-              highResRaster.onLoad = resolve
-            })
-            
-            // Позиционируем
-            const position = layerInfo.position || { x: 0, y: 0 }
-            const mainCanvasScale = 1900 / 856
-            const scaledX = position.x * mainCanvasScale
-            const scaledY = position.y * mainCanvasScale
-            
-            highResRaster.position = new this.paperScope.Point(scaledX, scaledY)
-            
-            // Добавляем на слой
-            this.paperScope.project.activeLayer.addChild(highResRaster)
-            
-            console.log('✅ Текстовый слой "Текст с изображением" добавлен в высоком разрешении')
-          } else {
-            console.warn('⚠️ Режим "Текст с изображением": нет ни backgroundItem, ни savedCanvas для создания растра')
-          }
+        // Получаем данные текста
+        const textData = layerInfo.textData
+        if (!textData) {
+          console.warn('⚠️ Нет данных текста для слоя:', layerInfo.id)
           return
-        } else {
-          console.warn('⚠️ Нет готового растра в backgroundItem, пропускаем слой:', layerInfo.id)
-          console.warn('⚠️ Данные слоя:', {
-            hasBackgroundItem: !!layerInfo.backgroundItem,
-            hasBounds: layerInfo.backgroundItem?.bounds,
-            backgroundMode: layerInfo.textData?.backgroundMode,
-            text: layerInfo.textData?.text
-          })
         }
         
+        // Позиция текста
+        const position = layerInfo.position || { x: 0, y: 0 }
+        
+        // Масштабируем позицию для высокого разрешения
+        const mainCanvasScale = this.canvasWidth / 856 // Масштаб от превью к целевому разрешению
+        const scaledX = position.x * mainCanvasScale
+        const scaledY = position.y * mainCanvasScale
+        
+        console.log('📍 Позиционирование текста в Paper.js:', {
+          original: position,
+          mainCanvasScale: mainCanvasScale,
+          scaled: { x: scaledX, y: scaledY },
+          canvasSize: `${this.canvasWidth}x${this.canvasHeight}`,
+          backgroundMode: textData.backgroundMode
+        })
+        
+        // Создаем Paper.js элементы в зависимости от режима
+        if (textData.backgroundMode === 'conversation') {
+          await this.createConversationPaperLayer(scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'thoughts') {
+          await this.createThoughtsPaperLayer(scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'standard') {
+          await this.createStandardPaperLayer(scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'image-text') {
+          await this.createImageTextPaperLayer(scaledX, scaledY, textData, mainCanvasScale)
+        }
+        
+        console.log('✅ Paper.js слой для текстового слоя создан:', layerInfo.id)
+        
       } catch (error) {
-        console.error('❌ Ошибка при перерисовке текстового слоя:', error)
+        console.error('❌ Ошибка при создании Paper.js слоя для текстового слоя:', error)
         throw error
+      }
+    },
+
+    // Создаем Paper.js слой для режима "Разговор"
+    async createConversationPaperLayer(x, y, textData, scale) {
+      console.log('💬 Создаем Paper.js слой для режима "Разговор"')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // ПОЛНАЯ ЛОГИКА ИЗ buildSuperBackgroundPath
+      // Параметры хвоста (точно как в GridsPage.vue)
+      const tailSize = Number(textData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(textData.tailWidth) / 100 // От 40% до 100%
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (точно как в buildUnifiedShapePathWithCache)
+      const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста
+      
+      // Позиция подложки
+      const bgX = x - scaledBackgroundWidth / 2
+      const bgY = y - scaledBackgroundHeight / 2
+      
+      console.log('🔍 Параметры хвоста для Paper.js:', {
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        scale: scale,
+        bgX: bgX,
+        bgY: bgY
+      })
+      
+      // Вычисляем точку пересечения хвоста с границей подложки
+      const intersectionPoint = this.getTailIntersectionWithBackgroundPaperJS(
+        x, y, tailAngle, bgX, bgY, scaledBackgroundWidth, scaledBackgroundHeight
+      )
+      
+      if (intersectionPoint) {
+        // Создаем объединенную фигуру с хвостом (точно как в buildSuperBackgroundPath)
+        const combinedPath = this.createUnifiedConversationPathPaperJS(
+          x, y, scaledBackgroundWidth, scaledBackgroundHeight, 
+          intersectionPoint, tailAngle, tailLength, tailWidth, textData, scale
+        )
+        
+        // Применяем тень к подложке
+        if (textData.shadow) {
+          combinedPath.shadowColor = textData.shadowColor
+          combinedPath.shadowBlur = textData.shadowBlur * scale
+          combinedPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+        }
+        
+        // Добавляем обводку если включена
+        if (textData.stroke) {
+          combinedPath.strokeColor = textData.strokeColor
+          combinedPath.strokeWidth = textData.strokeWidth * scale
+        }
+        
+        // Добавляем на слой
+        this.paperScope.project.activeLayer.addChild(combinedPath)
+      } else {
+        // Если нет пересечения, создаем простой прямоугольник
+        const backgroundPath = new this.paperScope.Path.Rectangle({
+          point: [bgX, bgY],
+          size: [scaledBackgroundWidth, scaledBackgroundHeight],
+          fillColor: textData.backgroundColor
+        })
+        
+        if (textData.shadow) {
+          backgroundPath.shadowColor = textData.shadowColor
+          backgroundPath.shadowBlur = textData.shadowBlur * scale
+          backgroundPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+        }
+        
+        if (textData.stroke) {
+          backgroundPath.strokeColor = textData.strokeColor
+          backgroundPath.strokeWidth = textData.strokeWidth * scale
+        }
+        
+        this.paperScope.project.activeLayer.addChild(backgroundPath)
+      }
+      
+      // Создаем текст
+      const textItem = new this.paperScope.PointText({
+        point: [x, y],
+        content: textData.text,
+        fillColor: textData.textColor,
+        fontFamily: textData.font,
+        fontWeight: textData.fontWeight,
+        fontSize: scaledFontSize,
+        justification: 'center'
+      })
+      
+      // Добавляем на слой
+      this.paperScope.project.activeLayer.addChild(textItem)
+    },
+
+    // Создаем Paper.js слой для режима "Мысли"
+    async createThoughtsPaperLayer(x, y, textData, scale) {
+      console.log('🧠 Создаем Paper.js слой для режима "Мысли"')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // Создаем основной овал
+      const mainOval = new this.paperScope.Path.Ellipse({
+        center: [x, y],
+        size: [scaledBackgroundWidth, scaledBackgroundHeight],
+        fillColor: textData.backgroundColor
+      })
+      
+      // Создаем хвосты (упрощенные овалы)
+      const tailSize = (textData.tailSize || 20) * scale
+      const tailWidth = (textData.tailWidth || 10) * scale
+      
+      const tail1 = new this.paperScope.Path.Ellipse({
+        center: [x + scaledBackgroundWidth/2 + tailSize/2, y - tailWidth/2],
+        size: [tailSize, tailWidth],
+        fillColor: textData.backgroundColor
+      })
+      
+      const tail2 = new this.paperScope.Path.Ellipse({
+        center: [x + scaledBackgroundWidth/2 + tailSize, y + tailWidth/2],
+        size: [tailSize/1.5, tailWidth/1.5],
+        fillColor: textData.backgroundColor
+      })
+      
+      // Объединяем все части
+      const combinedPath = mainOval.unite(tail1).unite(tail2)
+      
+      // Применяем тень к подложке (увеличиваем в 2 раза для режима "Мысли")
+      if (textData.shadow) {
+        combinedPath.shadowColor = textData.shadowColor
+        combinedPath.shadowBlur = textData.shadowBlur * scale
+        combinedPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale * 2, textData.shadowOffsetY * scale * 2)
+      }
+      
+      // Добавляем обводку если включена
+      if (textData.stroke) {
+        combinedPath.strokeColor = textData.strokeColor
+        combinedPath.strokeWidth = textData.strokeWidth * scale
+      }
+      
+      // Создаем текст
+      const textItem = new this.paperScope.PointText({
+        point: [x, y],
+        content: textData.text,
+        fillColor: textData.textColor,
+        fontFamily: textData.font,
+        fontWeight: textData.fontWeight,
+        fontSize: scaledFontSize,
+        justification: 'center'
+      })
+      
+      // Добавляем на слой
+      this.paperScope.project.activeLayer.addChild(combinedPath)
+      this.paperScope.project.activeLayer.addChild(textItem)
+    },
+
+    // Создаем Paper.js слой для режима "Стандарт"
+    async createStandardPaperLayer(x, y, textData, scale) {
+      console.log('📝 Создаем Paper.js слой для режима "Стандарт"')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // Создаем подложку (прямоугольник)
+      const backgroundPath = new this.paperScope.Path.Rectangle({
+        point: [x - scaledBackgroundWidth/2, y - scaledBackgroundHeight/2],
+        size: [scaledBackgroundWidth, scaledBackgroundHeight],
+        fillColor: textData.backgroundColor
+      })
+      
+      // Применяем тень к подложке
+      if (textData.shadow) {
+        backgroundPath.shadowColor = textData.shadowColor
+        backgroundPath.shadowBlur = textData.shadowBlur * scale
+        backgroundPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+      }
+      
+      // Добавляем обводку если включена
+      if (textData.stroke) {
+        backgroundPath.strokeColor = textData.strokeColor
+        backgroundPath.strokeWidth = textData.strokeWidth * scale
+      }
+      
+      // Создаем текст
+      const textItem = new this.paperScope.PointText({
+        point: [x, y],
+        content: textData.text,
+        fillColor: textData.textColor,
+        fontFamily: textData.font,
+        fontWeight: textData.fontWeight,
+        fontSize: scaledFontSize,
+        justification: 'center'
+      })
+      
+      // Добавляем на слой
+      this.paperScope.project.activeLayer.addChild(backgroundPath)
+      this.paperScope.project.activeLayer.addChild(textItem)
+    },
+
+    // Создаем Paper.js слой для режима "Текст с изображением"
+    async createImageTextPaperLayer(x, y, textData, scale) {
+      console.log('🖼️ Создаем Paper.js слой для режима "Текст с изображением"')
+      
+      // Для режима "Текст с изображением" используем готовый растр если есть
+      if (textData.savedCanvas) {
+        const imageDataURL = textData.savedCanvas.toDataURL('image/png', 1.0)
+        const raster = new this.paperScope.Raster(imageDataURL)
+        
+        await new Promise((resolve, reject) => {
+          raster.onLoad = () => {
+            // Масштабируем изображение
+            raster.scale(scale)
+            raster.position = new this.paperScope.Point(x, y)
+            
+            // Добавляем на слой
+            this.paperScope.project.activeLayer.addChild(raster)
+            resolve()
+          }
+          raster.onError = reject
+        })
+      } else {
+        console.warn('⚠️ Нет savedCanvas для режима "Текст с изображением"')
+      }
+    },
+
+    // Вспомогательные функции для точной геометрии хвоста (адаптированы из GridsPage.vue)
+    getTailIntersectionWithBackgroundPaperJS(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight) {
+      // Вычисляем точку пересечения линии хвоста с границей подложки
+      const lineLength = Math.max(bgWidth, bgHeight) * 2 // Достаточно длинная линия
+      const endX = centerX + lineLength * Math.cos(tailAngle)
+      const endY = centerY + lineLength * Math.sin(tailAngle)
+      
+      // Проверяем пересечение с каждой стороной прямоугольника
+      const intersections = []
+      
+      // Верхняя сторона
+      const topIntersection = this.getLineIntersection(centerX, centerY, endX, endY, bgX, bgY, bgX + bgWidth, bgY)
+      if (topIntersection && this.isPointOnLineSegment(topIntersection, bgX, bgY, bgX + bgWidth, bgY)) {
+        intersections.push(topIntersection)
+      }
+      
+      // Правая сторона
+      const rightIntersection = this.getLineIntersection(centerX, centerY, endX, endY, bgX + bgWidth, bgY, bgX + bgWidth, bgY + bgHeight)
+      if (rightIntersection && this.isPointOnLineSegment(rightIntersection, bgX + bgWidth, bgY, bgX + bgWidth, bgY + bgHeight)) {
+        intersections.push(rightIntersection)
+      }
+      
+      // Нижняя сторона
+      const bottomIntersection = this.getLineIntersection(centerX, centerY, endX, endY, bgX, bgY + bgHeight, bgX + bgWidth, bgY + bgHeight)
+      if (bottomIntersection && this.isPointOnLineSegment(bottomIntersection, bgX, bgY + bgHeight, bgX + bgWidth, bgY + bgHeight)) {
+        intersections.push(bottomIntersection)
+      }
+      
+      // Левая сторона
+      const leftIntersection = this.getLineIntersection(centerX, centerY, endX, endY, bgX, bgY, bgX, bgY + bgHeight)
+      if (leftIntersection && this.isPointOnLineSegment(leftIntersection, bgX, bgY, bgX, bgY + bgHeight)) {
+        intersections.push(leftIntersection)
+      }
+      
+      // Возвращаем ближайшую точку пересечения
+      if (intersections.length > 0) {
+        let closestIntersection = intersections[0]
+        let minDistance = Math.sqrt(Math.pow(closestIntersection.x - centerX, 2) + Math.pow(closestIntersection.y - centerY, 2))
+        
+        for (let i = 1; i < intersections.length; i++) {
+          const distance = Math.sqrt(Math.pow(intersections[i].x - centerX, 2) + Math.pow(intersections[i].y - centerY, 2))
+          if (distance < minDistance) {
+            minDistance = distance
+            closestIntersection = intersections[i]
+          }
+        }
+        
+        return closestIntersection
+      }
+      
+      return null
+    },
+
+    getLineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(denom) < 1e-10) return null // Параллельные линии
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+      return {
+        x: x1 + t * (x2 - x1),
+        y: y1 + t * (y2 - y1)
+      }
+    },
+
+    isPointOnLineSegment(point, x1, y1, x2, y2) {
+      const minX = Math.min(x1, x2)
+      const maxX = Math.max(x1, x2)
+      const minY = Math.min(y1, y2)
+      const maxY = Math.max(y1, y2)
+      
+      return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
+    },
+
+    createTailPathPaperJS(centerX, centerY, intersectionPoint, tailAngle, tailLength, tailWidth, textData, scale) {
+      // Создаем путь хвоста с точной геометрией
+      const tailSizePercent = Number(textData.tailSize) / 100
+      const tailWidthPercent = Number(textData.tailWidth) / 100
+      
+      // Острая вершина хвоста
+      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      
+      // Боковые точки хвоста
+      const perpendicularAngle = tailAngle + Math.PI / 2
+      const halfWidth = tailLength * tailWidthPercent / 2
+      
+      const leftPointX = sharpPointX + halfWidth * Math.cos(perpendicularAngle)
+      const leftPointY = sharpPointY + halfWidth * Math.sin(perpendicularAngle)
+      
+      const rightPointX = sharpPointX - halfWidth * Math.cos(perpendicularAngle)
+      const rightPointY = sharpPointY - halfWidth * Math.sin(perpendicularAngle)
+      
+      // Создаем путь хвоста
+      const tailPath = new this.paperScope.Path()
+      tailPath.add(new this.paperScope.Point(intersectionPoint.x, intersectionPoint.y))
+      tailPath.add(new this.paperScope.Point(leftPointX, leftPointY))
+      tailPath.add(new this.paperScope.Point(sharpPointX, sharpPointY))
+      tailPath.add(new this.paperScope.Point(rightPointX, rightPointY))
+      tailPath.closed = true
+      tailPath.fillColor = textData.backgroundColor
+      
+      return tailPath
+    },
+
+    // ПОЛНАЯ ЛОГИКА ИЗ buildSuperBackgroundPath для Paper.js
+    createUnifiedConversationPathPaperJS(centerX, centerY, bgWidth, bgHeight, 
+                                       intersectionPoint, tailAngle, tailLength, tailWidth, textData, scale) {
+      // Параметры хвоста (точно как в buildSuperBackgroundPath)
+      const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(textData.tailWidth) / 100)
+      const tailSizePercent = Number(textData.tailSize) / 100
+      
+      // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
+      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      
+      // Позиция подложки
+      const bgX = centerX - bgWidth / 2
+      const bgY = centerY - bgHeight / 2
+      
+      // Определяем, с какой стороны подложки выходит хвост
+      const tailSide = this.getTailSideFromIntersectionPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      
+      // Проверяем, находится ли точка пересечения в углу подложки
+      const isCorner = this.isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      
+      // Создаем путь суперподложки
+      const path = new this.paperScope.Path()
+      
+      if (isCorner) {
+        // Если хвост выходит из угла, строим специальный путь
+        this.buildCornerTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+      } else {
+        // Обычный путь для стороны
+        this.buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                        intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+      }
+      
+      path.closed = true
+      path.fillColor = textData.backgroundColor
+      
+      return path
+    },
+
+    // Определение стороны выхода хвоста по точке пересечения (Paper.js версия)
+    getTailSideFromIntersectionPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 1
+      
+      // Верхняя сторона
+      if (Math.abs(intersectionPoint.y - bgY) < tolerance) return 'top'
+      // Правая сторона
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance) return 'right'
+      // Нижняя сторона
+      if (Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return 'bottom'
+      // Левая сторона
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance) return 'left'
+      
+      return 'top' // По умолчанию
+    },
+
+    // Проверка, находится ли точка пересечения в углу подложки (Paper.js версия)
+    isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
+      const tolerance = 2
+      
+      // Левый верхний угол
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) return true
+      // Правый верхний угол
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) return true
+      // Правый нижний угол
+      if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return true
+      // Левый нижний угол
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) return true
+      
+      return false
+    },
+
+    // Построение пути суперподложки с хвостом из угла (Paper.js версия)
+    buildCornerTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                  intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
+      // Определяем, какой это угол
+      const tolerance = 2
+      let isTopLeft = false, isTopRight = false, isBottomRight = false, isBottomLeft = false
+      
+      if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) {
+        isTopLeft = true
+      } else if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) {
+        isTopRight = true
+      } else if (Math.abs(intersectionPoint.x - (bgX + bgWidth)) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) {
+        isBottomRight = true
+      } else if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - (bgY + bgHeight)) < tolerance) {
+        isBottomLeft = true
+      }
+      
+      // Вычисляем ширину хвоста точно как в GridsPage.vue
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      
+      if (isTopLeft) {
+        // Левый верхний угол - строим путь с хвостом
+        const point1X = bgX + tailWidthPixels
+        const point1Y = bgY
+        const point2X = bgX
+        const point2Y = bgY + tailWidthPixels
+        
+        path.moveTo(bgX, bgY)  // A
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX, bgY)  // A (замыкаем)
+      } else if (isTopRight) {
+        // Правый верхний угол
+        const point1X = bgX + bgWidth - tailWidthPixels
+        const point1Y = bgY
+        const point2X = bgX + bgWidth
+        const point2Y = bgY + tailWidthPixels
+        
+        path.moveTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+      } else if (isBottomRight) {
+        // Правый нижний угол
+        const point1X = bgX + bgWidth
+        const point1Y = bgY + bgHeight - tailWidthPixels
+        const point2X = bgX + bgWidth - tailWidthPixels
+        const point2Y = bgY + bgHeight
+        
+        path.moveTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+      } else if (isBottomLeft) {
+        // Левый нижний угол
+        const point1X = bgX
+        const point1Y = bgY + bgHeight - tailWidthPixels
+        const point2X = bgX + tailWidthPixels
+        const point2Y = bgY + bgHeight
+        
+        path.moveTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+      }
+    },
+
+    // Построение пути суперподложки с хвостом со стороны (не из угла) (Paper.js версия)
+    buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
+                                intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
+      // Вычисляем ширину хвоста точно как в GridsPage.vue
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      
+      if (tailSide === 'top') {
+        // Хвост сверху
+        const point1X = intersectionPoint.x - tailWidthPixels / 2
+        const point1Y = bgY
+        const point2X = intersectionPoint.x + tailWidthPixels / 2
+        const point2Y = bgY
+        
+        path.moveTo(bgX, bgY)  // A
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX, bgY)  // A (замыкаем)
+      } else if (tailSide === 'right') {
+        // Хвост справа
+        const point1X = bgX + bgWidth
+        const point1Y = intersectionPoint.y - tailWidthPixels / 2
+        const point2X = bgX + bgWidth
+        const point2Y = intersectionPoint.y + tailWidthPixels / 2
+        
+        path.moveTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+      } else if (tailSide === 'bottom') {
+        // Хвост снизу
+        const point1X = intersectionPoint.x + tailWidthPixels / 2
+        const point1Y = bgY + bgHeight
+        const point2X = intersectionPoint.x - tailWidthPixels / 2
+        const point2Y = bgY + bgHeight
+        
+        path.moveTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+      } else if (tailSide === 'left') {
+        // Хвост слева
+        const point1X = bgX
+        const point1Y = intersectionPoint.y + tailWidthPixels / 2
+        const point2X = bgX
+        const point2Y = intersectionPoint.y - tailWidthPixels / 2
+        
+        path.moveTo(bgX, bgY + bgHeight)  // D
+        path.lineTo(point1X, point1Y)     // точка1
+        path.lineTo(sharpPointX, sharpPointY)  // вершина хвоста
+        path.lineTo(point2X, point2Y)     // точка2
+        path.lineTo(bgX, bgY)  // A
+        path.lineTo(bgX + bgWidth, bgY)  // B
+        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
+        path.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+      }
+    },
+
+    // НОВЫЙ ПОДХОД: Создаем отдельный канвас для каждого текстового слоя в полном размере
+    async createTextLayerCanvas(layerInfo, canvasWidth, canvasHeight) {
+      console.log('📝 Создаем отдельный канвас для текстового слоя:', layerInfo.id)
+      
+      try {
+        // Создаем временный канвас в полном размере для высокого разрешения
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = canvasWidth
+        tempCanvas.height = canvasHeight
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Очищаем канвас (прозрачный фон)
+        tempCtx.clearRect(0, 0, canvasWidth, canvasHeight)
+        
+        // Получаем данные текста
+        const textData = layerInfo.textData
+        if (!textData) {
+          console.warn('⚠️ Нет данных текста для слоя:', layerInfo.id)
+          return tempCanvas
+        }
+        
+        // Позиция текста на канвасе
+        const position = layerInfo.position || { x: 0, y: 0 }
+        
+        // Масштабируем позицию для высокого разрешения
+        const mainCanvasScale = canvasWidth / 856 // Масштаб от превью к целевому разрешению
+        const scaledX = position.x * mainCanvasScale
+        const scaledY = position.y * mainCanvasScale
+        
+        console.log('📍 Позиционирование текста на отдельном канвасе:', {
+          original: position,
+          mainCanvasScale: mainCanvasScale,
+          scaled: { x: scaledX, y: scaledY },
+          canvasSize: `${canvasWidth}x${canvasHeight}`,
+          backgroundMode: textData.backgroundMode
+        })
+        
+        // Рисуем подложку и текст в зависимости от режима
+        if (textData.backgroundMode === 'conversation') {
+          await this.drawConversationModeOnCanvas(tempCtx, scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'thoughts') {
+          await this.drawThoughtsModeOnCanvas(tempCtx, scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'standard') {
+          await this.drawStandardModeOnCanvas(tempCtx, scaledX, scaledY, textData, mainCanvasScale)
+        } else if (textData.backgroundMode === 'image-text') {
+          await this.drawImageTextModeOnCanvas(tempCtx, scaledX, scaledY, textData, mainCanvasScale)
+        }
+        
+        console.log('✅ Отдельный канвас для текстового слоя создан:', layerInfo.id)
+        return tempCanvas
+        
+      } catch (error) {
+        console.error('❌ Ошибка при создании отдельного канваса для текстового слоя:', error)
+        throw error
+      }
+    },
+
+    // Рисуем режим "Разговор" на отдельном канвасе
+    async drawConversationModeOnCanvas(ctx, x, y, textData, scale) {
+      console.log('💬 Рисуем режим "Разговор" на отдельном канвасе')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledPadding = textPadding * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // Применяем тень к подложке
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = textData.shadowBlur * scale
+        ctx.shadowOffsetX = textData.shadowOffsetX * scale
+        ctx.shadowOffsetY = textData.shadowOffsetY * scale
+      }
+      
+      // Рисуем подложку (прямоугольник с хвостом)
+      ctx.fillStyle = textData.backgroundColor
+      this.drawConversationBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      // Добавляем обводку если включена
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        this.strokeConversationBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textData.textColor
+      ctx.font = `${textData.fontWeight} ${scaledFontSize}px ${textData.font}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Рисуем многострочный текст
+      const lines = textData.text.split('\n')
+      const lineHeight = scaledFontSize * textData.lineHeight
+      const startY = y - (lines.length - 1) * lineHeight / 2
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, startY + index * lineHeight)
+      })
+    },
+
+    // Рисуем режим "Мысли" на отдельном канвасе
+    async drawThoughtsModeOnCanvas(ctx, x, y, textData, scale) {
+      console.log('🧠 Рисуем режим "Мысли" на отдельном канвасе')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledPadding = textPadding * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // Применяем тень к подложке (увеличиваем в 2 раза для режима "Мысли")
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = textData.shadowBlur * scale
+        ctx.shadowOffsetX = textData.shadowOffsetX * scale * 2 // Увеличиваем в 2 раза
+        ctx.shadowOffsetY = textData.shadowOffsetY * scale * 2 // Увеличиваем в 2 раза
+      }
+      
+      // Рисуем подложку (овал с хвостами)
+      ctx.fillStyle = textData.backgroundColor
+      this.drawThoughtsBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      // Добавляем обводку если включена
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        this.strokeThoughtsBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textData.textColor
+      ctx.font = `${textData.fontWeight} ${scaledFontSize}px ${textData.font}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Рисуем многострочный текст
+      const lines = textData.text.split('\n')
+      const lineHeight = scaledFontSize * textData.lineHeight
+      const startY = y - (lines.length - 1) * lineHeight / 2
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, startY + index * lineHeight)
+      })
+    },
+
+    // Рисуем режим "Стандарт" на отдельном канвасе
+    async drawStandardModeOnCanvas(ctx, x, y, textData, scale) {
+      console.log('📝 Рисуем режим "Стандарт" на отдельном канвасе')
+      
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const textPadding = textData.padding || 15
+      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
+      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      
+      // Масштабируем размеры
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledPadding = textPadding * scale
+      const scaledFontSize = textData.fontSize * scale
+      
+      // Применяем тень к подложке
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = textData.shadowBlur * scale
+        ctx.shadowOffsetX = textData.shadowOffsetX * scale
+        ctx.shadowOffsetY = textData.shadowOffsetY * scale
+      }
+      
+      // Рисуем подложку (прямоугольник)
+      ctx.fillStyle = textData.backgroundColor
+      this.drawStandardBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      
+      // Сбрасываем тень
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      // Добавляем обводку если включена
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth * scale
+        this.strokeStandardBackground(ctx, x, y, scaledBackgroundWidth, scaledBackgroundHeight, textData, scale)
+      }
+      
+      // Рисуем текст
+      ctx.fillStyle = textData.textColor
+      ctx.font = `${textData.fontWeight} ${scaledFontSize}px ${textData.font}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Рисуем многострочный текст
+      const lines = textData.text.split('\n')
+      const lineHeight = scaledFontSize * textData.lineHeight
+      const startY = y - (lines.length - 1) * lineHeight / 2
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, startY + index * lineHeight)
+      })
+    },
+
+    // Рисуем режим "Текст с изображением" на отдельном канвасе
+    async drawImageTextModeOnCanvas(ctx, x, y, textData, scale) {
+      console.log('🖼️ Рисуем режим "Текст с изображением" на отдельном канвасе')
+      
+      // Для режима "Текст с изображением" используем готовый растр если есть
+      if (textData.savedCanvas) {
+        const imageDataURL = textData.savedCanvas.toDataURL('image/png', 1.0)
+        const img = new Image()
+        img.src = imageDataURL
+        
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            // Масштабируем изображение
+            const scaledWidth = img.width * scale
+            const scaledHeight = img.height * scale
+            ctx.drawImage(img, x - scaledWidth/2, y - scaledHeight/2, scaledWidth, scaledHeight)
+            resolve()
+          }
+          img.onerror = reject
+        })
+      } else {
+        console.warn('⚠️ Нет savedCanvas для режима "Текст с изображением"')
+      }
+    },
+
+    // Вспомогательные функции для рисования подложек
+    drawConversationBackground(ctx, x, y, width, height, textData, scale) {
+      // Рисуем прямоугольник с хвостом (упрощенная версия)
+      const tailSize = (textData.tailSize || 20) * scale
+      const tailWidth = (textData.tailWidth || 10) * scale
+      const tailAngle = textData.tailAngle || 45
+      
+      ctx.beginPath()
+      // Основной прямоугольник
+      ctx.rect(x - width/2, y - height/2, width, height)
+      // Хвост
+      ctx.moveTo(x + width/2, y)
+      ctx.lineTo(x + width/2 + tailSize, y - tailWidth/2)
+      ctx.lineTo(x + width/2 + tailSize, y + tailWidth/2)
+      ctx.closePath()
+      ctx.fill()
+    },
+
+    drawThoughtsBackground(ctx, x, y, width, height, textData, scale) {
+      // Рисуем овал с хвостами (упрощенная версия)
+      const tailSize = (textData.tailSize || 20) * scale
+      const tailWidth = (textData.tailWidth || 10) * scale
+      
+      ctx.beginPath()
+      // Основной овал
+      ctx.ellipse(x, y, width/2, height/2, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      
+      // Хвосты (упрощенные овалы)
+      ctx.beginPath()
+      ctx.ellipse(x + width/2 + tailSize/2, y - tailWidth/2, tailSize/2, tailWidth/2, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      
+      ctx.beginPath()
+      ctx.ellipse(x + width/2 + tailSize, y + tailWidth/2, tailSize/3, tailWidth/3, 0, 0, 2 * Math.PI)
+      ctx.fill()
+    },
+
+    drawStandardBackground(ctx, x, y, width, height, textData, scale) {
+      // Рисуем простой прямоугольник
+      ctx.beginPath()
+      ctx.rect(x - width/2, y - height/2, width, height)
+      ctx.fill()
+    },
+
+    // Функции для обводки
+    strokeConversationBackground(ctx, x, y, width, height, textData, scale) {
+      const tailSize = (textData.tailSize || 20) * scale
+      const tailWidth = (textData.tailWidth || 10) * scale
+      
+      ctx.beginPath()
+      ctx.rect(x - width/2, y - height/2, width, height)
+      ctx.moveTo(x + width/2, y)
+      ctx.lineTo(x + width/2 + tailSize, y - tailWidth/2)
+      ctx.lineTo(x + width/2 + tailSize, y + tailWidth/2)
+      ctx.closePath()
+      ctx.stroke()
+    },
+
+    strokeThoughtsBackground(ctx, x, y, width, height, textData, scale) {
+      const tailSize = (textData.tailSize || 20) * scale
+      const tailWidth = (textData.tailWidth || 10) * scale
+      
+      ctx.beginPath()
+      ctx.ellipse(x, y, width/2, height/2, 0, 0, 2 * Math.PI)
+      ctx.stroke()
+      
+      ctx.beginPath()
+      ctx.ellipse(x + width/2 + tailSize/2, y - tailWidth/2, tailSize/2, tailWidth/2, 0, 0, 2 * Math.PI)
+      ctx.stroke()
+      
+      ctx.beginPath()
+      ctx.ellipse(x + width/2 + tailSize, y + tailWidth/2, tailSize/3, tailWidth/3, 0, 0, 2 * Math.PI)
+      ctx.stroke()
+    },
+
+    strokeStandardBackground(ctx, x, y, width, height, textData, scale) {
+      ctx.beginPath()
+      ctx.rect(x - width/2, y - height/2, width, height)
+      ctx.stroke()
+    },
+
+    // Функция для вычисления размера многострочного текста
+    calculateMultilineTextSize(text, fontSize, lineHeight, textData) {
+      const lines = text.split('\n')
+      const ctx = document.createElement('canvas').getContext('2d')
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      
+      let maxWidth = 0
+      lines.forEach(line => {
+        const metrics = ctx.measureText(line)
+        maxWidth = Math.max(maxWidth, metrics.width)
+      })
+      
+      return {
+        width: maxWidth,
+        height: lines.length * fontSize * lineHeight
       }
     },
     

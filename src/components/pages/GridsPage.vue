@@ -4609,12 +4609,26 @@ export default {
               textCtx.shadowOffsetY = currentTextData.shadowOffsetY
               textCtx.globalAlpha = currentTextData.shadowOpacity / 100
               
-              // Рисуем тень текста
+              // ИСПРАВЛЕНО: Рисуем тень текста на textCtx с теми же координатами, что и маска
               textCtx.font = `${currentTextData.fontWeight || 'normal'} ${currentTextData.fontSize || 24}px ${currentTextData.font || 'Arial'}`
               textCtx.textAlign = currentTextData.textAlign || 'center'
               textCtx.textBaseline = 'middle'
               textCtx.fillStyle = currentTextData.shadowColor
-              this.drawMultilineTextWithData(textCtx, currentTextData.text, canvasWidth/2, canvasHeight/2, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
+              // Используем те же координаты, что и для маски (scaledTextX, scaledTextY)
+              console.log('🔍 ДЕТАЛЬНАЯ ОТЛАДКА ТЕНИ:', {
+                context: 'textCtx',
+                canvasSize: `${textCanvas.width}x${textCanvas.height}`,
+                fontSize: currentTextData.fontSize || 24,
+                fontWeight: currentTextData.fontWeight || 'normal',
+                font: currentTextData.font || 'Arial',
+                coordinates: `${scaledTextX}, ${scaledTextY}`,
+                textAlign: currentTextData.textAlign || 'center',
+                textBaseline: 'middle',
+                ctxFont: textCtx.font,
+                ctxTextAlign: textCtx.textAlign,
+                ctxTextBaseline: textCtx.textBaseline
+              })
+              this.drawMultilineTextWithData(textCtx, currentTextData.text, scaledTextX, scaledTextY, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
               
               // Сбрасываем настройки тени
               textCtx.shadowColor = 'transparent'
@@ -4678,7 +4692,8 @@ export default {
               tempCtx.textAlign = currentTextData.textAlign || 'center'
               tempCtx.textBaseline = 'middle'
               tempCtx.fillStyle = currentTextData.shadowColor
-              this.drawMultilineTextWithData(tempCtx, currentTextData.text || 'Текст', canvasWidth/2, canvasHeight/2, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
+              // ИСПРАВЛЕНО: Используем те же координаты, что и для маски
+              this.drawMultilineTextWithData(tempCtx, currentTextData.text || 'Текст', scaledTextX, scaledTextY, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
               
               // Сбрасываем настройки тени
               tempCtx.shadowColor = 'transparent'
@@ -4862,12 +4877,48 @@ export default {
       }
     },
 
+    // НОВОЕ: Создание растра из готового канваса
+    createRasterFromSavedCanvas(savedCanvas, x, y) {
+      console.log('🎯 Создание растра из готового канваса')
+      
+      try {
+        // Создаем растр из готового канваса
+        const raster = new this.paperScope.Raster(savedCanvas)
+        raster.position = new this.paperScope.Point(x, y)
+        
+        // Устанавливаем правильное масштабирование для HiDPI
+        const dpr = window.devicePixelRatio || 1
+        raster.scaling = new this.paperScope.Point(1 / dpr, 1 / dpr)
+        
+        console.log('✅ Растр создан из готового канваса:', {
+          position: `${x}, ${y}`,
+          canvasSize: `${savedCanvas.width}x${savedCanvas.height}`,
+          scaling: `1/${dpr}, 1/${dpr}`,
+          note: 'Используем готовый канвас - размеры должны быть правильными!'
+        })
+        
+        return raster
+      } catch (error) {
+        console.error('❌ Ошибка создания растра из готового канваса:', error)
+        return null
+      }
+    },
+
     // Создание подложки "Текст с изображением" используя существующую логику из превью
     createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
       const currentTextData = textData
       
+      // НОВОЕ: Если есть готовый канвас, используем его
+      if (currentTextData.savedCanvas) {
+        console.log('🎯 Используем готовый канвас из TextManager')
+        return this.createRasterFromSavedCanvas(currentTextData.savedCanvas, x, y)
+      }
+      
       try {
+        // ИСПРАВЛЕНО: Определяем переменные в самом начале блока try
+        const previewCanvasWidth = 856  // Размер превью канваса из TextManager
+        const previewCanvasHeight = 405
         
         // Создаем временный Canvas размером только подложки + отступы
         const dpr = window.devicePixelRatio || 1
@@ -4921,6 +4972,21 @@ export default {
         const canvasCenterX = canvasWidth / 2
         const canvasCenterY = canvasHeight / 2
         
+        // УПРОЩЕНО: Используем простой масштабный коэффициент
+        const scaleX = previewCanvasWidth / canvasWidth
+        const scaleY = previewCanvasHeight / canvasHeight
+        const scaledTextX = canvasCenterX * scaleX
+        const scaledTextY = canvasCenterY * scaleY
+        
+        console.log('🎯 УПРОЩЕННОЕ МАСШТАБИРОВАНИЕ:', {
+          previewCanvas: `${previewCanvasWidth}x${previewCanvasHeight}`,
+          tempCanvas: `${canvasWidth}x${canvasHeight}`,
+          scale: `${scaleX.toFixed(3)}x${scaleY.toFixed(3)}`,
+          center: `${canvasCenterX}x${canvasCenterY}`,
+          scaled: `${scaledTextX.toFixed(1)}x${scaledTextY.toFixed(1)}`,
+          note: 'Простое пропорциональное масштабирование!'
+        })
+        
         // Устанавливаем стиль шрифта (как в превью)
         const fontSize = currentTextData.fontSize
         const fontFamily = currentTextData.font
@@ -4940,7 +5006,8 @@ export default {
           tempCtx.globalAlpha = currentTextData.shadowOpacity / 100
           
           // Рисуем тень текста
-          this.drawMultilineTextWithData(tempCtx, currentTextData.text, canvasCenterX, canvasCenterY, currentTextData.fontSize, currentTextData.lineHeight, currentTextData)
+          // ИСПРАВЛЕНО: Используем те же координаты, что и для маски
+          this.drawMultilineTextWithData(tempCtx, currentTextData.text, scaledTextX, scaledTextY, currentTextData.fontSize, currentTextData.lineHeight, currentTextData)
           
           // Сбрасываем настройки тени
           tempCtx.shadowColor = 'transparent'
@@ -4950,18 +5017,12 @@ export default {
           tempCtx.globalAlpha = 1
         }
         
-        // ИСПРАВЛЕНО: Выносим определение переменных за пределы блока if
-        const previewCanvasWidth = 856  // Размер превью канваса из TextManager
-        const previewCanvasHeight = 405
+        // ИСПРАВЛЕНО: Переменные уже определены в начале блока try
         
         // ВАЖНО: Координаты должны быть относительно временного канваса, а не основного!
         // Временный канвас имеет размеры превью (856x405)
         const textCanvasCenterX = previewCanvasWidth / 2
         const textCanvasCenterY = previewCanvasHeight / 2
-        
-        // Вычисляем координаты для правильного позиционирования текста после масштабирования
-        const scaledTextX = (canvasCenterX / canvasWidth) * previewCanvasWidth
-        const scaledTextY = (canvasCenterY / canvasHeight) * previewCanvasHeight
         
         // Создаем временный канвас для текста с изображением с размерами превью
         const textCanvas = document.createElement('canvas')
@@ -4997,7 +5058,8 @@ export default {
               textCtx.textAlign = currentTextData.textAlign || 'center'
               textCtx.textBaseline = 'middle'
               textCtx.fillStyle = currentTextData.shadowColor
-              this.drawMultilineTextWithData(textCtx, currentTextData.text, textCanvasCenterX, textCanvasCenterY, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
+              // ИСПРАВЛЕНО: Используем те же координаты, что и для маски (scaledTextX, scaledTextY)
+              this.drawMultilineTextWithData(textCtx, currentTextData.text, scaledTextX, scaledTextY, currentTextData.fontSize || 24, currentTextData.lineHeight || 1.2, currentTextData)
               
               // Сбрасываем настройки тени
               textCtx.shadowColor = 'transparent'
@@ -5080,7 +5142,7 @@ export default {
           
           // Создаем маску из текста (логические координаты относительно временного канваса)
           textCtx.globalCompositeOperation = 'destination-in'
-          textCtx.font = `${currentTextData.fontWeight} ${currentTextData.fontSize}px ${currentTextData.font}`
+          textCtx.font = `${currentTextData.fontWeight} ${currentTextData.fontSize || 24}px ${currentTextData.font}`
           textCtx.textAlign = 'center' // Всегда центрируем для маски
           textCtx.textBaseline = 'middle'
           textCtx.fillStyle = 'white'
@@ -5123,8 +5185,37 @@ export default {
             note: 'Маска теперь в координатах scaledTextX, scaledTextY для совпадения с тенью!'
           })
           
-          // Используем drawMultilineTextWithData с правильным позиционированием маски
-          this.drawMultilineTextWithData(textCtx, currentTextData.text, maskCenterX, maskCenterY, currentTextData.fontSize * 1, currentTextData.lineHeight, maskTextData)
+          // ИСПРАВЛЕНО: Используем drawMultilineTextWithData с размером шрифта, соответствующим тени
+          // Маска должна создаваться с тем же размером шрифта, что и тень
+          // ИСПРАВЛЕНО: Создаем маску с тем же размером шрифта, что и тень
+          console.log('🔍 ДЕТАЛЬНАЯ ОТЛАДКА МАСКИ:', {
+            context: 'textCtx',
+            canvasSize: `${textCanvas.width}x${textCanvas.height}`,
+            fontSize: currentTextData.fontSize || 24,
+            fontWeight: currentTextData.fontWeight || 'normal',
+            font: currentTextData.font || 'Arial',
+            coordinates: `${maskCenterX}, ${maskCenterY}`,
+            textAlign: maskTextData.textAlign,
+            globalCompositeOperation: textCtx.globalCompositeOperation,
+            ctxFont: textCtx.font,
+            ctxTextAlign: textCtx.textAlign,
+            ctxTextBaseline: textCtx.textBaseline,
+            ctxFillStyle: textCtx.fillStyle
+          })
+          
+          // ИСПРАВЛЕНО: Увеличиваем размер шрифта для маски, чтобы после масштабирования он совпал с тенью
+          const maskFontSize = (currentTextData.fontSize || 24) * (canvasWidth / previewCanvasWidth)
+          
+          console.log('🎯 ИСПРАВЛЕНИЕ РАЗМЕРА ШРИФТА ДЛЯ МАСКИ:', {
+            originalFontSize: currentTextData.fontSize || 24,
+            scaleFactor: (canvasWidth / previewCanvasWidth).toFixed(3),
+            maskFontSize: maskFontSize.toFixed(1),
+            canvasWidth: canvasWidth,
+            previewCanvasWidth: previewCanvasWidth,
+            note: 'Маска теперь будет того же размера, что и тень!'
+          })
+          
+          this.drawMultilineTextWithData(textCtx, currentTextData.text, maskCenterX, maskCenterY, maskFontSize, currentTextData.lineHeight, maskTextData)
           
           // Сбрасываем режим композиции
           textCtx.globalCompositeOperation = 'source-over'
@@ -5213,7 +5304,16 @@ export default {
           if (currentTextData.textImage) {
             textCtx.strokeStyle = currentTextData.strokeColor
             textCtx.lineWidth = currentTextData.strokeWidth * 1 // previewScale = 1
-            this.drawMultilineTextStrokeWithData(textCtx, currentTextData.text, scaledTextX, scaledTextY, currentTextData.fontSize * 1, currentTextData.lineHeight, currentTextData)
+            // ИСПРАВЛЕНО: Создаем обводку с тем же размером шрифта, что и тень
+            console.log('🖼️ ОТЛАДКА: Рисуем обводку с параметрами:', {
+              fontSize: currentTextData.fontSize || 24,
+              fontWeight: currentTextData.fontWeight || 'normal',
+              font: currentTextData.font || 'Arial',
+              coordinates: `${scaledTextX}, ${scaledTextY}`,
+              strokeWidth: currentTextData.strokeWidth
+            })
+            
+            this.drawMultilineTextStrokeWithData(textCtx, currentTextData.text, scaledTextX, scaledTextY, currentTextData.fontSize || 24, currentTextData.lineHeight, currentTextData)
             
             // Переносим обводку на основной канвас
             // Масштабируем textCanvas (размеры превью) на tempCanvas (размеры с HiDPI)
@@ -6349,18 +6449,23 @@ export default {
     // Отрисовка многострочного текста с передачей данных
     drawMultilineTextWithData(ctx, text, x, y, fontSize, lineHeight = 1.2, textData) {
       
-      // ОТЛАДКА: Логируем параметры для создания маски
-      if (ctx.globalCompositeOperation === 'destination-in') {
-        console.log('🖼️ ОТЛАДКА drawMultilineTextWithData для маски:', {
-          text: text,
-          x: x,
-          y: y,
-          fontSize: fontSize,
-          lineHeight: lineHeight,
-          textAlign: textData.textAlign,
-          globalCompositeOperation: ctx.globalCompositeOperation
-        })
-      }
+      // ОТЛАДКА: Логируем параметры для всех элементов
+      console.log('🔍 ДЕТАЛЬНАЯ ОТЛАДКА drawMultilineTextWithData:', {
+        text: text,
+        x: x,
+        y: y,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        textAlign: textData.textAlign,
+        fontWeight: textData.fontWeight,
+        font: textData.font,
+        globalCompositeOperation: ctx.globalCompositeOperation,
+        ctxFont: ctx.font,
+        ctxTextAlign: ctx.textAlign,
+        ctxTextBaseline: ctx.textBaseline,
+        ctxFillStyle: ctx.fillStyle,
+        canvasSize: `${ctx.canvas.width}x${ctx.canvas.height}`
+      })
       
       // Если это режим с изображением, запрещаем перенос текста
       let processedText = text

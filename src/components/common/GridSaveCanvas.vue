@@ -1391,13 +1391,40 @@ export default {
       // Вычисляем размеры текста
       const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      const textWidthWithPadding = textSize.width + textPadding * 2
+      const textHeightWithPadding = textSize.height + textPadding * 2
+      
+      // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
+      // Это точно такая же логика как в оригинальном коде
+      const actualBackgroundWidth = Math.max(200, textWidthWithPadding) // Минимум 200px как в оригинале
+      const actualBackgroundHeight = Math.max(80, textHeightWithPadding) // Минимум 80px как в оригинале
       
       // Масштабируем размеры
-      const scaledBackgroundWidth = backgroundWidth * scale
-      const scaledBackgroundHeight = backgroundHeight * scale
+      const scaledBackgroundWidth = actualBackgroundWidth * scale
+      const scaledBackgroundHeight = actualBackgroundHeight * scale
       const scaledFontSize = textData.fontSize * scale
+      
+      // ПОЛНАЯ ЛОГИКА ИЗ buildThoughtsModePath
+      // Параметры хвоста (точно как в GridsPage.vue)
+      const tailSize = Number(textData.tailSize) / 100 // Длина хвоста (от 100% до 750%)
+      const tailWidth = Number(textData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (используем ту же логику что и в превью)
+      const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
+      const tailLength = minDimension * tailSize // Длина хвоста
+      const tailWidthPixels = minDimension * tailWidth // Ширина хвоста в пикселях
+      
+      console.log('🧠 Параметры хвоста для Paper.js:', {
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailLength: tailLength,
+        tailWidthPixels: tailWidthPixels,
+        minDimension: minDimension
+      })
       
       // Создаем основной овал
       const mainOval = new this.paperScope.Path.Ellipse({
@@ -1406,24 +1433,66 @@ export default {
         fillColor: textData.backgroundColor
       })
       
-      // Создаем хвосты (упрощенные овалы)
-      const tailSize = (textData.tailSize || 20) * scale
-      const tailWidth = (textData.tailWidth || 10) * scale
+      // Создаем множественные хвосты (точно как в оригинале)
+      const tailCount = 2
+      const offsetFromMain = tailWidthPixels * 0.1
       
-      const tail1 = new this.paperScope.Path.Ellipse({
-        center: [x + scaledBackgroundWidth/2 + tailSize/2, y - tailWidth/2],
-        size: [tailSize, tailWidth],
-        fillColor: textData.backgroundColor
+      console.log('🧠 Создаем хвосты:', {
+        tailCount,
+        tailLength,
+        tailWidthPixels,
+        offsetFromMain
       })
       
-      const tail2 = new this.paperScope.Path.Ellipse({
-        center: [x + scaledBackgroundWidth/2 + tailSize, y + tailWidth/2],
-        size: [tailSize/1.5, tailWidth/1.5],
-        fillColor: textData.backgroundColor
-      })
+      let combinedPath = mainOval
       
-      // Объединяем все части
-      const combinedPath = mainOval.unite(tail1).unite(tail2)
+      for (let i = 0; i < tailCount; i++) {
+        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького
+        let distanceFromCenter
+        if (i === 0) {
+          // Первый овал (большой) - на 35% длины хвоста от маленького овала
+          const smallOvalDistance = offsetFromMain + (tailLength - offsetFromMain)
+          const distanceFromSmall = (tailLength - offsetFromMain) * 0.35
+          distanceFromCenter = smallOvalDistance - distanceFromSmall
+        } else {
+          // Второй овал (маленький) - в конце хвоста
+          distanceFromCenter = offsetFromMain + (tailLength - offsetFromMain)
+        }
+        
+        // Размер овала
+        let sizeMultiplier
+        if (i === 0) {
+          // Первый овал (большой) - увеличиваем на 60%
+          sizeMultiplier = 1.6
+        } else {
+          // Второй овал (маленький) - базовый размер
+          sizeMultiplier = 1.0
+        }
+        
+        const ovalWidth = tailWidthPixels * sizeMultiplier
+        const ovalHeight = tailWidthPixels * sizeMultiplier * 0.6
+        
+        // Позиция овала (в направлении хвоста)
+        const ovalX = x + distanceFromCenter * Math.cos(tailAngle)
+        const ovalY = y + distanceFromCenter * Math.sin(tailAngle)
+        
+        console.log('🧠 Овал', i + 1, ':', {
+          position: `${ovalX.toFixed(1)}, ${ovalY.toFixed(1)}`,
+          size: `${ovalWidth.toFixed(1)}x${ovalHeight.toFixed(1)}`,
+          distanceFromCenter: distanceFromCenter.toFixed(1),
+          sizeMultiplier: sizeMultiplier.toFixed(1)
+        })
+        
+        // Создаем овал хвоста
+        const tailOval = new this.paperScope.Path.Ellipse({
+          center: [ovalX, ovalY],
+          size: [ovalWidth, ovalHeight],
+          fillColor: textData.backgroundColor
+        })
+        
+        // Объединяем с основным путем
+        combinedPath = combinedPath.unite(tailOval)
+      }
       
       // Применяем тень к подложке (увеличиваем в 2 раза для режима "Мысли")
       if (textData.shadow) {
@@ -1438,23 +1507,92 @@ export default {
         combinedPath.strokeWidth = textData.strokeWidth * scale
       }
       
-      // Вычисляем правильную позицию текста
-      const textPosition = this.calculateTextPosition(x, y, textData, scaledFontSize, scaledBackgroundWidth, scaledBackgroundHeight)
+      // Вычисляем правильную позицию текста для овальной подложки
+      const textPosition = this.calculateThoughtsTextPosition(x, y, textData, scaledFontSize, actualBackgroundWidth, actualBackgroundHeight)
       
-      // Создаем текст с правильным выравниванием
+      // Создаем текст с правильным выравниванием и масштабированием
+      const finalFontSize = scaledFontSize * textPosition.scaleFactor
       const textItem = new this.paperScope.PointText({
         point: [textPosition.x, textPosition.y],
         content: textData.text,
         fillColor: textData.textColor,
         fontFamily: textData.font,
         fontWeight: textData.fontWeight,
-        fontSize: scaledFontSize,
+        fontSize: finalFontSize,
         justification: textData.textAlign || 'center'
       })
       
       // Добавляем на слой
       this.paperScope.project.activeLayer.addChild(combinedPath)
       this.paperScope.project.activeLayer.addChild(textItem)
+    },
+
+    // Вычисляем правильную позицию текста для овальной подложки (режим "Мысли")
+    calculateThoughtsTextPosition(centerX, centerY, textData, fontSize, backgroundWidth, backgroundHeight) {
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, fontSize, textData.lineHeight, textData)
+      
+      // Рассчитываем actualBackgroundWidth и actualBackgroundHeight как в оригинальном коде
+      const textPadding = textData.padding || 15
+      const textWidthWithPadding = textSize.width + textPadding * 2
+      const textHeightWithPadding = textSize.height + textPadding * 2
+      
+      // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
+      const actualBackgroundWidth = Math.max(backgroundWidth, textWidthWithPadding)
+      const actualBackgroundHeight = Math.max(backgroundHeight, textHeightWithPadding)
+      
+      // Для овальной подложки текст должен быть точно по центру
+      let textX = centerX
+      let textY = centerY
+      
+      // Горизонтальное выравнивание - учитываем ширину текста
+      const textAlign = textData.textAlign || 'center'
+      if (textAlign === 'left') {
+        textX = centerX - textSize.width / 2
+      } else if (textAlign === 'right') {
+        textX = centerX + textSize.width / 2
+      } else {
+        textX = centerX
+      }
+      
+      // Вертикальное выравнивание - для овальной подложки нужна более точная настройка
+      const lineHeight = fontSize * (textData.lineHeight || 1.2)
+      const textHeight = textSize.height
+      
+      // Для овальной подложки базовая линия должна быть точно по центру
+      // Paper.js PointText использует базовую линию, поэтому корректируем Y
+      const baselineOffset = textHeight * 0.15 // Более точное смещение для овальной подложки
+      textY = centerY - (textHeight / 2) + baselineOffset
+      
+      // Проверяем, не выходит ли текст за границы овала (используем actualBackground размеры)
+      const maxTextWidth = actualBackgroundWidth - (textPadding * 2)
+      const maxTextHeight = actualBackgroundHeight - (textPadding * 2)
+      
+      // Если текст выходит за границы, масштабируем его
+      let scaleFactor = 1
+      if (textSize.width > maxTextWidth) {
+        scaleFactor = Math.min(scaleFactor, maxTextWidth / textSize.width)
+      }
+      if (textSize.height > maxTextHeight) {
+        scaleFactor = Math.min(scaleFactor, maxTextHeight / textSize.height)
+      }
+      
+      console.log('🧠 Позиционирование текста для овальной подложки:', {
+        centerX, centerY,
+        textAlign,
+        textSize,
+        textX, textY,
+        originalBackground: `${backgroundWidth}x${backgroundHeight}`,
+        actualBackground: `${actualBackgroundWidth}x${actualBackgroundHeight}`,
+        textHeight,
+        baselineOffset,
+        lineHeight,
+        textPadding,
+        maxTextWidth, maxTextHeight,
+        scaleFactor
+      })
+      
+      return { x: textX, y: textY, scaleFactor }
     },
 
     // Создаем Paper.js слой для режима "Стандарт"

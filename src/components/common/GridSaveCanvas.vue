@@ -1260,6 +1260,21 @@ export default {
         x, y, tailAngle, bgX, bgY, scaledBackgroundWidth, scaledBackgroundHeight
       )
       
+      console.log('🔍 Отладка геометрии хвоста:', {
+        centerX: x,
+        centerY: y,
+        tailAngle: tailAngle,
+        tailAngleDegrees: (tailAngle * 180 / Math.PI).toFixed(1),
+        bgX: bgX,
+        bgY: bgY,
+        bgWidth: scaledBackgroundWidth,
+        bgHeight: scaledBackgroundHeight,
+        intersectionPoint: intersectionPoint,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailLength: tailLength
+      })
+      
       if (intersectionPoint) {
         // Создаем объединенную фигуру с хвостом (точно как в buildSuperBackgroundPath)
         const combinedPath = this.createUnifiedConversationPathPaperJS(
@@ -1304,7 +1319,7 @@ export default {
         this.paperScope.project.activeLayer.addChild(backgroundPath)
       }
       
-      // Создаем текст
+      // Создаем текст с правильным выравниванием
       const textItem = new this.paperScope.PointText({
         point: [x, y],
         content: textData.text,
@@ -1312,7 +1327,7 @@ export default {
         fontFamily: textData.font,
         fontWeight: textData.fontWeight,
         fontSize: scaledFontSize,
-        justification: 'center'
+        justification: textData.textAlign || 'center'
       })
       
       // Добавляем на слой
@@ -1473,6 +1488,12 @@ export default {
       const endX = centerX + lineLength * Math.cos(tailAngle)
       const endY = centerY + lineLength * Math.sin(tailAngle)
       
+      console.log('🔍 Поиск пересечения хвоста:', {
+        centerX, centerY, tailAngle: (tailAngle * 180 / Math.PI).toFixed(1),
+        endX, endY, lineLength,
+        bgX, bgY, bgWidth, bgHeight
+      })
+      
       // Проверяем пересечение с каждой стороной прямоугольника
       const intersections = []
       
@@ -1513,9 +1534,11 @@ export default {
           }
         }
         
+        console.log('✅ Найдено пересечение:', closestIntersection)
         return closestIntersection
       }
       
+      console.log('❌ Пересечение не найдено')
       return null
     },
 
@@ -1591,6 +1614,14 @@ export default {
       // Проверяем, находится ли точка пересечения в углу подложки
       const isCorner = this.isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
       
+      console.log('🔍 Определение стороны и угла хвоста:', {
+        intersectionPoint: intersectionPoint,
+        tailSide: tailSide,
+        isCorner: isCorner,
+        sharpPoint: { x: sharpPointX, y: sharpPointY },
+        tailWidthPercent: tailWidthPercent
+      })
+      
       // Создаем путь суперподложки
       const path = new this.paperScope.Path()
       
@@ -1604,6 +1635,7 @@ export default {
                                         intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
       }
       
+      // ВАЖНО: Закрываем путь ПОСЛЕ построения всей геометрии
       path.closed = true
       path.fillColor = textData.backgroundColor
       
@@ -1614,6 +1646,7 @@ export default {
     getTailSideFromIntersectionPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
       const tolerance = 1
       
+      // ИСПРАВЛЕНИЕ: Используем точно такой же порядок как в основном коде
       // Верхняя сторона
       if (Math.abs(intersectionPoint.y - bgY) < tolerance) return 'top'
       // Правая сторона
@@ -1630,6 +1663,7 @@ export default {
     isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight) {
       const tolerance = 2
       
+      // ИСПРАВЛЕНИЕ: Используем точно такую же логику как в основном коде
       // Левый верхний угол
       if (Math.abs(intersectionPoint.x - bgX) < tolerance && Math.abs(intersectionPoint.y - bgY) < tolerance) return true
       // Правый верхний угол
@@ -1677,7 +1711,7 @@ export default {
         path.lineTo(bgX, bgY + bgHeight)  // D
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
         path.lineTo(bgX + bgWidth, bgY)  // B
-        path.lineTo(bgX, bgY)  // A (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (isTopRight) {
         // Правый верхний угол
         const point1X = bgX + bgWidth - tailWidthPixels
@@ -1692,7 +1726,7 @@ export default {
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
         path.lineTo(bgX, bgY + bgHeight)  // D
         path.lineTo(bgX, bgY)  // A
-        path.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (isBottomRight) {
         // Правый нижний угол
         const point1X = bgX + bgWidth
@@ -1707,7 +1741,7 @@ export default {
         path.lineTo(bgX, bgY + bgHeight)  // D
         path.lineTo(bgX, bgY)  // A
         path.lineTo(bgX + bgWidth, bgY)  // B
-        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (isBottomLeft) {
         // Левый нижний угол
         const point1X = bgX
@@ -1722,7 +1756,7 @@ export default {
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
         path.lineTo(bgX + bgWidth, bgY)  // B
         path.lineTo(bgX, bgY)  // A
-        path.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       }
     },
 
@@ -1747,7 +1781,7 @@ export default {
         path.lineTo(bgX + bgWidth, bgY)  // B
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
         path.lineTo(bgX, bgY + bgHeight)  // D
-        path.lineTo(bgX, bgY)  // A (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'right') {
         // Хвост справа
         const point1X = bgX + bgWidth
@@ -1762,7 +1796,7 @@ export default {
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
         path.lineTo(bgX, bgY + bgHeight)  // D
         path.lineTo(bgX, bgY)  // A
-        path.lineTo(bgX + bgWidth, bgY)  // B (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'bottom') {
         // Хвост снизу
         const point1X = intersectionPoint.x + tailWidthPixels / 2
@@ -1777,7 +1811,7 @@ export default {
         path.lineTo(bgX, bgY + bgHeight)  // D
         path.lineTo(bgX, bgY)  // A
         path.lineTo(bgX + bgWidth, bgY)  // B
-        path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'left') {
         // Хвост слева
         const point1X = bgX
@@ -1792,7 +1826,7 @@ export default {
         path.lineTo(bgX, bgY)  // A
         path.lineTo(bgX + bgWidth, bgY)  // B
         path.lineTo(bgX + bgWidth, bgY + bgHeight)  // C
-        path.lineTo(bgX, bgY + bgHeight)  // D (замыкаем)
+        // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       }
     },
 

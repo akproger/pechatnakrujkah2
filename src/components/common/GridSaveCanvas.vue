@@ -1290,9 +1290,21 @@ export default {
         
         // Применяем тень к подложке
         if (textData.shadow) {
-          combinedPath.shadowColor = textData.shadowColor
+          // Создаем цвет тени с учетом прозрачности
+          const shadowColor = new this.paperScope.Color(textData.shadowColor)
+          shadowColor.alpha = (textData.shadowOpacity || 50) / 100 // По умолчанию 50% прозрачности
+          combinedPath.shadowColor = shadowColor
           combinedPath.shadowBlur = textData.shadowBlur * scale
           combinedPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+          
+          console.log('💬 Параметры тени режима "Разговор":', {
+            shadowColor: textData.shadowColor,
+            shadowOpacity: textData.shadowOpacity,
+            finalAlpha: shadowColor.alpha,
+            shadowBlur: textData.shadowBlur * scale,
+            shadowOffsetX: textData.shadowOffsetX * scale,
+            shadowOffsetY: textData.shadowOffsetY * scale
+          })
         }
         
         // Добавляем обводку если включена
@@ -1313,7 +1325,10 @@ export default {
         })
         
         if (textData.shadow) {
-          backgroundPath.shadowColor = textData.shadowColor
+          // Создаем цвет тени с учетом прозрачности
+          const shadowColor = new this.paperScope.Color(textData.shadowColor)
+          shadowColor.alpha = (textData.shadowOpacity || 50) / 100 // По умолчанию 50% прозрачности
+          backgroundPath.shadowColor = shadowColor
           backgroundPath.shadowBlur = textData.shadowBlur * scale
           backgroundPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
         }
@@ -1533,9 +1548,22 @@ export default {
       
       // Применяем тень к подложке (увеличиваем в 2 раза для режима "Мысли")
       if (textData.shadow) {
-        combinedPath.shadowColor = textData.shadowColor
+        // Создаем цвет тени с учетом прозрачности
+        const shadowColor = new this.paperScope.Color(textData.shadowColor)
+        shadowColor.alpha = (textData.shadowOpacity || 50) / 100 // По умолчанию 50% прозрачности
+        combinedPath.shadowColor = shadowColor
         combinedPath.shadowBlur = textData.shadowBlur * scale
-        combinedPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale * 2, textData.shadowOffsetY * scale * 2)
+        combinedPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+        
+        console.log('🧠 Параметры тени режима "Мысли":', {
+          shadowColor: textData.shadowColor,
+          shadowOpacity: textData.shadowOpacity,
+          finalAlpha: shadowColor.alpha,
+          shadowBlur: textData.shadowBlur * scale,
+          shadowOffsetX: textData.shadowOffsetX * scale,
+          shadowOffsetY: textData.shadowOffsetY * scale,
+          note: 'Сдвиг тени такой же как в режиме "Разговор"'
+        })
       }
       
       // Добавляем обводку если включена
@@ -1612,9 +1640,21 @@ export default {
       
       // Применяем тень к подложке
       if (textData.shadow) {
-        backgroundPath.shadowColor = textData.shadowColor
+        // Создаем цвет тени с учетом прозрачности
+        const shadowColor = new this.paperScope.Color(textData.shadowColor)
+        shadowColor.alpha = (textData.shadowOpacity || 50) / 100 // По умолчанию 50% прозрачности
+        backgroundPath.shadowColor = shadowColor
         backgroundPath.shadowBlur = textData.shadowBlur * scale
         backgroundPath.shadowOffset = new this.paperScope.Point(textData.shadowOffsetX * scale, textData.shadowOffsetY * scale)
+        
+        console.log('📝 Параметры тени режима "Стандарт":', {
+          shadowColor: textData.shadowColor,
+          shadowOpacity: textData.shadowOpacity,
+          finalAlpha: shadowColor.alpha,
+          shadowBlur: textData.shadowBlur * scale,
+          shadowOffsetX: textData.shadowOffsetX * scale,
+          shadowOffsetY: textData.shadowOffsetY * scale
+        })
       }
       
       // Добавляем обводку если включена

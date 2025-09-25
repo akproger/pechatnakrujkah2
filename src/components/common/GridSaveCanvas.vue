@@ -1319,9 +1319,12 @@ export default {
         this.paperScope.project.activeLayer.addChild(backgroundPath)
       }
       
+      // Вычисляем правильную позицию текста
+      const textPosition = this.calculateTextPosition(x, y, textData, scaledFontSize, scaledBackgroundWidth, scaledBackgroundHeight)
+      
       // Создаем текст с правильным выравниванием
       const textItem = new this.paperScope.PointText({
-        point: [x, y],
+        point: [textPosition.x, textPosition.y],
         content: textData.text,
         fillColor: textData.textColor,
         fontFamily: textData.font,
@@ -1332,6 +1335,53 @@ export default {
       
       // Добавляем на слой
       this.paperScope.project.activeLayer.addChild(textItem)
+    },
+
+    // Вычисляем правильную позицию текста с учетом выравнивания
+    calculateTextPosition(centerX, centerY, textData, fontSize, backgroundWidth, backgroundHeight) {
+      // Вычисляем размеры текста
+      const textSize = this.calculateMultilineTextSize(textData.text, fontSize, textData.lineHeight, textData)
+      
+      // Горизонтальное выравнивание - размещаем текст по центру подложки
+      let textX = centerX
+      const textAlign = textData.textAlign || 'center'
+      
+      // Paper.js justification работает относительно точки point
+      // Для центрирования текста по подложке нужно учесть ширину текста
+      if (textAlign === 'left') {
+        // Для левого выравнивания: точка должна быть слева от центра на половину ширины текста
+        textX = centerX - textSize.width / 2
+      } else if (textAlign === 'right') {
+        // Для правого выравнивания: точка должна быть справа от центра на половину ширины текста
+        textX = centerX + textSize.width / 2
+      } else {
+        // Для центрального выравнивания: точка в центре
+        textX = centerX
+      }
+      
+      // Вертикальное выравнивание - размещаем текст точно по центру подложки
+      // Paper.js PointText использует базовую линию, поэтому нужно скорректировать Y
+      const lineHeight = fontSize * (textData.lineHeight || 1.2)
+      const textHeight = textSize.height
+      
+      // Вычисляем смещение для центрирования текста по вертикали
+      // Берем половину высоты текста и вычитаем смещение базовой линии
+      const baselineOffset = textHeight * 0.2 // Базовая линия находится примерно на 20% от верха текста
+      const textY = centerY - (textHeight / 2) + baselineOffset
+      
+      console.log('🔍 Позиционирование текста:', {
+        centerX, centerY,
+        textAlign,
+        textSize,
+        textX, textY,
+        backgroundWidth, backgroundHeight,
+        textHeight,
+        baselineOffset,
+        lineHeight,
+        textWidth: textSize.width
+      })
+      
+      return { x: textX, y: textY }
     },
 
     // Создаем Paper.js слой для режима "Мысли"
@@ -1388,15 +1438,18 @@ export default {
         combinedPath.strokeWidth = textData.strokeWidth * scale
       }
       
-      // Создаем текст
+      // Вычисляем правильную позицию текста
+      const textPosition = this.calculateTextPosition(x, y, textData, scaledFontSize, scaledBackgroundWidth, scaledBackgroundHeight)
+      
+      // Создаем текст с правильным выравниванием
       const textItem = new this.paperScope.PointText({
-        point: [x, y],
+        point: [textPosition.x, textPosition.y],
         content: textData.text,
         fillColor: textData.textColor,
         fontFamily: textData.font,
         fontWeight: textData.fontWeight,
         fontSize: scaledFontSize,
-        justification: 'center'
+        justification: textData.textAlign || 'center'
       })
       
       // Добавляем на слой
@@ -1439,15 +1492,18 @@ export default {
         backgroundPath.strokeWidth = textData.strokeWidth * scale
       }
       
-      // Создаем текст
+      // Вычисляем правильную позицию текста
+      const textPosition = this.calculateTextPosition(x, y, textData, scaledFontSize, scaledBackgroundWidth, scaledBackgroundHeight)
+      
+      // Создаем текст с правильным выравниванием
       const textItem = new this.paperScope.PointText({
-        point: [x, y],
+        point: [textPosition.x, textPosition.y],
         content: textData.text,
         fillColor: textData.textColor,
         fontFamily: textData.font,
         fontWeight: textData.fontWeight,
         fontSize: scaledFontSize,
-        justification: 'center'
+        justification: textData.textAlign || 'center'
       })
       
       // Добавляем на слой

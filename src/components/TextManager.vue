@@ -3351,6 +3351,7 @@ export default {
       // Заполняем объединенную фигуру
       ctx.fillStyle = backgroundColor
       ctx.fill()
+      
     },
     
     // Построение пути для суперподложки (подложка + хвост как единая фигура)
@@ -3420,34 +3421,20 @@ export default {
         }
       }
       
+      // Возвращаем ближайшую точку пересечения
       if (allIntersections.length > 0) {
-        // ВЫБИРАЕМ БЛИЖАЙШУЮ К УГЛУ ТОЧКУ ПЕРЕСЕЧЕНИЯ
-        let selectedIntersection = allIntersections[0]
-        let minDistance = Infinity
+        let closestIntersection = allIntersections[0]
+        let minDistance = Math.sqrt(Math.pow(closestIntersection.x - centerX, 2) + Math.pow(closestIntersection.y - centerY, 2))
         
-        // Вычисляем расстояния до всех углов
-        const corners = [
-          { name: 'Левый верхний', x: bgX, y: bgY },
-          { name: 'Правый верхний', x: bgX + bgWidth, y: bgY },
-          { name: 'Правый нижний', x: bgX + bgWidth, y: bgY + bgHeight },
-          { name: 'Левый нижний', x: bgX, y: bgY + bgHeight }
-        ]
-        
-        for (const intersection of allIntersections) {
-          for (const corner of corners) {
-            const distance = Math.sqrt(
-              Math.pow(intersection.x - corner.x, 2) +
-              Math.pow(intersection.y - corner.y, 2)
-            )
-            
-            if (distance < minDistance) {
-              minDistance = distance
-              selectedIntersection = intersection
-            }
+        for (let i = 1; i < allIntersections.length; i++) {
+          const distance = Math.sqrt(Math.pow(allIntersections[i].x - centerX, 2) + Math.pow(allIntersections[i].y - centerY, 2))
+          if (distance < minDistance) {
+            minDistance = distance
+            closestIntersection = allIntersections[i]
           }
         }
         
-        return selectedIntersection
+        return closestIntersection
       }
       
       return null

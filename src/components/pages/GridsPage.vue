@@ -5994,6 +5994,7 @@ export default {
       // Заполняем объединенную фигуру
       ctx.fillStyle = backgroundColor
       ctx.fill()
+      
     },
     
     // Обводка объединенной фигуры (подложка + хвост) как единое целое
@@ -6351,6 +6352,9 @@ export default {
         { x1: bgLeft, y1: bgBottom, x2: bgLeft, y2: bgTop } // Лево
       ]
       
+      // Собираем ВСЕ пересечения
+      const allIntersections = []
+      
       for (const side of sides) {
         const intersection = this.getLineIntersection(
           centerX, centerY, tailEndX, tailEndY,
@@ -6360,9 +6364,25 @@ export default {
         if (intersection) {
           // Проверяем, что точка пересечения находится на отрезке
           if (this.isPointOnLineSegment(intersection.x, intersection.y, side.x1, side.y1, side.x2, side.y2)) {
-            return intersection
+            allIntersections.push(intersection)
           }
         }
+      }
+      
+      // Возвращаем ближайшую точку пересечения
+      if (allIntersections.length > 0) {
+        let closestIntersection = allIntersections[0]
+        let minDistance = Math.sqrt(Math.pow(closestIntersection.x - centerX, 2) + Math.pow(closestIntersection.y - centerY, 2))
+        
+        for (let i = 1; i < allIntersections.length; i++) {
+          const distance = Math.sqrt(Math.pow(allIntersections[i].x - centerX, 2) + Math.pow(allIntersections[i].y - centerY, 2))
+          if (distance < minDistance) {
+            minDistance = distance
+            closestIntersection = allIntersections[i]
+          }
+        }
+        
+        return closestIntersection
       }
       
       return null

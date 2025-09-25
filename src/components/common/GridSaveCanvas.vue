@@ -1297,6 +1297,7 @@ export default {
         
         // Добавляем на слой
         this.paperScope.project.activeLayer.addChild(combinedPath)
+        
       } else {
         // Если нет пересечения, создаем простой прямоугольник
         const backgroundPath = new this.paperScope.Path.Rectangle({
@@ -1736,16 +1737,85 @@ export default {
       return null
     },
 
+    // НОВАЯ ФУНКЦИЯ: Находим ближайшую точку пересечения линии от центра до острой вершины
+    getClosestIntersectionFromCenterToSharpPoint(centerX, centerY, sharpPointX, sharpPointY, bgX, bgY, bgWidth, bgHeight) {
+      // Проверяем пересечение с каждой стороной прямоугольника
+      const intersections = []
+      
+      // Верхняя сторона
+      const topIntersection = this.getLineIntersection(centerX, centerY, sharpPointX, sharpPointY, bgX, bgY, bgX + bgWidth, bgY)
+      if (topIntersection && this.isPointOnLineSegment(topIntersection, bgX, bgY, bgX + bgWidth, bgY)) {
+        intersections.push(topIntersection)
+      }
+      
+      // Правая сторона
+      const rightIntersection = this.getLineIntersection(centerX, centerY, sharpPointX, sharpPointY, bgX + bgWidth, bgY, bgX + bgWidth, bgY + bgHeight)
+      if (rightIntersection && this.isPointOnLineSegment(rightIntersection, bgX + bgWidth, bgY, bgX + bgWidth, bgY + bgHeight)) {
+        intersections.push(rightIntersection)
+      }
+      
+      // Нижняя сторона
+      const bottomIntersection = this.getLineIntersection(centerX, centerY, sharpPointX, sharpPointY, bgX, bgY + bgHeight, bgX + bgWidth, bgY + bgHeight)
+      if (bottomIntersection && this.isPointOnLineSegment(bottomIntersection, bgX, bgY + bgHeight, bgX + bgWidth, bgY + bgHeight)) {
+        intersections.push(bottomIntersection)
+      }
+      
+      // Левая сторона
+      const leftIntersection = this.getLineIntersection(centerX, centerY, sharpPointX, sharpPointY, bgX, bgY, bgX, bgY + bgHeight)
+      if (leftIntersection && this.isPointOnLineSegment(leftIntersection, bgX, bgY, bgX, bgY + bgHeight)) {
+        intersections.push(leftIntersection)
+      }
+      
+      // Возвращаем ближайшую точку пересечения к центру
+      if (intersections.length > 0) {
+        let closestIntersection = intersections[0]
+        let minDistance = Math.sqrt(Math.pow(closestIntersection.x - centerX, 2) + Math.pow(closestIntersection.y - centerY, 2))
+        
+        for (let i = 1; i < intersections.length; i++) {
+          const distance = Math.sqrt(Math.pow(intersections[i].x - centerX, 2) + Math.pow(intersections[i].y - centerY, 2))
+          if (distance < minDistance) {
+            minDistance = distance
+            closestIntersection = intersections[i]
+          }
+        }
+        
+        console.log('✅ Найдена ближайшая точка пересечения от центра до острой вершины:', closestIntersection)
+        return closestIntersection
+      }
+      
+      console.log('❌ Пересечение от центра до острой вершины не найдено')
+      return null
+    },
+
+    // Функция для вычисления пересечения двух линий
     getLineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
       const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
       if (Math.abs(denom) < 1e-10) return null // Параллельные линии
       
       const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
-      return {
-        x: x1 + t * (x2 - x1),
-        y: y1 + t * (y2 - y1)
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+      
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
       }
+      return null
     },
+
+    // Функция для проверки, находится ли точка на отрезке
+    isPointOnLineSegment(point, x1, y1, x2, y2) {
+      const tolerance = 1e-6
+      const crossProduct = (point.y - y1) * (x2 - x1) - (point.x - x1) * (y2 - y1)
+      if (Math.abs(crossProduct) > tolerance) return false
+      
+      const dotProduct = (point.x - x1) * (x2 - x1) + (point.y - y1) * (y2 - y1)
+      const squaredLength = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+      
+      return dotProduct >= 0 && dotProduct <= squaredLength
+    },
+
 
     isPointOnLineSegment(point, x1, y1, x2, y2) {
       const minX = Math.min(x1, x2)
@@ -1757,7 +1827,7 @@ export default {
     },
 
     createTailPathPaperJS(centerX, centerY, intersectionPoint, tailAngle, tailLength, tailWidth, textData, scale) {
-      // Создаем путь хвоста с точной геометрией
+      // Создаем путь хвоста с точной геометрией (как в других компонентах)
       const tailSizePercent = Number(textData.tailSize) / 100
       const tailWidthPercent = Number(textData.tailWidth) / 100
       
@@ -1765,22 +1835,22 @@ export default {
       const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
       const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
       
-      // Боковые точки хвоста
+      // Боковые точки хвоста (относительно центра прямоугольника)
       const perpendicularAngle = tailAngle + Math.PI / 2
       const halfWidth = tailLength * tailWidthPercent / 2
       
-      const leftPointX = sharpPointX + halfWidth * Math.cos(perpendicularAngle)
-      const leftPointY = sharpPointY + halfWidth * Math.sin(perpendicularAngle)
+      const leftPointX = centerX + halfWidth * Math.cos(perpendicularAngle)
+      const leftPointY = centerY + halfWidth * Math.sin(perpendicularAngle)
       
-      const rightPointX = sharpPointX - halfWidth * Math.cos(perpendicularAngle)
-      const rightPointY = sharpPointY - halfWidth * Math.sin(perpendicularAngle)
+      const rightPointX = centerX - halfWidth * Math.cos(perpendicularAngle)
+      const rightPointY = centerY - halfWidth * Math.sin(perpendicularAngle)
       
-      // Создаем путь хвоста
+      // Создаем путь хвоста ОТ ЦЕНТРА ПРЯМОУГОЛЬНИКА
       const tailPath = new this.paperScope.Path()
-      tailPath.add(new this.paperScope.Point(intersectionPoint.x, intersectionPoint.y))
-      tailPath.add(new this.paperScope.Point(leftPointX, leftPointY))
-      tailPath.add(new this.paperScope.Point(sharpPointX, sharpPointY))
-      tailPath.add(new this.paperScope.Point(rightPointX, rightPointY))
+      tailPath.add(new this.paperScope.Point(centerX, centerY)) // Центр прямоугольника
+      tailPath.add(new this.paperScope.Point(leftPointX, leftPointY)) // Левая точка основания
+      tailPath.add(new this.paperScope.Point(sharpPointX, sharpPointY)) // Острая вершина
+      tailPath.add(new this.paperScope.Point(rightPointX, rightPointY)) // Правая точка основания
       tailPath.closed = true
       tailPath.fillColor = textData.backgroundColor
       
@@ -1794,22 +1864,28 @@ export default {
       const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(textData.tailWidth) / 100)
       const tailSizePercent = Number(textData.tailSize) / 100
       
-      // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
-      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
-      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
-      
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
       const bgY = centerY - bgHeight / 2
       
+      // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
+      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      
+      // НОВАЯ ЛОГИКА: Находим ближайшую точку пересечения линии от центра до острой вершины
+      const closestIntersection = this.getClosestIntersectionFromCenterToSharpPoint(
+        centerX, centerY, sharpPointX, sharpPointY, bgX, bgY, bgWidth, bgHeight
+      )
+      
       // Определяем, с какой стороны подложки выходит хвост
-      const tailSide = this.getTailSideFromIntersectionPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      const tailSide = this.getTailSideFromIntersectionPaperJS(closestIntersection, bgX, bgY, bgWidth, bgHeight)
       
       // Проверяем, находится ли точка пересечения в углу подложки
-      const isCorner = this.isIntersectionAtCornerPaperJS(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
+      const isCorner = this.isIntersectionAtCornerPaperJS(closestIntersection, bgX, bgY, bgWidth, bgHeight)
       
       console.log('🔍 Определение стороны и угла хвоста:', {
-        intersectionPoint: intersectionPoint,
+        originalIntersectionPoint: intersectionPoint,
+        closestIntersection: closestIntersection,
         tailSide: tailSide,
         isCorner: isCorner,
         sharpPoint: { x: sharpPointX, y: sharpPointY },
@@ -1822,11 +1898,11 @@ export default {
       if (isCorner) {
         // Если хвост выходит из угла, строим специальный путь
         this.buildCornerTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
-                                          intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+                                          closestIntersection, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
       } else {
         // Обычный путь для стороны
         this.buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
-                                        intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
+                                        closestIntersection, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale)
       }
       
       // ВАЖНО: Закрываем путь ПОСЛЕ построения всей геометрии
@@ -1887,9 +1963,10 @@ export default {
         isBottomLeft = true
       }
       
-      // Вычисляем ширину хвоста точно как в GridsPage.vue
+      // Вычисляем ширину хвоста точно как в createTailPathPaperJS
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
+      const tailWidthPixels = tailLength * tailWidthPercent // Используем ту же формулу что и в createTailPathPaperJS
       
       if (isTopLeft) {
         // Левый верхний угол - строим путь с хвостом
@@ -1957,12 +2034,13 @@ export default {
     // Построение пути суперподложки с хвостом со стороны (не из угла) (Paper.js версия)
     buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
                                 intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
-      // Вычисляем ширину хвоста точно как в GridsPage.vue
+      // Вычисляем ширину хвоста точно как в createTailPathPaperJS
       const minDimension = Math.min(bgWidth, bgHeight)
-      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
+      const tailWidthPixels = tailLength * tailWidthPercent // Используем ту же формулу что и в createTailPathPaperJS
       
       if (tailSide === 'top') {
-        // Хвост сверху
+        // Хвост сверху - строим единую фигуру (точно как в GridsPage.vue)
         const point1X = intersectionPoint.x - tailWidthPixels / 2
         const point1Y = bgY
         const point2X = intersectionPoint.x + tailWidthPixels / 2
@@ -1977,7 +2055,7 @@ export default {
         path.lineTo(bgX, bgY + bgHeight)  // D
         // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'right') {
-        // Хвост справа
+        // Хвост справа - строим единую фигуру (точно как в GridsPage.vue)
         const point1X = bgX + bgWidth
         const point1Y = intersectionPoint.y - tailWidthPixels / 2
         const point2X = bgX + bgWidth
@@ -1992,7 +2070,7 @@ export default {
         path.lineTo(bgX, bgY)  // A
         // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'bottom') {
-        // Хвост снизу
+        // Хвост снизу - строим единую фигуру (точно как в GridsPage.vue)
         const point1X = intersectionPoint.x + tailWidthPixels / 2
         const point1Y = bgY + bgHeight
         const point2X = intersectionPoint.x - tailWidthPixels / 2
@@ -2007,7 +2085,7 @@ export default {
         path.lineTo(bgX + bgWidth, bgY)  // B
         // НЕ замыкаем вручную - path.closed = true сделает это автоматически
       } else if (tailSide === 'left') {
-        // Хвост слева
+        // Хвост слева - строим единую фигуру (точно как в GridsPage.vue)
         const point1X = bgX
         const point1Y = intersectionPoint.y + tailWidthPixels / 2
         const point2X = bgX
@@ -2448,7 +2526,8 @@ export default {
           height: this.canvasHeight
         }
       }
-    }
+    },
+    
   }
 }
 </script>

@@ -3961,7 +3961,8 @@ export default {
       for (const line of lines) {
         const metrics = ctx.measureText(line)
         maxWidth = Math.max(maxWidth, metrics.width)
-        totalHeight += fontSize * lineHeight
+        // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+        totalHeight += lines.length === 1 ? fontSize : fontSize * lineHeight
       }
       
       return { width: maxWidth, height: totalHeight }
@@ -3979,14 +3980,16 @@ export default {
       }
       
       const lines = processedText.split('\n')
-      const totalHeight = lines.length * fontSize * lineHeight
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalHeight = lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
       const startY = y - totalHeight / 2
       
       // Получаем текущие настройки выравнивания
       const textAlign = ctx.textAlign || 'center'
       
       for (let i = 0; i < lines.length; i++) {
-        const lineY = startY + i * fontSize * lineHeight + fontSize / 2
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + i * fontSize * lineHeight + fontSize / 2
         
         // Сохраняем текущее выравнивание
         const currentAlign = ctx.textAlign

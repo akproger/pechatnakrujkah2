@@ -6560,7 +6560,8 @@ export default {
       })
       
       // Вычисляем общую высоту текста
-      const totalTextHeight = lines.length * fontSize * lineHeight
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
       
       return {
         width: maxTextWidth,
@@ -6641,7 +6642,8 @@ export default {
       const lineSpacing = fontSize * lineHeight
       
       // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = lines.length * fontSize * lineHeight
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
       const startY = y - totalTextHeight / 2
       
       // Вычисляем максимальную ширину текста для центрирования по горизонтали
@@ -6653,7 +6655,8 @@ export default {
       
       // Рисуем обводку каждой строки
       lines.forEach((line, index) => {
-        const lineY = startY + (index * fontSize * lineHeight) + fontSize / 2
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * fontSize * lineHeight) + fontSize / 2
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x
@@ -6712,7 +6715,8 @@ export default {
       const lineSpacing = fontSize * lineHeight
       
       // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = lines.length * fontSize * lineHeight
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
       const startY = y - totalTextHeight / 2
       
       // Вычисляем максимальную ширину текста для центрирования по горизонтали
@@ -6724,7 +6728,8 @@ export default {
       
       // Рисуем каждую строку
       lines.forEach((line, index) => {
-        const lineY = startY + (index * fontSize * lineHeight) + fontSize / 2
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * fontSize * lineHeight) + fontSize / 2
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x

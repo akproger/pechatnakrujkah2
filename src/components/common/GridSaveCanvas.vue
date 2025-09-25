@@ -1362,13 +1362,20 @@ export default {
       
       // Вертикальное выравнивание - размещаем текст точно по центру подложки
       // Paper.js PointText использует базовую линию, поэтому нужно скорректировать Y
-      const lineHeight = fontSize * (textData.lineHeight || 1.2)
       const textHeight = textSize.height
       
-      // Вычисляем смещение для центрирования текста по вертикали
-      // Берем половину высоты текста и вычитаем смещение базовой линии
-      const baselineOffset = textHeight * 0.2 // Базовая линия находится примерно на 20% от верха текста
-      const textY = centerY - (textHeight / 2) + baselineOffset
+      // Paper.js PointText использует базовую линию, поэтому нужно скорректировать Y
+      // Для однострочного текста смещаем вниз на половину высоты шрифта
+      // Для многострочного текста используем более сложную логику
+      let textY
+      if (textData.text.split('\n').length === 1) {
+        // Однострочный текст - смещаем вниз на половину высоты шрифта для центрирования
+        textY = centerY + (fontSize * 0.3) // Смещение для центрирования относительно базовой линии
+      } else {
+        // Многострочный текст - учитываем базовую линию
+        const baselineOffset = textHeight * 0.2 // Базовая линия находится примерно на 20% от верха текста
+        textY = centerY - (textHeight / 2) + baselineOffset
+      }
       
       console.log('🔍 Позиционирование текста:', {
         centerX, centerY,
@@ -1377,8 +1384,7 @@ export default {
         textX, textY,
         backgroundWidth, backgroundHeight,
         textHeight,
-        baselineOffset,
-        lineHeight,
+        isSingleLine: textData.text.split('\n').length === 1,
         textWidth: textSize.width
       })
       
@@ -1557,13 +1563,19 @@ export default {
       }
       
       // Вертикальное выравнивание - для овальной подложки нужна более точная настройка
-      const lineHeight = fontSize * (textData.lineHeight || 1.2)
       const textHeight = textSize.height
       
-      // Для овальной подложки базовая линия должна быть точно по центру
-      // Paper.js PointText использует базовую линию, поэтому корректируем Y
-      const baselineOffset = textHeight * 0.15 // Более точное смещение для овальной подложки
-      textY = centerY - (textHeight / 2) + baselineOffset
+      // Paper.js PointText использует базовую линию, поэтому нужно скорректировать Y
+      // Для однострочного текста смещаем вниз на половину высоты шрифта
+      // Для многострочного текста используем более сложную логику
+      if (textData.text.split('\n').length === 1) {
+        // Однострочный текст - смещаем вниз на половину высоты шрифта для центрирования
+        textY = centerY + (fontSize * 0.3) // Смещение для центрирования относительно базовой линии
+      } else {
+        // Многострочный текст - учитываем базовую линию
+        const baselineOffset = textHeight * 0.15 // Более точное смещение для овальной подложки
+        textY = centerY - (textHeight / 2) + baselineOffset
+      }
       
       // Проверяем, не выходит ли текст за границы овала (используем actualBackground размеры)
       const maxTextWidth = actualBackgroundWidth - (textPadding * 2)
@@ -2206,13 +2218,20 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Рисуем многострочный текст
+      // Рисуем многострочный текст (точно как в GridsPage.vue)
       const lines = textData.text.split('\n')
-      const lineHeight = scaledFontSize * textData.lineHeight
-      const startY = y - (lines.length - 1) * lineHeight / 2
       
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
+      const startY = y - totalTextHeight / 2
+      
+      // Рисуем каждую строку
       lines.forEach((line, index) => {
-        ctx.fillText(line, x, startY + index * lineHeight)
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+        
+        ctx.fillText(line, x, lineY)
       })
     },
 
@@ -2263,13 +2282,20 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Рисуем многострочный текст
+      // Рисуем многострочный текст (точно как в GridsPage.vue)
       const lines = textData.text.split('\n')
-      const lineHeight = scaledFontSize * textData.lineHeight
-      const startY = y - (lines.length - 1) * lineHeight / 2
       
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
+      const startY = y - totalTextHeight / 2
+      
+      // Рисуем каждую строку
       lines.forEach((line, index) => {
-        ctx.fillText(line, x, startY + index * lineHeight)
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+        
+        ctx.fillText(line, x, lineY)
       })
     },
 
@@ -2320,13 +2346,20 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Рисуем многострочный текст
+      // Рисуем многострочный текст (точно как в GridsPage.vue)
       const lines = textData.text.split('\n')
-      const lineHeight = scaledFontSize * textData.lineHeight
-      const startY = y - (lines.length - 1) * lineHeight / 2
       
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
+      const startY = y - totalTextHeight / 2
+      
+      // Рисуем каждую строку
       lines.forEach((line, index) => {
-        ctx.fillText(line, x, startY + index * lineHeight)
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+        
+        ctx.fillText(line, x, lineY)
       })
     },
 
@@ -2451,7 +2484,7 @@ export default {
       
       return {
         width: maxWidth,
-        height: lines.length * fontSize * lineHeight
+        height: lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
       }
     },
     

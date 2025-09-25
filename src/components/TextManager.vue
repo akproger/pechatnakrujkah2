@@ -2187,7 +2187,9 @@ export default {
       
       // Рисуем обводку каждой строки
       lines.forEach((line, index) => {
-        const lineY = startY + (index * lineSpacing) + fontSize / 2
+        // ИСПРАВЛЕНО: Используем ту же логику позиционирования, что и в drawMultilineText
+        // Для однострочного текста используем просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + index * fontSize * lineHeight + fontSize / 2
         
         // Вычисляем позицию X в зависимости от выравнивания
         let lineX = x

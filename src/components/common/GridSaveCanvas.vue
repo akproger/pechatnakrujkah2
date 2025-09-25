@@ -1318,6 +1318,19 @@ export default {
         
       } else {
         // Если нет пересечения, создаем простой прямоугольник
+        console.warn('⚠️ НЕТ ПЕРЕСЕЧЕНИЯ ХВОСТА! Создаем простой прямоугольник без хвоста')
+        console.log('🔍 Параметры для отладки:', {
+          centerX: x,
+          centerY: y,
+          tailAngle: textData.tailAngle,
+          tailAngleRadians: tailAngle,
+          bgX: bgX,
+          bgY: bgY,
+          bgWidth: scaledBackgroundWidth,
+          bgHeight: scaledBackgroundHeight,
+          intersectionPoint: intersectionPoint
+        })
+        
         const backgroundPath = new this.paperScope.Path.Rectangle({
           point: [bgX, bgY],
           size: [scaledBackgroundWidth, scaledBackgroundHeight],
@@ -1355,8 +1368,24 @@ export default {
         justification: textData.textAlign || 'center'
       })
       
+      console.log('💬 Создаем текст для режима "Разговор":', {
+        text: textData.text,
+        position: textPosition,
+        fontSize: scaledFontSize,
+        fontFamily: textData.font,
+        fontWeight: textData.fontWeight,
+        textColor: textData.textColor,
+        justification: textData.textAlign || 'center'
+      })
+      
       // Добавляем на слой
       this.paperScope.project.activeLayer.addChild(textItem)
+      
+      console.log('✅ Текст добавлен на слой Paper.js:', {
+        textItem: textItem,
+        layer: this.paperScope.project.activeLayer,
+        childrenCount: this.paperScope.project.activeLayer.children.length
+      })
     },
 
     // Вычисляем правильную позицию текста с учетом выравнивания

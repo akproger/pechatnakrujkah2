@@ -1220,8 +1220,14 @@ export default {
       // Вычисляем размеры текста
       const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      const textWidthWithPadding = textSize.width + textPadding * 2
+      const textHeightWithPadding = textSize.height + textPadding * 2
+      
+      // Используем пользовательские настройки размеров подложки или размеры на основе текста
+      const userBackgroundWidth = textData.backgroundWidth || 200
+      const userBackgroundHeight = textData.backgroundHeight || 80
+      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
+      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -1394,22 +1400,46 @@ export default {
     // Создаем Paper.js слой для режима "Мысли"
     async createThoughtsPaperLayer(x, y, textData, scale) {
       console.log('🧠 Создаем Paper.js слой для режима "Мысли"')
+      console.log('🧠 Параметры режима "Мысли":', {
+        x, y, scale,
+        text: textData.text,
+        backgroundColor: textData.backgroundColor,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
+        shadow: textData.shadow,
+        stroke: textData.stroke,
+        userBackgroundWidth: textData.backgroundWidth,
+        userBackgroundHeight: textData.backgroundHeight,
+        padding: textData.padding
+      })
       
-      // Вычисляем размеры текста
+      // Вычисляем размеры текста (точно как в режиме "Разговор")
       const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
       const textWidthWithPadding = textSize.width + textPadding * 2
       const textHeightWithPadding = textSize.height + textPadding * 2
       
-      // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
-      // Это точно такая же логика как в оригинальном коде
-      const actualBackgroundWidth = Math.max(200, textWidthWithPadding) // Минимум 200px как в оригинале
-      const actualBackgroundHeight = Math.max(80, textHeightWithPadding) // Минимум 80px как в оригинале
+      // Используем пользовательские настройки размеров подложки или размеры на основе текста
+      const userBackgroundWidth = textData.backgroundWidth || 200
+      const userBackgroundHeight = textData.backgroundHeight || 80
+      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
+      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
       
-      // Масштабируем размеры
-      const scaledBackgroundWidth = actualBackgroundWidth * scale
-      const scaledBackgroundHeight = actualBackgroundHeight * scale
+      // Масштабируем размеры (точно как в режиме "Разговор")
+      const scaledBackgroundWidth = backgroundWidth * scale
+      const scaledBackgroundHeight = backgroundHeight * scale
       const scaledFontSize = textData.fontSize * scale
+      
+      console.log('🧠 Размеры подложки режима "Мысли":', {
+        textSize: `${textSize.width.toFixed(1)}x${textSize.height.toFixed(1)}`,
+        textPadding: textPadding,
+        textWithPadding: `${textWidthWithPadding.toFixed(1)}x${textHeightWithPadding.toFixed(1)}`,
+        userBackground: `${userBackgroundWidth}x${userBackgroundHeight}`,
+        finalBackground: `${backgroundWidth.toFixed(1)}x${backgroundHeight.toFixed(1)}`,
+        scaledBackground: `${scaledBackgroundWidth.toFixed(1)}x${scaledBackgroundHeight.toFixed(1)}`,
+        scale: scale
+      })
       
       // ПОЛНАЯ ЛОГИКА ИЗ buildThoughtsModePath
       // Параметры хвоста (точно как в GridsPage.vue)
@@ -1514,99 +1544,43 @@ export default {
         combinedPath.strokeWidth = textData.strokeWidth * scale
       }
       
-      // Вычисляем правильную позицию текста для овальной подложки
-      const textPosition = this.calculateThoughtsTextPosition(x, y, textData, scaledFontSize, actualBackgroundWidth, actualBackgroundHeight)
+      // Вычисляем правильную позицию текста (используем ту же логику что и в режиме "Разговор")
+      const textPosition = this.calculateTextPosition(x, y, textData, scaledFontSize, scaledBackgroundWidth, scaledBackgroundHeight)
       
-      // Создаем текст с правильным выравниванием и масштабированием
-      const finalFontSize = scaledFontSize * textPosition.scaleFactor
+      // Создаем текст с правильным выравниванием (точно как в режиме "Разговор")
       const textItem = new this.paperScope.PointText({
         point: [textPosition.x, textPosition.y],
         content: textData.text,
         fillColor: textData.textColor,
         fontFamily: textData.font,
         fontWeight: textData.fontWeight,
-        fontSize: finalFontSize,
+        fontSize: scaledFontSize,
         justification: textData.textAlign || 'center'
       })
       
       // Добавляем на слой
-      this.paperScope.project.activeLayer.addChild(combinedPath)
-      this.paperScope.project.activeLayer.addChild(textItem)
+      try {
+        this.paperScope.project.activeLayer.addChild(combinedPath)
+        console.log('✅ Основной путь режима "Мысли" добавлен на слой')
+      } catch (error) {
+        console.error('❌ Ошибка при добавлении основного пути режима "Мысли":', error)
+        // Пробуем добавить элементы по отдельности
+        try {
+          this.paperScope.project.activeLayer.addChild(mainOval)
+          console.log('✅ Основной овал режима "Мысли" добавлен на слой')
+        } catch (error2) {
+          console.error('❌ Ошибка при добавлении основного овала режима "Мысли":', error2)
+        }
+      }
+      
+      try {
+        this.paperScope.project.activeLayer.addChild(textItem)
+        console.log('✅ Текст режима "Мысли" добавлен на слой')
+      } catch (error) {
+        console.error('❌ Ошибка при добавлении текста режима "Мысли":', error)
+      }
     },
 
-    // Вычисляем правильную позицию текста для овальной подложки (режим "Мысли")
-    calculateThoughtsTextPosition(centerX, centerY, textData, fontSize, backgroundWidth, backgroundHeight) {
-      // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(textData.text, fontSize, textData.lineHeight, textData)
-      
-      // Рассчитываем actualBackgroundWidth и actualBackgroundHeight как в оригинальном коде
-      const textPadding = textData.padding || 15
-      const textWidthWithPadding = textSize.width + textPadding * 2
-      const textHeightWithPadding = textSize.height + textPadding * 2
-      
-      // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
-      const actualBackgroundWidth = Math.max(backgroundWidth, textWidthWithPadding)
-      const actualBackgroundHeight = Math.max(backgroundHeight, textHeightWithPadding)
-      
-      // Для овальной подложки текст должен быть точно по центру
-      let textX = centerX
-      let textY = centerY
-      
-      // Горизонтальное выравнивание - учитываем ширину текста
-      const textAlign = textData.textAlign || 'center'
-      if (textAlign === 'left') {
-        textX = centerX - textSize.width / 2
-      } else if (textAlign === 'right') {
-        textX = centerX + textSize.width / 2
-      } else {
-        textX = centerX
-      }
-      
-      // Вертикальное выравнивание - для овальной подложки нужна более точная настройка
-      const textHeight = textSize.height
-      
-      // Paper.js PointText использует базовую линию, поэтому нужно скорректировать Y
-      // Для однострочного текста смещаем вниз на половину высоты шрифта
-      // Для многострочного текста используем более сложную логику
-      if (textData.text.split('\n').length === 1) {
-        // Однострочный текст - смещаем вниз на половину высоты шрифта для центрирования
-        textY = centerY + (fontSize * 0.3) // Смещение для центрирования относительно базовой линии
-      } else {
-        // Многострочный текст - учитываем базовую линию
-        const baselineOffset = textHeight * 0.15 // Более точное смещение для овальной подложки
-        textY = centerY - (textHeight / 2) + baselineOffset
-      }
-      
-      // Проверяем, не выходит ли текст за границы овала (используем actualBackground размеры)
-      const maxTextWidth = actualBackgroundWidth - (textPadding * 2)
-      const maxTextHeight = actualBackgroundHeight - (textPadding * 2)
-      
-      // Если текст выходит за границы, масштабируем его
-      let scaleFactor = 1
-      if (textSize.width > maxTextWidth) {
-        scaleFactor = Math.min(scaleFactor, maxTextWidth / textSize.width)
-      }
-      if (textSize.height > maxTextHeight) {
-        scaleFactor = Math.min(scaleFactor, maxTextHeight / textSize.height)
-      }
-      
-      console.log('🧠 Позиционирование текста для овальной подложки:', {
-        centerX, centerY,
-        textAlign,
-        textSize,
-        textX, textY,
-        originalBackground: `${backgroundWidth}x${backgroundHeight}`,
-        actualBackground: `${actualBackgroundWidth}x${actualBackgroundHeight}`,
-        textHeight,
-        baselineOffset,
-        lineHeight,
-        textPadding,
-        maxTextWidth, maxTextHeight,
-        scaleFactor
-      })
-      
-      return { x: textX, y: textY, scaleFactor }
-    },
 
     // Создаем Paper.js слой для режима "Стандарт"
     async createStandardPaperLayer(x, y, textData, scale) {
@@ -1615,8 +1589,14 @@ export default {
       // Вычисляем размеры текста
       const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      const textWidthWithPadding = textSize.width + textPadding * 2
+      const textHeightWithPadding = textSize.height + textPadding * 2
+      
+      // Используем пользовательские настройки размеров подложки или размеры на основе текста
+      const userBackgroundWidth = textData.backgroundWidth || 200
+      const userBackgroundHeight = textData.backgroundHeight || 80
+      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
+      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -2407,23 +2387,121 @@ export default {
     },
 
     drawThoughtsBackground(ctx, x, y, width, height, textData, scale) {
-      // Рисуем овал с хвостами (упрощенная версия)
-      const tailSize = (textData.tailSize || 20) * scale
-      const tailWidth = (textData.tailWidth || 10) * scale
+      console.log('🧠 Рисуем подложку режима "Мысли" с правильной логикой')
+      
+      // Используем ту же логику что и в GridsPage.vue
+      this.buildThoughtsModePathForSave(ctx, x, y, width, height, scale, textData)
+    },
+
+    // Построение пути для режима "Мысли" при сохранении (адаптировано из GridsPage.vue)
+    buildThoughtsModePathForSave(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData) {
+      console.log('🧠 Построение пути для режима "Мысли" при сохранении')
+      
+      // 1️⃣ Рисуем основной овал (подложка) с тенью если включена
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        // Для режима "Мысли" сдвиг тени умножаем на 2 при сохранении
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 2)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 2)
+      }
       
       ctx.beginPath()
-      // Основной овал
+      this.drawOvalForSave(ctx, centerX, centerY, bgWidth, bgHeight)
+      ctx.fillStyle = textData.backgroundColor
+      ctx.fill()
+      
+      // Сбрасываем тень
+      if (textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // 2️⃣ Рисуем хвосты (множественные овалы)
+      if (textData.tailSize && textData.tailWidth && textData.tailAngle) {
+        this.drawThoughtsTailsForSave(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData)
+      }
+    },
+
+    // Рисование хвостов для режима "Мысли" при сохранении
+    drawThoughtsTailsForSave(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData) {
+      console.log('🧠 Рисуем хвосты режима "Мысли" при сохранении')
+      
+      // Параметры хвоста (точно как в GridsPage.vue)
+      const tailSize = Number(textData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(textData.tailWidth) / 100 // От 40% до 100%
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      // Размеры хвоста (точно как в buildThoughtsModePath)
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста
+      
+      console.log('🧠 Параметры хвоста для сохранения:', {
+        tailSize: tailSize,
+        tailWidth: tailWidth,
+        tailAngle: tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        minDimension: minDimension,
+        tailLength: tailLength
+      })
+      
+      // Количество овалов хвоста (точно как в оригинале)
+      const tailCount = 2
+      console.log('🧠 Количество овалов хвоста:', tailCount)
+      
+      // Рисуем каждый овал хвоста
+      for (let i = 0; i < tailCount; i++) {
+        const distanceFromCenter = (i + 1) * (tailLength / tailCount)
+        const sizeMultiplier = i === 0 ? 1.6 : 1.0
+        
+        // Размеры овала хвоста
+        const ovalWidth = minDimension * tailWidth * sizeMultiplier
+        const ovalHeight = ovalWidth * 0.6 // Соотношение сторон как в оригинале
+        
+        // Позиция овала хвоста
+        const ovalX = centerX + Math.cos(tailAngle) * distanceFromCenter
+        const ovalY = centerY + Math.sin(tailAngle) * distanceFromCenter
+        
+        console.log(`🧠 Овал ${i + 1}:`, {
+          position: `${ovalX.toFixed(1)}, ${ovalY.toFixed(1)}`,
+          size: `${ovalWidth.toFixed(1)}x${ovalHeight.toFixed(1)}`,
+          distanceFromCenter: distanceFromCenter.toFixed(1),
+          sizeMultiplier: sizeMultiplier.toFixed(1)
+        })
+        
+        // Применяем тень к хвосту если включена
+        if (textData.shadow) {
+          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+          // Для режима "Мысли" сдвиг тени умножаем на 2 при сохранении
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 2)
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 2)
+        }
+        
+        // Рисуем овал хвоста
+        ctx.beginPath()
+        this.drawOvalForSave(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
+        ctx.fillStyle = textData.backgroundColor
+        ctx.fill()
+        
+        // Сбрасываем тень
+        if (textData.shadow) {
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
+      }
+      
+      console.log('🧠 Режим "Мысли" - хвосты отрисованы успешно!')
+    },
+
+    // Вспомогательная функция для рисования овала
+    drawOvalForSave(ctx, x, y, width, height) {
       ctx.ellipse(x, y, width/2, height/2, 0, 0, 2 * Math.PI)
-      ctx.fill()
-      
-      // Хвосты (упрощенные овалы)
-      ctx.beginPath()
-      ctx.ellipse(x + width/2 + tailSize/2, y - tailWidth/2, tailSize/2, tailWidth/2, 0, 0, 2 * Math.PI)
-      ctx.fill()
-      
-      ctx.beginPath()
-      ctx.ellipse(x + width/2 + tailSize, y + tailWidth/2, tailSize/3, tailWidth/3, 0, 0, 2 * Math.PI)
-      ctx.fill()
     },
 
     drawStandardBackground(ctx, x, y, width, height, textData, scale) {
@@ -2448,20 +2526,51 @@ export default {
     },
 
     strokeThoughtsBackground(ctx, x, y, width, height, textData, scale) {
-      const tailSize = (textData.tailSize || 20) * scale
-      const tailWidth = (textData.tailWidth || 10) * scale
+      console.log('🧠 Рисуем обводку режима "Мысли" с правильной логикой')
       
+      // Обводка основного овала
       ctx.beginPath()
-      ctx.ellipse(x, y, width/2, height/2, 0, 0, 2 * Math.PI)
+      this.drawOvalForSave(ctx, x, y, width, height)
       ctx.stroke()
       
-      ctx.beginPath()
-      ctx.ellipse(x + width/2 + tailSize/2, y - tailWidth/2, tailSize/2, tailWidth/2, 0, 0, 2 * Math.PI)
-      ctx.stroke()
+      // Обводка хвостов (если есть параметры хвоста)
+      if (textData.tailSize && textData.tailWidth && textData.tailAngle) {
+        this.drawThoughtsTailsStrokeForSave(ctx, x, y, width, height, scale, textData)
+      }
+    },
+
+    // Рисование обводки хвостов для режима "Мысли" при сохранении
+    drawThoughtsTailsStrokeForSave(ctx, centerX, centerY, bgWidth, bgHeight, scale, textData) {
+      // Параметры хвоста (точно как в drawThoughtsTailsForSave)
+      const tailSize = Number(textData.tailSize) / 100
+      const tailWidth = Number(textData.tailWidth) / 100
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
-      ctx.beginPath()
-      ctx.ellipse(x + width/2 + tailSize, y + tailWidth/2, tailSize/3, tailWidth/3, 0, 0, 2 * Math.PI)
-      ctx.stroke()
+      // Размеры хвоста
+      const minDimension = Math.min(bgWidth, bgHeight)
+      const tailLength = minDimension * 1.25
+      
+      // Количество овалов хвоста
+      const tailCount = 2
+      
+      // Рисуем обводку каждого овала хвоста
+      for (let i = 0; i < tailCount; i++) {
+        const distanceFromCenter = (i + 1) * (tailLength / tailCount)
+        const sizeMultiplier = i === 0 ? 1.6 : 1.0
+        
+        // Размеры овала хвоста
+        const ovalWidth = minDimension * tailWidth * sizeMultiplier
+        const ovalHeight = ovalWidth * 0.6
+        
+        // Позиция овала хвоста
+        const ovalX = centerX + Math.cos(tailAngle) * distanceFromCenter
+        const ovalY = centerY + Math.sin(tailAngle) * distanceFromCenter
+        
+        // Рисуем обводку овала хвоста
+        ctx.beginPath()
+        this.drawOvalForSave(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
+        ctx.stroke()
+      }
     },
 
     strokeStandardBackground(ctx, x, y, width, height, textData, scale) {

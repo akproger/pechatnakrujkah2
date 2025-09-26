@@ -662,7 +662,6 @@
     />
   </div>
 </template>
-
 <script>
 import paper from 'paper'
 import * as THREE from 'three'
@@ -1437,7 +1436,6 @@ export default {
         }
       })
     },
-
     // Перерисовка всех элементов в высоком разрешении для печати
     async redrawAllElementsInHighDPI(tempPaperScope, scale, canvasWidth, canvasHeight) {
       console.log('🎨 Перерисовываем все элементы в высоком разрешении')
@@ -2140,7 +2138,6 @@ export default {
       console.log('✅ Подложка для высокого разрешения создана')
       return backgroundItem
     },
-
     // Применение стилей масок для высокого разрешения
     async applyMaskStylesForHighDPI(mask, image, scale, tempPaperScope) {
       // Сначала применяем обводку к маске (как в обычном методе)
@@ -2847,7 +2844,6 @@ export default {
       }
       return position
     },
-
     // Восстановление текстовых слоев после перерисовки сетки
     restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId, savedGridType) {
       if (!savedTextLayers || savedTextLayers.length === 0) {
@@ -3659,7 +3655,7 @@ export default {
       const numRows = this.gridRows
       const numTriangles = this.gridCols
       
-      // Начинаем от левого края с половины основания первого треугольника
+      // Начинаем от левого края с половиной основания первого треугольника
       const startX = -cellWidth * 0.5
       
       for (let row = 0; row < numRows; row++) {
@@ -3718,16 +3714,21 @@ export default {
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       
       // Вычисляем размеры ромба
-      const diamondWidth = cellWidth * 2
-      const diamondHeight = cellHeight * 2
+      let diamondWidth = cellWidth * 2
+      let diamondHeight = cellHeight * 2
+
+      // Увеличиваем ромб: +1.4% и минимум +2 px как в HiDPI, чтобы скрыть щели
+      const sizeIncreaseDiamond = 0.014
+      diamondWidth += diamondWidth * sizeIncreaseDiamond + 2
+      diamondHeight += diamondHeight * sizeIncreaseDiamond + 2
       
       // Используем gridRows и gridCols для определения количества
       const numRows = this.gridRows
       const numDiamonds = this.gridCols
       
-      // Начинаем от левого края с половины ширины первого ромба
+      // Начинаем от левого края с половиной ширины первого ромба
       const startX = -cellWidth * 0.5
-      // Начинаем сверху с половины высоты ромба за верхней границей
+      // Начинаем сверху с половиной высоты ромба за верхней границей
       const startY = -cellHeight * 0.5
       
       for (let row = 0; row < numRows; row++) {
@@ -3736,11 +3737,14 @@ export default {
           
           if (isEven) {
             // Ромб - по сути два треугольника, соединенные основаниями
-            const x = startX + col * diamondWidth + margin
-            const y = startY + row * diamondHeight + margin
+            // Компенсируем увеличение, чтобы ромб оставался по центру ячейки
+            const xOffset = (diamondWidth - cellWidth * 2) / 2
+            const yOffset = (diamondHeight - cellHeight * 2) / 2
+            const x = startX + col * (cellWidth * 2) + margin - xOffset
+            const y = startY + row * (cellHeight * 2) + margin - yOffset
             
-            // Увеличиваем ромб на 0.5% для устранения просветов
-            const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
+            // Дополнительно слегка увеличим контур ромба (1%), чтобы гарантировать перекрытие
+            const sizeMultiplier = 1.01
             const diamond = new paper.Path({
               segments: [
                 [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y - (cellHeight - margin * 2) * 1.49592857723 * sizeMultiplier], // верхняя вершина
@@ -4712,8 +4716,6 @@ export default {
       console.log('✅ Текстовый элемент создан:', textItem)
       return textItem
     },
-    
-    
     // Создание подложки используя существующую логику из превью
     createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
@@ -5215,7 +5217,6 @@ export default {
         return null
       }
     },
-
     // Создание подложки "Текст с изображением" используя существующую логику из превью
     createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Используем переданные данные напрямую
@@ -5945,7 +5946,6 @@ export default {
       this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail, backgroundColor, textData)
       console.log('✅ Режим "Мысли" отрисован с переданными данными - только овалы, без треугольников!')
     },
-    
     // Построение пути для режима "Мысли" - ПРОСТАЯ ЛОГИКА
     buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor, textData = null, isHighDPI = false) {
       // Используем переданные данные или данные по умолчанию
@@ -6225,21 +6225,16 @@ export default {
       const currentTextData = textData
       
       // Параметры хвоста
-      const tailSize = Number(currentTextData.tailSize) / 100 // От 100% до 300%
-      const tailWidth = Number(currentTextData.tailWidth) / 100 // От 40% до 100% (уже в правильном формате)
-      const tailAngle = Number(currentTextData.tailAngle) * Math.PI / 180
-      
-      // Размеры хвоста (точно как в StickerManiaPage для основного канваса)
-      const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в StickerManiaPage)
+      const tailWidthPercent = Number(currentTextData.tailWidth) / 100
+      const tailSizePercent = Number(currentTextData.tailSize) / 100
       
       console.log('🔍 buildUnifiedShapePathWithCache DEBUG:', {
         tailSize: currentTextData.tailSize,
         tailWidth: currentTextData.tailWidth,
-        tailSizePercent: tailSize,
-        tailWidthPercent: tailWidth,
-        minDimension: minDimension,
-        tailLength: tailLength,
+        tailSizePercent: tailSizePercent,
+        tailWidthPercent: tailWidthPercent,
+        minDimension: Math.min(bgWidth, bgHeight),
+        tailLength: Math.min(bgWidth, bgHeight) * 1.25,
         scale: scale
       })
       
@@ -6250,7 +6245,7 @@ export default {
       if (cachedIntersection) {
         // Создаем суперподложку с хвостом используя КЭШИРОВАННУЮ точку
         this.buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                                   cachedIntersection, tailAngle, tailLength, tailWidth, currentTextData, scale)
+                                   cachedIntersection, currentTextData.tailAngle * Math.PI / 180, Math.min(bgWidth, bgHeight) * 1.25, tailWidthPercent, currentTextData, scale)
       } else {
         // Если нет пересечения, рисуем обычную подложку
         this.buildSimpleBackgroundPath(ctx, bgX, bgY, bgWidth, bgHeight)
@@ -6259,25 +6254,16 @@ export default {
     
     // Построение пути суперподложки с хвостом
     buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
-                           intersectionPoint, tailAngle, tailLength, tailWidth, textData = null, scale = 1) {
+                           intersectionPoint, tailAngle, tailLength, tailWidthPercent, textData = null, scale = 1) {
       // Используем переданные данные или данные по умолчанию
       const currentTextData = textData
       
       // Вычисляем параметры хвоста
-      const tailWidthPercent = tailWidth !== undefined ? tailWidth : (Number(currentTextData.tailWidth) / 100)
-      const tailSizePercent = Number(currentTextData.tailSize) / 100
-      
-      console.log('🔍 buildSuperBackgroundPath DEBUG:', {
-        passedTailWidth: tailWidth,
-        currentTextDataTailWidth: currentTextData.tailWidth,
-        finalTailWidthPercent: tailWidthPercent,
-        tailSizePercent,
-        scale
-      })
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
       
       // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
-      const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
-      const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      const sharpPointX = centerX + tailLength * Number(currentTextData.tailSize) / 100 * Math.cos(tailAngle)
+      const sharpPointY = centerY + tailLength * Number(currentTextData.tailSize) / 100 * Math.sin(tailAngle)
       
       // Определяем, с какой стороны подложки выходит хвост
       const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
@@ -6741,7 +6727,6 @@ export default {
         console.error('❌ Ошибка добавления текста в Raster с данными:', error)
       }
     },
-
     // Расчет размеров многострочного текста
     calculateMultilineTextSize(text, fontSize, lineHeight = 1.2, textData) {
       if (!text) return { width: 0, height: 0 }
@@ -7512,4 +7497,3 @@ export default {
 }
 
 </style>
-

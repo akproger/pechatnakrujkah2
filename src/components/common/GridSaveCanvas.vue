@@ -1787,9 +1787,17 @@ export default {
         tempCtx.textBaseline = 'middle'
         tempCtx.fillStyle = textData.textColor || '#000000'
         
-        // Рисуем тень (если включена)
+        // Рисуем тень (если включена) — учитываем прозрачность (shadowOpacity%)
         if (textData.shadow) {
-          tempCtx.shadowColor = textData.shadowColor || '#000000'
+          const shadowOpacity = typeof textData.shadowOpacity === 'number' ? Math.max(0, Math.min(100, textData.shadowOpacity)) : 40
+          const hex = (textData.shadowColor || '#000000').replace('#', '')
+          const r = parseInt(hex.substring(0, 2), 16) || 0
+          const g = parseInt(hex.substring(2, 4), 16) || 0
+          const b = parseInt(hex.substring(4, 6), 16) || 0
+          const a = (shadowOpacity / 100).toFixed(3)
+          const rgba = `rgba(${r}, ${g}, ${b}, ${a})`
+
+          tempCtx.shadowColor = rgba
           tempCtx.shadowBlur = (textData.shadowBlur || 0) * scale
           tempCtx.shadowOffsetX = (textData.shadowOffsetX || 0) * scale
           tempCtx.shadowOffsetY = (textData.shadowOffsetY || 0) * scale

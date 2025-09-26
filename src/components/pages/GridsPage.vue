@@ -1579,6 +1579,10 @@ export default {
       console.log('📝 Перерисовываем текстовый слой:', layerInfo.id)
       
       try {
+        if (layerInfo.textData && layerInfo.textData.backgroundMode === 'image-text') {
+          await this.drawImageTextLayerInHighDPI(tempPaperScope, layerInfo, scale)
+          return
+        }
         // Создаем временный canvas для рендеринга в высоком разрешении
         const tempCanvas = document.createElement('canvas')
         const tempCtx = tempCanvas.getContext('2d')
@@ -1701,6 +1705,69 @@ export default {
         console.error('❌ Ошибка при перерисовке текстового слоя:', error)
         throw error
       }
+    },
+
+    async drawImageTextLayerInHighDPI(tempPaperScope, layerInfo, scale) {
+      const textData = layerInfo.textData || {}
+      const position = layerInfo.position || { x: 0, y: 0 }
+      const x = position.x * scale
+      const y = position.y * scale
+      console.log('🖼️ drawImageTextLayerInHighDPI:', { text: textData.text, scale, position, scaled: { x, y }, hasCachedImage: !!textData.cachedImage })
+
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = tempPaperScope.view.element.width
+      tempCanvas.height = tempPaperScope.view.element.height
+      const tempCtx = tempCanvas.getContext('2d')
+      tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+
+      const img = textData.cachedImage || null
+      const scaledFontSize = (textData.fontSize || 24) * scale
+      tempCtx.font = `${textData.fontWeight || 'normal'} ${scaledFontSize}px ${textData.font || 'Arial'}`
+
+      const lines = String(textData.text || '').split('\n')
+      let maxWidth = 0
+      lines.forEach(line => { const w = tempCtx.measureText(line).width; if (w > maxWidth) maxWidth = w })
+      const textWidth = maxWidth
+      const textHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * (textData.lineHeight || 1.2)
+
+      if (img) {
+        const widthScale = textWidth / img.width
+        const heightScale = textHeight / img.height
+        const imageScale = Math.max(widthScale, heightScale) * 1.2
+        const scaledImageWidth = img.width * imageScale
+        const scaledImageHeight = img.height * imageScale
+        const drawX = x - scaledImageWidth / 2
+        const drawY = y - scaledImageHeight / 2
+        tempCtx.drawImage(img, drawX, drawY, scaledImageWidth, scaledImageHeight)
+      }
+
+      tempCtx.globalCompositeOperation = 'destination-in'
+      tempCtx.textAlign = textData.textAlign || 'center'
+      tempCtx.textBaseline = 'middle'
+      tempCtx.fillStyle = '#000'
+      const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * (textData.lineHeight || 1.2)
+      const startY = y - totalTextHeight / 2
+      lines.forEach((line, index) => {
+        const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * (textData.lineHeight || 1.2)) + scaledFontSize / 2
+        tempCtx.fillText(line, x, lineY)
+      })
+      tempCtx.globalCompositeOperation = 'source-over'
+
+      if (textData.stroke) {
+        tempCtx.strokeStyle = textData.strokeColor || '#000'
+        tempCtx.lineWidth = (textData.strokeWidth || 2) * scale
+        lines.forEach((line, index) => {
+          const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * (textData.lineHeight || 1.2)) + scaledFontSize / 2
+          tempCtx.strokeText(line, x, lineY)
+        })
+      }
+
+      const imageDataURL = tempCanvas.toDataURL('image/png', 1.0)
+      const raster = new tempPaperScope.Raster(imageDataURL)
+      await new Promise((resolve, reject) => { raster.onLoad = resolve; raster.onError = reject })
+      raster.position = new tempPaperScope.Point(x, y)
+      tempPaperScope.project.activeLayer.addChild(raster)
+      console.log('✅ drawImageTextLayerInHighDPI завершен:', { bounds: raster.bounds, pos: { x, y }, textSize: { textWidth, textHeight } })
     },
 
     // Создание фонового слоя для высокого разрешения

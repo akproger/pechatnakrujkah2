@@ -1838,17 +1838,16 @@ export default {
         
         await new Promise((resolve, reject) => {
           raster.onLoad = () => {
-            // Позиционируем растр с учетом масштаба
-            const baseX = x / scale
-            const baseY = y / scale
-            raster.position = new this.paperScope.Point(baseX * scale, baseY * scale)
+            // Так как tempCanvas полноразмерный (равен основному канвасу), центрируем растр на центре вьюпорта,
+            // а абсолютные координаты x,y уже учтены внутри самого изображения при рисовании
+            const viewCenter = this.paperScope.view.center
+            raster.position = new this.paperScope.Point(viewCenter.x, viewCenter.y)
             
             console.log('🖼️ Высокое разрешение - растр создан (без изображения):', {
               rasterSize: `${raster.bounds.width}x${raster.bounds.height}`,
-              basePosition: `${baseX}, ${baseY}`,
-              finalPosition: `${baseX * scale}, ${baseY * scale}`,
+              finalPosition: `${viewCenter.x}, ${viewCenter.y}`,
               scale: scale,
-              note: 'Текст создан заново в высоком разрешении без изображения'
+              note: 'Полноразмерный растр центрирован на view.center'
             })
             
             // Добавляем на слой
@@ -2029,17 +2028,15 @@ export default {
       
       await new Promise((resolve, reject) => {
         raster.onLoad = () => {
-          // Позиционируем растр с учетом масштаба
-          const baseX = x / scale
-          const baseY = y / scale
-          raster.position = new this.paperScope.Point(baseX * scale, baseY * scale)
+          // tempCanvas полноразмерный, поэтому центрируем растр на центр вьюпорта
+          const viewCenter = this.paperScope.view.center
+          raster.position = new this.paperScope.Point(viewCenter.x, viewCenter.y)
           
           console.log('🖼️ Высокое разрешение - растр создан:', {
             rasterSize: `${raster.bounds.width}x${raster.bounds.height}`,
-            basePosition: `${baseX}, ${baseY}`,
-            finalPosition: `${baseX * scale}, ${baseY * scale}`,
+            finalPosition: `${viewCenter.x}, ${viewCenter.y}`,
             scale: scale,
-            note: 'Текст создан заново в высоком разрешении'
+            note: 'Полноразмерный растр центрирован на view.center'
           })
           
           // Добавляем на слой

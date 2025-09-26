@@ -1104,13 +1104,63 @@ export default {
       console.log('📝 Добавляем текстовые слои (новый подход):', this.textLayers.length)
       console.log('📝 Тип маски:', this.maskType)
       console.log('📝 Размеры канваса:', { width: this.canvasWidth, height: this.canvasHeight })
-      console.log('📝 Детали текстовых слоев:', this.textLayers.map(layer => ({
-        id: layer.id,
-        hasBackgroundItem: !!layer.backgroundItem,
-        hasBounds: !!layer.backgroundItem?.bounds,
-        backgroundMode: layer.textData?.backgroundMode,
-        text: layer.textData?.text
-      })))
+      console.log('📝 Детали текстовых слоев:', this.textLayers)
+
+      // Добавляем дополнительную задержку для стабилизации текстовых слоев
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Сортируем слои по z-index для правильного порядка отрисовки
+      const sortedLayers = [...this.textLayers].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+      console.log('📊 Порядок текстовых слоев при сохранении:', sortedLayers)
+
+      // Создаем отдельные Paper.js слои для каждого текстового слоя
+      console.log('📝 Создаем отдельные Paper.js слои для каждого текстового слоя')
+
+      for (const textLayer of sortedLayers) {
+        console.log(`📝 Создаем Paper.js слой для текстового слоя ${textLayer.id} (z-index: ${textLayer.zIndex}):`, textLayer)
+
+        // Проверяем наличие необходимых данных
+        if (!textLayer.textData) {
+          console.warn('⚠️ Нет данных текста для слоя:', textLayer.id)
+          continue
+        }
+
+        // Создаем новый слой для текста
+        const layer = new this.paperScope.Layer()
+        layer.activate()
+
+        // Вычисляем масштаб для высокого разрешения
+        const mainCanvasScale = this.canvasWidth / 856 // 856 - ширина основного канваса
+
+        // Масштабируем координаты
+        const scaledPosition = {
+          x: textLayer.position.x * mainCanvasScale,
+          y: textLayer.position.y * mainCanvasScale
+        }
+
+        console.log('📍 Позиционирование текста в Paper.js:', {
+          original: textLayer.position,
+          mainCanvasScale,
+          scaled: scaledPosition,
+          canvasSize: `${this.canvasWidth}x${this.canvasHeight}`,
+          backgroundMode: textLayer.textData.backgroundMode
+        })
+
+        // Создаем слой в зависимости от режима
+        console.log('🎯 Выбираем режим создания слоя:', textLayer.textData.backgroundMode)
+
+        if (textLayer.textData.backgroundMode === 'image-text') {
+          console.log('🎯 Создаем слой для режима "Текст с изображением"')
+          await this.createImageTextPaperLayer(scaledPosition.x, scaledPosition.y, textLayer.textData, mainCanvasScale)
+        } else {
+          console.log('🎯 Создаем слой для стандартного режима')
+          await this.createStandardPaperLayer(scaledPosition.x, scaledPosition.y, textLayer.textData, mainCanvasScale)
+        }
+
+        console.log('✅ Paper.js слой для текстового слоя создан:', textLayer.id)
+      }
+
+      console.log('✅ Все текстовые слои добавлены в высоком разрешении (новый подход)')
       
       if (!this.textLayers || this.textLayers.length === 0) {
         console.log('📝 Нет текстовых слоев для добавления')
@@ -1224,13 +1274,8 @@ export default {
     async createConversationPaperLayer(x, y, textData, scale) {
       console.log('💬 Создаем Paper.js слой для режима "Разговор"')
       
-      // Создаем временный канвас для измерения текста
-      const measureCanvas = document.createElement('canvas')
-      const measureCtx = measureCanvas.getContext('2d')
-      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
-      
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
       const textWidthWithPadding = textSize.width + textPadding * 2
       const textHeightWithPadding = textSize.height + textPadding * 2
@@ -1402,13 +1447,8 @@ export default {
 
     // Вычисляем правильную позицию текста с учетом выравнивания
     calculateTextPosition(centerX, centerY, textData, fontSize, backgroundWidth, backgroundHeight) {
-      // Создаем временный канвас для измерения текста
-      const measureCanvas = document.createElement('canvas')
-      const measureCtx = measureCanvas.getContext('2d')
-      measureCtx.font = `${textData.fontWeight || 'normal'} ${fontSize}px ${textData.font || 'Arial'}`
-      
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, fontSize, textData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(textData.text, fontSize, textData.lineHeight, textData)
       
       // Горизонтальное выравнивание - размещаем текст по центру подложки
       let textX = centerX
@@ -1660,13 +1700,8 @@ export default {
     async createStandardPaperLayer(x, y, textData, scale) {
       console.log('📝 Создаем Paper.js слой для режима "Стандарт"')
       
-      // Создаем временный канвас для измерения текста
-      const measureCanvas = document.createElement('canvas')
-      const measureCtx = measureCanvas.getContext('2d')
-      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
-      
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
       const textPadding = textData.padding || 15
       const textWidthWithPadding = textSize.width + textPadding * 2
       const textHeightWithPadding = textSize.height + textPadding * 2
@@ -1733,44 +1768,109 @@ export default {
       this.paperScope.project.activeLayer.addChild(textItem)
     },
 
-    // Создаем Paper.js слой для режима "Текст с изображением" - НОВЫЙ ПОДХОД: создаем заново в высоком разрешении
+    // Создаем Paper.js слой для режима "Текст с изображением"
     async createImageTextPaperLayer(x, y, textData, scale) {
+      // Проверяем наличие необходимых данных
+      if (!textData || !textData.text || !textData.fontSize) {
+        console.warn('⚠️ Отсутствуют необходимые данные текста:', { text: textData?.text, fontSize: textData?.fontSize })
+        return null
+      }
       console.log('🖼️ Создаем Paper.js слой для режима "Текст с изображением" в высоком разрешении')
-      console.log('🖼️ Данные текста:', {
-        text: textData.text,
-        fontSize: textData.fontSize,
-        scale: scale,
-        backgroundMode: textData.backgroundMode,
-        position: { x, y },
-        hasTextImage: !!textData.textImage,
-        hasCachedImage: !!textData.cachedImage
+      
+      // Создаем временный canvas для рисования
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // Вычисляем размеры текста
+      const fontSize = textData.fontSize * scale
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      
+      // Измеряем размеры текста
+      const lines = textData.text.split('\n')
+      let maxWidth = 0
+      for (const line of lines) {
+        const metrics = ctx.measureText(line)
+        maxWidth = Math.max(maxWidth, metrics.width)
+      }
+      
+      const lineHeight = fontSize * (textData.lineHeight || 1.2)
+      const totalHeight = lines.length * lineHeight
+      
+      // Добавляем отступы для теней и эффектов
+      const padding = 20 * scale
+      const extraPadding = textData.shadow ? Math.max(
+        textData.shadowBlur || 0,
+        Math.abs(textData.shadowOffsetX || 0),
+        Math.abs(textData.shadowOffsetY || 0)
+      ) * scale : 0
+      
+      // Устанавливаем размеры канваса
+      canvas.width = Math.ceil(maxWidth + (padding + extraPadding) * 2)
+      canvas.height = Math.ceil(totalHeight + (padding + extraPadding) * 2)
+      
+      // Очищаем канвас
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      
+      // Настраиваем контекст для рисования
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      
+      // Применяем тень если нужно
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor || 'rgba(0,0,0,0.5)'
+        ctx.shadowBlur = (textData.shadowBlur || 10) * scale
+        ctx.shadowOffsetX = (textData.shadowOffsetX || 5) * scale
+        ctx.shadowOffsetY = (textData.shadowOffsetY || 5) * scale
+      }
+      
+      // Рисуем текст
+      const centerX = canvas.width / 2
+      const startY = (canvas.height - totalHeight) / 2 + lineHeight / 2
+      
+      lines.forEach((line, index) => {
+        const y = startY + index * lineHeight
+        ctx.fillText(line, centerX, y)
       })
       
-      // Проверяем, есть ли изображение для режима "Текст с изображением"
-      if (!textData.cachedImage || textData.cachedImage === false) {
-        console.log('🖼️ Режим "Текст с изображением" без изображения - создаем текст с цветной заливкой в высоком разрешении')
-        
-        // Применяем тень, если она задана
-        if (textData.shadow) {
-          this.paperScope.project.currentStyle.shadowColor = textData.shadowColor || '#000000'
-          this.paperScope.project.currentStyle.shadowBlur = (textData.shadowBlur || 10) * scale
-          this.paperScope.project.currentStyle.shadowOffset = new this.paperScope.Point(
-            (textData.shadowOffsetX || 5) * scale,
-            (textData.shadowOffsetY || 5) * scale
-          )
-        }
-        
-        // Создаем временный канвас в высоком разрешении
-        const tempCanvas = document.createElement('canvas')
-        tempCanvas.width = this.canvasWidth
-        tempCanvas.height = this.canvasHeight
+      // Если есть обводка, добавляем её
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = (textData.strokeWidth || 3) * scale
+        lines.forEach((line, index) => {
+          const y = startY + index * lineHeight
+          ctx.strokeText(line, centerX, y)
+        })
+      }
+      
+      // Создаем растр из канваса
+      const raster = new this.paperScope.Raster(canvas)
+      raster.position = new this.paperScope.Point(x, y)
+
+      console.log('🖼️ Высокое разрешение - растр создан:', {
+        text: textData.text,
+        fontSize: fontSize,
+        scale: scale,
+        canvasSize: `${canvas.width}x${canvas.height}`,
+        position: `${x}, ${y}`,
+        hasImage: !!textData.textImage,
+        hasShadow: !!textData.shadow,
+        hasStroke: !!textData.stroke,
+        backgroundMode: textData.backgroundMode
+      })
+      
+      // Добавляем растр в активный слой
+      this.paperScope.project.activeLayer.addChild(raster)
+      
+      return raster
         const tempCtx = tempCanvas.getContext('2d')
         
         // Очищаем канвас (прозрачный фон)
         tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
         
         // Вычисляем размеры текста в высоком разрешении
-        const textSize = this.calculateMultilineTextSize(tempCtx, textData.text, textData.fontSize * scale, textData.lineHeight)
+        const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize * scale, textData.lineHeight, textData)
         const textWidth = textSize.width
         const textHeight = textSize.height
         
@@ -1838,17 +1938,16 @@ export default {
         
         await new Promise((resolve, reject) => {
           raster.onLoad = () => {
-            // Позиционируем растр с учетом масштаба
-            const baseX = x / scale
-            const baseY = y / scale
-            raster.position = new this.paperScope.Point(baseX * scale, baseY * scale)
+            // Позиционируем растр с учетом масштабирования
+            const scaledX = textData.position.x
+            const scaledY = textData.position.y
+            raster.position = new this.paperScope.Point(scaledX, scaledY)
             
             console.log('🖼️ Высокое разрешение - растр создан (без изображения):', {
               rasterSize: `${raster.bounds.width}x${raster.bounds.height}`,
-              basePosition: `${baseX}, ${baseY}`,
-              finalPosition: `${baseX * scale}, ${baseY * scale}`,
+              position: `${scaledX}, ${scaledY}`,
               scale: scale,
-              note: 'Текст создан заново в высоком разрешении без изображения'
+              note: 'Текст создан заново в высоком разрешении без изображения с масштабированными координатами'
             })
             
             // Добавляем на слой
@@ -1871,89 +1970,28 @@ export default {
       // Очищаем канвас (прозрачный фон)
       tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
       
-      // Устанавливаем шрифт для измерения текста
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
-      
       // Вычисляем размеры текста в высоком разрешении
-      const textSize = this.calculateMultilineTextSize(tempCtx, textData.text, textData.fontSize * scale, textData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize * scale, textData.lineHeight, textData)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
-      // Устанавливаем шрифт для базового измерения
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
-      
-      // Вычисляем базовые размеры текста (без масштаба) для правильного масштабирования изображения
-      const baseTextSize = this.calculateMultilineTextSize(tempCtx, textData.text, textData.fontSize, textData.lineHeight)
-      const baseTextWidth = baseTextSize.width
-      const baseTextHeight = baseTextSize.height
-      
       console.log('🖼️ Высокое разрешение - размеры текста:', {
-        text: textData.text,
-        textLength: textData.text.length,
-        font: tempCtx.font,
         textSize: `${textWidth}x${textHeight}`,
         fontSize: textData.fontSize * scale,
         scale: scale,
         canvasSize: `${tempCanvas.width}x${tempCanvas.height}`,
-        note: `Текст "${textData.text}" (${textData.text.length} символов) имеет размер ${textWidth.toFixed(1)}x${textHeight.toFixed(1)}px`
+        position: `${textData.position.x}, ${textData.position.y}`,
       })
       
-      // Простое и точное решение: делаем изображение точно по ширине текста
-      // Используем базовые размеры текста и применяем масштаб для высокого разрешения
-      const targetImageWidth = baseTextWidth * scale
-      const targetImageHeight = (img.height * targetImageWidth) / img.width
+      // Вычисляем масштаб для изображения, чтобы оно полностью покрывало текст
+      // и сохраняло пропорции (cover mode) - как в TextManager.vue
+      const imageScaleX = textWidth / img.width
+      const imageScaleY = textHeight / img.height
+      const imageScale = Math.max(imageScaleX, imageScaleY) // Используем больший масштаб для полного покрытия
       
-      // Вычисляем масштаб для достижения целевой ширины
-      const widthScale = targetImageWidth / img.width
-      const heightScale = targetImageHeight / img.height
-      
-      // Используем масштаб по ширине (они должны быть одинаковыми)
-      let imageScale = widthScale
-      
-      // Добавляем небольшой запас (20%) чтобы гарантировать покрытие
-      imageScale *= 1.2
-
-      console.log('🖼️ ДЕТАЛЬНЫЙ АНАЛИЗ масштабирования изображения:', {
-        // Размеры текста
-        baseTextSize: `${baseTextWidth.toFixed(1)}x${baseTextHeight.toFixed(1)}`,
-        scaledTextSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
-        
-        // Размеры изображения
-        originalImageSize: `${img.width}x${img.height}`,
-        
-        // Масштабы
-        scale: scale.toFixed(3),
-        widthScale: widthScale.toFixed(3),
-        heightScale: heightScale.toFixed(3),
-        finalScale: imageScale.toFixed(3),
-        
-        // Целевые размеры
-        targetImageWidth: targetImageWidth.toFixed(1),
-        targetImageHeight: targetImageHeight.toFixed(1),
-        
-        // Финальные размеры изображения
-        finalImageWidth: (img.width * imageScale).toFixed(1),
-        finalImageHeight: (img.height * imageScale).toFixed(1),
-        
-        // Анализ
-        textToImageRatio: (baseTextWidth / img.width).toFixed(3),
-        scaledTextToImageRatio: (textWidth / img.width).toFixed(3),
-        
-        note: `АНАЛИЗ: Текст ${baseTextWidth.toFixed(1)}px → ${textWidth.toFixed(1)}px, изображение ${img.width}x${img.height} → ${(img.width * imageScale).toFixed(1)}x${(img.height * imageScale).toFixed(1)}px (×1.2 запас)`
-      })
-
       // Вычисляем размеры изображения с сохранением пропорций
       const scaledImageWidth = img.width * imageScale
       const scaledImageHeight = img.height * imageScale
-
-      console.log('🖼️ ФИНАЛЬНЫЕ РАЗМЕРЫ изображения для маски:', {
-        textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
-        originalImageSize: `${img.width}x${img.height}`,
-        finalImageSize: `${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`,
-        imageScale: imageScale.toFixed(3),
-        coverageRatio: (scaledImageWidth / textWidth).toFixed(3),
-        note: `Изображение ${img.width}x${img.height} масштабируется до ${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)} для текста ${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`
-      })
       
       // Центрируем изображение относительно позиции текста
       const drawX = x - scaledImageWidth / 2
@@ -1962,13 +2000,12 @@ export default {
       console.log('🖼️ Высокое разрешение - масштабирование изображения:', {
         originalImageSize: `${img.width}x${img.height}`,
         textSize: `${textWidth}x${textHeight}`,
-        widthScale: widthScale.toFixed(3),
-        heightScale: heightScale.toFixed(3),
-        imageScale: imageScale.toFixed(3),
+        imageScaleX: imageScaleX.toFixed(3),
+        imageScaleY: imageScaleY.toFixed(3),
+        finalImageScale: imageScale.toFixed(3),
         scaledImageSize: `${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`,
         drawPosition: `${drawX.toFixed(1)}, ${drawY.toFixed(1)}`,
-        textPosition: `${x}, ${y}`,
-        scale: scale.toFixed(3)
+        textPosition: `${x}, ${y}`
       })
       
       // Рисуем изображение на временном канвасе с сохранением пропорций
@@ -2029,21 +2066,26 @@ export default {
       
       await new Promise((resolve, reject) => {
         raster.onLoad = () => {
-          // Позиционируем растр с учетом масштаба
-          const baseX = x / scale
-          const baseY = y / scale
-          raster.position = new this.paperScope.Point(baseX * scale, baseY * scale)
+          // Позиционируем растр с учетом масштабирования
+          const scaledX = textData.position.x
+          const scaledY = textData.position.y
+          raster.position = new this.paperScope.Point(scaledX, scaledY)
           
           console.log('🖼️ Высокое разрешение - растр создан:', {
             rasterSize: `${raster.bounds.width}x${raster.bounds.height}`,
-            basePosition: `${baseX}, ${baseY}`,
-            finalPosition: `${baseX * scale}, ${baseY * scale}`,
+            position: `${scaledX}, ${scaledY}`,
             scale: scale,
-            note: 'Текст создан заново в высоком разрешении'
+            note: 'Текст создан заново в высоком разрешении с масштабированными координатами'
           })
           
           // Добавляем на слой
           this.paperScope.project.activeLayer.addChild(raster)
+          
+          // Создаем тень для текста с изображением (если включена)
+          if (textData.shadow) {
+            this.createShadowForImageText(x, y, textData, scale)
+          }
+          
           resolve()
         }
         raster.onError = reject
@@ -2962,13 +3004,10 @@ export default {
     },
 
     // Функция для вычисления размера многострочного текста
-    calculateMultilineTextSize(ctx, text, fontSize, lineHeight) {
-      if (!text || typeof text !== 'string') {
-        console.error('❌ Ошибка в calculateMultilineTextSize: text не является строкой:', text)
-        return { width: 0, height: 0 }
-      }
-      
+    calculateMultilineTextSize(text, fontSize, lineHeight, textData) {
       const lines = text.split('\n')
+      const ctx = document.createElement('canvas').getContext('2d')
+      ctx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
       
       let maxWidth = 0
       lines.forEach(line => {
@@ -3028,6 +3067,141 @@ export default {
       return selectedImage
     },
     
+    // Создание слоя для режима "Текст с изображением"
+    async createImageTextPaperLayer(x, y, textData, scale) {
+      console.log('🖼️ Создаем Paper.js слой для режима "Текст с изображением" в высоком разрешении')
+      console.log('🖼️ Данные текста:', {
+        text: textData.text,
+        fontSize: textData.fontSize,
+        scale: scale,
+        backgroundMode: textData.backgroundMode,
+        hasTextImage: !!textData.textImage,
+        position: { x, y }
+      })
+
+      // Проверяем наличие необходимых данных
+      if (!textData.text || !textData.fontSize) {
+        console.warn('⚠️ Отсутствуют необходимые данные текста:', { text: textData.text, fontSize: textData.fontSize })
+        return null
+      }
+
+      // Создаем временный canvas для рисования текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+
+      // Устанавливаем размеры canvas с учетом масштаба
+      const fontSize = textData.fontSize * scale
+      const textWidth = Math.ceil(textData.width * scale)
+      const textHeight = Math.ceil(textData.height * scale)
+
+      // Устанавливаем размеры canvas с отступами для теней
+      const padding = 20 * scale
+      tempCanvas.width = textWidth + padding * 2
+      tempCanvas.height = textHeight + padding * 2
+
+      console.log('🖼️ Высокое разрешение - размеры текста:', {
+        textSize: `${textWidth}x${textHeight}`,
+        fontSize: fontSize,
+        scale: scale,
+        canvasSize: `${tempCanvas.width}x${tempCanvas.height}`,
+        position: `${x}, ${y}`
+      })
+
+      // Настраиваем контекст
+      tempCtx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      tempCtx.fillStyle = textData.textColor
+      tempCtx.textAlign = 'center'
+      tempCtx.textBaseline = 'middle'
+
+      // Применяем тень для режима "Текст с изображением"
+      if (textData.shadow) {
+        tempCtx.shadowColor = textData.shadowColor
+        tempCtx.shadowBlur = textData.shadowBlur * scale
+        tempCtx.shadowOffsetX = textData.shadowOffsetX * scale
+        tempCtx.shadowOffsetY = textData.shadowOffsetY * scale
+      }
+
+      // Рисуем текст
+      const lines = textData.text.split('\n')
+      const lineHeight = fontSize * (textData.lineHeight || 1.2)
+      const totalHeight = lines.length * lineHeight
+      const startY = (tempCanvas.height - totalHeight) / 2 + fontSize / 2
+
+      lines.forEach((line, index) => {
+        const lineY = startY + index * lineHeight
+        tempCtx.fillText(line, tempCanvas.width / 2, lineY)
+      })
+
+      // Создаем растр из временного канваса
+      const raster = new this.paperScope.Raster(tempCanvas)
+      raster.position = new this.paperScope.Point(x, y)
+
+      console.log('🖼️ Высокое разрешение - растр создан:', {
+        rasterSize: `${tempCanvas.width}x${tempCanvas.height}`,
+        position: `${x}, ${y}`,
+        scale: scale,
+        note: 'Текст создан заново в высоком разрешении'
+      })
+
+      return raster
+    },
+
+    // Создание слоя для стандартного режима
+    async createStandardPaperLayer(x, y, textData, scale) {
+      console.log('📝 Создаем Paper.js слой для стандартного режима в высоком разрешении')
+      console.log('📝 Данные текста:', {
+        text: textData.text,
+        fontSize: textData.fontSize,
+        scale: scale,
+        backgroundMode: textData.backgroundMode,
+        position: { x, y }
+      })
+
+      // Создаем временный canvas для рисования текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+
+      // Устанавливаем размеры canvas с учетом масштаба
+      const fontSize = textData.fontSize * scale
+      const textWidth = Math.ceil(textData.width * scale)
+      const textHeight = Math.ceil(textData.height * scale)
+
+      // Устанавливаем размеры canvas с отступами для теней
+      const padding = 20 * scale
+      tempCanvas.width = textWidth + padding * 2
+      tempCanvas.height = textHeight + padding * 2
+
+      // Настраиваем контекст
+      tempCtx.font = `${textData.fontWeight} ${fontSize}px ${textData.font}`
+      tempCtx.fillStyle = textData.textColor
+      tempCtx.textAlign = 'center'
+      tempCtx.textBaseline = 'middle'
+
+      // Рисуем текст
+      const lines = textData.text.split('\n')
+      const lineHeight = fontSize * (textData.lineHeight || 1.2)
+      const totalHeight = lines.length * lineHeight
+      const startY = (tempCanvas.height - totalHeight) / 2 + fontSize / 2
+
+      lines.forEach((line, index) => {
+        const lineY = startY + index * lineHeight
+        tempCtx.fillText(line, tempCanvas.width / 2, lineY)
+      })
+
+      // Создаем растр из временного канваса
+      const raster = new this.paperScope.Raster(tempCanvas)
+      raster.position = new this.paperScope.Point(x, y)
+
+      console.log('📝 Высокое разрешение - растр создан:', {
+        rasterSize: `${tempCanvas.width}x${tempCanvas.height}`,
+        position: `${x}, ${y}`,
+        scale: scale,
+        note: 'Текст создан заново в высоком разрешении'
+      })
+
+      return raster
+    },
+
     async saveImage() {
       console.log('💾 Сохраняем изображение')
       
@@ -3052,6 +3226,105 @@ export default {
           width: this.canvasWidth,
           height: this.canvasHeight
         }
+      }
+    },
+
+    // Создаем тень для текста с изображением
+    createShadowForImageText(x, y, textData, scale) {
+      console.log('🖼️ Создаем тень для текста с изображением:', {
+        position: `${x}, ${y}`,
+        shadow: textData.shadow,
+        shadowColor: textData.shadowColor,
+        shadowBlur: textData.shadowBlur,
+        shadowOffsetX: textData.shadowOffsetX,
+        shadowOffsetY: textData.shadowOffsetY,
+        shadowOpacity: textData.shadowOpacity,
+        scale: scale
+      })
+
+      // Проверяем, включена ли тень
+      if (!textData.shadow) {
+        console.log('🚫 Тень отключена для текста с изображением')
+        return
+      }
+
+      // Создаем временный канвас для тени
+      const shadowCanvas = document.createElement('canvas')
+      shadowCanvas.width = this.canvasWidth
+      shadowCanvas.height = this.canvasHeight
+      const shadowCtx = shadowCanvas.getContext('2d')
+
+      // Очищаем канвас (прозрачный фон)
+      shadowCtx.clearRect(0, 0, shadowCanvas.width, shadowCanvas.height)
+
+      // Настраиваем шрифт и стили для тени
+      shadowCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
+      shadowCtx.textAlign = textData.textAlign || 'center'
+      shadowCtx.textBaseline = 'middle'
+      shadowCtx.fillStyle = textData.shadowColor || '#000000'
+
+      // Рисуем тень для каждой строки
+      const lines = textData.text.split('\n')
+      const scaledFontSize = textData.fontSize * scale
+
+      // Вычисляем общую высоту текста для центрирования по вертикали
+      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
+      const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
+      const startY = y - totalTextHeight / 2
+
+      lines.forEach((line, index) => {
+        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+        const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+        
+        shadowCtx.fillText(line, x, lineY)
+      })
+
+      console.log('🖼️ Тень нарисована на канвасе:', {
+        canvasSize: `${shadowCanvas.width}x${shadowCanvas.height}`,
+        textPosition: `${x}, ${y}`,
+        shadowColor: textData.shadowColor || '#000000',
+        fontSize: textData.fontSize * scale,
+        linesCount: lines.length
+      })
+
+      // Создаем растр из канваса тени
+      const shadowImageDataURL = shadowCanvas.toDataURL('image/png', 1.0)
+      const shadowRaster = new this.paperScope.Raster(shadowImageDataURL)
+
+      shadowRaster.onLoad = () => {
+        // Позиционируем тень с учетом смещения
+        const shadowX = x + (textData.shadowOffsetX || 0) * scale
+        const shadowY = y + (textData.shadowOffsetY || 0) * scale
+        
+        shadowRaster.position = new this.paperScope.Point(shadowX, shadowY)
+        
+        // Применяем размытие тени
+        const shadowBlur = (textData.shadowBlur || 0) * scale
+        if (shadowBlur > 0) {
+          shadowRaster.blur = shadowBlur
+        }
+        
+        // Устанавливаем прозрачность тени
+        shadowRaster.opacity = (textData.shadowOpacity || 50) / 100
+        
+        // Добавляем тень на слой ПОД основным текстом
+        this.paperScope.project.activeLayer.insertChild(0, shadowRaster)
+        
+        console.log('🖼️ Слой тени создан для текста с изображением:', {
+          shadowPosition: `${shadowRaster.position.x}, ${shadowRaster.position.y}`,
+          shadowBlur: shadowRaster.blur || 0,
+          shadowOpacity: shadowRaster.opacity,
+          rasterSize: `${shadowRaster.bounds.width}x${shadowRaster.bounds.height}`,
+          shadowOffsetX: (textData.shadowOffsetX || 0) * scale,
+          shadowOffsetY: (textData.shadowOffsetY || 0) * scale,
+          originalShadowBlur: textData.shadowBlur || 0,
+          scale: scale,
+          note: 'Тень размещена под основным текстом с изображением'
+        })
+      }
+
+      shadowRaster.onError = (error) => {
+        console.error('❌ Ошибка при создании тени для текста с изображением:', error)
       }
     },
     

@@ -6434,12 +6434,18 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Рисуем тень если есть
-      if (textData.shadow) {
+      // Рисуем тень только для режима "Текст с изображением"
+      if (textData.shadow && textData.backgroundMode === 'image-text') {
         ctx.shadowColor = textData.shadowColor || '#000000'
         ctx.shadowBlur = textData.shadowBlur || 10
         ctx.shadowOffsetX = textData.shadowOffsetX || 5
         ctx.shadowOffsetY = textData.shadowOffsetY || 5
+      } else {
+        // Сбрасываем тень для других режимов
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
       
       this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize, textData.lineHeight || 1.2, textData)
@@ -6467,12 +6473,18 @@ export default {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       
-      // Рисуем тень если есть (с масштабированием)
-      if (textData.shadow) {
+      // Рисуем тень только для режима "Текст с изображением" (с масштабированием)
+      if (textData.shadow && textData.backgroundMode === 'image-text') {
         ctx.shadowColor = textData.shadowColor || '#000000'
         ctx.shadowBlur = (textData.shadowBlur || 10) * scale
         ctx.shadowOffsetX = (textData.shadowOffsetX || 5) * scale
         ctx.shadowOffsetY = (textData.shadowOffsetY || 5) * scale
+      } else {
+        // Сбрасываем тень для других режимов
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
       }
       
       this.drawMultilineTextWithData(ctx, textData.text, centerX, centerY, textData.fontSize * scale, textData.lineHeight || 1.2, textData)
@@ -6518,13 +6530,26 @@ export default {
         ctx.textBaseline = 'middle'
         ctx.fillStyle = textColor
         
-        // НЕ применяем тень к тексту - тень должна быть у подложки
+        // Применяем тень только для режима "Текст с изображением"
+        if (textData.shadow && textData.backgroundMode === 'image-text') {
+          ctx.shadowColor = textData.shadowColor || '#000000'
+          ctx.shadowBlur = (textData.shadowBlur || 10) * dpr
+          ctx.shadowOffsetX = (textData.shadowOffsetX || 5) * dpr
+          ctx.shadowOffsetY = (textData.shadowOffsetY || 5) * dpr
+        } else {
+          // Сбрасываем тень для других режимов
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 0
+        }
         
         console.log('🎨 Контекст настроен:', {
           font: ctx.font,
           textAlign: ctx.textAlign,
           textBaseline: ctx.textBaseline,
-          fillStyle: ctx.fillStyle
+          fillStyle: ctx.fillStyle,
+          shadowApplied: textData.shadow && textData.backgroundMode === 'image-text'
         })
         
         // Рисуем текст с поддержкой переноса строк и выравнивания

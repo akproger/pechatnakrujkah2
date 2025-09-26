@@ -2607,8 +2607,11 @@ export default {
       
       console.log('⭐ Отрисовка текста в режиме "Стандарт"')
       
-      // ИСПРАВЛЕНО: НЕ копируем фон с основного канваса, так как это уже сделано в updateSinglePreviewCanvas
-      // Фон уже скопирован с учетом скрытия редактируемого слоя
+      // Копируем фон с основного канваса если доступен
+      if (this.canvas && this.canvas.width > 0) {
+        console.log('🖼️ Копируем фон с основного канваса')
+        ctx.drawImage(this.canvas, 0, 0, canvas.width, canvas.height)
+      }
       
       // Временно заменяем textDialogData на textDialogDataStandard для отрисовки
       const originalData = this.textDialogData
@@ -3003,8 +3006,10 @@ export default {
       const x = this.currentTextPosition ? this.currentTextPosition.x : this.previewCanvasWidth / 2
       const y = this.currentTextPosition ? this.currentTextPosition.y : this.previewCanvasHeight / 2
       
-      // ИСПРАВЛЕНО: НЕ копируем фон с основного канваса, так как это уже сделано в updateSinglePreviewCanvas
-      // Фон уже скопирован с учетом скрытия редактируемого слоя
+      // Копируем фон с основного канваса если доступен
+      if (this.canvas && this.canvas.width > 0) {
+        ctx.drawImage(this.canvas, 0, 0, canvas.width, canvas.height)
+      }
       
       // Временно заменяем textDialogData на textDialogDataStandard для отрисовки
       const originalData = this.textDialogData

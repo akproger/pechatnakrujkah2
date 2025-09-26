@@ -1723,8 +1723,35 @@ export default {
         Object.assign(this.textDialogDataImageText, textData)
       }
       
-      // Устанавливаем позицию
-      this.currentTextPosition = position
+      // Устанавливаем позицию с масштабированием из основного канваса в превью канвас
+      if (position && this.canvas) {
+        // Получаем размеры основного канваса
+        const mainCanvasWidth = this.canvas.width / (window.devicePixelRatio || 1)
+        const mainCanvasHeight = this.canvas.height / (window.devicePixelRatio || 1)
+        
+        // Получаем размеры превью канваса (используем те же размеры, что и в updateSinglePreviewCanvas)
+        const previewCanvasWidth = mainCanvasWidth
+        const previewCanvasHeight = mainCanvasHeight
+        
+        // Масштабируем позицию из основного канваса в превью канвас
+        const scaleX = previewCanvasWidth / mainCanvasWidth
+        const scaleY = previewCanvasHeight / mainCanvasHeight
+        
+        this.currentTextPosition = {
+          x: position.x * scaleX,
+          y: position.y * scaleY
+        }
+        
+        console.log('🎯 Масштабирование позиции для редактирования:', {
+          originalPosition: position,
+          scaledPosition: this.currentTextPosition,
+          mainCanvas: `${mainCanvasWidth}x${mainCanvasHeight}`,
+          previewCanvas: `${previewCanvasWidth}x${previewCanvasHeight}`,
+          scale: `${scaleX.toFixed(3)}x${scaleY.toFixed(3)}`
+        })
+      } else {
+        this.currentTextPosition = position
+      }
       
       this.$emit('text-dialog-opened')
       

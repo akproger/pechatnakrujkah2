@@ -1995,13 +1995,27 @@ export default {
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
+      // Увеличиваем размер ещё чуть-чуть (1.4%), чтобы убрать остаточные щели
+      const sizeIncreaseDiamond = 0.014 // 1.4%
+      adjustedWidth += adjustedWidth * sizeIncreaseDiamond
+      adjustedHeight += adjustedHeight * sizeIncreaseDiamond
+
+      // Гарантируем абсолютный оверлап минимум 2px (перекрытие границ при любых размерах)
+      const absoluteOverlapPx = 2
+      adjustedWidth += absoluteOverlapPx
+      adjustedHeight += absoluteOverlapPx
+      
+      // Компенсируем увеличение смещением, чтобы ромб оставался центрирован в ячейке
+      const xOffset = (adjustedWidth - (cellWidth - margin * 2)) / 2
+      const yOffset = (adjustedHeight - (cellHeight - margin * 2)) / 2
+      
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
       for (let row = 0; row < doubledRows; row++) {
         for (let col = 0; col < doubledCols; col++) {
-          const x = col * cellWidth + margin
-          const y = row * cellHeight + margin
+          const x = col * cellWidth + margin - xOffset
+          const y = row * cellHeight + margin - yOffset
           
           const diamond = new tempPaperScope.Path()
           diamond.add(new tempPaperScope.Point(x + adjustedWidth / 2, y)) // Верх

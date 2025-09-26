@@ -1057,6 +1057,18 @@ export default {
           dragItem.selected = false
           console.log('🎯 Завершено перетаскивание Paper.js элемента')
           
+          // Находим соответствующий слой и фиксируем итоговую позицию ЦЕНТРА объекта
+          const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
+          if (layerInfo) {
+            layerInfo.position = { x: dragItem.position.x, y: dragItem.position.y }
+            layerInfo.gridType = this.maskType
+            console.log('📌 Финальная фиксация позиции слоя после перетаскивания:', {
+              id: layerInfo.id,
+              position: layerInfo.position,
+              gridType: layerInfo.gridType
+            })
+          }
+
           dragItem = null
           offset = null
           
@@ -2667,12 +2679,24 @@ export default {
       // Показываем прелоадер
       this.isLoading = true
       
-      // Сохраняем текстовые слои перед очисткой
+      // Сохраняем текстовые слои перед очисткой (используем абсолютные координаты)
       const savedTextLayers = [...this.textLayers]
       const savedSelectedTextLayerIndex = this.selectedTextLayerIndex
       const savedNextTextLayerId = this.nextTextLayerId
+      const savedGridType = this.maskType // Сохраняем тип сетки для нормализации координат
       
       console.log('💾 Сохраняем текстовые слои перед перерисовкой сетки:', savedTextLayers.length)
+      console.log('📐 Сохраняем абсолютные координаты:')
+      savedTextLayers.forEach(layer => {
+        console.log(`  Слой ${layer.id}:`, {
+          position: { x: layer.position.x, y: layer.position.y },
+          text: layer.textData?.text
+        })
+      })
+      console.log('🎯 Размер канваса при сохранении:', {
+        width: this.paperScope.view.viewSize.width,
+        height: this.paperScope.view.viewSize.height
+      })
       
       paper.project.clear()
       
@@ -2709,9 +2733,17 @@ export default {
       }
       
       // Восстанавливаем текстовые слои после создания сетки
-      this.restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId)
+      this.restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId, savedGridType)
       
       paper.view.draw()
+      
+      // ДОПОЛНИТЕЛЬНАЯ ЗАДЕРЖКА: Ждем полной отрисовки сетки перед восстановлением текстов
+      // Это решает проблему смещения текстов при переключении между разными типами сеток
+      setTimeout(() => {
+        console.log('⏰ Задержка завершена - сетка полностью отрисована')
+        // Принудительно обновляем отображение
+        paper.view.draw()
+      }, 100) // 100мс задержка для полной отрисовки сетки
       
       // Обновляем текстуру Three.js после отрисовки сетки с увеличенной задержкой
       this.$nextTick(() => {
@@ -2726,14 +2758,31 @@ export default {
       })
     },
     
+
+    // Нормализация координат текста (временно отключена, используем абсолютные координаты)
+    normalizeTextPositionForGridType(position, fromGridType, toGridType) {
+      if (fromGridType !== toGridType) {
+        console.log('⏸️ Нормализация отключена: используем абсолютные координаты', { fromGridType, toGridType, position })
+      }
+      return position
+    },
+
     // Восстановление текстовых слоев после перерисовки сетки
-    restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId) {
+    restoreTextLayers(savedTextLayers, savedSelectedTextLayerIndex, savedNextTextLayerId, savedGridType) {
       if (!savedTextLayers || savedTextLayers.length === 0) {
         console.log('📝 Нет сохраненных текстовых слоев для восстановления')
         return
       }
 
       console.log('🔄 Восстанавливаем текстовые слои:', savedTextLayers.length)
+      console.log('🎯 Размер канваса при восстановлении:', {
+        width: this.paperScope.view.viewSize.width,
+        height: this.paperScope.view.viewSize.height
+      })
+      console.log('🔄 Нормализация координат между типами сеток:', {
+        fromGridType: savedGridType,
+        toGridType: this.maskType
+      })
 
       // Восстанавливаем состояние
       this.textLayers = []
@@ -2748,14 +2797,42 @@ export default {
           layer.name = `textLayer_${savedLayer.id}`
           layer.data = { layerIndex: savedLayer.id }
 
-          // Восстанавливаем подложку с теми же данными
+          // Нормализуем координаты относительно системы координат текущей сетки
+          const normalizedPosition = this.normalizeTextPositionForGridType(
+            savedLayer.position, 
+            savedLayer.gridType || savedGridType, 
+            this.maskType
+          )
+          
+          console.log(`🔍 Восстанавливаем слой ${savedLayer.id}:`)
+          console.log(`  Сохраненная позиция: x=${savedLayer.position.x}, y=${savedLayer.position.y}`)
+          console.log(`  Нормализованная позиция: x=${normalizedPosition.x}, y=${normalizedPosition.y}`)
+          console.log(`  Текст: "${savedLayer.textData?.text}", режим: ${savedLayer.mode}`)
+
+          // Восстанавливаем подложку с нормализованными координатами
           const backgroundItem = this.createBackgroundItemOnLayer(
             layer, 
             savedLayer.id, 
             savedLayer.textData, 
-            savedLayer.position, 
+            normalizedPosition, 
             savedLayer.mode
           )
+          
+          // Проверяем, изменились ли координаты после создания подложки
+          if (backgroundItem && backgroundItem.position) {
+            const diffX = backgroundItem.position.x - normalizedPosition.x
+            const diffY = backgroundItem.position.y - normalizedPosition.y
+            console.log(`🔍 Координаты после создания подложки для слоя ${savedLayer.id}:`)
+            console.log(`  Нормализованная позиция: x=${normalizedPosition.x}, y=${normalizedPosition.y}`)
+            console.log(`  Фактическая позиция: x=${backgroundItem.position.x}, y=${backgroundItem.position.y}`)
+            console.log(`  Разность: x=${diffX}, y=${diffY}`)
+            const eps = 1e-6
+            if (Math.abs(diffX) > eps || Math.abs(diffY) > eps) {
+              console.log(`  ⚠️ ВНИМАНИЕ: Координаты изменились!`)
+            } else {
+              console.log(`  ✅ Координаты не изменились`)
+            }
+          }
 
           // Восстанавливаем информацию о текстовом слое
           const restoredLayer = {
@@ -2764,8 +2841,9 @@ export default {
             textItem: savedLayer.textItem, // Может быть null для режимов с подложкой
             backgroundItem: backgroundItem,
             textData: savedLayer.textData,
-            position: savedLayer.position,
-            mode: savedLayer.mode
+            position: normalizedPosition, // Используем нормализованные координаты
+            mode: savedLayer.mode,
+            gridType: this.maskType
           }
 
           this.textLayers.push(restoredLayer)
@@ -2773,7 +2851,7 @@ export default {
             id: savedLayer.id,
             text: savedLayer.textData?.text,
             mode: savedLayer.mode,
-            position: savedLayer.position
+            position: normalizedPosition
           })
 
         } catch (error) {
@@ -3479,6 +3557,13 @@ export default {
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
       
+      console.log('🔺 Создание треугольников - размеры канваса:', {
+        viewWidth,
+        viewHeight,
+        cellWidth,
+        cellHeight
+      })
+      
       // Применяем внешний отступ
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       
@@ -3607,6 +3692,13 @@ export default {
       // Создаем шестиугольники с динамическим размером для правильного покрытия
       const totalWidth = paper.view.viewSize.width
       const totalHeight = paper.view.viewSize.height
+      
+      console.log('🔷 Создание шестиугольников - размеры канваса:', {
+        totalWidth,
+        totalHeight,
+        cellWidth,
+        cellHeight
+      })
       
       // Применяем внешний отступ - используем одинаковый отступ по обеим осям
       // Для шестигранников отступ должен быть одинаковым по вертикали и горизонтали
@@ -4204,6 +4296,7 @@ export default {
         }, // Используем переданные данные
         position: { ...scaledPosition }, // Используем масштабированную позицию
         mode: mode, // Используем переданный режим
+        gridType: this.maskType,
         createdAt: new Date().toISOString()
       }
       
@@ -4250,7 +4343,8 @@ export default {
         textLayer.backgroundItem = backgroundItem
         textLayer.textData = textData
         textLayer.position = position
-        textLayer.mode = mode
+      textLayer.mode = mode
+      textLayer.gridType = this.maskType
         
         console.log('📝 Текстовый слой обновлен:', textLayer)
         

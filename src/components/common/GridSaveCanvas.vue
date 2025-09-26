@@ -1970,48 +1970,84 @@ export default {
         scale: scale.toFixed(3)
       })
       
-      // Рисуем изображение на временном канвасе с сохранением пропорций
-      tempCtx.drawImage(img, drawX, drawY, scaledImageWidth, scaledImageHeight)
-      
-      // Создаем маску для текста - рисуем белый текст поверх изображения
-      tempCtx.globalCompositeOperation = 'destination-in'
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
-      tempCtx.textAlign = textData.textAlign || 'center'
-      tempCtx.textBaseline = 'middle'
-      tempCtx.fillStyle = '#000000'
-      
-      // Рисуем маску текста в позиции, где должен быть текст (точно как в drawConversationModeOnCanvas)
+      // Подготовка метрик текста (используются и для тени, и для маски)
       const lines = textData.text.split('\n')
       const scaledFontSize = textData.fontSize * scale
-      
-      // Вычисляем общую высоту текста для центрирования по вертикали
-      // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
       const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
       const startY = y - totalTextHeight / 2
       
-      // Рисуем каждую строку как маску
+      // 1) Рисуем тень под текст (если включена), чтобы она осталась под маской с изображением
+      if (textData.shadow) {
+        const shadowOpacity = typeof textData.shadowOpacity === 'number' ? Math.max(0, Math.min(100, textData.shadowOpacity)) : 40
+        const hex = (textData.shadowColor || '#000000').replace('#', '')
+        const r = parseInt(hex.substring(0, 2), 16) || 0
+        const g = parseInt(hex.substring(2, 4), 16) || 0
+        const b = parseInt(hex.substring(4, 6), 16) || 0
+        const a = (shadowOpacity / 100).toFixed(3)
+        const rgba = `rgba(${r}, ${g}, ${b}, ${a})`
+
+        tempCtx.save()
+        tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
+        tempCtx.textAlign = textData.textAlign || 'center'
+        tempCtx.textBaseline = 'middle'
+        tempCtx.fillStyle = textData.textColor || '#000000'
+        tempCtx.shadowColor = rgba
+        tempCtx.shadowBlur = Math.max(0, (textData.shadowBlur || 0) * scale)
+        tempCtx.shadowOffsetX = (textData.shadowOffsetX || 0) * scale
+        tempCtx.shadowOffsetY = (textData.shadowOffsetY || 0) * scale
+
+        lines.forEach((line, index) => {
+          const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+          tempCtx.fillText(line, x, lineY)
+        })
+
+        tempCtx.restore()
+      }
+
+      // 2) Маскируем изображение на отдельном канвасе, чтобы тень не обрезалась композицией
+      const imgCanvas = document.createElement('canvas')
+      imgCanvas.width = tempCanvas.width
+      imgCanvas.height = tempCanvas.height
+      const imgCtx = imgCanvas.getContext('2d')
+
+      // Рисуем изображение на канвасе изображения
+      imgCtx.drawImage(img, drawX, drawY, scaledImageWidth, scaledImageHeight)
+
+      // Создаем маску для текста на канвасе изображения
+      imgCtx.globalCompositeOperation = 'destination-in'
+      imgCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
+      imgCtx.textAlign = textData.textAlign || 'center'
+      imgCtx.textBaseline = 'middle'
+      imgCtx.fillStyle = '#000000'
+
       lines.forEach((line, index) => {
-        // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
         const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
-        
-        tempCtx.fillText(line, x, lineY)
+        imgCtx.fillText(line, x, lineY)
       })
-      
-      console.log('🖼️ Высокое разрешение - маска текста применена:', {
+
+      imgCtx.globalCompositeOperation = 'source-over'
+
+      console.log('🖼️ Высокое разрешение - маска текста применена (отдельный канвас):', {
         maskPosition: `${x}, ${y}`,
         imagePosition: `${drawX}, ${drawY}`,
         imageSize: `${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`,
         textSize: `${textWidth}x${textHeight}`,
-        canvasSize: `${tempCanvas.width}x${tempCanvas.height}`
+        canvasSize: `${imgCanvas.width}x${imgCanvas.height}`
       })
+
+      // 3) Теперь накладываем маскированное изображение на основной временный канвас с уже нарисованной тенью
+      tempCtx.drawImage(imgCanvas, 0, 0)
       
-      // Сбрасываем режим композиции
-      tempCtx.globalCompositeOperation = 'source-over'
-      
-      // Рисуем обводку (если включена) - поверх всего
+      // 5) Рисуем обводку (если включена) - поверх всего
       if (textData.stroke) {
+        // ВАЖНО: перед strokeText задать те же шрифтовые параметры и выравнивание, что и для маски
+        tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize * scale}px ${textData.font || 'Arial'}`
+        tempCtx.textAlign = textData.textAlign || 'center'
+        tempCtx.textBaseline = 'middle'
         tempCtx.strokeStyle = textData.strokeColor
         tempCtx.lineWidth = (textData.strokeWidth || 2) * scale
+        tempCtx.lineJoin = 'round'
+        tempCtx.miterLimit = 2
         
         // Рисуем обводку для каждой строки
         lines.forEach((line, index) => {

@@ -1708,6 +1708,8 @@ export default {
       this.showTextDialog = true
       this.isEditingText = true
       this.editingLayerIndex = layerIndex
+      // Сбрасываем драг-позицию, чтобы не подтягивать позицию предыдущего слоя
+      this.currentDragPosition = { x: 0, y: 0 }
       
       // Устанавливаем режим редактирования
       this.textDialogActiveTab = mode
@@ -1737,20 +1739,21 @@ export default {
         const scaleX = previewCanvasWidth / mainCanvasWidth
         const scaleY = previewCanvasHeight / mainCanvasHeight
         
-        this.currentTextPosition = {
+        this.currentDragPosition = {
           x: position.x * scaleX,
           y: position.y * scaleY
         }
         
         console.log('🎯 Масштабирование позиции для редактирования:', {
           originalPosition: position,
-          scaledPosition: this.currentTextPosition,
+          scaledPosition: this.currentDragPosition,
           mainCanvas: `${mainCanvasWidth}x${mainCanvasHeight}`,
           previewCanvas: `${previewCanvasWidth}x${previewCanvasHeight}`,
           scale: `${scaleX.toFixed(3)}x${scaleY.toFixed(3)}`
         })
       } else {
-        this.currentTextPosition = position
+        // На случай отсутствия canvas — аккуратно устанавливаем драг-позицию
+        this.currentDragPosition = position ? { x: position.x, y: position.y } : { x: 0, y: 0 }
       }
       
       this.$emit('text-dialog-opened')

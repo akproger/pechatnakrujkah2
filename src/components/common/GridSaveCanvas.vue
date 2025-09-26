@@ -1293,11 +1293,26 @@ export default {
         tailLength: tailLength
       })
       
-      if (intersectionPoint) {
+      let effectiveIntersection = intersectionPoint
+      // РЕЗЕРВ: если пересечение не найдено (часто у углов), берём ближайшую точку на границе
+      if (!effectiveIntersection) {
+        const fallback = this.getClosestIntersectionFromCenterToSharpPoint(
+          x, y,
+          x + Math.cos(tailAngle) * tailLength,
+          y + Math.sin(tailAngle) * tailLength,
+          bgX, bgY, scaledBackgroundWidth, scaledBackgroundHeight
+        )
+        if (fallback) {
+          console.log('🛟 Fallback-пересечение для хвоста найдено:', fallback)
+          effectiveIntersection = fallback
+        }
+      }
+
+      if (effectiveIntersection) {
         // Создаем объединенную фигуру с хвостом (точно как в buildSuperBackgroundPath)
         const combinedPath = this.createUnifiedConversationPathPaperJS(
           x, y, scaledBackgroundWidth, scaledBackgroundHeight, 
-          intersectionPoint, tailAngle, tailLength, tailWidth, textData, scale
+          effectiveIntersection, tailAngle, tailLength, tailWidth, textData, scale
         )
         
         // Применяем тень к подложке

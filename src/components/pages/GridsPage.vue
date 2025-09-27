@@ -1942,6 +1942,11 @@ export default {
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
+      // Увеличиваем размер на 0.5% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.005 // 0.5%
+      adjustedWidth += adjustedWidth * sizeIncrease
+      adjustedHeight += adjustedHeight * sizeIncrease
+      
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
@@ -1993,8 +1998,8 @@ export default {
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
-      // Увеличиваем размер ещё чуть-чуть (1.4%), чтобы убрать остаточные щели
-      const sizeIncreaseDiamond = 0.014 // 1.4%
+      // Увеличиваем размер ещё чуть-чуть (2.5%), чтобы убрать остаточные щели
+      const sizeIncreaseDiamond = 0.025 // 2.5%
       adjustedWidth += adjustedWidth * sizeIncreaseDiamond
       adjustedHeight += adjustedHeight * sizeIncreaseDiamond
 
@@ -2046,6 +2051,11 @@ export default {
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
+      
+      // Увеличиваем размер на 2.5% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.025 // 2.5%
+      adjustedWidth += adjustedWidth * sizeIncrease
+      adjustedHeight += adjustedHeight * sizeIncrease
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
@@ -3591,8 +3601,8 @@ export default {
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
-      // Увеличиваем размер на 0.5% с каждой стороны для устранения просветов
-      const sizeIncrease = 0.005 // 0.5%
+      // Увеличиваем размер на 1.0% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.01 // 1.0%
       adjustedWidth += adjustedWidth * sizeIncrease
       adjustedHeight += adjustedHeight * sizeIncrease
       
@@ -3717,8 +3727,8 @@ export default {
       let diamondWidth = cellWidth * 2
       let diamondHeight = cellHeight * 2
 
-      // Увеличиваем ромб: +1.4% и минимум +2 px как в HiDPI, чтобы скрыть щели
-      const sizeIncreaseDiamond = 0.014
+      // Увеличиваем ромб: +2.5% и минимум +2 px как в HiDPI, чтобы скрыть щели
+      const sizeIncreaseDiamond = 0.025
       diamondWidth += diamondWidth * sizeIncreaseDiamond + 2
       diamondHeight += diamondHeight * sizeIncreaseDiamond + 2
       
@@ -3830,8 +3840,8 @@ export default {
           const offsetX = row % 2 === 0 ? 0 : hexWidth * 0.5
           
           // Создаем неравносторонний шестиугольник через Path
-          // Увеличиваем всю маску шестигранника на 0.5% для устранения просветов
-          const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
+          // Увеличиваем всю маску шестигранника на 1.0% для устранения просветов
+          const sizeMultiplier = 1.01 // Увеличиваем на 1.0%
           
           // Применяем отступ к размерам шестигранника
           const adjustedHexWidth = hexWidth - margin * 2

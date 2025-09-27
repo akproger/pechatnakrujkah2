@@ -6810,8 +6810,8 @@ export default {
       if (textData.shadow) {
         ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
         ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
-        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 2) // Добавляем множитель x2 для смещения
-        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 2) // Добавляем множитель x2 для смещения
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale) // Стандартное масштабирование для режима "Стандарт"
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale) // Стандартное масштабирование для режима "Стандарт"
         
         // Рисуем тень
         ctx.fillStyle = backgroundColor

@@ -33,12 +33,14 @@
                     {{ isLoading ? 'Генерация...' : 'Генерировать стикеры' }}
                   </button>
                 </div>
-                <div class="col">
+                
+                <!-- Кнопка добавления текста -->
+                <div class="col" style="padding: 0;">
                   <button 
-                    @click="openTextManager"
-                    class="btn canvas-button ms-2"
+                    @click="openTextManager" 
+                    class="btn canvas-button text-button"
                   >
-                    <i class="bi bi-fonts me-2"></i>
+                    <i class="bi bi-type me-2"></i>
                     Текст
                   </button>
                 </div>
@@ -46,13 +48,11 @@
                 <div class="col" style="padding: 0;">
                   <TextManager 
                     ref="textManager"
-                    @text-dialog-close="handleTextDialogClose"
-                    @text-apply="handleTextApply"
-                    @text-applied="handleTextApplied"
                     :canvas="$refs.testCanvas"
                     :paper-scope="paperScope"
                     @text-dialog-opened="onTextDialogOpened"
                     @text-dialog-closed="onTextDialogClosed"
+                    @text-applied="onTextApplied"
                   />
                 </div>
                 
@@ -626,9 +626,6 @@ export default {
   },
   data() {
     return {
-      // Свойства для TextManager
-      textLayers: [],
-      currentTextLayer: null,
       // Paper.js
       paperScope: null,
       maskItems: {},
@@ -711,10 +708,6 @@ export default {
     }
   },
   computed: {
-    // Canvas для работы с Paper.js
-    canvas() {
-      return this.$refs.testCanvas
-    },
     
     // Размеры для превью канваса - логические размеры (без HiDPI)
     previewCanvasWidth() {
@@ -764,593 +757,6 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
-    // Методы для работы с TextManager
-    openTextManager() {
-      console.log('📝 TextManager: открываем диалог в StickerManiaPage')
-      this.$refs.textManager.openDialog()
-    },
-
-    handleTextDialogClose() {
-      console.log('📝 TextManager: диалог закрыт в StickerManiaPage')
-    },
-
-    handleTextApplied(event) {
-      console.log('📝 TextManager: применение текста с позицией в StickerManiaPage', event)
-      const { textData, mode, position, isEditing, editingLayerIndex } = event
-      
-      // Проверяем доступность paperScope и canvas
-      if (!this.paperScope || !this.canvas) {
-        console.error('❌ PaperScope или canvas недоступны', {
-          paperScope: !!this.paperScope,
-          canvas: !!this.canvas
-        })
-        return
-      }
-      
-      // Используем правильную позицию из TextManager
-      const textPosition = position || { x: 0, y: 0 }
-      console.log('📍 Используем позицию из TextManager:', textPosition)
-      
-      // Создаем группу для текста и подложки
-      const group = new this.paperScope.Group()
-      
-      // Получаем настройки отступов из стиля или используем значения по умолчанию
-      const padding = textData.padding !== undefined ? textData.padding : 20
-      
-      // Создаем текстовый слой с учетом режима
-      let processedText = textData.text
-      
-      // Проверяем, является ли text строкой
-      if (typeof processedText !== 'string') {
-        console.warn('⚠️ handleTextApplied: text не является строкой', processedText)
-        processedText = String(processedText || '')
-      }
-      
-      // Если это режим с изображением, делаем текст строго однострочным
-      if (textData.withImage) {
-        processedText = processedText.replace(/\n/g, ' ')
-      }
-      
-      // Вычисляем размеры текста с учетом переносов строк
-      const textSize = this.calculateMultilineTextSize(processedText, textData.fontSize || 24, textData.lineHeight || 1.2, textData)
-      const textWidth = textSize.width
-      const textHeight = textSize.height
-      
-      // Добавляем отступы к размерам текста
-      const textPadding = padding
-      const textWidthWithPadding = textWidth + textPadding * 2
-      const textHeightWithPadding = textHeight + textPadding * 2
-      
-      // Создаем временный Canvas для рисования текста с правильными переносами
-      const tempCanvas = document.createElement('canvas')
-      const canvasWidth = textWidthWithPadding + 40 // Добавляем дополнительный отступ для тени
-      const canvasHeight = textHeightWithPadding + 40
-      tempCanvas.width = canvasWidth
-      tempCanvas.height = canvasHeight
-      const tempCtx = tempCanvas.getContext('2d')
-      
-      // Создаем подложку в зависимости от режима
-      if (mode === 'conversation') {
-        // Рисуем подложку для режима разговора
-        tempCtx.fillStyle = textData.backgroundColor || 'white'
-        tempCtx.beginPath()
-        tempCtx.roundRect(
-          20, 
-          20, 
-          textWidthWithPadding, 
-          textHeightWithPadding, 
-          textData.borderRadius || 10
-        )
-        tempCtx.fill()
-        
-        // Добавляем тень если она включена
-        if (textData.shadow) {
-          tempCtx.shadowColor = textData.shadowColor || 'black'
-          tempCtx.shadowBlur = textData.shadowBlur || 10
-          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
-        }
-        
-        // Добавляем обводку если она включена
-        if (textData.stroke) {
-          tempCtx.strokeStyle = textData.strokeColor || 'black'
-          tempCtx.lineWidth = textData.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = textData.textColor || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          textData.fontSize || 24, 
-          textData.lineHeight || 1.2, 
-          textData
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        // Используем позицию из TextManager
-        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-        
-      } else if (mode === 'thoughts') {
-        // Рисуем подложку для режима мыслей
-        tempCtx.fillStyle = textData.backgroundColor || 'white'
-        
-        // Рисуем основное облако
-        this.drawThoughtBubble(
-          tempCtx,
-          20,
-          20,
-          textWidthWithPadding,
-          textHeightWithPadding,
-          textData.tailAngle || 45,
-          textData.tailSize || 145,
-          textData.tailWidth || 40
-        )
-        
-        // Добавляем тень если она включена
-        if (textData.shadow) {
-          tempCtx.shadowColor = textData.shadowColor || 'black'
-          tempCtx.shadowBlur = textData.shadowBlur || 10
-          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
-        }
-        
-        // Добавляем обводку если она включена
-        if (textData.stroke) {
-          tempCtx.strokeStyle = textData.strokeColor || 'black'
-          tempCtx.lineWidth = textData.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = textData.textColor || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          textData.fontSize || 24, 
-          textData.lineHeight || 1.2, 
-          textData
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        // Используем позицию из TextManager
-        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-        
-      } else if (mode === 'standard') {
-        // Рисуем подложку для стандартного режима
-        tempCtx.fillStyle = textData.backgroundColor || 'white'
-        tempCtx.beginPath()
-        tempCtx.roundRect(
-          20, 
-          20, 
-          textWidthWithPadding, 
-          textHeightWithPadding, 
-          textData.borderRadius || 10
-        )
-        tempCtx.fill()
-        
-        // Добавляем тень если она включена
-        if (textData.shadow) {
-          tempCtx.shadowColor = textData.shadowColor || 'black'
-          tempCtx.shadowBlur = textData.shadowBlur || 10
-          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
-        }
-        
-        // Добавляем обводку если она включена
-        if (textData.stroke) {
-          tempCtx.strokeStyle = textData.strokeColor || 'black'
-          tempCtx.lineWidth = textData.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = textData.textColor || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          textData.fontSize || 24, 
-          textData.lineHeight || 1.2, 
-          textData
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        // Используем позицию из TextManager
-        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-      }
-      
-      // Добавляем группу в активный слой
-      this.paperScope.project.activeLayer.addChild(group)
-      
-      // Обновляем 3D модель
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.update3DModel()
-          console.log('🔄 3D модель обновлена после добавления текста')
-        }, 100)
-      })
-      
-      console.log('✅ Текст успешно добавлен на основной канвас с позицией:', textPosition)
-    },
-
-    handleTextApply(event) {
-      console.log('📝 TextManager: применение текста в StickerManiaPage', event)
-      const { text, style, mode } = event
-      
-      // Проверяем формат данных
-      console.log('📊 Формат данных в handleTextApply:', {
-        textType: typeof text,
-        text: text,
-        styleType: typeof style,
-        style: style,
-        modeType: typeof mode,
-        mode: mode
-      })
-      
-      // Проверяем доступность paperScope и canvas
-      if (!this.paperScope || !this.canvas) {
-        console.error('❌ PaperScope или canvas недоступны', {
-          paperScope: !!this.paperScope,
-          canvas: !!this.canvas
-        })
-        return
-      }
-      
-      // Создаем группу для текста и подложки
-      const group = new this.paperScope.Group()
-      
-      // Получаем настройки отступов из стиля или используем значения по умолчанию
-      const padding = style.padding !== undefined ? style.padding : 20
-      
-      // Создаем текстовый слой с учетом режима
-      let processedText = text
-      
-      // Проверяем, является ли text строкой
-      if (typeof processedText !== 'string') {
-        console.warn('⚠️ handleTextApply: text не является строкой', processedText)
-        processedText = String(processedText || '')
-      }
-      
-      // Если это режим с изображением, делаем текст строго однострочным
-      if (style.withImage) {
-        processedText = processedText.replace(/\n/g, ' ')
-      }
-      
-      // Вычисляем размеры текста с учетом переносов строк
-      const textSize = this.calculateMultilineTextSize(processedText, style.fontSize || 24, style.lineHeight || 1.2, style)
-      const textWidth = textSize.width
-      const textHeight = textSize.height
-      
-      // Добавляем отступы к размерам текста
-      const textPadding = padding
-      const textWidthWithPadding = textWidth + textPadding * 2
-      const textHeightWithPadding = textHeight + textPadding * 2
-      
-      // Создаем временный Canvas для рисования текста с правильными переносами
-      const tempCanvas = document.createElement('canvas')
-      const canvasWidth = textWidthWithPadding + 40 // Добавляем дополнительный отступ для тени
-      const canvasHeight = textHeightWithPadding + 40
-      tempCanvas.width = canvasWidth
-      tempCanvas.height = canvasHeight
-      const tempCtx = tempCanvas.getContext('2d')
-      
-      // Создаем подложку в зависимости от режима
-      let background
-      
-      if (mode === 'conversation') {
-        // Рисуем подложку для режима разговора
-        tempCtx.fillStyle = style.backgroundColor || 'white'
-        tempCtx.beginPath()
-        tempCtx.roundRect(
-          20, 
-          20, 
-          textWidthWithPadding, 
-          textHeightWithPadding, 
-          style.borderRadius || 10
-        )
-        tempCtx.fill()
-        
-        // Добавляем тень если она включена
-        if (style.shadow) {
-          tempCtx.shadowColor = style.shadowColor || 'black'
-          tempCtx.shadowBlur = style.shadowBlur || 10
-          tempCtx.shadowOffsetX = style.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = style.shadowOffsetY || 5
-        }
-        
-        // Добавляем обводку если она включена
-        if (style.stroke) {
-          tempCtx.strokeStyle = style.strokeColor || 'black'
-          tempCtx.lineWidth = style.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = style.color || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          style.fontSize || 24, 
-          style.lineHeight || 1.2, 
-          style
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        const mainCanvasWidth = this.canvas?.width || 856
-        const mainCanvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-        
-      } else if (mode === 'thoughts') {
-        // Рисуем подложку для режима мыслей
-        tempCtx.fillStyle = style.backgroundColor || 'white'
-        
-        // Рисуем основное облако
-        tempCtx.beginPath()
-        
-        // Создаем облако с более плавными контурами
-        const centerX = canvasWidth / 2
-        const centerY = canvasHeight / 2
-        const width = textWidthWithPadding
-        const height = textHeightWithPadding
-        const radiusX = width / 2
-        const radiusY = height / 2
-        
-        // Добавляем точки для создания облака
-        const pointCount = 12
-        tempCtx.moveTo(centerX + radiusX, centerY)
-        
-        for (let i = 0; i < pointCount; i++) {
-          const angle = (i / pointCount) * Math.PI * 2
-          const randomOffset = Math.random() * 10 - 5
-          const x = centerX + Math.cos(angle) * (radiusX + randomOffset)
-          const y = centerY + Math.sin(angle) * (radiusY + randomOffset)
-          tempCtx.lineTo(x, y)
-        }
-        
-        tempCtx.closePath()
-        
-        // Добавляем "хвостик" к облаку мысли
-        tempCtx.moveTo(centerX - radiusX * 0.3, centerY + radiusY)
-        tempCtx.lineTo(centerX - radiusX * 0.3 - 15, centerY + radiusY + 15)
-        tempCtx.lineTo(centerX - radiusX * 0.3 - 5, centerY + radiusY + 25)
-        
-        // Добавляем тень если она включена
-        if (style.shadow) {
-          tempCtx.shadowColor = style.shadowColor || 'black'
-          tempCtx.shadowBlur = style.shadowBlur || 10
-          tempCtx.shadowOffsetX = style.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = style.shadowOffsetY || 5
-        }
-        
-        tempCtx.fill()
-        
-        // Добавляем обводку если она включена
-        if (style.stroke) {
-          tempCtx.strokeStyle = style.strokeColor || 'black'
-          tempCtx.lineWidth = style.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = style.color || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          style.fontSize || 24, 
-          style.lineHeight || 1.2, 
-          style
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        const mainCanvasWidth = this.canvas?.width || 856
-        const mainCanvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-        
-      } else {
-        // Для стандартного режима
-        tempCtx.fillStyle = style.backgroundColor || 'white'
-        tempCtx.beginPath()
-        tempCtx.rect(
-          20, 
-          20, 
-          textWidthWithPadding, 
-          textHeightWithPadding
-        )
-        
-        // Добавляем тень если она включена
-        if (style.shadow) {
-          tempCtx.shadowColor = style.shadowColor || 'black'
-          tempCtx.shadowBlur = style.shadowBlur || 10
-          tempCtx.shadowOffsetX = style.shadowOffsetX || 5
-          tempCtx.shadowOffsetY = style.shadowOffsetY || 5
-        }
-        
-        tempCtx.fill()
-        
-        // Добавляем обводку если она включена
-        if (style.stroke) {
-          tempCtx.strokeStyle = style.strokeColor || 'black'
-          tempCtx.lineWidth = style.strokeWidth || 2
-          tempCtx.stroke()
-        }
-        
-        // Рисуем текст с правильными переносами
-        tempCtx.fillStyle = style.color || 'black'
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
-        
-        // Используем метод для отрисовки многострочного текста
-        this.drawMultilineTextWithData(
-          tempCtx, 
-          processedText, 
-          canvasWidth / 2, 
-          canvasHeight / 2, 
-          style.fontSize || 24, 
-          style.lineHeight || 1.2, 
-          style
-        )
-        
-        // Создаем растр из канваса
-        const raster = new this.paperScope.Raster(tempCanvas)
-        const mainCanvasWidth = this.canvas?.width || 856
-        const mainCanvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
-        
-        // Добавляем растр в группу
-        group.addChild(raster)
-      }
-      
-      // Добавляем группу в проект
-      this.paperScope.project.addLayer(group)
-      
-      // Сохраняем текстовый слой в массив для возможности редактирования
-      this.textLayers.push({
-        group: group,
-        mode: mode,
-        style: style,
-        text: processedText
-      })
-      
-      // Обновляем канвас
-      this.paperScope.view.draw()
-    },
-    
-    // Вычисление размеров многострочного текста
-    calculateMultilineTextSize(text, fontSize, lineHeight = 1.2, textData) {
-      if (!text) return { width: 0, height: 0 }
-      
-      // Проверяем, является ли text строкой
-      if (typeof text !== 'string') {
-        console.warn('⚠️ calculateMultilineTextSize: text не является строкой', text)
-        text = String(text || '')
-      }
-      
-      const lines = text.split('\n')
-      
-      // Создаем временный контекст для измерения
-      const tempCtx = document.createElement('canvas').getContext('2d')
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${fontSize}px ${textData.fontFamily || 'Arial'}`
-      
-      // Вычисляем максимальную ширину текста
-      let maxTextWidth = 0
-      lines.forEach(line => {
-        const textMetrics = tempCtx.measureText(line)
-        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
-      })
-      
-      // Вычисляем общую высоту текста
-      const totalTextHeight = lines.length * fontSize * lineHeight
-      
-      return {
-        width: maxTextWidth,
-        height: totalTextHeight
-      }
-    },
-    
-    // Отрисовка многострочного текста с учетом настроек
-    drawMultilineTextWithData(ctx, text, x, y, fontSize, lineHeight = 1.2, textData) {
-      const lines = text.split('\n')
-      
-      // Устанавливаем размер шрифта
-      ctx.font = `${textData.fontWeight || 'normal'} ${fontSize}px ${textData.fontFamily || 'Arial'}`
-      
-      // Устанавливаем выравнивание текста
-      ctx.textAlign = textData.textAlign || 'center'
-      ctx.textBaseline = 'middle'
-      
-      // Вычисляем межстрочный интервал
-      const lineSpacing = fontSize * lineHeight
-      
-      // Вычисляем общую высоту текста для центрирования по вертикали
-      const totalTextHeight = lines.length * fontSize * lineHeight
-      const startY = y - totalTextHeight / 2
-      
-      // Вычисляем максимальную ширину текста для центрирования по горизонтали
-      let maxTextWidth = 0
-      lines.forEach(line => {
-        const textMetrics = ctx.measureText(line)
-        maxTextWidth = Math.max(maxTextWidth, textMetrics.width)
-      })
-      
-      // Рисуем каждую строку
-      lines.forEach((line, index) => {
-        const lineY = startY + (index * fontSize * lineHeight) + fontSize / 2
-        
-        // Вычисляем позицию X в зависимости от выравнивания
-        let lineX = x
-        if ((textData.textAlign || 'center') === 'left') {
-          lineX = x - maxTextWidth / 2
-        } else if ((textData.textAlign || 'center') === 'right') {
-          lineX = x + maxTextWidth / 2
-        }
-        // Для 'center' lineX остается x
-        
-        ctx.fillText(line, lineX, lineY)
-      })
-    },
     // Обработчики событий для кнопки сохранения
     onSaveSuccess(result) {
       console.log('✅ Сохранение завершено успешно:', result)
@@ -2486,8 +1892,8 @@ export default {
         if (textData.shadow) {
           ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
           ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
-          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
-          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * 2) // Умножаем на 2 для режима "Текст с изображением"
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * 2) // Умножаем на 2 для режима "Текст с изображением"
           ctx.globalAlpha = textData.shadowOpacity / 100
           
           // Рисуем тень текста
@@ -6179,7 +5585,7 @@ export default {
               // Это стикер - перетаскиваем всю группу
               dragItem = item.parent
               console.log('🎯 Начато перетаскивание стикера (группы):', dragItem.className)
-      } else {
+            } else {
               // Это обычный текстовый элемент
               dragItem = item
               console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
@@ -6384,7 +5790,7 @@ export default {
               this.stickerPreviews[previewKey] = previewDataURL
               console.log(`🖼️ Превью создано для стикера ${index}: ${sticker.mask} + ${sticker.image}`)
               // Принудительно обновляем Vue для отображения нового превью
-      this.$nextTick(() => {
+              this.$nextTick(() => {
                 // Vue 3 автоматически отслеживает изменения в реактивных объектах
                 console.log(`✅ Превью добавлено в реактивное хранилище: ${previewKey}`)
               })
@@ -7019,6 +6425,16 @@ export default {
         this.applyTextToCanvas(textData, position, mode)
       }
     },
+
+    // Открытие диалога TextManager
+    openTextManager() {
+      console.log('📝 Открытие диалога TextManager')
+      if (this.$refs.textManager) {
+        this.$refs.textManager.openDialog()
+      } else {
+        console.error('❌ TextManager ref не найден')
+      }
+    },
     
     
     
@@ -7254,7 +6670,7 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
@@ -7332,7 +6748,7 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
       
       // Размеры подложки (адаптированные под превью)
       const bgWidth = this.textDialogData.backgroundWidth
@@ -7470,7 +6886,7 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
@@ -7720,13 +7136,7 @@ export default {
     },
     
     // Вспомогательный метод для расчета размеров многострочного текста
-    calculateTextSize(ctx, text, fontSize, lineHeight = 1.2) {
-      // Проверяем, является ли text строкой
-      if (typeof text !== 'string') {
-        console.warn('⚠️ calculateTextSize: text не является строкой', text)
-        text = String(text || '')
-      }
-      
+    calculateMultilineTextSize(ctx, text, fontSize, lineHeight = 1.2) {
       const lines = text.split('\n')
       ctx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
       
@@ -7961,7 +7371,7 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
@@ -8043,7 +7453,7 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, 'Текст', fontSize, this.textDialogData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
@@ -9302,6 +8712,20 @@ export default {
       textItem.fillColor = this.textDialogData.textColor || '#000000'
       textItem.justification = this.getJustificationFromAlign(this.textDialogData.textAlign || 'center')
       
+      // Для режима "Текст с изображением" применяем тень с умножением на 2
+      if (this.textDialogActiveTab === 'image-text' && this.textDialogData.shadow) {
+        textItem.shadowColor = this.textDialogData.shadowColor
+        textItem.shadowBlur = this.textDialogData.shadowBlur
+        textItem.shadowOffset = new this.paperScope.Point(
+          this.textDialogData.shadowOffsetX * 2, // Умножаем на 2 для режима "Текст с изображением"
+          this.textDialogData.shadowOffsetY * 2  // Умножаем на 2 для режима "Текст с изображением"
+        )
+        console.log('🖼️ Применена тень к тексту с изображением на основном канвасе:', {
+          shadowOffsetX: this.textDialogData.shadowOffsetX * 2,
+          shadowOffsetY: this.textDialogData.shadowOffsetY * 2
+        })
+      }
+      
       // Центрируем текст точно по координатам подложки (как в превью)
       textItem.point = new this.paperScope.Point(x, y)
       
@@ -10361,8 +9785,8 @@ export default {
         if (currentTextData.shadow) {
           tempCtx.shadowColor = currentTextData.shadowColor
           tempCtx.shadowBlur = currentTextData.shadowBlur
-          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX
-          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX * 2 // Умножаем на 2 для режима "Текст с изображением"
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY * 2 // Умножаем на 2 для режима "Текст с изображением"
           tempCtx.globalAlpha = currentTextData.shadowOpacity / 100
           
           // Рисуем тень текста
@@ -11161,9 +10585,9 @@ export default {
       tempCtx.font = `${this.textDialogData.fontWeight} ${fontSize}px ${this.textDialogData.font}`
       
       // Измеряем размеры многострочного текста точно так же, как в отрисовке
-      const textSize = this.calculateTextSize(tempCtx, text, fontSize, this.textDialogData.lineHeight)
-      const textWidth = (textSize && typeof textSize.width === 'number') ? textSize.width : 0
-      const textHeight = (textSize && typeof textSize.height === 'number') ? textSize.height : 0
+      const textSize = this.calculateMultilineTextSize(tempCtx, text, fontSize, this.textDialogData.lineHeight)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
       
       // Вычисляем границы текста с учетом выравнивания
       // В отрисовке используется textAlign = 'center' и textBaseline = 'middle'
@@ -12444,6 +11868,11 @@ export default {
 /* Специальные размеры для разных кнопок */
 .gen-sticker-button-1 {
   width: 240px;
+}
+
+.text-button {
+  width: auto;
+  margin-left: 20px;
 }
 
 </style>

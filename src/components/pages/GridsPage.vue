@@ -167,23 +167,6 @@
             <li class="nav-item" role="presentation">
               <button 
                 class="nav-link" 
-                :class="{ 'active': activeTab === 'settings' }"
-                id="settings-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#settings" 
-                type="button" 
-                role="tab" 
-                aria-controls="settings" 
-                aria-selected="activeTab === 'settings'"
-                @click="activeTab = 'settings'"
-              >
-                <i class="bi bi-gear me-2"></i>
-                Настройки
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
                 :class="{ 'active': activeTab === 'images' }"
                 id="images-tab" 
                 data-bs-toggle="tab" 
@@ -196,6 +179,23 @@
               >
                 <i class="bi bi-images me-2"></i>
                 Изображения
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'settings' }"
+                id="settings-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#settings" 
+                type="button" 
+                role="tab" 
+                aria-controls="settings" 
+                aria-selected="activeTab === 'settings'"
+                @click="activeTab = 'settings'"
+              >
+                <i class="bi bi-gear me-2"></i>
+                Настройки
               </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -239,6 +239,104 @@
       
       <!-- Контент табов -->
       <div class="tab-content" id="gridsTabContent">
+        <!-- Таб "Изображения" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Загрузка изображений -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="imageInput"
+                        @change="handleImageUpload" 
+                        multiple
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.imageInput.click()" 
+                        class="btn"
+                        :disabled="uploadedImages.length >= 5"
+                        style="background-color: #0d6efd; border: none; color: white;"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="uploadedImages.length >= 5">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 5)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Список загруженных изображений -->
+                    <div class="col-12" v-if="uploadedImages.length > 0">
+                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                      <div class="row g-2">
+                        <div 
+                          v-for="(image, index) in uploadedImages" 
+                          :key="index"
+                          class="col-md-4 col-lg-3 col-xl-2"
+                        >
+                          <div class="position-relative">
+                            <img 
+                              :src="image.url" 
+                              :alt="image.name"
+                              class="img-fluid rounded border"
+                              style="max-height: 100px; width: 100%; object-fit: cover;"
+                            >
+                            <button 
+                              @click="removeImage(index)"
+                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
+                            >
+                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                          <div class="d-flex gap-3 mt-2">
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'image-' + index"
+                                v-model="image.useInGrid"
+                                @change="handleUseInGridChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
+                                <i class="bi bi-grid-3x3-gap me-1"></i>
+                              </label>
+                            </div>
+                            
+                            <div class="form-check">
+                              <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                :id="'disable-stroke-' + index"
+                                v-model="image.disableStroke"
+                                @change="handleDisableStrokeChange(index, $event)"
+                              >
+                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
+                                <i class="bi bi-border me-1"></i>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Таб "Настройки" -->
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
           <div class="row mt-3">
@@ -333,104 +431,6 @@
                           max="100" 
                           step="1"
                         >
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Таб "Изображения" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Загрузка изображений -->
-                    <div class="col-12">
-                      <input 
-                        type="file" 
-                        ref="imageInput"
-                        @change="handleImageUpload" 
-                        multiple
-                        accept="image/*"
-                        class="d-none"
-                      >
-                      <button 
-                        @click="$refs.imageInput.click()" 
-                        class="btn"
-                        :disabled="uploadedImages.length >= 5"
-                        style="background-color: #0d6efd; border: none; color: white;"
-                      >
-                        <i class="bi bi-cloud-upload me-2"></i>
-                        <span v-if="uploadedImages.length >= 5">
-                          Максимальное количество изображений загружено
-                        </span>
-                        <span v-else-if="uploadedImages.length === 0">
-                          Загрузить изображения (до 5)
-                        </span>
-                        <span v-else>
-                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
-                        </span>
-                      </button>
-                    </div>
-                    
-                    <!-- Список загруженных изображений -->
-                    <div class="col-12" v-if="uploadedImages.length > 0">
-                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
-                      <div class="row g-2">
-                        <div 
-                          v-for="(image, index) in uploadedImages" 
-                          :key="index"
-                          class="col-md-4 col-lg-3 col-xl-2"
-                        >
-                          <div class="position-relative">
-                            <img 
-                              :src="image.url" 
-                              :alt="image.name"
-                              class="img-fluid rounded border"
-                              style="max-height: 100px; width: 100%; object-fit: cover;"
-                            >
-                            <button 
-                              @click="removeImage(index)"
-                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
-                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
-                            >
-                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
-                            </button>
-                          </div>
-                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
-                          <div class="d-flex gap-3 mt-2">
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'image-' + index"
-                                v-model="image.useInGrid"
-                                @change="handleUseInGridChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
-                                <i class="bi bi-grid-3x3-gap me-1"></i>
-                              </label>
-                            </div>
-                            
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'disable-stroke-' + index"
-                                v-model="image.disableStroke"
-                                @change="handleDisableStrokeChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
-                                <i class="bi bi-border me-1"></i>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -698,7 +698,7 @@ export default {
       shadowOffsetX: 0, // Проценты (-50 до +50)
       shadowOffsetY: 0, // Проценты (-50 до +50)
       shadowOpacity: 50, // Проценты (0-100)
-      activeTab: 'settings', // По умолчанию открыт таб "Настройки"
+      activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: [],
       
       // Настройки фона

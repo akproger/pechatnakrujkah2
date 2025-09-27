@@ -48,6 +48,7 @@
                     ref="textManager"
                     @text-dialog-close="handleTextDialogClose"
                     @text-apply="handleTextApply"
+                    @text-applied="handleTextApplied"
                     :canvas="$refs.testCanvas"
                     :paper-scope="paperScope"
                     @text-dialog-opened="onTextDialogOpened"
@@ -710,6 +711,10 @@ export default {
     }
   },
   computed: {
+    // Canvas для работы с Paper.js
+    canvas() {
+      return this.$refs.testCanvas
+    },
     
     // Размеры для превью канваса - логические размеры (без HiDPI)
     previewCanvasWidth() {
@@ -767,6 +772,242 @@ export default {
 
     handleTextDialogClose() {
       console.log('📝 TextManager: диалог закрыт в StickerManiaPage')
+    },
+
+    handleTextApplied(event) {
+      console.log('📝 TextManager: применение текста с позицией в StickerManiaPage', event)
+      const { textData, mode, position, isEditing, editingLayerIndex } = event
+      
+      // Проверяем доступность paperScope и canvas
+      if (!this.paperScope || !this.canvas) {
+        console.error('❌ PaperScope или canvas недоступны', {
+          paperScope: !!this.paperScope,
+          canvas: !!this.canvas
+        })
+        return
+      }
+      
+      // Используем правильную позицию из TextManager
+      const textPosition = position || { x: 0, y: 0 }
+      console.log('📍 Используем позицию из TextManager:', textPosition)
+      
+      // Создаем группу для текста и подложки
+      const group = new this.paperScope.Group()
+      
+      // Получаем настройки отступов из стиля или используем значения по умолчанию
+      const padding = textData.padding !== undefined ? textData.padding : 20
+      
+      // Создаем текстовый слой с учетом режима
+      let processedText = textData.text
+      
+      // Проверяем, является ли text строкой
+      if (typeof processedText !== 'string') {
+        console.warn('⚠️ handleTextApplied: text не является строкой', processedText)
+        processedText = String(processedText || '')
+      }
+      
+      // Если это режим с изображением, делаем текст строго однострочным
+      if (textData.withImage) {
+        processedText = processedText.replace(/\n/g, ' ')
+      }
+      
+      // Вычисляем размеры текста с учетом переносов строк
+      const textSize = this.calculateMultilineTextSize(processedText, textData.fontSize || 24, textData.lineHeight || 1.2, textData)
+      const textWidth = textSize.width
+      const textHeight = textSize.height
+      
+      // Добавляем отступы к размерам текста
+      const textPadding = padding
+      const textWidthWithPadding = textWidth + textPadding * 2
+      const textHeightWithPadding = textHeight + textPadding * 2
+      
+      // Создаем временный Canvas для рисования текста с правильными переносами
+      const tempCanvas = document.createElement('canvas')
+      const canvasWidth = textWidthWithPadding + 40 // Добавляем дополнительный отступ для тени
+      const canvasHeight = textHeightWithPadding + 40
+      tempCanvas.width = canvasWidth
+      tempCanvas.height = canvasHeight
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      // Создаем подложку в зависимости от режима
+      if (mode === 'conversation') {
+        // Рисуем подложку для режима разговора
+        tempCtx.fillStyle = textData.backgroundColor || 'white'
+        tempCtx.beginPath()
+        tempCtx.roundRect(
+          20, 
+          20, 
+          textWidthWithPadding, 
+          textHeightWithPadding, 
+          textData.borderRadius || 10
+        )
+        tempCtx.fill()
+        
+        // Добавляем тень если она включена
+        if (textData.shadow) {
+          tempCtx.shadowColor = textData.shadowColor || 'black'
+          tempCtx.shadowBlur = textData.shadowBlur || 10
+          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
+          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
+        }
+        
+        // Добавляем обводку если она включена
+        if (textData.stroke) {
+          tempCtx.strokeStyle = textData.strokeColor || 'black'
+          tempCtx.lineWidth = textData.strokeWidth || 2
+          tempCtx.stroke()
+        }
+        
+        // Рисуем текст с правильными переносами
+        tempCtx.fillStyle = textData.textColor || 'black'
+        tempCtx.shadowColor = 'transparent'
+        tempCtx.shadowBlur = 0
+        tempCtx.shadowOffsetX = 0
+        tempCtx.shadowOffsetY = 0
+        
+        // Используем метод для отрисовки многострочного текста
+        this.drawMultilineTextWithData(
+          tempCtx, 
+          processedText, 
+          canvasWidth / 2, 
+          canvasHeight / 2, 
+          textData.fontSize || 24, 
+          textData.lineHeight || 1.2, 
+          textData
+        )
+        
+        // Создаем растр из канваса
+        const raster = new this.paperScope.Raster(tempCanvas)
+        // Используем позицию из TextManager
+        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
+        
+        // Добавляем растр в группу
+        group.addChild(raster)
+        
+      } else if (mode === 'thoughts') {
+        // Рисуем подложку для режима мыслей
+        tempCtx.fillStyle = textData.backgroundColor || 'white'
+        
+        // Рисуем основное облако
+        this.drawThoughtBubble(
+          tempCtx,
+          20,
+          20,
+          textWidthWithPadding,
+          textHeightWithPadding,
+          textData.tailAngle || 45,
+          textData.tailSize || 145,
+          textData.tailWidth || 40
+        )
+        
+        // Добавляем тень если она включена
+        if (textData.shadow) {
+          tempCtx.shadowColor = textData.shadowColor || 'black'
+          tempCtx.shadowBlur = textData.shadowBlur || 10
+          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
+          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
+        }
+        
+        // Добавляем обводку если она включена
+        if (textData.stroke) {
+          tempCtx.strokeStyle = textData.strokeColor || 'black'
+          tempCtx.lineWidth = textData.strokeWidth || 2
+          tempCtx.stroke()
+        }
+        
+        // Рисуем текст с правильными переносами
+        tempCtx.fillStyle = textData.textColor || 'black'
+        tempCtx.shadowColor = 'transparent'
+        tempCtx.shadowBlur = 0
+        tempCtx.shadowOffsetX = 0
+        tempCtx.shadowOffsetY = 0
+        
+        // Используем метод для отрисовки многострочного текста
+        this.drawMultilineTextWithData(
+          tempCtx, 
+          processedText, 
+          canvasWidth / 2, 
+          canvasHeight / 2, 
+          textData.fontSize || 24, 
+          textData.lineHeight || 1.2, 
+          textData
+        )
+        
+        // Создаем растр из канваса
+        const raster = new this.paperScope.Raster(tempCanvas)
+        // Используем позицию из TextManager
+        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
+        
+        // Добавляем растр в группу
+        group.addChild(raster)
+        
+      } else if (mode === 'standard') {
+        // Рисуем подложку для стандартного режима
+        tempCtx.fillStyle = textData.backgroundColor || 'white'
+        tempCtx.beginPath()
+        tempCtx.roundRect(
+          20, 
+          20, 
+          textWidthWithPadding, 
+          textHeightWithPadding, 
+          textData.borderRadius || 10
+        )
+        tempCtx.fill()
+        
+        // Добавляем тень если она включена
+        if (textData.shadow) {
+          tempCtx.shadowColor = textData.shadowColor || 'black'
+          tempCtx.shadowBlur = textData.shadowBlur || 10
+          tempCtx.shadowOffsetX = textData.shadowOffsetX || 5
+          tempCtx.shadowOffsetY = textData.shadowOffsetY || 5
+        }
+        
+        // Добавляем обводку если она включена
+        if (textData.stroke) {
+          tempCtx.strokeStyle = textData.strokeColor || 'black'
+          tempCtx.lineWidth = textData.strokeWidth || 2
+          tempCtx.stroke()
+        }
+        
+        // Рисуем текст с правильными переносами
+        tempCtx.fillStyle = textData.textColor || 'black'
+        tempCtx.shadowColor = 'transparent'
+        tempCtx.shadowBlur = 0
+        tempCtx.shadowOffsetX = 0
+        tempCtx.shadowOffsetY = 0
+        
+        // Используем метод для отрисовки многострочного текста
+        this.drawMultilineTextWithData(
+          tempCtx, 
+          processedText, 
+          canvasWidth / 2, 
+          canvasHeight / 2, 
+          textData.fontSize || 24, 
+          textData.lineHeight || 1.2, 
+          textData
+        )
+        
+        // Создаем растр из канваса
+        const raster = new this.paperScope.Raster(tempCanvas)
+        // Используем позицию из TextManager
+        raster.position = new this.paperScope.Point(textPosition.x, textPosition.y)
+        
+        // Добавляем растр в группу
+        group.addChild(raster)
+      }
+      
+      // Добавляем группу в активный слой
+      this.paperScope.project.activeLayer.addChild(group)
+      
+      // Обновляем 3D модель
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DModel()
+          console.log('🔄 3D модель обновлена после добавления текста')
+        }, 100)
+      })
+      
+      console.log('✅ Текст успешно добавлен на основной канвас с позицией:', textPosition)
     },
 
     handleTextApply(event) {
@@ -881,9 +1122,9 @@ export default {
         
         // Создаем растр из канваса
         const raster = new this.paperScope.Raster(tempCanvas)
-        const canvasWidth = this.canvas?.width || 856
-        const canvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(canvasWidth / 2, canvasHeight / 2)
+        const mainCanvasWidth = this.canvas?.width || 856
+        const mainCanvasHeight = this.canvas?.height || 405
+        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
         
         // Добавляем растр в группу
         group.addChild(raster)
@@ -959,9 +1200,9 @@ export default {
         
         // Создаем растр из канваса
         const raster = new this.paperScope.Raster(tempCanvas)
-        const canvasWidth = this.canvas?.width || 856
-        const canvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(canvasWidth / 2, canvasHeight / 2)
+        const mainCanvasWidth = this.canvas?.width || 856
+        const mainCanvasHeight = this.canvas?.height || 405
+        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
         
         // Добавляем растр в группу
         group.addChild(raster)
@@ -1014,9 +1255,9 @@ export default {
         
         // Создаем растр из канваса
         const raster = new this.paperScope.Raster(tempCanvas)
-        const canvasWidth = this.canvas?.width || 856
-        const canvasHeight = this.canvas?.height || 405
-        raster.position = new this.paperScope.Point(canvasWidth / 2, canvasHeight / 2)
+        const mainCanvasWidth = this.canvas?.width || 856
+        const mainCanvasHeight = this.canvas?.height || 405
+        raster.position = new this.paperScope.Point(mainCanvasWidth / 2, mainCanvasHeight / 2)
         
         // Добавляем растр в группу
         group.addChild(raster)

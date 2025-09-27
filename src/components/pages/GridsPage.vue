@@ -2052,8 +2052,8 @@ export default {
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
-      // Увеличиваем размер на 2.5% с каждой стороны для устранения просветов
-      const sizeIncrease = 0.025 // 2.5%
+      // Увеличиваем размер на 3.0% с каждой стороны для устранения просветов
+      const sizeIncrease = 0.03 // 3.0%
       adjustedWidth += adjustedWidth * sizeIncrease
       adjustedHeight += adjustedHeight * sizeIncrease
       

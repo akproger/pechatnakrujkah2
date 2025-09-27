@@ -92,6 +92,8 @@
                     :shadow-opacity="shadowOpacity"
                     :solid-background-color="solidBackgroundColor"
                     :solid-background-opacity="solidBackgroundOpacity"
+                    :background-image="backgroundImage"
+                    :enable-background-image="enableBackgroundImage"
                     :text-layers="textLayers"
                     @save-start="onSaveStart"
                     @save-success="onSaveSuccess"

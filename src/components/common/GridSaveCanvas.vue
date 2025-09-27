@@ -93,6 +93,14 @@ export default {
       type: Number,
       default: 100
     },
+    backgroundImage: {
+      type: String,
+      default: null
+    },
+    enableBackgroundImage: {
+      type: Boolean,
+      default: false
+    },
     // Текстовые слои
     textLayers: {
       type: Array,
@@ -367,27 +375,57 @@ export default {
     },
     
     createBackgroundLayer() {
-      // Создаем фон с настраиваемым цветом и прозрачностью
-      const background = new this.paperScope.Path.Rectangle({
-        point: [0, 0],
-        size: [this.canvasWidth, this.canvasHeight]
-      })
-      
-      // Применяем цвет фона с прозрачностью
-      const opacity = this.solidBackgroundOpacity / 100
-      background.fillColor = new this.paperScope.Color(this.solidBackgroundColor)
-      background.fillColor.alpha = opacity
-      background.strokeColor = null
-      
-      // Добавляем фон в активный слой (в самый низ)
-      this.paperScope.project.activeLayer.addChild(background)
-      background.sendToBack()
-      
-      console.log('✅ Фоновый слой создан:', {
-        color: this.solidBackgroundColor,
-        opacity: opacity,
-        finalColor: background.fillColor.toString()
-      })
+      // Проверяем, есть ли фоновое изображение
+      if (this.backgroundImage && this.enableBackgroundImage) {
+        console.log('🖼️ Создаем фоновое изображение')
+        const backgroundRaster = new this.paperScope.Raster(this.backgroundImage)
+        backgroundRaster.name = 'backgroundImage'
+        
+        backgroundRaster.onLoad = () => {
+          // Масштабируем изображение под размер канваса
+          const scaleX = this.canvasWidth / backgroundRaster.bounds.width
+          const scaleY = this.canvasHeight / backgroundRaster.bounds.height
+          const scale = Math.max(scaleX, scaleY) // Используем больший масштаб для покрытия всего канваса
+          
+          backgroundRaster.scaling = new this.paperScope.Point(scale, scale)
+          
+          // Центрируем изображение
+          backgroundRaster.position = new this.paperScope.Point(this.canvasWidth / 2, this.canvasHeight / 2)
+          
+          // Добавляем в активный слой (в самый низ)
+          this.paperScope.project.activeLayer.addChild(backgroundRaster)
+          backgroundRaster.sendToBack()
+          
+          console.log('✅ Фоновое изображение создано:', {
+            originalSize: `${backgroundRaster.bounds.width}x${backgroundRaster.bounds.height}`,
+            canvasSize: `${this.canvasWidth}x${this.canvasHeight}`,
+            scale: scale,
+            position: backgroundRaster.position.toString()
+          })
+        }
+      } else {
+        // Создаем солидный фон с настраиваемым цветом и прозрачностью
+        const background = new this.paperScope.Path.Rectangle({
+          point: [0, 0],
+          size: [this.canvasWidth, this.canvasHeight]
+        })
+        
+        // Применяем цвет фона с прозрачностью
+        const opacity = this.solidBackgroundOpacity / 100
+        background.fillColor = new this.paperScope.Color(this.solidBackgroundColor)
+        background.fillColor.alpha = opacity
+        background.strokeColor = null
+        
+        // Добавляем фон в активный слой (в самый низ)
+        this.paperScope.project.activeLayer.addChild(background)
+        background.sendToBack()
+        
+        console.log('✅ Солидный фоновый слой создан:', {
+          color: this.solidBackgroundColor,
+          opacity: opacity,
+          finalColor: background.fillColor.toString()
+        })
+      }
     },
     
     async createRectangleMasks(group, cellWidth, cellHeight) {

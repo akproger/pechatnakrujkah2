@@ -1690,7 +1690,7 @@ export default {
         case 'standard':
           await this.drawStandardBackgroundInHighDPI(ctx, layer, scale)
           break
-        case 'imageText':
+        case 'image-text':
           await this.drawImageTextBackgroundInHighDPI(ctx, layer, scale)
           break
         default:
@@ -1821,6 +1821,23 @@ export default {
         text: textData.text
       })
       
+      // Применяем тень к тексту если включена (для режима image-text тень применяется к самому тексту)
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale * 3.5) // Умножаем на scale * 3.5 для режима "Текст с изображением" в высоком разрешении
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale * 3.5) // Умножаем на scale * 3.5 для режима "Текст с изображением" в высоком разрешении
+        ctx.globalAlpha = textData.shadowOpacity / 100
+        
+        console.log('🖼️ Применена тень в высоком разрешении для режима "Текст с изображением":', {
+          shadowOffsetX: ctx.shadowOffsetX,
+          shadowOffsetY: ctx.shadowOffsetY,
+          scale: scale,
+          originalOffsetX: textData.shadowOffsetX,
+          originalOffsetY: textData.shadowOffsetY
+        })
+      }
+      
       // Если есть изображение для заливки текста, рисуем текст с изображением
       if (textData.textImage && textData.cachedImage) {
         const img = textData.cachedImage
@@ -1857,6 +1874,15 @@ export default {
         console.log('🖼️ Нет изображения, рисуем стандартную подложку')
         await this.drawStandardBackgroundInHighDPI(ctx, layer, scale)
       }
+      
+      // Сбрасываем настройки тени
+      if (textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.globalAlpha = 1
+      }
     },
     
     // Рисование текста в высоком разрешении
@@ -1892,8 +1918,8 @@ export default {
         if (textData.shadow) {
           ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
           ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
-          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * 2) // Умножаем на 2 для режима "Текст с изображением"
-          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * 2) // Умножаем на 2 для режима "Текст с изображением"
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * 3.5) // Умножаем на 3.5 для режима "Текст с изображением"
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * 3.5) // Умножаем на 3.5 для режима "Текст с изображением"
           ctx.globalAlpha = textData.shadowOpacity / 100
           
           // Рисуем тень текста
@@ -8712,13 +8738,13 @@ export default {
       textItem.fillColor = this.textDialogData.textColor || '#000000'
       textItem.justification = this.getJustificationFromAlign(this.textDialogData.textAlign || 'center')
       
-      // Для режима "Текст с изображением" применяем тень с умножением на 2
+      // Для режима "Текст с изображением" применяем тень с умножением на 2 (основной канвас)
       if (this.textDialogActiveTab === 'image-text' && this.textDialogData.shadow) {
         textItem.shadowColor = this.textDialogData.shadowColor
         textItem.shadowBlur = this.textDialogData.shadowBlur
         textItem.shadowOffset = new this.paperScope.Point(
-          this.textDialogData.shadowOffsetX * 2, // Умножаем на 2 для режима "Текст с изображением"
-          this.textDialogData.shadowOffsetY * 2  // Умножаем на 2 для режима "Текст с изображением"
+          this.textDialogData.shadowOffsetX * 2, // Умножаем на 2 для режима "Текст с изображением" (основной канвас)
+          this.textDialogData.shadowOffsetY * 2  // Умножаем на 2 для режима "Текст с изображением" (основной канвас)
         )
         console.log('🖼️ Применена тень к тексту с изображением на основном канвасе:', {
           shadowOffsetX: this.textDialogData.shadowOffsetX * 2,
@@ -9785,8 +9811,8 @@ export default {
         if (currentTextData.shadow) {
           tempCtx.shadowColor = currentTextData.shadowColor
           tempCtx.shadowBlur = currentTextData.shadowBlur
-          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX * 2 // Умножаем на 2 для режима "Текст с изображением"
-          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY * 2 // Умножаем на 2 для режима "Текст с изображением"
+          tempCtx.shadowOffsetX = currentTextData.shadowOffsetX * 2 // Умножаем на 2 для режима "Текст с изображением" (основной канвас)
+          tempCtx.shadowOffsetY = currentTextData.shadowOffsetY * 2 // Умножаем на 2 для режима "Текст с изображением" (основной канвас)
           tempCtx.globalAlpha = currentTextData.shadowOpacity / 100
           
           // Рисуем тень текста

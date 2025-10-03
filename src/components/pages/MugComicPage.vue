@@ -68,8 +68,8 @@
                     :shadow-opacity="0"
                     :solid-background-color="'#ffffff'"
                     :solid-background-opacity="100"
-                    :background-image="null"
-                    :enable-background-image="false"
+                    :background-image="backgroundImage"
+                    :enable-background-image="!!backgroundImage"
                     :text-layers="textLayers"
                     @save-start="onSaveStart"
                     @save-success="onSaveSuccess"
@@ -145,6 +145,23 @@
               >
                 <i class="bi bi-images me-2"></i>
                 Изображения
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'background' }"
+                id="background-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#background" 
+                type="button" 
+                role="tab" 
+                aria-controls="background" 
+                aria-selected="activeTab === 'background'"
+                @click="activeTab = 'background'"
+              >
+                <i class="bi bi-image me-2"></i>
+                Фон
               </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -249,6 +266,63 @@
                           </div>
                           <small class="text-muted d-block mt-1">{{ image.name }}</small>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Фон" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Загрузка фонового изображения -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="backgroundInput"
+                        @change="handleBackgroundUpload" 
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.backgroundInput.click()" 
+                        class="btn"
+                        style="background-color: #0d6efd; border: none; color: white;"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="!backgroundImage">
+                          Загрузить фоновое изображение
+                        </span>
+                        <span v-else>
+                          Заменить фоновое изображение
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Предпросмотр фонового изображения -->
+                    <div class="col-12" v-if="backgroundImage">
+                      <h6 class="text-muted mb-3">Фоновое изображение</h6>
+                      <div class="position-relative preview-contaner">
+                        <img 
+                          :src="backgroundImage" 
+                          alt="Фоновое изображение"
+                          class="rounded border"
+                          style="max-height: 100px; width: auto; object-fit: contain;"
+                        >
+                        <button 
+                          @click="removeBackground" 
+                          class="btn btn-danger btn-sm position-absolute"
+                          style="top: 5px; right: 5px; border-radius: 50%; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                        >
+                          <i class="bi bi-x"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -390,6 +464,9 @@ export default {
       // Изображения
       uploadedImages: [],
       
+      // Фоновое изображение
+      backgroundImage: null,
+      
       // Текстовые слои
       textLayers: [],
       nextTextLayerId: 100, // Начальный ID для текстовых слоёв
@@ -481,6 +558,11 @@ export default {
       const minDimension = Math.min(width, height)
       const initialStrokeWidth = (this.strokeWidth / 100) * minDimension
 
+      // Создаём фоновое изображение, если оно загружено
+      if (this.backgroundImage) {
+        this.createBackgroundImage(width, height)
+      }
+
       // Создаём прямоугольник размером с весь canvas
       this.baseRectangle = new this.paperScope.Path.Rectangle({
         point: [0, 0],
@@ -497,8 +579,38 @@ export default {
       console.log('✅ Базовый прямоугольник создан:', {
         size: `${width}x${height}`,
         strokeColor: this.strokeColor,
-        strokeWidth: initialStrokeWidth
+        strokeWidth: initialStrokeWidth,
+        hasBackground: !!this.backgroundImage
       })
+    },
+
+    // Создание фонового изображения
+    createBackgroundImage(width, height) {
+      if (!this.backgroundImage || !this.paperScope) return
+
+      // Создаём Paper.js Raster из изображения
+      const backgroundRaster = new this.paperScope.Raster(this.backgroundImage)
+      
+      backgroundRaster.onLoad = () => {
+        // Масштабируем изображение пропорционально, чтобы покрыть весь прямоугольник
+        const scaleX = width / backgroundRaster.bounds.width
+        const scaleY = height / backgroundRaster.bounds.height
+        const scale = Math.max(scaleX, scaleY) // Используем больший масштаб для покрытия
+        
+        backgroundRaster.scaling = new this.paperScope.Point(scale, scale)
+        
+        // Центрируем изображение
+        backgroundRaster.position = new this.paperScope.Point(width / 2, height / 2)
+        
+        // Перемещаем фоновое изображение в самый низ
+        backgroundRaster.sendToBack()
+        
+        console.log('✅ Фоновое изображение добавлено:', {
+          originalSize: `${backgroundRaster.bounds.width}x${backgroundRaster.bounds.height}`,
+          scale: scale,
+          position: backgroundRaster.position
+        })
+      }
     },
 
     // ========== Обновление базового прямоугольника ==========
@@ -745,6 +857,75 @@ export default {
 
     removeImage(index) {
       this.uploadedImages.splice(index, 1)
+    },
+
+    // ========== Управление фоновым изображением ==========
+    handleBackgroundUpload(event) {
+      const file = event.target.files[0]
+      if (!file || !file.type.startsWith('image/')) {
+        console.warn('Файл не является изображением:', file?.name)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.backgroundImage = e.target.result
+        console.log('✅ Фоновое изображение загружено:', file.name)
+        this.updateCanvasWithBackground()
+        
+        // Принудительно обновляем 3D модель после небольшой задержки
+        this.$nextTick(() => {
+          setTimeout(() => {
+            if (this.$refs.threeRenderer) {
+              console.log('🔄 Принудительное обновление 3D модели после загрузки фона')
+              this.$refs.threeRenderer.updateTexture()
+            }
+          }, 100)
+        })
+      }
+      reader.readAsDataURL(file)
+
+      // Очищаем input для повторной загрузки
+      event.target.value = ''
+    },
+
+    removeBackground() {
+      this.backgroundImage = null
+      console.log('🗑️ Фоновое изображение удалено')
+      this.updateCanvasWithBackground()
+      
+      // Принудительно обновляем 3D модель после удаления фона
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (this.$refs.threeRenderer) {
+            console.log('🔄 Принудительное обновление 3D модели после удаления фона')
+            this.$refs.threeRenderer.updateTexture()
+          }
+        }, 100)
+      })
+    },
+
+    updateCanvasWithBackground() {
+      if (this.paperScope && this.paperScope.view) {
+        // Очищаем canvas
+        this.paperScope.project.clear()
+        
+        // Пересоздаем базовый прямоугольник с фоновым изображением
+        const canvasWidth = this.paperScope.view.viewSize.width
+        const canvasHeight = this.paperScope.view.viewSize.height
+        this.createBaseRectangle(canvasWidth, canvasHeight)
+        
+        // Текстовые слои уже существуют в this.textLayers и автоматически отображаются
+        // Обновляем canvas
+        this.paperScope.view.update()
+        
+        // Обновляем 3D модель
+        this.$nextTick(() => {
+          if (this.$refs.threeRenderer) {
+            this.$refs.threeRenderer.updateTexture()
+          }
+        })
+      }
     },
 
     // ========== Управление текстом ==========
@@ -4177,6 +4358,9 @@ export default {
 .form-check-input:checked {
   background-color: #016527;
   border-color: #016527;
+}
+.preview-contaner{
+  width: fit-content;
 }
 
 /* Адаптивность */

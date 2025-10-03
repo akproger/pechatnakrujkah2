@@ -1187,6 +1187,150 @@ if (currentTextData.backgroundMode === 'thoughts') {
 
 #### 3. Исправление перетаскивания текста с изображением
 - ✅ Исправлена отрисовка обводки на правильном контексте (`textCtx` вместо `tempCtx`)
+
+---
+
+## Добавление вкладки "Фон" (2025-01-03)
+
+**ДОБАВЛЕНИЕ ВКЛАДКИ "ФОН"**: Добавлена новая вкладка "Фон" для загрузки фонового изображения внутри основного прямоугольника.
+
+**Анализ требований**:
+- ✅ Новая вкладка "Фон" между "Изображения" и "Тексты"
+- ✅ Загрузка одного фонового изображения
+- ✅ Изображение центрировано и растянуто пропорционально
+- ✅ Изображение закрывает весь основной прямоугольник
+- ✅ Обводка основного прямоугольника поверх изображения
+
+**Решение**:
+
+✅ **Добавлена новая вкладка "Фон"**:
+```html
+<li class="nav-item" role="presentation">
+  <button 
+    class="nav-link" 
+    :class="{ 'active': activeTab === 'background' }"
+    id="background-tab" 
+    data-bs-toggle="tab" 
+    data-bs-target="#background" 
+    type="button" 
+    role="tab" 
+    aria-controls="background" 
+    aria-selected="activeTab === 'background'"
+    @click="activeTab = 'background'"
+  >
+    <i class="bi bi-image me-2"></i>
+    Фон
+  </button>
+</li>
+```
+
+✅ **Добавлен UI для загрузки фонового изображения**:
+```html
+<!-- Загрузка фонового изображения -->
+<input 
+  type="file" 
+  ref="backgroundInput"
+  @change="handleBackgroundUpload" 
+  accept="image/*"
+  class="d-none"
+>
+<button @click="$refs.backgroundInput.click()" class="btn">
+  <i class="bi bi-cloud-upload me-2"></i>
+  <span v-if="!backgroundImage">Загрузить фоновое изображение</span>
+  <span v-else>Заменить фоновое изображение</span>
+</button>
+
+<!-- Предпросмотр фонового изображения -->
+<div class="col-12" v-if="backgroundImage">
+  <h6 class="text-muted mb-3">Фоновое изображение</h6>
+  <div class="position-relative">
+    <img :src="backgroundImage" alt="Фоновое изображение" class="img-fluid rounded border">
+    <button @click="removeBackground" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+</div>
+```
+
+✅ **Добавлены данные и методы**:
+```javascript
+// Данные
+backgroundImage: null,
+
+// Методы
+handleBackgroundUpload(event) {
+  const file = event.target.files[0]
+  if (!file || !file.type.startsWith('image/')) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    this.backgroundImage = e.target.result
+    this.updateCanvasWithBackground()
+  }
+  reader.readAsDataURL(file)
+},
+
+removeBackground() {
+  this.backgroundImage = null
+  this.updateCanvasWithBackground()
+},
+
+updateCanvasWithBackground() {
+  if (this.paperScope && this.paperScope.view) {
+    this.paperScope.project.clear()
+    const canvasWidth = this.paperScope.view.viewSize.width
+    const canvasHeight = this.paperScope.view.viewSize.height
+    this.createBaseRectangle(canvasWidth, canvasHeight)
+    this.recreateAllTextLayers()
+    this.paperScope.view.update()
+    this.$nextTick(() => {
+      if (this.$refs.threeRenderer) {
+        this.$refs.threeRenderer.updateTexture()
+      }
+    })
+  }
+}
+```
+
+✅ **Модифицирован createBaseRectangle для отображения фонового изображения**:
+```javascript
+createBaseRectangle(width, height) {
+  if (!this.paperScope) return
+
+  // Создаём фоновое изображение, если оно загружено
+  if (this.backgroundImage) {
+    this.createBackgroundImage(width, height)
+  }
+
+  // Создаём прямоугольник с обводкой поверх фонового изображения
+  this.baseRectangle = new this.paperScope.Path.Rectangle({
+    point: [0, 0],
+    size: [width, height],
+    fillColor: null, // Без заливки
+    strokeColor: this.strokeColor,
+    strokeWidth: initialStrokeWidth
+  })
+},
+
+createBackgroundImage(width, height) {
+  if (!this.backgroundImage || !this.paperScope) return
+
+  const backgroundRaster = new this.paperScope.Raster(this.backgroundImage)
+  
+  backgroundRaster.onLoad = () => {
+    // Масштабируем изображение пропорционально, чтобы покрыть весь прямоугольник
+    const scaleX = width / backgroundRaster.bounds.width
+    const scaleY = height / backgroundRaster.bounds.height
+    const scale = Math.max(scaleX, scaleY) // Используем больший масштаб для покрытия
+    
+    backgroundRaster.scaling = new this.paperScope.Point(scale, scale)
+    backgroundRaster.position = new this.paperScope.Point(width / 2, height / 2)
+    backgroundRaster.sendToBack() // Перемещаем в самый низ
+  }
+}
+```
+
+**Результат**: ✅ Новая вкладка "Фон" добавлена с полным функционалом загрузки и отображения фонового изображения!
 - ✅ Добавлена обводка в функцию `createConversationBackgroundFromPreview`
 - ✅ Все элементы (маска, обводка, тень) теперь рисуются на одном канвасе и перетаскиваются вместе
 

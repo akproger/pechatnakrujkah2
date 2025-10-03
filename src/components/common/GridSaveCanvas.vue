@@ -246,6 +246,9 @@ export default {
         // Добавляем текстовые слои
         await this.addTextLayers()
         
+        // Добавляем основной прямоугольник с обводкой (для кружки-комикс)
+        await this.addMainRectangleStroke()
+        
         // ИСПРАВЛЕНИЕ: Дополнительная задержка после добавления текстов для стабилизации
         await new Promise(resolve => setTimeout(resolve, 200))
         
@@ -1171,6 +1174,37 @@ export default {
         shadowOffset: raster.shadowOffset.toString(),
         visible: raster.visible
       })
+    },
+    
+    async addMainRectangleStroke() {
+      // Добавляем основной прямоугольник с обводкой только для кружки-комикс (1x1)
+      if (this.gridCols === 1 && this.gridRows === 1 && this.strokeWidth > 0) {
+        console.log('🎯 Добавляем основной прямоугольник с обводкой для кружки-комикс')
+        
+        // Создаем основной прямоугольник с обводкой
+        const mainRect = new this.paperScope.Path.Rectangle({
+          point: [0, 0],
+          size: [this.canvasWidth, this.canvasHeight]
+        })
+        
+        // Настраиваем обводку (в 2 раза толще для сохранения)
+        mainRect.fillColor = null // Без заливки
+        mainRect.strokeColor = this.strokeColor
+        mainRect.strokeWidth = this.strokeWidth * 2 // Увеличиваем толщину в 2 раза
+        mainRect.strokeJoin = 'miter'
+        mainRect.strokeCap = 'butt'
+        
+        // Добавляем в активный слой поверх всех элементов
+        this.paperScope.project.activeLayer.addChild(mainRect)
+        mainRect.bringToFront()
+        
+        console.log('✅ Основной прямоугольник с обводкой добавлен:', {
+          strokeColor: this.strokeColor,
+          strokeWidth: this.strokeWidth * 2, // Показываем увеличенную толщину
+          originalStrokeWidth: this.strokeWidth,
+          size: `${this.canvasWidth}x${this.canvasHeight}`
+        })
+      }
     },
     
     async addTextLayers() {

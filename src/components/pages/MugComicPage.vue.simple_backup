@@ -1,0 +1,1129 @@
+<template>
+  <div class="mug-comic-page">
+    <div class="container">
+      <!-- Заголовок страницы -->
+      <div class="row">
+        <div class="col">
+          <h2 class="page-title">Кружка-комикс</h2>
+          <p class="text-muted">Инструмент для создания комиксов на кружках</p>
+        </div>
+      </div>
+      
+      <!-- Кнопки управления -->
+      <div class="row mb-2">
+        <div class="col-12" style="width: 66.66666667%;">
+          <div class="card">
+            <div class="card-body" style="padding-left: 10px;">
+              <div class="row align-items-center">
+                
+                <!-- Панель инструментов -->
+                <div class="col-auto" style="padding: 0; margin-right: 20px;">
+                  <div class="tools-panel">
+                    <button 
+                      class="tool-button"
+                      :class="{ 'active': activeTool === 'scalpel' }"
+                      disabled
+                      title="Скальпель (в разработке)"
+                    >
+                      <i class="bi bi-scissors"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Кнопка добавления текста -->
+                <div class="col" style="padding: 0;">
+                  <button 
+                    @click="openTextManager" 
+                    class="btn canvas-button text-button"
+                  >
+                    <i class="bi bi-type me-2"></i>
+                    Текст
+                  </button>
+                </div>
+                
+                <div class="col" style="padding: 0;">
+                  <TextManager 
+                    ref="textManager"
+                    :canvas="$refs.comicCanvas"
+                    :paper-scope="paperScope"
+                    @text-dialog-opened="onTextDialogOpened"
+                    @text-dialog-closed="onTextDialogClosed"
+                    @text-applied="onTextApplied"
+                  />
+                </div>
+                
+                <!-- Кнопка сохранения -->
+                <div class="col" style="padding: 0;">
+                  <HighQualitySaveButton
+                    :save-function="saveCanvasForPrint"
+                    :save-params="{}"
+                    button-text="Сохранить в высоком качестве"
+                    size="medium"
+                    variant="primary"
+                    @save-success="onSaveSuccess"
+                    @save-error="onSaveError"
+                    @show-notification="showNotification"
+                  />
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Canvas область и 3D превью -->
+      <div class="row">
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-body p-0">
+              <div class="canvas-container">
+                <canvas 
+                  ref="comicCanvas"
+                  class="comic-canvas"
+                ></canvas>
+                
+                <!-- Прелоадер -->
+                <div v-if="isLoading" class="canvas-overlay">
+                  <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 3D превью кружки -->
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body p-0">
+              <ThreeDRenderer 
+                ref="threeRenderer"
+                :source-canvas="$refs.comicCanvas"
+                :auto-update="true"
+                :rotation-speed="0.01"
+                :mug-radius="4"
+                :mug-height="9.5"
+                :print-aspect-ratio="19/9"
+                @initialized="onThreeInitialized"
+                @texture-updated="onTextureUpdated"
+                @texture-error="onTextureError"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Табы управления -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <ul class="nav nav-tabs" id="mugComicTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'images' }"
+                id="images-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#images" 
+                type="button" 
+                role="tab" 
+                aria-controls="images" 
+                aria-selected="activeTab === 'images'"
+                @click="activeTab = 'images'"
+              >
+                <i class="bi bi-images me-2"></i>
+                Изображения
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'texts' }"
+                id="texts-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#texts" 
+                type="button" 
+                role="tab" 
+                aria-controls="texts" 
+                aria-selected="activeTab === 'texts'"
+                @click="activeTab = 'texts'"
+              >
+                <i class="bi bi-type me-2"></i>
+                Тексты
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'settings' }"
+                id="settings-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#settings" 
+                type="button" 
+                role="tab" 
+                aria-controls="settings" 
+                aria-selected="activeTab === 'settings'"
+                @click="activeTab = 'settings'"
+              >
+                <i class="bi bi-gear me-2"></i>
+                Настройки
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Контент табов -->
+      <div class="tab-content" id="mugComicTabContent">
+        <!-- Таб "Изображения" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Загрузка изображений -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="imageInput"
+                        @change="handleImageUpload" 
+                        multiple
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.imageInput.click()" 
+                        class="btn"
+                        :disabled="uploadedImages.length >= 10"
+                        style="background-color: #0d6efd; border: none; color: white;"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="uploadedImages.length >= 10">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 10)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 10 - uploadedImages.length }})
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Список загруженных изображений -->
+                    <div class="col-12" v-if="uploadedImages.length > 0">
+                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                      <div class="row g-2">
+                        <div 
+                          v-for="(image, index) in uploadedImages" 
+                          :key="index"
+                          class="col-md-4 col-lg-3 col-xl-2"
+                        >
+                          <div class="position-relative">
+                            <img 
+                              :src="image.url" 
+                              :alt="image.name"
+                              class="img-fluid rounded border"
+                              style="max-height: 100px; width: 100%; object-fit: cover;"
+                            >
+                            <button 
+                              @click="removeImage(index)"
+                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
+                            >
+                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Тексты" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'texts' }" id="texts" role="tabpanel" aria-labelledby="texts-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="text-muted mb-3">Управление текстовыми слоями</h6>
+                  
+                  <!-- Список текстовых слоев -->
+                  <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type" style="font-size: 3rem;"></i>
+                    <p class="mt-2">Нет добавленных текстов. Нажмите кнопку "Текст" выше, чтобы добавить.</p>
+                  </div>
+                  
+                  <div v-else class="row g-3">
+                    <div 
+                      v-for="(layer, index) in textLayers" 
+                      :key="layer.id"
+                      class="col-12"
+                    >
+                      <div class="card border">
+                        <div class="card-body">
+                          <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                              <h6 class="mb-2">
+                                <i class="bi bi-type me-2"></i>
+                                Текст {{ index + 1 }}
+                              </h6>
+                              <p class="text-muted mb-2 small">{{ layer.text }}</p>
+                              <div class="d-flex gap-3 small text-muted">
+                                <span><i class="bi bi-fonts me-1"></i>{{ layer.fontSize }}px</span>
+                                <span><i class="bi bi-palette me-1"></i>{{ layer.fillColor }}</span>
+                              </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                              <button 
+                                @click="editTextLayer(index)"
+                                class="btn btn-sm btn-outline-primary"
+                                title="Редактировать"
+                              >
+                                <i class="bi bi-pencil"></i>
+                              </button>
+                              <button 
+                                @click="deleteTextLayer(index)"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Удалить"
+                              >
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Настройки" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Обводка -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Обводка основного поля</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет обводки</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="strokeColor"
+                          title="Выберите цвет обводки"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="strokeWidth"
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import paper from 'paper'
+import ThreeDRenderer from '../ThreeDRenderer.vue'
+import TextManager from '../TextManager.vue'
+import HighQualitySaveButton from '../common/HighQualitySaveButton.vue'
+
+export default {
+  name: 'MugComicPage',
+  components: {
+    ThreeDRenderer,
+    TextManager,
+    HighQualitySaveButton
+  },
+  data() {
+    return {
+      // Canvas и Paper.js
+      paperScope: null,
+      isLoading: false,
+      baseRectangle: null, // Базовый прямоугольник на canvas
+      
+      // Инструменты
+      activeTool: null,
+      
+      // Вкладки
+      activeTab: 'images',
+      
+      // Изображения
+      uploadedImages: [],
+      
+      // Текстовые слои
+      textLayers: [],
+      nextTextLayerId: 100, // Начальный ID для текстовых слоёв
+      
+      // Настройки обводки
+      strokeColor: '#000000',
+      strokeWidth: 5 // Проценты (0-20)
+    }
+  },
+  computed: {
+    // Рассчитываем толщину обводки в пикселях от размера основного поля
+    strokeWidthPx() {
+      if (!this.baseRectangle || !this.paperScope) return 0
+      
+      // Берём минимальный размер (ширина или высота) основного поля
+      const bounds = this.baseRectangle.bounds
+      const minDimension = Math.min(bounds.width, bounds.height)
+      
+      // Вычисляем толщину обводки как процент от минимального размера
+      return (this.strokeWidth / 100) * minDimension
+    }
+  },
+  watch: {
+    strokeColor() {
+      this.updateBaseRectangle()
+    },
+    strokeWidth() {
+      this.updateBaseRectangle()
+    }
+  },
+  mounted() {
+    this.initPaperCanvas()
+  },
+  beforeUnmount() {
+    if (this.paperScope) {
+      this.paperScope.remove()
+      this.paperScope = null
+    }
+  },
+  methods: {
+    // ========== Инициализация Paper.js ==========
+    initPaperCanvas() {
+      const canvas = this.$refs.comicCanvas
+      if (!canvas) {
+        console.error('Canvas не найден')
+        return
+      }
+
+      // Создаём новый scope для Paper.js
+      this.paperScope = new paper.PaperScope()
+      this.paperScope.setup(canvas)
+      
+      // Получаем размер контейнера (.canvas-container)
+      const container = canvas.parentElement
+      if (!container) {
+        console.log('⚠️ Контейнер не найден')
+        return
+      }
+
+      // Контейнер использует padding-bottom для соотношения сторон 19:9
+      const width = container.offsetWidth
+      const height = container.offsetHeight
+      
+      // Устанавливаем размер Paper.js view
+      this.paperScope.view.viewSize = new this.paperScope.Size(width, height)
+      
+      // Устанавливаем белый фон
+      const background = new this.paperScope.Path.Rectangle({
+        point: [0, 0],
+        size: [width, height],
+        fillColor: 'white'
+      })
+      background.sendToBack()
+      
+      // Создаём базовый прямоугольник размером с canvas
+      this.createBaseRectangle(width, height)
+      
+      console.log('Paper.js canvas инициализирован:', width, 'x', height)
+    },
+
+    // ========== Создание базового прямоугольника ==========
+    createBaseRectangle(width, height) {
+      if (!this.paperScope) return
+
+      // Рассчитываем начальную толщину обводки
+      const minDimension = Math.min(width, height)
+      const initialStrokeWidth = (this.strokeWidth / 100) * minDimension
+
+      // Создаём прямоугольник размером с весь canvas
+      this.baseRectangle = new this.paperScope.Path.Rectangle({
+        point: [0, 0],
+        size: [width, height],
+        fillColor: null, // Без заливки
+        strokeColor: this.strokeColor,
+        strokeWidth: initialStrokeWidth
+      })
+      
+      // Устанавливаем острые углы для чётких линий
+      this.baseRectangle.strokeJoin = 'miter'
+      this.baseRectangle.strokeCap = 'butt'
+      
+      console.log('✅ Базовый прямоугольник создан:', {
+        size: `${width}x${height}`,
+        strokeColor: this.strokeColor,
+        strokeWidth: initialStrokeWidth
+      })
+    },
+
+    // ========== Обновление базового прямоугольника ==========
+    updateBaseRectangle() {
+      if (!this.baseRectangle || !this.paperScope) return
+
+      // Обновляем стили обводки
+      this.baseRectangle.strokeColor = this.strokeColor
+      this.baseRectangle.strokeWidth = this.strokeWidthPx
+      
+      // Перерисовываем view
+      this.paperScope.view.update()
+      
+      // Обновляем 3D модель
+      this.update3DTexture()
+      
+      console.log('🔄 Базовый прямоугольник обновлён:', {
+        strokeColor: this.strokeColor,
+        strokeWidth: this.strokeWidthPx
+      })
+    },
+
+    // ========== Обновление 3D текстуры ==========
+    update3DTexture() {
+      // Ждём следующий фрейм для обновления canvas
+      this.$nextTick(() => {
+        if (this.$refs.threeRenderer && this.$refs.threeRenderer.updateTexture) {
+          this.$refs.threeRenderer.updateTexture()
+        }
+      })
+    },
+
+    // ========== Управление изображениями ==========
+    handleImageUpload(event) {
+      const files = event.target.files
+      if (!files || files.length === 0) return
+
+      const remainingSlots = 10 - this.uploadedImages.length
+      const filesToProcess = Array.from(files).slice(0, remainingSlots)
+
+      filesToProcess.forEach(file => {
+        if (!file.type.startsWith('image/')) {
+          console.warn('Файл не является изображением:', file.name)
+          return
+        }
+
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.uploadedImages.push({
+            name: file.name,
+            url: e.target.result,
+            file: file
+          })
+        }
+        reader.readAsDataURL(file)
+      })
+
+      // Очищаем input для повторной загрузки
+      event.target.value = ''
+    },
+
+    removeImage(index) {
+      this.uploadedImages.splice(index, 1)
+    },
+
+    // ========== Управление текстом ==========
+    openTextManager() {
+      if (this.$refs.textManager) {
+        this.$refs.textManager.openDialog()
+      }
+    },
+
+    onTextDialogOpened() {
+      console.log('Диалог текста открыт')
+    },
+
+    onTextDialogClosed() {
+      console.log('Диалог текста закрыт')
+    },
+
+    onTextApplied(event) {
+      console.log('📝 TextManager: применение текста в MugComicPage', event)
+      
+      const { textData, mode, position, isEditing, editingLayerIndex } = event
+      
+      if (isEditing && editingLayerIndex !== null) {
+        // Редактирование существующего текста
+        this.updateExistingTextLayer(editingLayerIndex, textData, position, mode)
+      } else {
+        // Создание нового текста
+        this.applyTextToCanvas(textData, position, mode)
+      }
+      
+      // Закрываем диалог TextManager после применения текста
+      const textManager = this.$refs.textManager
+      if (textManager && typeof textManager.closeDialog === 'function') {
+        textManager.closeDialog()
+      }
+      
+      // Обновляем 3D модель
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.update3DTexture()
+          console.log('🔄 3D модель обновлена после применения текста')
+        }, 100)
+      })
+    },
+
+    // Применение нового текста на canvas (копия из GridsPage)
+    applyTextToCanvas(textData, position, mode) {
+      console.log('✅ Применение текста на канвас:', textData)
+      
+      // Масштабируем координаты из канвас-превью (856x405) в основной канвас
+      const previewCanvasWidth = 856
+      const previewCanvasHeight = 405
+      const mainCanvasWidth = this.paperScope.view.viewSize.width
+      const mainCanvasHeight = this.paperScope.view.viewSize.height
+      
+      const scaleX = mainCanvasWidth / previewCanvasWidth
+      const scaleY = mainCanvasHeight / previewCanvasHeight
+      
+      const scaledPosition = {
+        x: position.x * scaleX,
+        y: position.y * scaleY
+      }
+      
+      console.log('🎯 Координаты для применения (с масштабированием):', {
+        original: { x: position.x, y: position.y },
+        scaled: { x: scaledPosition.x, y: scaledPosition.y },
+        previewCanvas: `${previewCanvasWidth}x${previewCanvasHeight}`,
+        mainCanvas: `${mainCanvasWidth}x${mainCanvasHeight}`,
+        scale: `${scaleX.toFixed(3)}x${scaleY.toFixed(3)}`,
+        mode: mode
+      })
+      
+      // Создаем новый слой
+      const layerIndex = this.nextTextLayerId
+      this.nextTextLayerId += 10
+      
+      const textLayer = new this.paperScope.Layer()
+      textLayer.name = `textLayer_${layerIndex}`
+      
+      // Создаём фоновый канвас с текстом и подложкой
+      const backgroundRaster = this.createBackgroundWithText(textData, scaledPosition, mode)
+      
+      if (backgroundRaster) {
+        textLayer.addChild(backgroundRaster)
+        
+        // Сохраняем информацию о слое
+        const layerInfo = {
+          id: layerIndex,
+          layer: textLayer,
+          textData: textData,
+          position: scaledPosition,
+          mode: mode,
+          raster: backgroundRaster
+        }
+        
+        this.textLayers.push(layerInfo)
+        
+        console.log('✅ Текстовый слой создан:', layerInfo)
+      }
+    },
+
+    // Создание подложки с текстом (упрощённая версия из GridsPage)
+    createBackgroundWithText(textData, position, mode) {
+      try {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // Размеры как в превью
+        canvas.width = 856
+        canvas.height = 405
+        
+        // Вычисляем размеры текста
+        ctx.font = `${textData.fontSize}px ${textData.font || 'Arial'}`
+        const textMetrics = ctx.measureText(textData.text)
+        const textWidth = textMetrics.width
+        const textHeight = textData.fontSize
+        
+        const padding = textData.padding || 15
+        const bgWidth = Math.max(200, textWidth + padding * 2)
+        const bgHeight = Math.max(80, textHeight + padding * 2)
+        
+        // Рисуем подложку
+        ctx.save()
+        ctx.translate(canvas.width / 2, canvas.height / 2)
+        
+        // Фон подложки
+        ctx.fillStyle = textData.backgroundColor || '#ffffff'
+        ctx.fillRect(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight)
+        
+        // Обводка подложки
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor || '#000000'
+          ctx.lineWidth = textData.strokeWidth || 3
+          ctx.strokeRect(-bgWidth / 2, -bgHeight / 2, bgWidth, bgHeight)
+        }
+        
+        // Текст
+        ctx.fillStyle = textData.fillColor || '#000000'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(textData.text, 0, 0)
+        
+        ctx.restore()
+        
+        // Создаём Raster из canvas
+        const raster = new this.paperScope.Raster(canvas.toDataURL())
+        raster.position = new this.paperScope.Point(position.x, position.y)
+        
+        return raster
+        
+      } catch (error) {
+        console.error('❌ Ошибка создания фона с текстом:', error)
+        return null
+      }
+    },
+
+    // Обновление существующего текстового слоя
+    updateExistingTextLayer(layerIndex, textData, position, mode) {
+      console.log('🔄 Обновление существующего текстового слоя:', layerIndex)
+      
+      const layerInfo = this.textLayers[layerIndex]
+      if (!layerInfo) {
+        console.error('❌ Слой не найден:', layerIndex)
+        return
+      }
+      
+      // Удаляем старый raster
+      if (layerInfo.raster) {
+        layerInfo.raster.remove()
+      }
+      
+      // Масштабируем позицию
+      const previewCanvasWidth = 856
+      const previewCanvasHeight = 405
+      const mainCanvasWidth = this.paperScope.view.viewSize.width
+      const mainCanvasHeight = this.paperScope.view.viewSize.height
+      
+      const scaleX = mainCanvasWidth / previewCanvasWidth
+      const scaleY = mainCanvasHeight / previewCanvasHeight
+      
+      const scaledPosition = {
+        x: position.x * scaleX,
+        y: position.y * scaleY
+      }
+      
+      // Создаём новый raster
+      const newRaster = this.createBackgroundWithText(textData, scaledPosition, mode)
+      
+      if (newRaster) {
+        layerInfo.layer.addChild(newRaster)
+        layerInfo.textData = textData
+        layerInfo.position = scaledPosition
+        layerInfo.mode = mode
+        layerInfo.raster = newRaster
+        
+        console.log('✅ Текстовый слой обновлён')
+      }
+    },
+
+    editTextLayer(index) {
+      const layer = this.textLayers[index]
+      if (this.$refs.textManager) {
+        this.$refs.textManager.openDialog(layer.textData, index)
+      }
+    },
+
+    deleteTextLayer(index) {
+      if (confirm('Удалить этот текстовый слой?')) {
+        const layerInfo = this.textLayers[index]
+        
+        // Удаляем Paper.js слой
+        if (layerInfo && layerInfo.layer) {
+          layerInfo.layer.remove()
+        }
+        
+        // Удаляем из массива
+        this.textLayers.splice(index, 1)
+        
+        // Обновляем 3D модель
+        this.update3DTexture()
+      }
+    },
+
+    // Сохранение canvas для печати (300 DPI)
+    async saveCanvasForPrint() {
+      console.log('💾 Начало сохранения в высоком разрешении (300 DPI)')
+      
+      try {
+        const currentCanvas = this.$refs.comicCanvas
+        if (!currentCanvas) {
+          throw new Error('Canvas не найден')
+        }
+        
+        // Исходные размеры в пикселях
+        const originalWidth = currentCanvas.width
+        const originalHeight = currentCanvas.height
+        
+        // Коэффициент масштабирования для 300 DPI (относительно 96 DPI экрана)
+        const scale = 300 / 96
+        
+        // Размеры для печати
+        const printWidth = Math.round(originalWidth * scale)
+        const printHeight = Math.round(originalHeight * scale)
+        
+        console.log('📐 Размеры для сохранения:', {
+          original: `${originalWidth}x${originalHeight}`,
+          print: `${printWidth}x${printHeight}`,
+          scale: scale.toFixed(2)
+        })
+        
+        // Создаем canvas для печати
+        const printCanvas = document.createElement('canvas')
+        printCanvas.width = printWidth
+        printCanvas.height = printHeight
+        const printCtx = printCanvas.getContext('2d')
+        
+        // Высокое качество рендеринга
+        printCtx.imageSmoothingEnabled = true
+        printCtx.imageSmoothingQuality = 'high'
+        
+        // Белый фон
+        printCtx.fillStyle = 'white'
+        printCtx.fillRect(0, 0, printWidth, printHeight)
+        
+        // Рисуем базовый прямоугольник (обводку)
+        if (this.baseRectangle && this.strokeWidth > 0) {
+          printCtx.strokeStyle = this.strokeColor
+          printCtx.lineWidth = this.strokeWidthPx * scale
+          printCtx.strokeRect(0, 0, printWidth, printHeight)
+        }
+        
+        // Рисуем все текстовые слои
+        for (let i = 0; i < this.textLayers.length; i++) {
+          const layerInfo = this.textLayers[i]
+          
+          if (layerInfo.raster && layerInfo.raster.canvas) {
+            const rasterCanvas = layerInfo.raster.canvas
+            
+            // Масштабируем позицию
+            const scaledX = layerInfo.position.x * scale
+            const scaledY = layerInfo.position.y * scale
+            
+            // Масштабируем размеры
+            const scaledWidth = rasterCanvas.width * scale
+            const scaledHeight = rasterCanvas.height * scale
+            
+            // Рисуем с центрированием
+            printCtx.drawImage(
+              rasterCanvas,
+              scaledX - scaledWidth / 2,
+              scaledY - scaledHeight / 2,
+              scaledWidth,
+              scaledHeight
+            )
+          }
+        }
+        
+        // Конвертируем в blob
+        const blob = await new Promise(resolve => {
+          printCanvas.toBlob(resolve, 'image/png', 1.0)
+        })
+        
+        // Скачиваем файл
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `mug-comic-${Date.now()}.png`
+        link.click()
+        URL.revokeObjectURL(url)
+        
+        console.log('✅ Сохранение завершено успешно')
+        return true
+        
+      } catch (error) {
+        console.error('❌ Ошибка сохранения:', error)
+        throw error
+      }
+    },
+
+    // Обработчики событий кнопки сохранения
+    onSaveSuccess() {
+      console.log('✅ Файл успешно сохранён')
+    },
+
+    onSaveError(error) {
+      console.error('❌ Ошибка сохранения:', error)
+      alert('Ошибка при сохранении файла. См. консоль для деталей.')
+    },
+
+    showNotification(message) {
+      console.log('📢', message)
+    },
+
+    // ========== 3D Renderer callbacks ==========
+    onThreeInitialized() {
+      console.log('ThreeDRenderer инициализирован')
+    },
+
+    onTextureUpdated() {
+      // Texture обновлена
+    },
+
+    onTextureError(error) {
+      console.error('Ошибка обновления текстуры:', error)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.mug-comic-page {
+  // Пустой блок для scope
+}
+
+/* Стили из StickerManiaPage */
+.page-title {
+  color: #016527;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.canvas-container {
+  width: 100%;
+  height: 0;
+  padding-bottom: 47.37%; /* 19:9 соотношение */
+  position: relative;
+  background: #fff;
+}
+
+.comic-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  box-shadow: 4px 4px 12px 0 rgba(0,0,0,.15);
+}
+
+.canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Стили для всех кнопок над основным канвасом */
+.canvas-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.canvas-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  color: white !important;
+}
+
+.canvas-button:hover:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+  color: white !important;
+}
+
+.canvas-button:active:not(:disabled) * {
+  color: white !important;
+}
+
+.canvas-button * {
+  color: white !important;
+}
+
+.canvas-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.text-button {
+  width: auto;
+  margin-left: 20px;
+}
+
+/* Панель инструментов */
+.tools-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  height: 48px; /* Та же высота, что и кнопка "Текст" */
+}
+
+.tool-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  background: white;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: #e9ecef;
+  color: #016527;
+  transform: translateY(-1px);
+}
+
+.tool-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.tool-button.active {
+  background: #016527;
+  color: white;
+}
+
+.tool-button:disabled {
+  background: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-tabs .nav-link {
+  color: #495057;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #016527;
+  background-color: transparent;
+  border-bottom-color: #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+  color: #016527;
+  background-color: transparent;
+  border-bottom-color: #016527;
+}
+
+.nav-tabs .nav-link i {
+  font-size: 1.1rem;
+}
+
+.card {
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.card-body.p-0 {
+  padding: 0 !important;
+}
+
+.btn-primary {
+  background-color: #016527;
+  border-color: #016527;
+}
+
+.btn-primary:hover {
+  background-color: #015a23;
+  border-color: #015a23;
+}
+
+.btn-outline-primary {
+  color: #016527;
+  border-color: #016527;
+}
+
+.btn-outline-primary:hover {
+  background-color: #016527;
+  border-color: #016527;
+  color: #fff;
+}
+
+.form-check-input:checked {
+  background-color: #016527;
+  border-color: #016527;
+}
+
+/* Адаптивность */
+@media (max-width: 767.98px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .canvas-button {
+    font-size: 0.9rem;
+    padding: 10px 20px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page-title {
+    font-size: 1.3rem;
+  }
+}
+</style>
+

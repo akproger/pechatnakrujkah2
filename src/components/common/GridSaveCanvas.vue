@@ -314,6 +314,13 @@ export default {
     calculateExpectedElements(cellWidth, cellHeight) {
       let expectedElements = 0
       
+      // Специальная логика для одного прямоугольника (кружка-комикс)
+      if (this.gridCols === 1 && this.gridRows === 1) {
+        expectedElements = 1 // Только один прямоугольник
+        console.log('🎯 Режим одного прямоугольника: ожидаем 1 элемент')
+        return expectedElements
+      }
+      
       switch (this.maskType) {
         case 'rectangle': {
           const rectanglesNeededForFullWidth = Math.ceil(this.canvasWidth / cellWidth) + 2
@@ -430,6 +437,34 @@ export default {
     
     async createRectangleMasks(group, cellWidth, cellHeight) {
       console.log('🔲 Создаем прямоугольные маски')
+      
+      // Специальная логика для одного прямоугольника (кружка-комикс)
+      if (this.gridCols === 1 && this.gridRows === 1) {
+        console.log('🎯 Создаем один прямоугольник для кружки-комикс')
+        
+        // Создаем один прямоугольник на весь канвас
+        const rect = new this.paperScope.Path.Rectangle({
+          point: [0, 0],
+          size: [this.canvasWidth, this.canvasHeight]
+        })
+        rect.strokeJoin = 'miter'
+        
+        // Устанавливаем данные маски
+        rect.data = { row: 0, col: 0, type: 'rectangle' }
+        
+        // Применяем настройки обводки
+        rect.strokeColor = this.strokeColor
+        rect.strokeWidth = this.strokeWidth
+        
+        // Добавляем прямоугольник в группу
+        group.addChild(rect)
+        
+        // Уведомляем о завершении отрисовки
+        this.incrementRenderedElements()
+        
+        console.log('✅ Один прямоугольник создан')
+        return
+      }
       
       // Применяем внешний отступ
       const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
@@ -3138,6 +3173,10 @@ export default {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      
+      // Очищаем canvas после сохранения
+      this.paperScope.project.clear()
+      console.log('🧹 Canvas очищен после сохранения')
       
       return {
         success: true,

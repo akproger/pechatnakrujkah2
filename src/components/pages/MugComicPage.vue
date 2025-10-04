@@ -5127,11 +5127,11 @@ export default {
         strokeWidth: mask.strokeWidth
       })
       
-      // Обновляем 3D модель сразу после создания маски
-      this.update3DModel()
-      
-      // Обновляем изображение на 3D модели
-      this.update3DTexture()
+      // Обновляем изображение на 3D модели с небольшой задержкой
+      // чтобы canvas успел обновиться
+      setTimeout(() => {
+        this.update3DTexture()
+      }, 100)
     },
     
     selectMask(maskId) {
@@ -5161,11 +5161,11 @@ export default {
         strokeWidth: mask.strokeWidth
       })
       
-      // Обновляем 3D модель
-      this.update3DModel()
-      
-      // Обновляем изображение на 3D модели
-      this.update3DTexture()
+      // Обновляем изображение на 3D модели с небольшой задержкой
+      // чтобы canvas успел обновиться
+      setTimeout(() => {
+        this.update3DTexture()
+      }, 100)
     },
     
     deleteMask(maskId) {

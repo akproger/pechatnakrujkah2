@@ -622,6 +622,13 @@ export default {
       userMasks: [], // Пользовательские маски
       selectedMask: null, // Выбранная маска
       nextMaskId: 1, // Следующий ID для масок
+      maskPointElements: [], // Визуальные элементы точек маски для удаления
+      
+      // Проверка пересечений
+      hasIntersection: false, // Есть ли пересечение
+      intersectionPoint: null, // Точка пересечения для подсветки
+      intersectionWarning: null, // Визуальное предупреждение о пересечении
+      redClickPoint: null, // Красная точка клика при пересечении
       
       // Система отмены/повтора
       actionHistory: [], // История действий
@@ -4962,6 +4969,27 @@ export default {
       // Конвертируем координаты в Paper.js
       const point = new this.paperScope.Point(x, y)
       
+      // Проверяем пересечение перед добавлением точки
+      const intersection = this.checkLineIntersection(point)
+      if (intersection) {
+        console.log('🚫 Пересечение обнаружено, точка не добавлена')
+        this.hasIntersection = true
+        this.intersectionPoint = intersection
+        
+        // Показываем красную точку клика
+        this.showRedClickPoint(point)
+        
+        // Показываем крестик в месте пересечения
+        this.showIntersectionCross(intersection)
+        return
+      }
+      
+      // Сбрасываем состояние пересечения
+      this.hasIntersection = false
+      this.intersectionPoint = null
+      this.hideIntersectionWarning()
+      this.hideRedClickPoint()
+      
       // Проверяем замыкание контура (магнит к первой точке)
       if (this.maskPoints.length > 2) {
         const firstPoint = this.maskPoints[0]
@@ -4993,6 +5021,10 @@ export default {
     },
     
     onCanvasMouseMove(event) {
+      // Удаляем красные метки при движении мыши
+      this.hideRedClickPoint()
+      this.hideIntersectionWarning()
+      
       if (!this.maskMode || this.maskPoints.length === 0) return
       
       const rect = this.$refs.comicCanvas.getBoundingClientRect()
@@ -5018,6 +5050,9 @@ export default {
       
       // Добавляем на canvas
       this.paperScope.project.activeLayer.addChild(square)
+      
+      // Сохраняем ссылку для удаления
+      this.maskPointElements.push(square)
       
       return square
     },
@@ -5060,6 +5095,9 @@ export default {
       // Удаляем все точки маски (делаем их невидимыми)
       this.clearAllMaskElements()
       
+      // Удаляем все синие точки построения контура
+      this.clearAllMaskPoints()
+      
       // Создаем замкнутый контур маски
       const path = new this.paperScope.Path()
       
@@ -5088,6 +5126,12 @@ export default {
         strokeColor: mask.strokeColor,
         strokeWidth: mask.strokeWidth
       })
+      
+      // Обновляем 3D модель сразу после создания маски
+      this.update3DModel()
+      
+      // Обновляем изображение на 3D модели
+      this.update3DTexture()
     },
     
     selectMask(maskId) {
@@ -5119,6 +5163,9 @@ export default {
       
       // Обновляем 3D модель
       this.update3DModel()
+      
+      // Обновляем изображение на 3D модели
+      this.update3DTexture()
     },
     
     deleteMask(maskId) {
@@ -5151,6 +5198,12 @@ export default {
       // Очищаем все визуальные элементы маски
       this.clearMaskLine()
       
+      // Удаляем предупреждение о пересечении
+      this.hideIntersectionWarning()
+      
+      // Удаляем красную точку клика
+      this.hideRedClickPoint()
+      
       // Удаляем все точки маски с canvas
       if (this.paperScope && this.paperScope.project) {
         const items = this.paperScope.project.activeLayer.children
@@ -5160,6 +5213,172 @@ export default {
             item.remove()
           }
         }
+      }
+    },
+    
+    clearAllMaskPoints() {
+      // Удаляем все синие точки построения контура по сохраненным ссылкам
+      this.maskPointElements.forEach(element => {
+        if (element && element.remove) {
+          element.remove()
+        }
+      })
+      
+      // Очищаем массив ссылок
+      this.maskPointElements = []
+      
+      // Очищаем массив точек
+      this.maskPoints = []
+    },
+    
+    checkLineIntersection(newPoint) {
+      // Проверяем пересечение нового отрезка с уже нарисованными
+      if (this.maskPoints.length < 2) return false
+      
+      const newSegment = {
+        start: this.maskPoints[this.maskPoints.length - 1],
+        end: newPoint
+      }
+      
+      // Проверяем пересечение с каждым существующим отрезком
+      for (let i = 0; i < this.maskPoints.length - 1; i++) {
+        const existingSegment = {
+          start: this.maskPoints[i],
+          end: this.maskPoints[i + 1]
+        }
+        
+        // Пропускаем соседние отрезки
+        if (i === this.maskPoints.length - 2) continue
+        
+        const intersection = this.getLineIntersection(newSegment, existingSegment)
+        if (intersection) {
+          console.log('🚫 Обнаружено пересечение!', intersection)
+          return intersection
+        }
+      }
+      
+      return false
+    },
+    
+    getLineIntersection(seg1, seg2) {
+      // Алгоритм проверки пересечения двух отрезков
+      const x1 = seg1.start.x, y1 = seg1.start.y
+      const x2 = seg1.end.x, y2 = seg1.end.y
+      const x3 = seg2.start.x, y3 = seg2.start.y
+      const x4 = seg2.end.x, y4 = seg2.end.y
+      
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+      if (Math.abs(denom) < 1e-10) return false // Параллельные линии
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+      
+      // Проверяем, что пересечение находится внутри обоих отрезков
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        return {
+          x: x1 + t * (x2 - x1),
+          y: y1 + t * (y2 - y1)
+        }
+      }
+      
+      return false
+    },
+    
+    showIntersectionWarning(intersection) {
+      // Создаем красную точку предупреждения
+      if (this.paperScope && this.paperScope.project) {
+        const warningPoint = new this.paperScope.Path.Circle({
+          center: new this.paperScope.Point(intersection.x, intersection.y),
+          radius: 8,
+          fillColor: '#ff0000',
+          strokeColor: '#ffffff',
+          strokeWidth: 2
+        })
+        
+        this.paperScope.project.activeLayer.addChild(warningPoint)
+        
+        // Сохраняем ссылку для удаления
+        this.intersectionWarning = warningPoint
+        
+        // Автоматически удаляем через 2 секунды
+        setTimeout(() => {
+          this.hideIntersectionWarning()
+        }, 2000)
+      }
+    },
+    
+    hideIntersectionWarning() {
+      if (this.intersectionWarning) {
+        this.intersectionWarning.remove()
+        this.intersectionWarning = null
+      }
+    },
+    
+    showRedClickPoint(point) {
+      // Удаляем предыдущую красную точку
+      this.hideRedClickPoint()
+      
+      // Создаем красную квадратную точку клика (4x4 пикселя как синие)
+      if (this.paperScope && this.paperScope.project) {
+        const redPoint = new this.paperScope.Path.Rectangle({
+          point: [point.x - 2, point.y - 2],
+          size: [4, 4]
+        })
+        
+        redPoint.fillColor = '#ff0000'
+        redPoint.strokeColor = '#cc0000'
+        redPoint.strokeWidth = 1
+        
+        this.paperScope.project.activeLayer.addChild(redPoint)
+        this.redClickPoint = redPoint
+        
+        // Удаляем сразу после следующего клика или движения мыши
+        // Не оставляем висящими на холсте
+      }
+    },
+    
+    hideRedClickPoint() {
+      if (this.redClickPoint) {
+        this.redClickPoint.remove()
+        this.redClickPoint = null
+      }
+    },
+    
+    showIntersectionCross(intersection) {
+      // Удаляем предыдущий крестик
+      this.hideIntersectionWarning()
+      
+      if (this.paperScope && this.paperScope.project) {
+        const center = new this.paperScope.Point(intersection.x, intersection.y)
+        const size = 8
+        
+        // Создаем крестик повернутый на 45 градусов (диагональный)
+        const cross = new this.paperScope.Group()
+        
+        // Диагональная линия крестика (слева-сверху вправо-вниз)
+        const line1 = new this.paperScope.Path.Line({
+          from: new this.paperScope.Point(center.x - size, center.y - size),
+          to: new this.paperScope.Point(center.x + size, center.y + size),
+          strokeColor: '#ff0000',
+          strokeWidth: 3
+        })
+        
+        // Диагональная линия крестика (слева-снизу вправо-вверх)
+        const line2 = new this.paperScope.Path.Line({
+          from: new this.paperScope.Point(center.x - size, center.y + size),
+          to: new this.paperScope.Point(center.x + size, center.y - size),
+          strokeColor: '#ff0000',
+          strokeWidth: 3
+        })
+        
+        cross.addChild(line1)
+        cross.addChild(line2)
+        
+        this.paperScope.project.activeLayer.addChild(cross)
+        this.intersectionWarning = cross
+        
+        // Удаляем сразу после следующего клика или движения мыши
+        // Не оставляем висящими на холсте
       }
     },
     

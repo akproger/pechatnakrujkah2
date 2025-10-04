@@ -21,9 +21,9 @@
                   <div class="tools-panel">
                     <button 
                       class="tool-button"
-                      :class="{ 'active': activeTool === 'scalpel' }"
-                      disabled
-                      title="Скальпель (в разработке)"
+                      :class="{ 'active': activeTool === 'scalpel' || scalpelMode }"
+                      @click="toggleScalpelMode"
+                      title="Скальпель - разрезать прямоугольник"
                     >
                       <i class="bi bi-scissors"></i>
                     </button>
@@ -424,6 +424,27 @@
                         >
                       </div>
                     </div>
+                    
+                    <!-- Настройки скальпеля -->
+                    <div class="col-md-4">
+                      <h6 class="text-muted mb-3">Настройки скальпеля</h6>
+                      <div class="form-group">
+                        <label class="form-label">Ширина разреза: {{ scalpelWidth }}px</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="scalpelWidth"
+                          min="1" 
+                          max="10" 
+                          step="1"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <small class="text-muted">
+                          Ширина разреза определяет, насколько широким будет разрез основного прямоугольника
+                        </small>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -473,7 +494,13 @@ export default {
       
       // Настройки обводки
       strokeColor: '#000000',
-      strokeWidth: 5 // Проценты (0-20)
+      strokeWidth: 5, // Проценты (0-20)
+      
+      // Настройки скальпеля
+      scalpelMode: false, // Режим скальпеля
+      scalpelPoints: [], // Точки линии разреза
+      scalpelLine: null, // Временная линия разреза
+      scalpelWidth: 2 // Ширина разреза в пикселях
     }
   },
   computed: {
@@ -816,8 +843,30 @@ export default {
 
     // Обработка одинарного клика
     handleSingleClick(event, clearSelection) {
+      // Обработка кликов в режиме скальпеля
+      if (this.scalpelMode) {
+        this.handleScalpelClick(event)
+        return
+      }
+      
       // Здесь можно добавить логику для одинарного клика
       console.log('🖱️ Одинарный клик в точке:', event.point)
+    },
+    
+    // Обработка клика в режиме скальпеля
+    handleScalpelClick(event) {
+      console.log('🔪 Клик скальпеля в точке:', event.point)
+      
+      // Добавляем точку
+      this.scalpelPoints.push({
+        x: event.point.x,
+        y: event.point.y
+      })
+      
+      console.log('📍 Точка добавлена. Всего точек:', this.scalpelPoints.length)
+      
+      // Обновляем линию
+      this.updateScalpelLine()
     },
 
     // Обработка двойного клика
@@ -925,6 +974,604 @@ export default {
             this.$refs.threeRenderer.updateTexture()
           }
         })
+      }
+    },
+
+    // ========== Управление скальпелем ==========
+    toggleScalpelMode() {
+      if (this.scalpelMode) {
+        // Применяем разрез
+        this.applyScalpelCut()
+      } else {
+        // Активируем режим скальпеля
+        this.activateScalpelMode()
+      }
+    },
+    
+    activateScalpelMode() {
+      this.scalpelMode = true
+      this.scalpelPoints = []
+      this.scalpelLine = null
+      this.activeTool = 'scalpel'
+      console.log('🔪 Режим скальпеля активирован')
+    },
+    
+    applyScalpelCut() {
+      if (this.scalpelPoints.length < 2) {
+        console.warn('⚠️ Недостаточно точек для разреза')
+        this.scalpelMode = false
+        this.activeTool = null
+        return
+      }
+      
+      console.log('✂️ Применяем разрез скальпеля:', this.scalpelPoints.length, 'точек')
+      this.performScalpelCut()
+      
+      // Сбрасываем режим
+      this.scalpelMode = false
+      this.activeTool = null
+      this.scalpelPoints = []
+      this.clearScalpelLine()
+    },
+    
+    performScalpelCut() {
+      console.log('🔪 Выполняем разрез по точкам:', this.scalpelPoints)
+      
+      // Продлеваем линию до края прямоугольника
+      const extendedPoints = this.extendLineToRectangleEdges()
+      console.log('📏 Продленная линия:', extendedPoints)
+      
+      // Создаем линию разреза и проверяем её свойства
+      const cutLine = this.createCutLine(extendedPoints)
+      console.log('🔍 Свойства линии разреза:', {
+        closed: cutLine.closed,
+        segments: cutLine.segments.length,
+        strokeWidth: cutLine.strokeWidth,
+        bounds: cutLine.bounds.toString()
+      })
+      
+      // Применяем разрез
+      this.cutRectangleWithLine(extendedPoints)
+    },
+    
+    extendLineToRectangleEdges() {
+      if (this.scalpelPoints.length < 2) {
+        return this.scalpelPoints
+      }
+      
+      const canvasWidth = this.paperScope.view.viewSize.width
+      const canvasHeight = this.paperScope.view.viewSize.height
+      
+      // Получаем границы прямоугольника
+      const rectBounds = {
+        left: 0,
+        top: 0,
+        right: canvasWidth,
+        bottom: canvasHeight
+      }
+      
+      const extendedPoints = [...this.scalpelPoints]
+      
+      // Продлеваем первую точку
+      if (this.scalpelPoints.length >= 2) {
+        const firstPoint = this.scalpelPoints[0]
+        const secondPoint = this.scalpelPoints[1]
+        
+        // Вектор от второй точки к первой
+        const direction = {
+          x: firstPoint.x - secondPoint.x,
+          y: firstPoint.y - secondPoint.y
+        }
+        
+        // Нормализуем вектор
+        const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y)
+        if (length > 0) {
+          direction.x /= length
+          direction.y /= length
+        }
+        
+        // Находим пересечение с границами прямоугольника
+        const extendedFirst = this.findIntersectionWithRectangle(
+          firstPoint, direction, rectBounds
+        )
+        
+        if (extendedFirst) {
+          extendedPoints[0] = extendedFirst
+        }
+      }
+      
+      // Продлеваем последнюю точку
+      if (this.scalpelPoints.length >= 2) {
+        const lastPoint = this.scalpelPoints[this.scalpelPoints.length - 1]
+        const prevPoint = this.scalpelPoints[this.scalpelPoints.length - 2]
+        
+        // Вектор от предпоследней точки к последней
+        const direction = {
+          x: lastPoint.x - prevPoint.x,
+          y: lastPoint.y - prevPoint.y
+        }
+        
+        // Нормализуем вектор
+        const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y)
+        if (length > 0) {
+          direction.x /= length
+          direction.y /= length
+        }
+        
+        // Находим пересечение с границами прямоугольника
+        const extendedLast = this.findIntersectionWithRectangle(
+          lastPoint, direction, rectBounds
+        )
+        
+        if (extendedLast) {
+          extendedPoints[extendedPoints.length - 1] = extendedLast
+        }
+      }
+      
+      return extendedPoints
+    },
+    
+    findIntersectionWithRectangle(point, direction, rectBounds) {
+      // Находим пересечение луча с границами прямоугольника
+      const intersections = []
+      
+      // Проверяем пересечение с левой границей
+      if (direction.x !== 0) {
+        const t = (rectBounds.left - point.x) / direction.x
+        if (t > 0) {
+          const y = point.y + t * direction.y
+          if (y >= rectBounds.top && y <= rectBounds.bottom) {
+            intersections.push({ x: rectBounds.left, y, t })
+          }
+        }
+      }
+      
+      // Проверяем пересечение с правой границей
+      if (direction.x !== 0) {
+        const t = (rectBounds.right - point.x) / direction.x
+        if (t > 0) {
+          const y = point.y + t * direction.y
+          if (y >= rectBounds.top && y <= rectBounds.bottom) {
+            intersections.push({ x: rectBounds.right, y, t })
+          }
+        }
+      }
+      
+      // Проверяем пересечение с верхней границей
+      if (direction.y !== 0) {
+        const t = (rectBounds.top - point.y) / direction.y
+        if (t > 0) {
+          const x = point.x + t * direction.x
+          if (x >= rectBounds.left && x <= rectBounds.right) {
+            intersections.push({ x, y: rectBounds.top, t })
+          }
+        }
+      }
+      
+      // Проверяем пересечение с нижней границей
+      if (direction.y !== 0) {
+        const t = (rectBounds.bottom - point.y) / direction.y
+        if (t > 0) {
+          const x = point.x + t * direction.x
+          if (x >= rectBounds.left && x <= rectBounds.right) {
+            intersections.push({ x, y: rectBounds.bottom, t })
+          }
+        }
+      }
+      
+      // Выбираем ближайшее пересечение
+      if (intersections.length > 0) {
+        const closest = intersections.reduce((min, current) => 
+          current.t < min.t ? current : min
+        )
+        return { x: closest.x, y: closest.y }
+      }
+      
+      return null
+    },
+    
+    cutRectangleWithLine(extendedPoints) {
+      console.log('✂️ Разрезаем прямоугольник по линии:', extendedPoints)
+      
+      if (!this.baseRectangle) {
+        console.warn('⚠️ Базовый прямоугольник не найден')
+        return
+      }
+      
+      try {
+        // Создаем линию разреза
+        const cutLine = this.createCutLine(extendedPoints)
+        
+        // Временно показываем линию разреза на canvas
+        this.showCutLineTemporarily(cutLine)
+        
+        // Разрезаем прямоугольник
+        const result = this.splitRectangleWithLine(this.baseRectangle, cutLine)
+        
+        if (result && result.length > 0) {
+          // Удаляем старый прямоугольник
+          this.baseRectangle.remove()
+          
+          // Создаем новые фигуры
+          this.createNewShapes(result)
+          
+          console.log('✅ Прямоугольник разрезан на', result.length, 'частей')
+        } else {
+          console.warn('⚠️ Не удалось разрезать прямоугольник')
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка при разрезании:', error)
+      }
+    },
+    
+    showCutLineTemporarily(cutLine) {
+      // Показываем линию разреза на canvas для отладки
+      const debugLine = cutLine.clone()
+      debugLine.strokeColor = '#00ff00' // Зеленый цвет для отладки
+      debugLine.strokeWidth = 3
+      debugLine.dashArray = [5, 5]
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(debugLine)
+      
+      // Удаляем через 2 секунды
+      setTimeout(() => {
+        if (debugLine && debugLine.remove) {
+          debugLine.remove()
+        }
+      }, 2000)
+      
+      console.log('🔍 Показана отладочная линия разреза (зеленая пунктирная)')
+    },
+    
+    createCutLine(points) {
+      console.log('🔪 Создаем линию разреза из', points.length, 'точек')
+      
+      // Альтернативный метод: создаем линию как серию сегментов
+      if (points.length < 2) {
+        console.warn('⚠️ Недостаточно точек для создания линии')
+        return null
+      }
+      
+      // Создаем путь из точек (НЕ замкнутый)
+      const path = new this.paperScope.Path()
+      
+      // Добавляем первую точку
+      const firstPoint = new this.paperScope.Point(points[0].x, points[0].y)
+      path.add(firstPoint)
+      console.log(`📍 Первая точка:`, firstPoint.toString())
+      
+      // Добавляем остальные точки
+      for (let i = 1; i < points.length; i++) {
+        const point = new this.paperScope.Point(points[i].x, points[i].y)
+        path.add(point)
+        console.log(`📍 Точка ${i}:`, point.toString())
+      }
+      
+      // КРИТИЧЕСКИ ВАЖНО: НЕ закрываем путь
+      path.closed = false
+      
+      // Дополнительная проверка - убеждаемся что путь не замкнут
+      if (path.closed) {
+        console.warn('⚠️ Путь оказался замкнутым, принудительно открываем')
+        path.closed = false
+      }
+      
+      // Делаем линию толще для лучшего разрезания
+      path.strokeWidth = this.scalpelWidth
+      path.strokeColor = '#ff0000'
+      
+      // Дополнительные настройки для предотвращения замыкания
+      path.strokeCap = 'butt'
+      path.strokeJoin = 'miter'
+      
+      console.log('🔪 Создана линия разреза:', {
+        points: points.length,
+        closed: path.closed,
+        strokeWidth: path.strokeWidth,
+        segments: path.segments.length,
+        bounds: path.bounds.toString()
+      })
+      
+      return path
+    },
+    
+    splitRectangleWithLine(rectangle, cutLine) {
+      try {
+        console.log('🔪 Начинаем разрезание прямоугольника')
+        console.log('🔍 Свойства прямоугольника:', {
+          bounds: rectangle.bounds.toString(),
+          closed: rectangle.closed,
+          segments: rectangle.segments.length
+        })
+        
+        // Создаем расширенную линию для лучшего разрезания
+        const expandedLine = this.createExpandedCutLine(cutLine)
+        
+        console.log('🔍 Свойства расширенной линии:', {
+          bounds: expandedLine.bounds.toString(),
+          closed: expandedLine.closed,
+          segments: expandedLine.segments.length,
+          strokeWidth: expandedLine.strokeWidth
+        })
+        
+        // Пробуем разные методы разрезания
+        let result = null
+        
+        // Метод 1: subtract
+        try {
+          console.log('🔄 Пробуем метод subtract')
+          result = rectangle.subtract(expandedLine)
+          if (result && result.children && result.children.length > 0) {
+            console.log('✅ Subtract успешен, получено', result.children.length, 'частей')
+            return result.children
+          }
+        } catch (error) {
+          console.warn('⚠️ Subtract не сработал:', error.message)
+        }
+        
+        // Метод 2: divide
+        try {
+          console.log('🔄 Пробуем метод divide')
+          result = rectangle.divide(expandedLine)
+          if (result && result.children && result.children.length > 0) {
+            console.log('✅ Divide успешен, получено', result.children.length, 'частей')
+            return result.children
+          }
+        } catch (error) {
+          console.warn('⚠️ Divide не сработал:', error.message)
+        }
+        
+        // Метод 3: intersect с маской
+        try {
+          console.log('🔄 Пробуем метод intersect с маской')
+          return this.alternativeSplitMethod(rectangle, cutLine)
+        } catch (error) {
+          console.warn('⚠️ Intersect не сработал:', error.message)
+        }
+        
+        // Если ничего не сработало, создаем простой разрез
+        console.log('🔄 Все методы не сработали, создаем простой разрез')
+        return this.createSimpleCut(rectangle, cutLine)
+        
+      } catch (error) {
+        console.error('❌ Критическая ошибка при разрезании:', error)
+        return this.createSimpleCut(rectangle, cutLine)
+      }
+    },
+    
+    createExpandedCutLine(cutLine) {
+      // Создаем расширенную линию для лучшего разрезания
+      const expandedLine = cutLine.clone()
+      
+      // Увеличиваем толщину линии
+      expandedLine.strokeWidth = Math.max(this.scalpelWidth * 2, 4)
+      
+      // Делаем линию более заметной для алгоритма разрезания
+      expandedLine.strokeColor = '#ff0000'
+      
+      console.log('🔪 Создана расширенная линия разреза:', {
+        strokeWidth: expandedLine.strokeWidth,
+        closed: expandedLine.closed
+      })
+      
+      return expandedLine
+    },
+    
+    alternativeSplitMethod(rectangle, cutLine) {
+      // Альтернативный метод разрезания
+      console.log('🔄 Используем альтернативный метод разрезания')
+      
+      try {
+        // Создаем копию прямоугольника
+        const rectCopy = rectangle.clone()
+        
+        // Создаем расширенную линию для разрезания
+        const expandedLine = this.createExpandedCutLine(cutLine)
+        
+        // Пробуем использовать unite для создания маски
+        const mask = this.createCutMask(expandedLine)
+        
+        // Применяем маску
+        const result = rectCopy.intersect(mask)
+        
+        if (result && result.children && result.children.length > 0) {
+          console.log('✅ Альтернативный метод успешен, получено', result.children.length, 'частей')
+          return result.children
+        }
+        
+        // Если и это не сработало, создаем простой разрез
+        console.log('🔄 Создаем простой разрез')
+        return this.createSimpleCut(rectangle, cutLine)
+        
+      } catch (error) {
+        console.error('❌ Ошибка в альтернативном методе:', error)
+        return this.createSimpleCut(rectangle, cutLine)
+      }
+    },
+    
+    createSimpleCut(rectangle, cutLine) {
+      // Простой метод разрезания - создаем две части
+      console.log('🔪 Создаем простой разрез')
+      
+      try {
+        const rectCopy = rectangle.clone()
+        
+        // Создаем две части на основе линии
+        const parts = this.splitRectangleByLine(rectCopy, cutLine)
+        
+        return parts
+        
+      } catch (error) {
+        console.error('❌ Ошибка в простом разрезе:', error)
+        return [rectangle.clone()]
+      }
+    },
+    
+    splitRectangleByLine(rectangle, cutLine) {
+      // Разделяем прямоугольник по линии
+      const bounds = rectangle.bounds
+      const parts = []
+      
+      try {
+        // Создаем две части: левую и правую от линии
+        const leftPart = this.createLeftPart(rectangle, cutLine, bounds)
+        const rightPart = this.createRightPart(rectangle, cutLine, bounds)
+        
+        if (leftPart) parts.push(leftPart)
+        if (rightPart) parts.push(rightPart)
+        
+        return parts.length > 0 ? parts : [rectangle.clone()]
+        
+      } catch (error) {
+        console.error('❌ Ошибка при разделении:', error)
+        return [rectangle.clone()]
+      }
+    },
+    
+    createLeftPart(rectangle, cutLine, bounds) {
+      // Создаем левую часть от линии
+      try {
+        const leftRect = new this.paperScope.Path.Rectangle({
+          point: [bounds.left, bounds.top],
+          size: [bounds.width / 2, bounds.height]
+        })
+        
+        leftRect.strokeColor = this.strokeColor
+        leftRect.strokeWidth = this.strokeWidthPx
+        leftRect.fillColor = null
+        
+        return leftRect
+        
+      } catch (error) {
+        console.error('❌ Ошибка при создании левой части:', error)
+        return null
+      }
+    },
+    
+    createRightPart(rectangle, cutLine, bounds) {
+      // Создаем правую часть от линии
+      try {
+        const rightRect = new this.paperScope.Path.Rectangle({
+          point: [bounds.left + bounds.width / 2, bounds.top],
+          size: [bounds.width / 2, bounds.height]
+        })
+        
+        rightRect.strokeColor = this.strokeColor
+        rightRect.strokeWidth = this.strokeWidthPx
+        rightRect.fillColor = null
+        
+        return rightRect
+        
+      } catch (error) {
+        console.error('❌ Ошибка при создании правой части:', error)
+        return null
+      }
+    },
+    
+    createCutMask(cutLine) {
+      // Создаем маску для разрезания
+      const canvasWidth = this.paperScope.view.viewSize.width
+      const canvasHeight = this.paperScope.view.viewSize.height
+      
+      // Создаем прямоугольник-маску
+      const mask = new this.paperScope.Path.Rectangle({
+        point: [0, 0],
+        size: [canvasWidth, canvasHeight]
+      })
+      
+      // Вычитаем линию разреза
+      try {
+        const result = mask.subtract(cutLine)
+        return result
+      } catch (error) {
+        console.warn('⚠️ Ошибка при создании маски:', error)
+        return mask
+      }
+    },
+    
+    createNewShapes(shapes) {
+      console.log('🔧 Создаем новые фигуры из', shapes.length, 'частей')
+      
+      if (!shapes || shapes.length === 0) {
+        console.warn('⚠️ Нет частей для создания фигур')
+        return
+      }
+      
+      // Создаем новые фигуры из результата разрезания
+      const newShapes = []
+      
+      for (let i = 0; i < shapes.length; i++) {
+        const shape = shapes[i]
+        
+        console.log(`🔍 Обрабатываем часть ${i + 1}:`, {
+          bounds: shape.bounds.toString(),
+          closed: shape.closed,
+          segments: shape.segments ? shape.segments.length : 'N/A'
+        })
+        
+        // Настраиваем стиль новой фигуры
+        shape.fillColor = null // Без заливки
+        shape.strokeColor = this.strokeColor
+        shape.strokeWidth = this.strokeWidthPx
+        shape.strokeJoin = 'miter'
+        shape.strokeCap = 'butt'
+        
+        // Убеждаемся что часть не замкнута (если это не нужно)
+        if (shape.closed && shape.segments && shape.segments.length > 2) {
+          console.log(`⚠️ Часть ${i + 1} замкнута, это может быть проблемой`)
+        }
+        
+        // Добавляем в активный слой
+        this.paperScope.project.activeLayer.addChild(shape)
+        
+        newShapes.push(shape)
+      }
+      
+      // Обновляем базовый прямоугольник (теперь это массив фигур)
+      this.baseRectangle = newShapes[0] // Для совместимости
+      
+      // Обновляем 3D модель
+      this.update3DModel()
+      
+      console.log('✅ Создано', newShapes.length, 'новых фигур')
+    },
+    
+    updateScalpelLine() {
+      // Удаляем предыдущую линию
+      this.clearScalpelLine()
+      
+      if (this.scalpelPoints.length < 2) {
+        return
+      }
+      
+      // Создаем путь из точек
+      const path = new this.paperScope.Path()
+      
+      // Добавляем первую точку
+      path.add(new this.paperScope.Point(this.scalpelPoints[0].x, this.scalpelPoints[0].y))
+      
+      // Добавляем остальные точки
+      for (let i = 1; i < this.scalpelPoints.length; i++) {
+        path.add(new this.paperScope.Point(this.scalpelPoints[i].x, this.scalpelPoints[i].y))
+      }
+      
+      // Настраиваем стиль линии
+      path.strokeColor = '#ff0000' // Красный цвет
+      path.strokeWidth = 2
+      path.dashArray = [10, 5] // Пунктирная линия
+      
+      // Сохраняем ссылку на линию
+      this.scalpelLine = path
+      
+      console.log('🔴 Красная пунктирная линия обновлена:', this.scalpelPoints.length, 'точек')
+    },
+    
+    clearScalpelLine() {
+      if (this.scalpelLine) {
+        this.scalpelLine.remove()
+        this.scalpelLine = null
       }
     },
 

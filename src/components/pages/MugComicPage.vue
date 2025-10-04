@@ -21,11 +21,27 @@
                   <div class="tools-panel">
                     <button 
                       class="tool-button"
-                      :class="{ 'active': activeTool === 'scalpel' || scalpelMode }"
-                      @click="toggleScalpelMode"
-                      title="Скальпель - разрезать прямоугольник"
+                      :class="{ 'active': activeTool === 'mask' || maskMode }"
+                      @click="toggleMaskMode"
+                      title="Рисование масок"
                     >
-                      <i class="bi bi-scissors"></i>
+                      <i class="bi bi-bounding-box"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
+                      @click="undoAction"
+                      title="Отмена"
+                      :disabled="!canUndo"
+                    >
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
+                      @click="redoAction"
+                      title="Повтор"
+                      :disabled="!canRedo"
+                    >
+                      <i class="bi bi-arrow-clockwise"></i>
                     </button>
                   </div>
                 </div>
@@ -92,6 +108,8 @@
                 <canvas 
                   ref="comicCanvas"
                   class="comic-canvas"
+                  @click="onCanvasClick"
+                  @mousemove="onCanvasMouseMove"
                 ></canvas>
                 
                 <!-- Прелоадер -->
@@ -196,6 +214,23 @@
               >
                 <i class="bi bi-gear me-2"></i>
                 Настройки
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'userFrames' }"
+                id="userFrames-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#userFrames" 
+                type="button" 
+                role="tab" 
+                aria-controls="userFrames" 
+                aria-selected="activeTab === 'userFrames'"
+                @click="activeTab = 'userFrames'"
+              >
+                <i class="bi bi-bounding-box me-2"></i>
+                Рамки пользователя
               </button>
             </li>
           </ul>
@@ -451,6 +486,90 @@
             </div>
           </div>
         </div>
+        
+        <!-- Таб "Рамки пользователя" -->
+        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'userFrames' }" id="userFrames" role="tabpanel" aria-labelledby="userFrames-tab">
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h6 class="text-muted mb-3">Пользовательские маски</h6>
+                  <div class="user-masks-container">
+                    <div v-if="userMasks.length === 0" class="text-center text-muted py-4">
+                      <i class="bi bi-palette fs-1"></i>
+                      <p class="mt-2">Нет созданных масок</p>
+                      <small>Используйте инструмент рисования масок для создания контуров</small>
+                    </div>
+                    <div v-else class="masks-list">
+                      <div 
+                        v-for="(mask, index) in userMasks" 
+                        :key="mask.id"
+                        class="mask-item-full"
+                        :class="{ active: selectedMask === mask.id }"
+                        @click="selectMask(mask.id)"
+                      >
+                        <div class="mask-header">
+                          <div class="mask-preview">
+                            <canvas :ref="`maskPreview${mask.id}`" width="80" height="50"></canvas>
+                          </div>
+                          <div class="mask-info">
+                            <div class="mask-name">{{ mask.name }}</div>
+                            <div class="mask-actions">
+                              <button 
+                                class="btn btn-sm btn-outline-danger"
+                                @click.stop="deleteMask(mask.id)"
+                                title="Удалить маску"
+                              >
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="mask-settings">
+                          <div class="row g-2">
+                            <div class="col-md-4">
+                              <label class="form-label small">Заливка</label>
+                              <input 
+                                type="color" 
+                                class="form-control form-control-color form-control-sm" 
+                                v-model="mask.fillColor"
+                                @change="updateMaskSettings(mask)"
+                                title="Цвет заливки"
+                              >
+                            </div>
+                            <div class="col-md-4">
+                              <label class="form-label small">Обводка</label>
+                              <input 
+                                type="color" 
+                                class="form-control form-control-color form-control-sm" 
+                                v-model="mask.strokeColor"
+                                @change="updateMaskSettings(mask)"
+                                title="Цвет обводки"
+                              >
+                            </div>
+                            <div class="col-md-4">
+                              <label class="form-label small">Толщина: {{ mask.strokeWidth }}px</label>
+                              <input 
+                                type="range" 
+                                class="form-range form-range-sm" 
+                                v-model.number="mask.strokeWidth"
+                                min="0" 
+                                max="30" 
+                                step="1"
+                                @input="updateMaskSettings(mask)"
+                              >
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -496,10 +615,20 @@ export default {
       strokeColor: '#000000',
       strokeWidth: 5, // Проценты (0-20)
       
+      // Система масок
+      maskMode: false, // Режим рисования масок
+      maskPoints: [], // Точки текущей маски
+      maskLine: null, // Временная линия маски
+      userMasks: [], // Пользовательские маски
+      selectedMask: null, // Выбранная маска
+      nextMaskId: 1, // Следующий ID для масок
+      
+      // Система отмены/повтора
+      actionHistory: [], // История действий
+      currentActionIndex: -1, // Текущий индекс в истории
+      maxHistorySize: 50, // Максимальный размер истории
+      
       // Настройки скальпеля
-      scalpelMode: false, // Режим скальпеля
-      scalpelPoints: [], // Точки линии разреза
-      scalpelLine: null, // Временная линия разреза
       scalpelWidth: 2 // Ширина разреза в пикселях
     }
   },
@@ -514,6 +643,16 @@ export default {
       
       // Вычисляем толщину обводки как процент от минимального размера
       return (this.strokeWidth / 100) * minDimension
+    },
+    
+    // Можно ли отменить действие
+    canUndo() {
+      return this.currentActionIndex > 0
+    },
+    
+    // Можно ли повторить действие
+    canRedo() {
+      return this.currentActionIndex < this.actionHistory.length - 1
     }
   },
   watch: {
@@ -977,41 +1116,60 @@ export default {
       }
     },
 
-    // ========== Управление скальпелем ==========
-    toggleScalpelMode() {
-      if (this.scalpelMode) {
-        // Применяем разрез
-        this.applyScalpelCut()
+    // ========== Управление масками ==========
+    toggleMaskMode() {
+      if (this.maskMode) {
+        // Завершаем создание маски
+        this.finishMask()
       } else {
-        // Активируем режим скальпеля
-        this.activateScalpelMode()
+        // Активируем режим рисования масок
+        this.activateMaskMode()
       }
     },
     
-    activateScalpelMode() {
-      this.scalpelMode = true
-      this.scalpelPoints = []
-      this.scalpelLine = null
-      this.activeTool = 'scalpel'
-      console.log('🔪 Режим скальпеля активирован')
+    activateMaskMode() {
+      this.maskMode = true
+      this.maskPoints = []
+      this.maskLine = null
+      this.activeTool = 'mask'
+      console.log('🎭 Режим рисования масок активирован')
     },
     
-    applyScalpelCut() {
-      if (this.scalpelPoints.length < 2) {
-        console.warn('⚠️ Недостаточно точек для разреза')
-        this.scalpelMode = false
+    finishMask() {
+      if (this.maskPoints.length < 3) {
+        console.warn('⚠️ Недостаточно точек для создания маски (минимум 3)')
+        this.maskMode = false
         this.activeTool = null
         return
       }
       
-      console.log('✂️ Применяем разрез скальпеля:', this.scalpelPoints.length, 'точек')
-      this.performScalpelCut()
+      console.log('🎭 Завершаем создание маски:', this.maskPoints.length, 'точек')
+      
+      // Создаем маску
+      const mask = {
+        id: this.nextMaskId++,
+        points: [...this.maskPoints],
+        createdAt: new Date(),
+        name: `Маска ${this.userMasks.length + 1}`,
+        fillColor: '#f0f0f0', // Светло-серый по умолчанию
+        strokeColor: '#000000', // Черный по умолчанию
+        strokeWidth: 8 // 8px по умолчанию
+      }
+      
+      // Добавляем в список масок
+      this.userMasks.push(mask)
+      
+      // Сохраняем создание маски в историю (заменяет все предыдущие шаги рисования)
+      this.saveAction('createMask', { mask })
+      
+      // Создаем визуальную маску на canvas
+      this.createMaskVisual(mask)
       
       // Сбрасываем режим
-      this.scalpelMode = false
+      this.maskMode = false
       this.activeTool = null
-      this.scalpelPoints = []
-      this.clearScalpelLine()
+      this.maskPoints = []
+      this.clearMaskLine()
     },
     
     performScalpelCut() {
@@ -4791,6 +4949,366 @@ export default {
 
     onTextureError(error) {
       console.error('Ошибка обновления текстуры:', error)
+    },
+    
+    // ========== Обработчики событий canvas ==========
+    onCanvasClick(event) {
+      if (!this.maskMode) return
+      
+      const rect = this.$refs.comicCanvas.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      
+      // Конвертируем координаты в Paper.js
+      const point = new this.paperScope.Point(x, y)
+      
+      // Проверяем замыкание контура (магнит к первой точке)
+      if (this.maskPoints.length > 2) {
+        const firstPoint = this.maskPoints[0]
+        const distance = point.getDistance(firstPoint)
+        
+        if (distance < 10) { // Магнит 10px
+          console.log('🎭 Контур замкнут!')
+          this.finishMask()
+          return
+        }
+      }
+      
+      // Добавляем точку
+      this.maskPoints.push({ x: point.x, y: point.y })
+      
+      // Создаем визуальную точку
+      this.createMaskPoint(point)
+      
+      // Обновляем линию
+      this.updateMaskLine()
+      
+      // Сохраняем каждый шаг рисования в историю
+      this.saveAction('addMaskPoint', { 
+        point: { x: point.x, y: point.y },
+        pointIndex: this.maskPoints.length - 1
+      })
+      
+      console.log('📍 Добавлена точка маски:', point.toString())
+    },
+    
+    onCanvasMouseMove(event) {
+      if (!this.maskMode || this.maskPoints.length === 0) return
+      
+      const rect = this.$refs.comicCanvas.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      
+      const point = new this.paperScope.Point(x, y)
+      
+      // Обновляем временную линию
+      this.updateMaskLine(point)
+    },
+    
+    createMaskPoint(point) {
+      // Создаем синий квадратик 4x4 пикселя
+      const square = new this.paperScope.Path.Rectangle({
+        point: [point.x - 2, point.y - 2],
+        size: [4, 4]
+      })
+      
+      square.fillColor = '#0066cc'
+      square.strokeColor = '#004499'
+      square.strokeWidth = 1
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(square)
+      
+      return square
+    },
+    
+    updateMaskLine(currentPoint = null) {
+      // Удаляем предыдущую линию
+      this.clearMaskLine()
+      
+      if (this.maskPoints.length < 2) return
+      
+      // Создаем пунктирную линию
+      const path = new this.paperScope.Path()
+      
+      // Добавляем все точки
+      for (let i = 0; i < this.maskPoints.length; i++) {
+        const point = new this.paperScope.Point(this.maskPoints[i].x, this.maskPoints[i].y)
+        path.add(point)
+      }
+      
+      // Добавляем текущую точку мыши если есть
+      if (currentPoint) {
+        path.add(currentPoint)
+      }
+      
+      // Настраиваем стиль линии
+      path.strokeColor = '#0066cc'
+      path.strokeWidth = 2
+      path.dashArray = [5, 5] // Пунктирная линия
+      path.closed = false
+      
+      // Сохраняем ссылку на линию
+      this.maskLine = path
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(path)
+    },
+    
+    // ========== Новые методы для масок ==========
+    createMaskVisual(mask) {
+      // Удаляем все точки маски (делаем их невидимыми)
+      this.clearAllMaskElements()
+      
+      // Создаем замкнутый контур маски
+      const path = new this.paperScope.Path()
+      
+      // Добавляем все точки маски
+      for (let i = 0; i < mask.points.length; i++) {
+        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
+        path.add(point)
+      }
+      
+      // Замыкаем контур
+      path.closed = true
+      
+      // Применяем настройки маски
+      path.fillColor = mask.fillColor
+      path.strokeColor = mask.strokeColor
+      path.strokeWidth = mask.strokeWidth
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(path)
+      
+      // Сохраняем ссылку на визуальную маску
+      mask.visualPath = path
+      
+      console.log('🎭 Создана визуальная маска с настройками:', {
+        fillColor: mask.fillColor,
+        strokeColor: mask.strokeColor,
+        strokeWidth: mask.strokeWidth
+      })
+    },
+    
+    selectMask(maskId) {
+      this.selectedMask = maskId
+      console.log('🎭 Выбрана маска:', maskId)
+    },
+    
+    updateMaskSettings(mask) {
+      console.log('🎨 Обновлены настройки маски:', mask.id, {
+        fillColor: mask.fillColor,
+        strokeColor: mask.strokeColor,
+        strokeWidth: mask.strokeWidth
+      })
+      
+      // Обновляем визуальную маску на canvas
+      if (mask.visualPath) {
+        mask.visualPath.fillColor = mask.fillColor
+        mask.visualPath.strokeColor = mask.strokeColor
+        mask.visualPath.strokeWidth = mask.strokeWidth
+      }
+      
+      // Сохраняем изменение в историю
+      this.saveAction('updateMaskSettings', { 
+        maskId: mask.id,
+        fillColor: mask.fillColor,
+        strokeColor: mask.strokeColor,
+        strokeWidth: mask.strokeWidth
+      })
+      
+      // Обновляем 3D модель
+      this.update3DModel()
+    },
+    
+    deleteMask(maskId) {
+      const index = this.userMasks.findIndex(mask => mask.id === maskId)
+      if (index !== -1) {
+        const mask = this.userMasks[index]
+        
+        // Удаляем визуальную маску с canvas
+        if (mask.visualPath) {
+          mask.visualPath.remove()
+        }
+        
+        this.userMasks.splice(index, 1)
+        
+        // Сохраняем в историю действий
+        this.saveAction('deleteMask', { mask, index })
+        
+        console.log('🗑️ Маска удалена:', maskId)
+      }
+    },
+    
+    clearMaskLine() {
+      if (this.maskLine) {
+        this.maskLine.remove()
+        this.maskLine = null
+      }
+    },
+    
+    clearAllMaskElements() {
+      // Очищаем все визуальные элементы маски
+      this.clearMaskLine()
+      
+      // Удаляем все точки маски с canvas
+      if (this.paperScope && this.paperScope.project) {
+        const items = this.paperScope.project.activeLayer.children
+        for (let i = items.length - 1; i >= 0; i--) {
+          const item = items[i]
+          if (item.fillColor && item.fillColor.toCSS() === '#0066cc') {
+            item.remove()
+          }
+        }
+      }
+    },
+    
+    removeLastMaskPoint() {
+      // Удаляем последнюю визуальную точку с canvas
+      if (this.paperScope && this.paperScope.project) {
+        const items = this.paperScope.project.activeLayer.children
+        for (let i = items.length - 1; i >= 0; i--) {
+          const item = items[i]
+          if (item.fillColor && item.fillColor.toCSS() === '#0066cc') {
+            item.remove()
+            break // Удаляем только одну точку
+          }
+        }
+      }
+    },
+    
+    // ========== Система отмены/повтора ==========
+    saveAction(type, data) {
+      const action = {
+        type,
+        data,
+        timestamp: Date.now()
+      }
+      
+      // Удаляем действия после текущего индекса
+      this.actionHistory = this.actionHistory.slice(0, this.currentActionIndex + 1)
+      
+      // Если создаем маску, удаляем все предыдущие шаги рисования этой маски
+      if (type === 'createMask') {
+        // Удаляем все действия addMaskPoint, которые были до этого
+        this.actionHistory = this.actionHistory.filter(action => action.type !== 'addMaskPoint')
+        this.currentActionIndex = this.actionHistory.length - 1
+      }
+      
+      // Добавляем новое действие
+      this.actionHistory.push(action)
+      this.currentActionIndex = this.actionHistory.length - 1
+      
+      // Ограничиваем размер истории
+      if (this.actionHistory.length > this.maxHistorySize) {
+        this.actionHistory.shift()
+        this.currentActionIndex--
+      }
+      
+      console.log('💾 Действие сохранено:', type)
+    },
+    
+    undoAction() {
+      if (!this.canUndo) return
+      
+      this.currentActionIndex--
+      const action = this.actionHistory[this.currentActionIndex]
+      this.executeAction(action, true)
+      
+      console.log('↶ Действие отменено:', action.type)
+    },
+    
+    redoAction() {
+      if (!this.canRedo) return
+      
+      this.currentActionIndex++
+      const action = this.actionHistory[this.currentActionIndex]
+      this.executeAction(action, false)
+      
+      console.log('↷ Действие повторено:', action.type)
+    },
+    
+    executeAction(action, isUndo) {
+      switch (action.type) {
+        case 'addMaskPoint':
+          if (isUndo) {
+            // Удаляем последнюю точку
+            if (this.maskPoints.length > 0) {
+              this.maskPoints.pop()
+              this.removeLastMaskPoint()
+              this.updateMaskLine()
+            }
+          } else {
+            // Восстанавливаем точку
+            this.maskPoints.push(action.data.point)
+            const point = new this.paperScope.Point(action.data.point.x, action.data.point.y)
+            this.createMaskPoint(point)
+            this.updateMaskLine()
+          }
+          break
+          
+        case 'createMask':
+          if (isUndo) {
+            // Удаляем маску из списка
+            const index = this.userMasks.findIndex(mask => mask.id === action.data.mask.id)
+            if (index !== -1) {
+              const mask = this.userMasks[index]
+              // Удаляем визуальную маску с canvas
+              if (mask.visualPath) {
+                mask.visualPath.remove()
+              }
+              this.userMasks.splice(index, 1)
+            }
+            this.maskPoints = []
+          } else {
+            // Восстанавливаем маску
+            this.userMasks.push(action.data.mask)
+            // Создаем визуальную маску
+            this.createMaskVisual(action.data.mask)
+          }
+          break
+          
+        case 'deleteMask':
+          if (isUndo) {
+            // Восстанавливаем маску
+            this.userMasks.splice(action.data.index, 0, action.data.mask)
+            // Создаем визуальную маску
+            this.createMaskVisual(action.data.mask)
+          } else {
+            // Удаляем маску
+            const index = this.userMasks.findIndex(mask => mask.id === action.data.mask.id)
+            if (index !== -1) {
+              const mask = this.userMasks[index]
+              // Удаляем визуальную маску с canvas
+              if (mask.visualPath) {
+                mask.visualPath.remove()
+              }
+              this.userMasks.splice(index, 1)
+            }
+          }
+          break
+          
+        case 'updateMaskSettings':
+          const mask = this.userMasks.find(m => m.id === action.data.maskId)
+          if (mask) {
+            if (isUndo) {
+              // Восстанавливаем предыдущие настройки
+              mask.fillColor = action.data.previousFillColor
+              mask.strokeColor = action.data.previousStrokeColor
+              mask.strokeWidth = action.data.previousStrokeWidth
+            } else {
+              // Применяем новые настройки
+              mask.fillColor = action.data.fillColor
+              mask.strokeColor = action.data.strokeColor
+              mask.strokeWidth = action.data.strokeWidth
+            }
+            this.update3DModel()
+          }
+          break
+          
+        default:
+          console.warn('⚠️ Неизвестный тип действия:', action.type)
+      }
     }
   }
 }
@@ -5026,6 +5544,102 @@ export default {
   .page-title {
     font-size: 1.3rem;
   }
+}
+
+/* Стили для масок */
+.user-masks-container {
+  min-height: 200px;
+}
+
+.masks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.mask-item-full {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  padding: 15px;
+}
+
+.mask-item-full:hover {
+  border-color: #016527;
+  box-shadow: 0 2px 8px rgba(1, 101, 39, 0.1);
+}
+
+.mask-item-full.active {
+  border-color: #016527;
+  background: #f8f9fa;
+}
+
+.mask-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.mask-preview {
+  width: 80px;
+  height: 50px;
+  margin-right: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mask-preview canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mask-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mask-name {
+  font-weight: 500;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.mask-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.mask-actions .btn {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+.mask-settings {
+  border-top: 1px solid #dee2e6;
+  padding-top: 15px;
+}
+
+.mask-settings .form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 5px;
+}
+
+.mask-settings .form-control-sm {
+  font-size: 0.8rem;
+}
+
+.mask-settings .form-range-sm {
+  height: 0.5rem;
 }
 </style>
 

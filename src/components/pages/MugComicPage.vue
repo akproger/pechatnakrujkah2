@@ -605,7 +605,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import paper from 'paper'
 import ThreeDRenderer from '../ThreeDRenderer.vue'
@@ -1881,7 +1880,6 @@ export default {
         console.log('✅ Текстовый слой создан:', layerInfo)
       }
     },
-
     // ========== МЕТОДЫ СОЗДАНИЯ ПОДЛОЖЕК (СКОПИРОВАНО 1 В 1 ИЗ GridsPage) ==========
     
     // Создание подложки с текстом - вызывает нужный метод в зависимости от режима
@@ -1953,8 +1951,6 @@ export default {
         console.log('✅ Текстовый слой обновлён')
       }
     },
-
-
     // КОПИЯ ИЗ GridsPage - начало блока методов создания подложек
 
     createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
@@ -2948,7 +2944,6 @@ export default {
         return rect
       }
     },
-    
     // Создание подложки "Мысли"
     createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       const currentTextData = textData
@@ -3536,7 +3531,6 @@ export default {
       
       return false
     },
-    
     // Построение пути суперподложки с хвостом из угла
     buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                             intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
@@ -3984,7 +3978,6 @@ export default {
         height: totalTextHeight
       }
     },
-
     // Рисование многострочного текста
     drawMultilineText(ctx, text, x, y, fontSize, lineHeight = 1.2) {
       if (!text) return
@@ -4170,7 +4163,6 @@ export default {
         ctx.fillText(line, lineX, lineY)
       })
     },
-    
     // Рисование фона для режима "Разговор"
     drawConversationBackground(ctx, centerX, centerY, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Рисуем основную прямоугольную подложку
@@ -5107,6 +5099,90 @@ export default {
       this.updateMaskLine(point)
     },
     
+    updateMaskLine(hoverPoint) {
+      // Удаляем предыдущую временную линию, если есть
+      if (this.maskLine) {
+        this.maskLine.remove()
+        this.maskLine = null
+      }
+      
+      if (!this.paperScope || !this.paperScope.project) return
+      if (!this.maskPoints || this.maskPoints.length === 0) return
+      
+      // Создаем новый путь
+      const path = new this.paperScope.Path()
+      path.strokeColor = '#0066cc'
+      path.strokeWidth = 2
+      path.dashArray = [5, 5]
+      path.closed = false
+      
+      // Добавляем точки текущего контура
+      for (const p of this.maskPoints) {
+        path.add(new this.paperScope.Point(p.x, p.y))
+      }
+      
+      // Если есть точка наведения — добавляем ее как временную
+      if (hoverPoint) {
+        path.add(new this.paperScope.Point(hoverPoint.x, hoverPoint.y))
+      }
+      
+      this.paperScope.project.activeLayer.addChild(path)
+      this.maskLine = path
+    },
+    
+    createMaskPoint(point) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      // Создаем синюю точку
+      const circle = new this.paperScope.Path.Circle(point, 4)
+      circle.fillColor = '#0066cc'
+      circle.strokeColor = '#004499'
+      circle.strokeWidth = 1
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(circle)
+      
+      // Сохраняем ссылку для удаления
+      this.maskPointElements.push(circle)
+      
+      console.log('📍 Создана точка маски:', point.toString())
+    },
+    
+    createMaskVisual(mask) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      // Создаем путь из точек маски
+      const path = new this.paperScope.Path()
+      
+      for (const point of mask.points) {
+        path.add(new this.paperScope.Point(point.x, point.y))
+      }
+      
+      // Замыкаем контур
+      path.closed = true
+      
+      // Настраиваем стиль
+      path.fillColor = mask.fillColor
+      path.strokeColor = mask.strokeColor
+      path.strokeWidth = mask.strokeWidth
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(path)
+      
+      // Сохраняем ссылку на визуальный путь
+      mask.visualPath = path
+      
+      // Очищаем вспомогательные элементы
+      this.clearAllMaskElements()
+      
+      console.log('🎭 Создана визуальная маска:', mask.id)
+    },
+    
+    selectMask(maskId) {
+      this.selectedMask = maskId
+      console.log('🎭 Выбрана маска:', maskId)
+    },
+    
     // ========== Обработчики drag and drop для изображений ==========
     onImageDragStart(event, image) {
       event.dataTransfer.setData('application/json', JSON.stringify({
@@ -5409,223 +5485,31 @@ export default {
       return
     },
     
-    updateImageLayerPath(mask) {
-      console.log('🔍 [updateImageLayerPath] НЕ создаем новый слой изображения при перетаскивании')
-      console.log('🔍 [updateImageLayerPath] Обрезанное изображение уже в группе, обновление не требуется')
-      
-      // НЕ создаем новый слой изображения - обрезанное изображение уже в группе
-      // и перемещается вместе с группой
-      return
-      
-      // Восстанавливаем изображение
-      if (this.maskImages[mask.id]) {
-        const image = this.maskImages[mask.id]
-        const img = new Image()
-        img.onload = () => {
-          const pattern = new this.paperScope.Raster(img)
-          
-          // Получаем размеры маски и изображения
-          const maskBounds = imagePath.bounds
-          const maskWidth = maskBounds.width
-          const maskHeight = maskBounds.height
-          const imageWidth = img.width
-          const imageHeight = img.height
-          
-          // Вычисляем масштаб: минимальный размер маски, максимальный размер изображения
-          const scaleX = maskWidth / imageWidth
-          const scaleY = maskHeight / imageHeight
-          const scale = Math.max(scaleX, scaleY) // Берем максимальный масштаб
-          
-          // Устанавливаем размер с сохранением пропорций
-          pattern.size = {
-            width: imageWidth * scale,
-            height: imageHeight * scale
-          }
-          
-          // Центрируем относительно маски
-          pattern.position = maskBounds.center
-          
-          imagePath.fillColor = pattern
-          
-          // Создаем обрезанное изображение по принципу стикеров
-          if (mask.visualPath) {
-            console.log('🔍 Отладка маски при обновлении:')
-            console.log('  - Замкнут ли контур:', mask.visualPath.closed)
-            console.log('  - Площадь маски:', mask.visualPath.area)
-            console.log('  - Границы маски:', mask.visualPath.bounds)
-            
-            // Проверяем замкнутость контура
-            if (!mask.visualPath.closed) {
-              console.log('⚠️ ВНИМАНИЕ: Контур маски не замкнут при обновлении! Закрываем его...')
-              mask.visualPath.closePath()
-            }
-            
-            // Создаем обрезанное изображение через временный canvas
-            this.createClippedImageForMaskUpdate(mask, imagePath)
-            
-            console.log('🎨 Обрезанное изображение создано при обновлении по принципу стикеров')
-          }
-        }
-        img.src = image.url
-      }
-      
-      mask.imageLayer = imagePath
-    },
-    
-    updateStrokePath(mask) {
-      console.log('🔍 [updateStrokePath] НЕ создаем новую обводку при перетаскивании')
-      console.log('🔍 [updateStrokePath] Обводка уже в группе, обновление не требуется')
-      
-      // НЕ создаем новую обводку - она уже в группе
-      // и перемещается вместе с группой
-      return
-    },
-    
-    createMaskPoint(point) {
-      // Создаем синий квадратик 4x4 пикселя
-      const square = new this.paperScope.Path.Rectangle({
-        point: [point.x - 2, point.y - 2],
-        size: [4, 4]
-      })
-      
-      square.fillColor = '#0066cc'
-      square.strokeColor = '#004499'
-      square.strokeWidth = 1
-      
-      // Добавляем на canvas
-      this.paperScope.project.activeLayer.addChild(square)
-      
-      // Сохраняем ссылку для удаления
-      this.maskPointElements.push(square)
-      
-      return square
-    },
-    
-    updateMaskLine(currentPoint = null) {
-      // Удаляем предыдущую линию
-      this.clearMaskLine()
-      
-      if (this.maskPoints.length < 2) return
-      
-      // Создаем пунктирную линию
-      const path = new this.paperScope.Path()
-      
-      // Добавляем все точки
-      for (let i = 0; i < this.maskPoints.length; i++) {
-        const point = new this.paperScope.Point(this.maskPoints[i].x, this.maskPoints[i].y)
-        path.add(point)
-      }
-      
-      // Добавляем текущую точку мыши если есть
-      if (currentPoint) {
-        path.add(currentPoint)
-      }
-      
-      // Настраиваем стиль линии
-      path.strokeColor = '#0066cc'
-      path.strokeWidth = 2
-      path.dashArray = [5, 5] // Пунктирная линия
-      path.closed = false
-      
-      // Сохраняем ссылку на линию
-      this.maskLine = path
-      
-      // Добавляем на canvas
-      this.paperScope.project.activeLayer.addChild(path)
-    },
-    
-    // ========== Новые методы для масок ==========
-    createMaskVisual(mask) {
-      // Удаляем все точки маски (делаем их невидимыми)
-      this.clearAllMaskElements()
-      
-      // Удаляем все синие точки построения контура
-      this.clearAllMaskPoints()
-      
-      // Создаем замкнутый контур маски
-      const path = new this.paperScope.Path()
-      
-      console.log('🔍 Отладка создания визуальной маски:')
-      console.log('  - Количество точек:', mask.points.length)
-      console.log('  - Точки маски:', mask.points)
-      
-      // Добавляем все точки маски
-      for (let i = 0; i < mask.points.length; i++) {
-        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
-        path.add(point)
-      }
-      
-      // Замыкаем контур
-      path.closed = true
-      
-      console.log('🔍 Отладка после создания контура:')
-      console.log('  - Замкнут ли контур:', path.closed)
-      console.log('  - Площадь маски:', path.area)
-      console.log('  - Границы маски:', path.bounds)
-      console.log('  - Длина контура:', path.length)
-      console.log('  - Количество сегментов:', path.segments.length)
-      
-      // Применяем настройки маски
-      if (this.maskImages[mask.id]) {
-        // Если к маске привязано изображение, создаем 3 слоя
-        const image = this.maskImages[mask.id]
-        const img = new Image()
-        img.onload = () => {
-          // 1. Слой фона (заливка)
-          path.fillColor = mask.fillColor
-          path.strokeColor = null // Убираем обводку с фона
-          path.strokeWidth = 0
-          
-          // 2. Создаем слой изображения с маской фона
-          this.createImageLayer(mask, image)
-          
-          // 3. Создаем слой обводки поверх всего
-          this.createMaskStroke(mask)
-          
-          // Создаем группу из всех слоев
-          this.createMaskGroup(mask)
-        }
-        img.src = image.url
-      } else {
-        // Обычная цветовая заливка - только 2 слоя
-        path.fillColor = mask.fillColor
-        path.strokeColor = mask.strokeColor
-        path.strokeWidth = mask.strokeWidth
-        
-        // Создаем группу из фона и обводки
-        this.createMaskGroup(mask)
-      }
-      
-      // Добавляем на canvas
-      this.paperScope.project.activeLayer.addChild(path)
-      
-      // Сохраняем ссылку на визуальную маску
-      mask.visualPath = path
-      
-      console.log('🎭 Создана визуальная маска с настройками:', {
-        fillColor: mask.fillColor,
-        strokeColor: mask.strokeColor,
-        strokeWidth: mask.strokeWidth
-      })
-      
-      // Обновляем изображение на 3D модели с небольшой задержкой
-      // чтобы canvas успел обновиться
-      setTimeout(() => {
-        this.update3DTexture()
-      }, 100)
-    },
-    
-    selectMask(maskId) {
-      this.selectedMask = maskId
-      console.log('🎭 Выбрана маска:', maskId)
-    },
-    
     updateMaskSettings(mask) {
       console.log('🎨 Обновлены настройки маски:', mask.id, {
         fillColor: mask.fillColor,
         strokeColor: mask.strokeColor,
         strokeWidth: mask.strokeWidth
       })
+      
+      // Если уже есть группа и обрезанное изображение — обновляем только обводку
+      if (mask && mask.maskGroup && mask.imageLayer) {
+        if (mask.strokePath) {
+          mask.strokePath.strokeColor = mask.strokeColor
+          mask.strokePath.strokeWidth = mask.strokeWidth
+        } else {
+          // если по какой-то причине обводка отсутствует — создаем и добавляем поверх
+          this.createMaskStroke(mask)
+          if (mask.strokePath && mask.maskGroup) {
+            mask.maskGroup.addChild(mask.strokePath)
+          }
+        }
+        // обновляем 3D текстуру и выходим без пересоздания растров
+        setTimeout(() => {
+          this.update3DTexture()
+        }, 100)
+        return
+      }
       
       // Обновляем визуальную маску на canvas
       if (mask.visualPath) {
@@ -5712,16 +5596,15 @@ export default {
       // Удаляем индикацию примагничивания
       this.hideMagneticSnap()
       
-      // Удаляем все точки маски с canvas
-      if (this.paperScope && this.paperScope.project) {
-        const items = this.paperScope.project.activeLayer.children
-        for (let i = items.length - 1; i >= 0; i--) {
-          const item = items[i]
-          if (item.fillColor && item.fillColor.toCSS() === '#0066cc') {
-            item.remove()
-          }
+      // Удаляем все синие точки по сохраненным ссылкам
+      this.maskPointElements.forEach(element => {
+        if (element && element.remove) {
+          element.remove()
         }
-      }
+      })
+      
+      // Очищаем массив ссылок
+      this.maskPointElements = []
     },
     
     clearAllMaskPoints() {
@@ -6033,7 +5916,6 @@ export default {
         }
       }
     },
-    
     // Создание обрезанного изображения при обновлении
     createClippedImageForMaskUpdate(mask, imagePath) {
       const image = this.maskImages[mask.id]
@@ -6522,7 +6404,6 @@ export default {
   font-weight: 500;
   transition: all 0.2s ease;
 }
-
 .nav-tabs .nav-link:hover {
   color: #016527;
   background-color: transparent;
@@ -6682,7 +6563,6 @@ export default {
   border-top: 1px solid #dee2e6;
   padding-top: 15px;
 }
-
 .mask-settings .form-label {
   font-size: 0.9rem;
   font-weight: 500;
@@ -6698,4 +6578,3 @@ export default {
   height: 0.5rem;
 }
 </style>
-

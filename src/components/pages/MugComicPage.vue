@@ -5570,6 +5570,21 @@ export default {
       // Восстанавливаем цветовую заливку и обводку
       const mask = this.userMasks.find(m => m.id === maskId)
       if (mask && mask.visualPath) {
+        // Синхронизируем позицию visualPath с текущей позицией группы/обводки
+        try {
+          let targetCenter = null
+          if (mask.maskGroup && mask.maskGroup.bounds) {
+            targetCenter = mask.maskGroup.bounds.center
+          } else if (mask.strokePath && mask.strokePath.bounds) {
+            targetCenter = mask.strokePath.bounds.center
+          }
+          if (targetCenter) {
+            mask.visualPath.position = new this.paperScope.Point(targetCenter.x, targetCenter.y)
+          }
+        } catch (e) {
+          console.warn('⚠️ Не удалось синхронизировать позицию visualPath при отвязке изображения:', e)
+        }
+        
         // Удаляем слой изображения если есть
         if (mask.imageLayer) {
           mask.imageLayer.remove()

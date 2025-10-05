@@ -5262,9 +5262,9 @@ export default {
         // Замыкаем контур
         strokePath.closed = true
         
-        // Настраиваем обводку - увеличиваем толщину в 2 раза для компенсации срезания
+        // Настраиваем обводку - используем обычную толщину, чтобы обводка была внутри маски
         strokePath.strokeColor = mask.strokeColor
-        strokePath.strokeWidth = mask.strokeWidth * 2
+        strokePath.strokeWidth = mask.strokeWidth // НЕ увеличиваем в 2 раза!
         strokePath.fillColor = null // Только обводка, без заливки
         
         // НЕ добавляем на canvas - добавим в группу позже
@@ -5273,7 +5273,7 @@ export default {
         // Сохраняем ссылку на обводку
         mask.strokePath = strokePath
         
-        console.log('🎨 [createMaskStroke] Создана обводка для маски:', mask.id, 'толщина:', mask.strokeWidth * 2)
+        console.log('🎨 [createMaskStroke] Создана обводка для маски:', mask.id, 'толщина:', mask.strokeWidth)
         console.log('🎨 [createMaskStroke] Координаты обводки:', strokePath.segments.map(s => `(${s.point.x}, ${s.point.y})`))
         
         // Логируем границы обводки

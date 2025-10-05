@@ -524,8 +524,14 @@
                         v-for="(mask, index) in userMasks" 
                         :key="mask.id"
                         class="mask-item-full"
-                        :class="{ active: selectedMask === mask.id }"
+                        :class="{ active: selectedMask === mask.id, 'dragging': draggedMaskIndex === index, 'drag-over': dragOverMaskIndex === index }"
                         @click="selectMask(mask.id)"
+                        draggable="true"
+                        @dragstart="handleMaskDragStart(index, $event)"
+                        @dragend="handleMaskDragEnd"
+                        @dragover="handleMaskDragOver(index, $event)"
+                        @dragleave="handleMaskDragLeave"
+                        @drop="handleMaskDrop(index, $event)"
                       >
                         <div class="mask-header">
                           <div class="mask-preview">
@@ -669,6 +675,9 @@ export default {
       maskLine: null, // Временная линия маски
       userMasks: [], // Пользовательские маски
       selectedMask: null, // Выбранная маска
+      // DnD для списка масок
+      draggedMaskIndex: null,
+      dragOverMaskIndex: null,
       nextMaskId: 1, // Следующий ID для масок
       nextMaskLayerIndex: 100, // Индекс слоя масок начинается со 100 и растет
       maskPointElements: [], // Визуальные элементы точек маски для удаления
@@ -737,6 +746,45 @@ export default {
     }
   },
   methods: {
+      // ====== Drag & Drop масок ======
+      handleMaskDragStart(index, event) {
+        this.draggedMaskIndex = index
+        try { event.dataTransfer.effectAllowed = 'move' } catch (e) {}
+      },
+      handleMaskDragEnd() {
+        this.draggedMaskIndex = null
+        this.dragOverMaskIndex = null
+        // После изменения порядка — пересчитаем индексы слоёв и применим в Paper.js
+        this.reindexUserMasksByOrder()
+      },
+      handleMaskDragOver(index, event) {
+        event.preventDefault()
+        this.dragOverMaskIndex = index
+        try { event.dataTransfer.dropEffect = 'move' } catch (e) {}
+      },
+      handleMaskDragLeave() {
+        this.dragOverMaskIndex = null
+      },
+      handleMaskDrop(targetIndex) {
+        if (this.draggedMaskIndex === null || targetIndex === this.draggedMaskIndex) return
+        const dragged = this.userMasks[this.draggedMaskIndex]
+        this.userMasks.splice(this.draggedMaskIndex, 1)
+        this.userMasks.splice(targetIndex, 0, dragged)
+        this.draggedMaskIndex = targetIndex
+        // Пересчитать индексы и применить порядок
+        this.reindexUserMasksByOrder()
+        this.$forceUpdate?.()
+      },
+      reindexUserMasksByOrder() {
+        // Верх списка = выше слой. Присваиваем большие layerIndex более верхним
+        let idx = 100
+        for (let i = this.userMasks.length - 1; i >= 0; i--) {
+          this.userMasks[i].layerIndex = idx
+          idx += 10
+        }
+        this.enforceLayerOrder()
+        if (this.paperScope?.view) this.paperScope.view.update()
+      },
       // ====== Drag & Drop текстовых слоёв (по аналогии со StickerMania) ======
       handleTextDragStart(index, event) {
         this.draggedTextIndex = index

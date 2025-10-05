@@ -110,6 +110,8 @@
                   class="comic-canvas"
                   @click="onCanvasClick"
                   @mousemove="onCanvasMouseMove"
+                  @dragover="onCanvasDragOver"
+                  @drop="onCanvasDrop"
                 ></canvas>
                 
                 <!-- Прелоадер -->
@@ -284,12 +286,18 @@
                           :key="index"
                           class="col-md-4 col-lg-3 col-xl-2"
                         >
-                          <div class="position-relative">
+                          <div 
+                            class="position-relative"
+                            draggable="true"
+                            @dragstart="onImageDragStart($event, image)"
+                            @dragend="onImageDragEnd"
+                          >
                             <img 
                               :src="image.url" 
                               :alt="image.name"
                               class="img-fluid rounded border"
                               style="max-height: 100px; width: 100%; object-fit: cover;"
+                              draggable="false"
                             >
                             <button 
                               @click="removeImage(index)"
@@ -526,6 +534,28 @@
                           </div>
                         </div>
                         
+                        <!-- Информация о привязанном изображении -->
+                        <div v-if="maskImages[mask.id]" class="mask-image-info mb-2">
+                          <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                              <img 
+                                :src="maskImages[mask.id].url" 
+                                :alt="maskImages[mask.id].name"
+                                class="me-2"
+                                style="width: 24px; height: 24px; object-fit: cover; border-radius: 3px;"
+                              >
+                              <small class="text-muted">{{ maskImages[mask.id].name }}</small>
+                            </div>
+                            <button 
+                              class="btn btn-sm btn-outline-secondary"
+                              @click.stop="detachImageFromMask(mask.id)"
+                              title="Отменить привязку изображения"
+                            >
+                              <i class="bi bi-x"></i>
+                            </button>
+                          </div>
+                        </div>
+                        
                         <div class="mask-settings">
                           <div class="row g-2">
                             <div class="col-md-4">
@@ -536,6 +566,7 @@
                                 v-model="mask.fillColor"
                                 @change="updateMaskSettings(mask)"
                                 title="Цвет заливки"
+                                :disabled="!!maskImages[mask.id]"
                               >
                             </div>
                             <div class="col-md-4">
@@ -624,11 +655,15 @@ export default {
       nextMaskId: 1, // Следующий ID для масок
       maskPointElements: [], // Визуальные элементы точек маски для удаления
       
+      // Привязка изображений к маскам
+      maskImages: {}, // Объект для хранения привязанных изображений {maskId: imageData}
+      
       // Проверка пересечений
       hasIntersection: false, // Есть ли пересечение
       intersectionPoint: null, // Точка пересечения для подсветки
       intersectionWarning: null, // Визуальное предупреждение о пересечении
       redClickPoint: null, // Красная точка клика при пересечении
+      magneticSnapIndicator: null, // Индикация примагничивания к первой точке
       
       // Система отмены/повтора
       actionHistory: [], // История действий
@@ -1160,7 +1195,9 @@ export default {
         name: `Маска ${this.userMasks.length + 1}`,
         fillColor: '#f0f0f0', // Светло-серый по умолчанию
         strokeColor: '#000000', // Черный по умолчанию
-        strokeWidth: 8 // 8px по умолчанию
+        strokeWidth: 8, // 8px по умолчанию
+        isDragging: false, // Флаг перетаскивания
+        dragStart: null // Начальная точка перетаскивания
       }
       
       // Добавляем в список масок
@@ -4991,11 +5028,12 @@ export default {
       this.hideRedClickPoint()
       
       // Проверяем замыкание контура (магнит к первой точке)
-      if (this.maskPoints.length > 2) {
+      if (this.maskPoints.length >= 3) {
         const firstPoint = this.maskPoints[0]
         const distance = point.getDistance(firstPoint)
         
-        if (distance < 10) { // Магнит 10px
+        if (distance <= 15) { // Магнит 15px
+          console.log('🎯 Примагничивание к первой точке! Расстояние:', distance.toFixed(2))
           console.log('🎭 Контур замкнут!')
           this.finishMask()
           return
@@ -5033,8 +5071,392 @@ export default {
       
       const point = new this.paperScope.Point(x, y)
       
+      // Проверяем примагничивание к первой точке
+      if (this.maskPoints.length >= 3) {
+        const firstPoint = this.maskPoints[0]
+        const distance = point.getDistance(firstPoint)
+        
+        if (distance <= 15) {
+          // Показываем индикацию примагничивания
+          this.showMagneticSnap(firstPoint)
+        } else {
+          // Скрываем индикацию примагничивания
+          this.hideMagneticSnap()
+        }
+      }
+      
       // Обновляем временную линию
       this.updateMaskLine(point)
+    },
+    
+    // ========== Обработчики drag and drop для изображений ==========
+    onImageDragStart(event, image) {
+      event.dataTransfer.setData('application/json', JSON.stringify({
+        type: 'image',
+        image: image
+      }))
+      event.dataTransfer.effectAllowed = 'copy'
+      console.log('🖼️ Начато перетаскивание изображения:', image.name)
+    },
+    
+    onImageDragEnd() {
+      console.log('🖼️ Завершено перетаскивание изображения')
+    },
+    
+    onCanvasDragOver(event) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'copy'
+    },
+    
+    onCanvasDrop(event) {
+      event.preventDefault()
+      
+      try {
+        const data = JSON.parse(event.dataTransfer.getData('application/json'))
+        
+        if (data.type === 'image') {
+          const image = data.image
+          const rect = this.$refs.comicCanvas.getBoundingClientRect()
+          const x = event.clientX - rect.left
+          const y = event.clientY - rect.top
+          
+          // Находим маску под курсором
+          const mask = this.findMaskAtPoint(x, y)
+          
+          if (mask) {
+            this.attachImageToMask(mask.id, image)
+            console.log('🖼️ Изображение привязано к маске:', mask.id)
+          } else {
+            console.log('❌ Маска не найдена под курсором')
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при обработке drop:', error)
+      }
+    },
+    
+    findMaskAtPoint(x, y) {
+      // Находим маску под указанной точкой
+      for (const mask of this.userMasks) {
+        if (mask.visualPath && mask.visualPath.contains(new this.paperScope.Point(x, y))) {
+          return mask
+        }
+      }
+      return null
+    },
+    
+    attachImageToMask(maskId, image) {
+      // Привязываем изображение к маске
+      this.maskImages[maskId] = image
+      
+      // Обновляем визуальную маску с изображением
+      this.updateMaskWithImage(maskId)
+      
+      // Обновляем 3D модель
+      setTimeout(() => {
+        this.update3DTexture()
+      }, 100)
+      
+      console.log('🖼️ Изображение привязано к маске:', maskId, image.name)
+    },
+    
+    updateMaskWithImage(maskId) {
+      const mask = this.userMasks.find(m => m.id === maskId)
+      const image = this.maskImages[maskId]
+      
+      if (mask && mask.visualPath && image) {
+        // 1. Убираем обводку с фона
+        mask.visualPath.strokeColor = null
+        mask.visualPath.strokeWidth = 0
+        
+        // 2. Создаем обводку ПЕРЕД созданием группы
+        this.createMaskStroke(mask)
+        
+        // 3. Создаем группу из всех слоев (как в стикерах)
+        this.createMaskGroup(mask)
+        
+        // 4. Создаем обрезанное изображение и добавляем в группу (как в стикерах)
+        this.createClippedImageForMask(mask, mask.maskGroup)
+        
+        console.log('🎨 Маска обновлена с изображением:', image.name)
+      }
+    },
+    
+    detachImageFromMask(maskId) {
+      // Отменяем привязку изображения к маске
+      delete this.maskImages[maskId]
+      
+      // Восстанавливаем цветовую заливку и обводку
+      const mask = this.userMasks.find(m => m.id === maskId)
+      if (mask && mask.visualPath) {
+        // Восстанавливаем фон с обводкой
+        mask.visualPath.fillColor = mask.fillColor
+        mask.visualPath.strokeColor = mask.strokeColor
+        mask.visualPath.strokeWidth = mask.strokeWidth
+        
+        // Удаляем слой изображения если есть
+        if (mask.imageLayer) {
+          mask.imageLayer.remove()
+          mask.imageLayer = null
+        }
+        
+        // Удаляем отдельную обводку если есть
+        if (mask.strokePath) {
+          mask.strokePath.remove()
+          mask.strokePath = null
+        }
+        
+        // Удаляем группу если есть
+        if (mask.maskGroup) {
+          mask.maskGroup.remove()
+          mask.maskGroup = null
+        }
+      }
+      
+      // Обновляем 3D модель
+      setTimeout(() => {
+        this.update3DTexture()
+      }, 100)
+      
+      console.log('🖼️ Привязка изображения отменена для маски:', maskId)
+    },
+    
+    createMaskStroke(mask) {
+      // Удаляем предыдущую обводку если есть
+      if (mask.strokePath) {
+        mask.strokePath.remove()
+      }
+      
+      // Создаем обводку поверх изображения
+      if (mask.strokeColor && mask.strokeWidth > 0) {
+        const strokePath = new this.paperScope.Path()
+        
+        // Копируем точки маски для обводки
+        for (let i = 0; i < mask.points.length; i++) {
+          const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
+          strokePath.add(point)
+        }
+        
+        // Замыкаем контур
+        strokePath.closed = true
+        
+        // Настраиваем обводку - увеличиваем толщину в 2 раза для компенсации срезания
+        strokePath.strokeColor = mask.strokeColor
+        strokePath.strokeWidth = mask.strokeWidth * 2
+        strokePath.fillColor = null // Только обводка, без заливки
+        
+        // Добавляем на canvas поверх изображения
+        this.paperScope.project.activeLayer.addChild(strokePath)
+        
+        // Сохраняем ссылку на обводку
+        mask.strokePath = strokePath
+        
+        console.log('🎨 Создана обводка поверх изображения для маски:', mask.id)
+      }
+    },
+    
+    createImageLayer(mask, image) {
+      // НЕ создаем слой изображения здесь - будем создавать обрезанное изображение отдельно
+      console.log('🎨 Создание слоя изображения пропущено - будет создано обрезанное изображение')
+      
+      // Удаляем предыдущий слой изображения если есть
+      if (mask.imageLayer) {
+        mask.imageLayer.remove()
+        mask.imageLayer = null
+      }
+    },
+    
+    createMaskGroup(mask) {
+      // Удаляем предыдущую группу если есть
+      if (mask.maskGroup) {
+        mask.maskGroup.remove()
+      }
+      
+      // Создаем группу (будет содержать только обрезанное изображение и обводку)
+      const group = new this.paperScope.Group()
+      
+      // НЕ добавляем фон (visualPath) - он нужен только для обрезки
+      // НЕ добавляем обводку здесь - она уже создана в updateMaskWithImage
+      
+      console.log('🎨 Группа создана (пустая, будет заполнена обрезанным изображением и обводкой)')
+      
+      // Делаем группу перетаскиваемой
+      group.onMouseDown = (event) => {
+        this.startDraggingMask(mask, event)
+      }
+      
+      group.onMouseDrag = (event) => {
+        this.dragMask(mask, event)
+      }
+      
+      group.onMouseUp = (event) => {
+        this.stopDraggingMask(mask, event)
+      }
+      
+      // Сохраняем ссылку на группу
+      mask.maskGroup = group
+      
+      console.log('🎨 Группа сохранена в маске:', mask.id, 'с', group.children.length, 'элементами')
+      
+      // Добавляем группу на canvas
+      this.paperScope.project.activeLayer.addChild(group)
+      
+      console.log('🎨 Создана группа для маски:', mask.id, 'слоев:', group.children.length)
+    },
+    
+    // ========== Методы для перетаскивания масок ==========
+    startDraggingMask(mask, event) {
+      mask.isDragging = true
+      mask.dragStart = event.point
+      console.log('🎭 Начато перетаскивание маски:', mask.id)
+    },
+    
+    dragMask(mask, event) {
+      if (mask.isDragging && mask.dragStart) {
+        const delta = event.point.subtract(mask.dragStart)
+        
+        // Перемещаем всю группу
+        if (mask.maskGroup) {
+          mask.maskGroup.position = mask.maskGroup.position.add(delta)
+        }
+        
+        // Обновляем точки маски для всех слоев
+        for (let i = 0; i < mask.points.length; i++) {
+          mask.points[i].x += delta.x
+          mask.points[i].y += delta.y
+        }
+        
+        // Обновляем визуальные пути
+        if (mask.visualPath) {
+          this.updateMaskVisualPath(mask)
+        }
+        
+        if (mask.imageLayer) {
+          this.updateImageLayerPath(mask)
+        }
+        
+        if (mask.strokePath) {
+          this.updateStrokePath(mask)
+        }
+        
+        // Обновляем позицию группы
+        if (mask.maskGroup) {
+          mask.maskGroup.position = mask.maskGroup.position.add(delta)
+          console.log('🎭 Обновлена позиция группы:', mask.maskGroup.position.toString())
+        }
+        
+        mask.dragStart = event.point
+        console.log('🎭 Перетаскивание маски:', mask.id, delta.toString())
+      }
+    },
+    
+    stopDraggingMask(mask, event) {
+      mask.isDragging = false
+      mask.dragStart = null
+      console.log('🎭 Завершено перетаскивание маски:', mask.id)
+    },
+    
+    updateMaskVisualPath(mask) {
+      if (mask.visualPath) {
+        mask.visualPath.remove()
+      }
+      
+      const path = new this.paperScope.Path()
+      for (let i = 0; i < mask.points.length; i++) {
+        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
+        path.add(point)
+      }
+      path.closed = true
+      path.fillColor = mask.fillColor
+      path.strokeColor = mask.strokeColor
+      path.strokeWidth = mask.strokeWidth
+      
+      mask.visualPath = path
+    },
+    
+    updateImageLayerPath(mask) {
+      if (mask.imageLayer) {
+        mask.imageLayer.remove()
+      }
+      
+      const imagePath = new this.paperScope.Path()
+      for (let i = 0; i < mask.points.length; i++) {
+        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
+        imagePath.add(point)
+      }
+      imagePath.closed = true
+      
+      // Восстанавливаем изображение
+      if (this.maskImages[mask.id]) {
+        const image = this.maskImages[mask.id]
+        const img = new Image()
+        img.onload = () => {
+          const pattern = new this.paperScope.Raster(img)
+          
+          // Получаем размеры маски и изображения
+          const maskBounds = imagePath.bounds
+          const maskWidth = maskBounds.width
+          const maskHeight = maskBounds.height
+          const imageWidth = img.width
+          const imageHeight = img.height
+          
+          // Вычисляем масштаб: минимальный размер маски, максимальный размер изображения
+          const scaleX = maskWidth / imageWidth
+          const scaleY = maskHeight / imageHeight
+          const scale = Math.max(scaleX, scaleY) // Берем максимальный масштаб
+          
+          // Устанавливаем размер с сохранением пропорций
+          pattern.size = {
+            width: imageWidth * scale,
+            height: imageHeight * scale
+          }
+          
+          // Центрируем относительно маски
+          pattern.position = maskBounds.center
+          
+          imagePath.fillColor = pattern
+          
+          // Создаем обрезанное изображение по принципу стикеров
+          if (mask.visualPath) {
+            console.log('🔍 Отладка маски при обновлении:')
+            console.log('  - Замкнут ли контур:', mask.visualPath.closed)
+            console.log('  - Площадь маски:', mask.visualPath.area)
+            console.log('  - Границы маски:', mask.visualPath.bounds)
+            
+            // Проверяем замкнутость контура
+            if (!mask.visualPath.closed) {
+              console.log('⚠️ ВНИМАНИЕ: Контур маски не замкнут при обновлении! Закрываем его...')
+              mask.visualPath.closePath()
+            }
+            
+            // Создаем обрезанное изображение через временный canvas
+            this.createClippedImageForMaskUpdate(mask, imagePath)
+            
+            console.log('🎨 Обрезанное изображение создано при обновлении по принципу стикеров')
+          }
+        }
+        img.src = image.url
+      }
+      
+      mask.imageLayer = imagePath
+    },
+    
+    updateStrokePath(mask) {
+      if (mask.strokePath) {
+        mask.strokePath.remove()
+      }
+      
+      const strokePath = new this.paperScope.Path()
+      for (let i = 0; i < mask.points.length; i++) {
+        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
+        strokePath.add(point)
+      }
+      strokePath.closed = true
+      strokePath.strokeColor = mask.strokeColor
+      strokePath.strokeWidth = mask.strokeWidth * 2
+      strokePath.fillColor = null
+      
+      mask.strokePath = strokePath
     },
     
     createMaskPoint(point) {
@@ -5101,6 +5523,10 @@ export default {
       // Создаем замкнутый контур маски
       const path = new this.paperScope.Path()
       
+      console.log('🔍 Отладка создания визуальной маски:')
+      console.log('  - Количество точек:', mask.points.length)
+      console.log('  - Точки маски:', mask.points)
+      
       // Добавляем все точки маски
       for (let i = 0; i < mask.points.length; i++) {
         const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
@@ -5110,10 +5536,43 @@ export default {
       // Замыкаем контур
       path.closed = true
       
+      console.log('🔍 Отладка после создания контура:')
+      console.log('  - Замкнут ли контур:', path.closed)
+      console.log('  - Площадь маски:', path.area)
+      console.log('  - Границы маски:', path.bounds)
+      console.log('  - Длина контура:', path.length)
+      console.log('  - Количество сегментов:', path.segments.length)
+      
       // Применяем настройки маски
-      path.fillColor = mask.fillColor
-      path.strokeColor = mask.strokeColor
-      path.strokeWidth = mask.strokeWidth
+      if (this.maskImages[mask.id]) {
+        // Если к маске привязано изображение, создаем 3 слоя
+        const image = this.maskImages[mask.id]
+        const img = new Image()
+        img.onload = () => {
+          // 1. Слой фона (заливка)
+          path.fillColor = mask.fillColor
+          path.strokeColor = null // Убираем обводку с фона
+          path.strokeWidth = 0
+          
+          // 2. Создаем слой изображения с маской фона
+          this.createImageLayer(mask, image)
+          
+          // 3. Создаем слой обводки поверх всего
+          this.createMaskStroke(mask)
+          
+          // Создаем группу из всех слоев
+          this.createMaskGroup(mask)
+        }
+        img.src = image.url
+      } else {
+        // Обычная цветовая заливка - только 2 слоя
+        path.fillColor = mask.fillColor
+        path.strokeColor = mask.strokeColor
+        path.strokeWidth = mask.strokeWidth
+        
+        // Создаем группу из фона и обводки
+        this.createMaskGroup(mask)
+      }
       
       // Добавляем на canvas
       this.paperScope.project.activeLayer.addChild(path)
@@ -5148,9 +5607,33 @@ export default {
       
       // Обновляем визуальную маску на canvas
       if (mask.visualPath) {
-        mask.visualPath.fillColor = mask.fillColor
-        mask.visualPath.strokeColor = mask.strokeColor
-        mask.visualPath.strokeWidth = mask.strokeWidth
+        // Если к маске привязано изображение, используем его как заливку
+        if (this.maskImages[mask.id]) {
+          const image = this.maskImages[mask.id]
+          const img = new Image()
+          img.onload = () => {
+            const pattern = new this.paperScope.Raster(img)
+            
+            // Устанавливаем размер паттерна под размер маски
+            const maskBounds = mask.visualPath.bounds
+            pattern.position = maskBounds.center
+            pattern.size = maskBounds.size
+            
+            mask.visualPath.fillColor = pattern
+            
+            // Создаем отдельный слой для обводки поверх изображения
+            this.createMaskStroke(mask)
+            
+            // Создаем группу из маски, изображения и обводки
+            this.createMaskGroup(mask)
+          }
+          img.src = image.url
+        } else {
+          // Обычная цветовая заливка
+          mask.visualPath.fillColor = mask.fillColor
+          mask.visualPath.strokeColor = mask.strokeColor
+          mask.visualPath.strokeWidth = mask.strokeWidth
+        }
       }
       
       // Сохраняем изменение в историю
@@ -5203,6 +5686,9 @@ export default {
       
       // Удаляем красную точку клика
       this.hideRedClickPoint()
+      
+      // Удаляем индикацию примагничивания
+      this.hideMagneticSnap()
       
       // Удаляем все точки маски с canvas
       if (this.paperScope && this.paperScope.project) {
@@ -5311,6 +5797,284 @@ export default {
       if (this.intersectionWarning) {
         this.intersectionWarning.remove()
         this.intersectionWarning = null
+      }
+    },
+    
+    showMagneticSnap(point) {
+      // Удаляем предыдущую индикацию
+      this.hideMagneticSnap()
+      
+      // Создаем зеленый круг вокруг первой точки
+      const circle = new this.paperScope.Path.Circle({
+        center: point,
+        radius: 15,
+        strokeColor: '#00ff00',
+        strokeWidth: 2,
+        dashArray: [5, 5]
+      })
+      
+      // Добавляем на canvas
+      this.paperScope.project.activeLayer.addChild(circle)
+      
+      // Сохраняем ссылку
+      this.magneticSnapIndicator = circle
+      
+      console.log('🧲 Показана индикация примагничивания')
+    },
+    
+    hideMagneticSnap() {
+      if (this.magneticSnapIndicator) {
+        this.magneticSnapIndicator.remove()
+        this.magneticSnapIndicator = null
+      }
+    },
+    
+    // Создание обрезанного изображения по принципу стикеров
+    createClippedImageForMask(mask, group) {
+      const image = this.maskImages[mask.id]
+      if (!image) {
+        console.log('⚠️ Изображение не найдено для маски:', mask.id)
+        return
+      }
+      
+      console.log('🎨 Создаем обрезанное изображение для маски:', mask.id)
+      
+      // Создаем растр из изображения
+      const raster = new this.paperScope.Raster(image.url)
+      raster.visible = false // Скрываем оригинальный растр
+      
+      raster.onLoad = () => {
+        console.log(`🖼️ Растр загружен: ${image.name}, размеры: ${raster.image.width}x${raster.image.height}`)
+        
+        // Создаем временный canvas для обрезки изображения
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Получаем размеры маски
+        const maskBounds = mask.visualPath.bounds
+        console.log(`📐 Размеры маски: ${maskBounds.width}x${maskBounds.height}`)
+        
+        tempCanvas.width = maskBounds.width
+        tempCanvas.height = maskBounds.height
+        
+        // Очищаем canvas
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+        
+        // Создаем путь маски на canvas
+        tempCtx.save()
+        tempCtx.beginPath()
+        
+        // Рисуем путь маски (используем сегменты)
+        if (mask.visualPath.segments && mask.visualPath.segments.length > 0) {
+          console.log('🔍 Сегменты пути:', mask.visualPath.segments.length)
+          
+          // Первая точка
+          const firstPoint = mask.visualPath.segments[0].point
+          const relativeFirstPoint = new this.paperScope.Point(
+            firstPoint.x - maskBounds.x,
+            firstPoint.y - maskBounds.y
+          )
+          tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+          
+          // Остальные точки
+          for (let i = 1; i < mask.visualPath.segments.length; i++) {
+            const segment = mask.visualPath.segments[i]
+            const relativePoint = new this.paperScope.Point(
+              segment.point.x - maskBounds.x,
+              segment.point.y - maskBounds.y
+            )
+            tempCtx.lineTo(relativePoint.x, relativePoint.y)
+          }
+        }
+        
+        tempCtx.closePath()
+        tempCtx.clip()
+        
+        // Рисуем изображение на canvas с сохранением пропорций
+        const imgWidth = raster.image.width
+        const imgHeight = raster.image.height
+        const canvasWidth = maskBounds.width
+        const canvasHeight = maskBounds.height
+        
+        // Вычисляем масштаб для заполнения всей площади
+        const scaleX = canvasWidth / imgWidth
+        const scaleY = canvasHeight / imgHeight
+        const scale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
+        
+        // Дополнительно увеличиваем масштаб для гарантированного заполнения
+        const extraScale = 1.1 // Увеличиваем на 10% для гарантии заполнения
+        const finalScale = scale * extraScale
+        
+        // Вычисляем размеры масштабированного изображения
+        const scaledWidth = imgWidth * finalScale
+        const scaledHeight = imgHeight * finalScale
+        
+        // Вычисляем смещение для центрирования
+        const offsetX = (canvasWidth - scaledWidth) / 2
+        const offsetY = (canvasHeight - scaledHeight) / 2
+        
+        // Рисуем изображение
+        tempCtx.drawImage(
+          raster.image,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        )
+        
+        tempCtx.restore()
+        
+        // Создаем новый растр из обрезанного изображения
+        const dataURL = tempCanvas.toDataURL('image/png')
+        console.log(`✂️ Создан обрезанный растр, размер dataURL: ${dataURL.length} символов`)
+        const clippedRaster = new this.paperScope.Raster(dataURL)
+        
+        clippedRaster.onLoad = () => {
+          console.log(`✅ Обрезанный растр загружен, позиционируем в центре маски`)
+          
+          // Позиционируем обрезанный растр в центре маски
+          clippedRaster.position = maskBounds.center
+          
+          // Заменяем старое изображение на обрезанное
+          if (mask.imageLayer) {
+            mask.imageLayer.remove()
+          }
+          mask.imageLayer = clippedRaster
+          
+          // Добавляем в группу (если группа еще существует)
+          if (group && group.parent) {
+            // Добавляем обрезанное изображение в группу (оно будет под обводкой)
+            group.addChild(clippedRaster)
+            console.log('🎨 Обрезанное изображение добавлено в группу')
+            
+            // Удаляем слой с серой заливкой - он больше не нужен
+            if (mask.visualPath && mask.visualPath.parent) {
+              mask.visualPath.remove()
+              console.log('🗑️ Удален слой с серой заливкой')
+            }
+          } else {
+            // Если группа не существует, добавляем напрямую в проект
+            this.paperScope.project.activeLayer.addChild(clippedRaster)
+            console.log('🎨 Обрезанное изображение добавлено в проект')
+          }
+        }
+      }
+    },
+    
+    // Создание обрезанного изображения при обновлении
+    createClippedImageForMaskUpdate(mask, imagePath) {
+      const image = this.maskImages[mask.id]
+      if (!image) {
+        console.log('⚠️ Изображение не найдено для маски при обновлении:', mask.id)
+        return
+      }
+      
+      console.log('🎨 Создаем обрезанное изображение при обновлении для маски:', mask.id)
+      
+      // Создаем растр из изображения
+      const raster = new this.paperScope.Raster(image.url)
+      raster.visible = false // Скрываем оригинальный растр
+      
+      raster.onLoad = () => {
+        console.log(`🖼️ Растр загружен при обновлении: ${image.name}, размеры: ${raster.image.width}x${raster.image.height}`)
+        
+        // Создаем временный canvas для обрезки изображения
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        
+        // Получаем размеры маски
+        const maskBounds = mask.visualPath.bounds
+        console.log(`📐 Размеры маски при обновлении: ${maskBounds.width}x${maskBounds.height}`)
+        
+        tempCanvas.width = maskBounds.width
+        tempCanvas.height = maskBounds.height
+        
+        // Очищаем canvas
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
+        
+        // Создаем путь маски на canvas
+        tempCtx.save()
+        tempCtx.beginPath()
+        
+        // Рисуем путь маски (используем сегменты)
+        if (mask.visualPath.segments && mask.visualPath.segments.length > 0) {
+          console.log('🔍 Сегменты пути при обновлении:', mask.visualPath.segments.length)
+          
+          // Первая точка
+          const firstPoint = mask.visualPath.segments[0].point
+          const relativeFirstPoint = new this.paperScope.Point(
+            firstPoint.x - maskBounds.x,
+            firstPoint.y - maskBounds.y
+          )
+          tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
+          
+          // Остальные точки
+          for (let i = 1; i < mask.visualPath.segments.length; i++) {
+            const segment = mask.visualPath.segments[i]
+            const relativePoint = new this.paperScope.Point(
+              segment.point.x - maskBounds.x,
+              segment.point.y - maskBounds.y
+            )
+            tempCtx.lineTo(relativePoint.x, relativePoint.y)
+          }
+        }
+        
+        tempCtx.closePath()
+        tempCtx.clip()
+        
+        // Рисуем изображение на canvas с сохранением пропорций
+        const imgWidth = raster.image.width
+        const imgHeight = raster.image.height
+        const canvasWidth = maskBounds.width
+        const canvasHeight = maskBounds.height
+        
+        // Вычисляем масштаб для заполнения всей площади
+        const scaleX = canvasWidth / imgWidth
+        const scaleY = canvasHeight / imgHeight
+        const scale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
+        
+        // Дополнительно увеличиваем масштаб для гарантированного заполнения
+        const extraScale = 1.1 // Увеличиваем на 10% для гарантии заполнения
+        const finalScale = scale * extraScale
+        
+        // Вычисляем размеры масштабированного изображения
+        const scaledWidth = imgWidth * finalScale
+        const scaledHeight = imgHeight * finalScale
+        
+        // Вычисляем смещение для центрирования
+        const offsetX = (canvasWidth - scaledWidth) / 2
+        const offsetY = (canvasHeight - scaledHeight) / 2
+        
+        // Рисуем изображение
+        tempCtx.drawImage(
+          raster.image,
+          offsetX,
+          offsetY,
+          scaledWidth,
+          scaledHeight
+        )
+        
+        tempCtx.restore()
+        
+        // Создаем новый растр из обрезанного изображения
+        const dataURL = tempCanvas.toDataURL('image/png')
+        console.log(`✂️ Создан обрезанный растр при обновлении, размер dataURL: ${dataURL.length} символов`)
+        const clippedRaster = new this.paperScope.Raster(dataURL)
+        
+        clippedRaster.onLoad = () => {
+          console.log(`✅ Обрезанный растр загружен при обновлении, позиционируем в центре маски`)
+          
+          // Позиционируем обрезанный растр в центре маски
+          clippedRaster.position = maskBounds.center
+          
+          // Заменяем старое изображение на обрезанное
+          if (mask.imageLayer) {
+            mask.imageLayer.remove()
+          }
+          mask.imageLayer = clippedRaster
+          
+          console.log('🎨 Обрезанное изображение обновлено')
+        }
       }
     },
     

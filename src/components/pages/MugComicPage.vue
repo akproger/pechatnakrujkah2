@@ -5259,9 +5259,8 @@ export default {
       const image = this.maskImages[maskId]
       
       if (mask && mask.visualPath && image) {
-        // 1. Убираем обводку с фона
-        mask.visualPath.strokeColor = null
-        mask.visualPath.strokeWidth = 0
+        // 1. Скрываем visualPath (он нужен только для обрезки)
+        mask.visualPath.visible = false
         
         // 2. Создаем обводку ПЕРЕД созданием группы
         this.createMaskStroke(mask)
@@ -5283,11 +5282,6 @@ export default {
       // Восстанавливаем цветовую заливку и обводку
       const mask = this.userMasks.find(m => m.id === maskId)
       if (mask && mask.visualPath) {
-        // Восстанавливаем фон с обводкой
-        mask.visualPath.fillColor = mask.fillColor
-        mask.visualPath.strokeColor = mask.strokeColor
-        mask.visualPath.strokeWidth = mask.strokeWidth
-        
         // Удаляем слой изображения если есть
         if (mask.imageLayer) {
           mask.imageLayer.remove()
@@ -5305,6 +5299,19 @@ export default {
           mask.maskGroup.remove()
           mask.maskGroup = null
         }
+        
+        // Восстанавливаем простую цветовую заливку с обводкой
+        mask.visualPath.fillColor = mask.fillColor
+        mask.visualPath.strokeColor = mask.strokeColor
+        mask.visualPath.strokeWidth = mask.strokeWidth
+        
+        // ВАЖНО: Делаем visualPath видимым и добавляем обратно на канвас
+        mask.visualPath.visible = true
+        if (!mask.visualPath.parent) {
+          this.paperScope.project.activeLayer.addChild(mask.visualPath)
+        }
+        
+        console.log('🎨 Восстановлена цветовая заливка маски:', maskId)
       }
       
       // Обновляем 3D модель

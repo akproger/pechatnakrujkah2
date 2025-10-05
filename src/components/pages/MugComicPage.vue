@@ -380,52 +380,59 @@
           <div class="row mt-3">
             <div class="col-12">
               <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="bi bi-type me-2"></i>
+                    Добавленные тексты
+                  </h5>
+                </div>
                 <div class="card-body">
-                  <h6 class="text-muted mb-3">Управление текстовыми слоями</h6>
-                  
-                  <!-- Список текстовых слоев -->
                   <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
-                    <i class="bi bi-type" style="font-size: 3rem;"></i>
-                    <p class="mt-2">Нет добавленных текстов. Нажмите кнопку "Текст" выше, чтобы добавить.</p>
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p>Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
                   </div>
-                  
-                  <div v-else class="row g-3">
-                    <div 
-                      v-for="(layer, index) in textLayers" 
-                      :key="layer.id"
-                      class="col-12"
-                    >
-                      <div class="card border">
-                        <div class="card-body">
-                          <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                              <h6 class="mb-2">
-                                <i class="bi bi-type me-2"></i>
-                                Текст {{ index + 1 }}
-                              </h6>
-                              <p class="text-muted mb-2 small">{{ layer.text }}</p>
-                              <div class="d-flex gap-3 small text-muted">
-                                <span><i class="bi bi-fonts me-1"></i>{{ layer.fontSize }}px</span>
-                                <span><i class="bi bi-palette me-1"></i>{{ layer.fillColor }}</span>
-                              </div>
+                  <div v-else>
+                    <div class="mb-3">
+                      <p class="text-muted mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой.
+                        <i class="bi bi-info-circle ms-1"></i>
+                        Перетаскивайте слои для изменения их порядка.
+                      </p>
+                    </div>
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
+                      <div 
+                        v-for="(layer, index) in textLayers" 
+                        :key="layer.id || index" 
+                        class="text-layer-item"
+                        :class="{ 'dragging': draggedTextIndex === index, 'drag-over': dragOverTextIndex === index }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
+                      >
+                        <div class="layer-info">
+                          <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
+                          <div class="layer-details">
+                            <div class="layer-name">{{ layer.text || layer.textData?.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta">
+                              Шрифт: {{ layer.font || layer.textData?.font || 'Arial' }} |
+                              Размер: {{ layer.fontSize || layer.textData?.fontSize || 16 }}px |
+                              <span v-if="layer.fillColor || layer.textData?.color">Цвет: {{ layer.fillColor || layer.textData?.color }}</span>
                             </div>
-                            <div class="d-flex gap-2">
-                              <button 
-                                @click="editTextLayer(index)"
-                                class="btn btn-sm btn-outline-primary"
-                                title="Редактировать"
-                              >
-                                <i class="bi bi-pencil"></i>
-                              </button>
-                              <button 
-                                @click="deleteTextLayer(index)"
-                                class="btn btn-sm btn-outline-danger"
-                                title="Удалить"
-                              >
-                                <i class="bi bi-trash"></i>
-                              </button>
-                            </div>
+                            <div class="layer-number">Слой #{{ index + 1 }}</div>
                           </div>
+                        </div>
+                        <div class="layer-actions">
+                          <button type="button" class="btn btn-outline-primary btn-sm" @click="editTextLayer(layer.id)" title="Редактировать">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteTextLayer(index)" title="Удалить">
+                            <i class="bi bi-trash"></i>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -636,10 +643,16 @@ export default {
       
       // Фоновое изображение
       backgroundImage: null,
+      backgroundRaster: null,
       
       // Текстовые слои
       textLayers: [],
       nextTextLayerId: 100, // Начальный ID для текстовых слоёв
+      // DnD состояния для списка текстов (как в StickerMania)
+      draggedTextIndex: null,
+      dragOverTextIndex: null,
+      // Временное скрытие редактируемого слоя при открытии редактора
+      editingLayerTempHidden: null,
       
       // Настройки обводки
       strokeColor: '#000000',
@@ -714,6 +727,64 @@ export default {
     }
   },
   methods: {
+      // ====== Drag & Drop текстовых слоёв (по аналогии со StickerMania) ======
+      handleTextDragStart(index, event) {
+        this.draggedTextIndex = index
+        event.dataTransfer.effectAllowed = 'move'
+        try { event.dataTransfer.setData('text/plain', String(index)) } catch (e) {}
+      },
+      handleTextDragEnd() {
+        this.draggedTextIndex = null
+        this.dragOverTextIndex = null
+        // Обновляем порядок в Paper.js после возможного перемещения
+        this.reorderTextLayersInPaperJS()
+        // Обновляем 3D превью
+        this.update3DTexture()
+      },
+      handleTextDragOver(index, event) {
+        event.preventDefault()
+        this.dragOverTextIndex = index
+        event.dataTransfer.dropEffect = 'move'
+      },
+      handleTextDragLeave() {
+        this.dragOverTextIndex = null
+      },
+      handleTextDrop(targetIndex, event) {
+        event.preventDefault()
+        if (this.draggedTextIndex === null || targetIndex === this.draggedTextIndex) return
+        const dragged = this.textLayers[this.draggedTextIndex]
+        this.textLayers.splice(this.draggedTextIndex, 1)
+        this.textLayers.splice(targetIndex, 0, dragged)
+        this.draggedTextIndex = targetIndex
+        // Перестроить порядок отображения
+        this.reorderTextLayersInPaperJS()
+        // Принудительно обновим Vue-рендер списка
+        this.$forceUpdate?.()
+        // Обновим 3D
+        this.update3DTexture()
+      },
+      reorderTextLayersInPaperJS() {
+        // Сначала отправим все текстовые слои назад
+        this.textLayers.forEach(layer => {
+          if (layer && layer.layer && layer.layer.sendToBack) {
+            layer.layer.sendToBack()
+          }
+        })
+        // Затем в порядке массива поднимаем наверх (первый = верхний)
+        for (let i = this.textLayers.length - 1; i >= 0; i--) {
+          const layer = this.textLayers[i]
+          if (layer && layer.layer && layer.layer.bringToFront) {
+            layer.layer.bringToFront()
+          }
+        }
+        // Гарантируем, что фоновое изображение всегда внизу
+        if (this.backgroundRaster && this.backgroundRaster.sendToBack) {
+          this.backgroundRaster.sendToBack()
+        }
+        if (this.paperScope && this.paperScope.view) {
+          this.paperScope.view.update()
+        }
+      },
     // ========== Инициализация Paper.js ==========
     initPaperCanvas() {
       const canvas = this.$refs.comicCanvas
@@ -789,11 +860,20 @@ export default {
         strokeWidth: initialStrokeWidth,
         hasBackground: !!this.backgroundImage
       })
+
+      // После создания базового прямоугольника — зафиксируем порядок слоев
+      this.enforceLayerOrder()
     },
 
     // Создание фонового изображения
     createBackgroundImage(width, height) {
       if (!this.backgroundImage || !this.paperScope) return
+
+      // Удаляем предыдущий фон, если есть
+      if (this.backgroundRaster && this.backgroundRaster.remove) {
+        this.backgroundRaster.remove()
+        this.backgroundRaster = null
+      }
 
       // Создаём Paper.js Raster из изображения
       const backgroundRaster = new this.paperScope.Raster(this.backgroundImage)
@@ -811,6 +891,15 @@ export default {
         
         // Перемещаем фоновое изображение в самый низ
         backgroundRaster.sendToBack()
+        this.backgroundRaster = backgroundRaster
+
+        // Делаем фон фиксированным и не перетаскиваемым
+        try {
+          backgroundRaster.locked = true
+          backgroundRaster.data = backgroundRaster.data || {}
+          backgroundRaster.data.isBackground = true
+          backgroundRaster.name = 'backgroundRaster'
+        } catch (e) { /* ignore */ }
         
         console.log('✅ Фоновое изображение добавлено:', {
           originalSize: `${backgroundRaster.bounds.width}x${backgroundRaster.bounds.height}`,
@@ -848,6 +937,44 @@ export default {
           this.$refs.threeRenderer.updateTexture()
         }
       })
+    },
+
+    // ====== Гарантируем правильный порядок слоев: baseRectangle (низ) -> backgroundRaster -> остальные ======
+    enforceLayerOrder() {
+      if (!this.paperScope) return
+
+      // 0) Фон всегда в самом низу
+      if (this.backgroundRaster && this.backgroundRaster.sendToBack) {
+        this.backgroundRaster.sendToBack()
+      }
+
+      // 1) Базовый прямоугольник сразу над фоном
+      if (this.baseRectangle) {
+        if (this.backgroundRaster && this.baseRectangle.insertAbove) {
+          this.baseRectangle.insertAbove(this.backgroundRaster)
+        } else if (this.baseRectangle.sendToBack) {
+          this.baseRectangle.sendToBack()
+        }
+      }
+
+      // 2) Пользовательские маски — между базовым прямоугольником и текстами
+      if (Array.isArray(this.userMasks) && this.userMasks.length) {
+        for (const mask of this.userMasks) {
+          const maskItem = mask?.maskGroup || mask?.visualPath
+          if (maskItem && this.baseRectangle && maskItem.insertAbove) {
+            maskItem.insertAbove(this.baseRectangle)
+          }
+        }
+      }
+
+      // 3) Текстовые слои — выше всех масок. Сохраняем упорядочивание согласно списку
+      if (typeof this.reorderTextLayersInPaperJS === 'function') {
+        this.reorderTextLayersInPaperJS()
+      }
+
+      if (this.paperScope.view) {
+        this.paperScope.view.update()
+      }
     },
 
     // ========== Настройка инструментов Paper.js для перетаскивания ==========
@@ -908,6 +1035,7 @@ export default {
           
           // Проверяем, что это текстовый элемент или подложка (не базовый прямоугольник)
           const isBaseRectangle = item === this.baseRectangle
+          const isBackground = item === this.backgroundRaster || item.data?.isBackground
           const isTextItem = !isBaseRectangle && (
             item.className === 'TextItem' || 
             item.className === 'Group' || 
@@ -916,7 +1044,7 @@ export default {
             (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
           )
           
-          if (isTextItem) {
+          if (isTextItem && !isBackground) {
             // Снимаем предыдущее выделение при начале перетаскивания
             clearSelection()
             
@@ -998,6 +1126,7 @@ export default {
           
           // Проверяем, что это текстовый элемент (не базовый прямоугольник)
           const isBaseRectangle = item === this.baseRectangle
+          const isBackground = item === this.backgroundRaster || item.data?.isBackground
           const isTextItem = !isBaseRectangle && (
             item.className === 'TextItem' || 
             item.className === 'Group' || 
@@ -1006,12 +1135,12 @@ export default {
             (item.data && (item.data.isTextOverlay || item.data.isTextBackground))
           )
           
-          if (isTextItem) {
+          if (isTextItem && !isBackground) {
             // Находим соответствующий текстовый слой
             const layerInfo = this.textLayers.find(layer => layer.raster === item || layer.backgroundItem === item || layer.layer === item)
             if (layerInfo) {
-              // Открываем диалог редактирования
-              this.editTextLayer(this.textLayers.indexOf(layerInfo))
+              // Открываем диалог редактирования по id слоя
+              this.editTextLayer(layerInfo.id)
               console.log('✏️ Открыто редактирование текстового слоя:', layerInfo.id)
             }
           }
@@ -1101,6 +1230,7 @@ export default {
         this.backgroundImage = e.target.result
         console.log('✅ Фоновое изображение загружено:', file.name)
         this.updateCanvasWithBackground()
+        this.enforceLayerOrder()
         
         // Принудительно обновляем 3D модель после небольшой задержки
         this.$nextTick(() => {
@@ -1121,7 +1251,12 @@ export default {
     removeBackground() {
       this.backgroundImage = null
       console.log('🗑️ Фоновое изображение удалено')
+      if (this.backgroundRaster && this.backgroundRaster.remove) {
+        this.backgroundRaster.remove()
+        this.backgroundRaster = null
+      }
       this.updateCanvasWithBackground()
+      this.enforceLayerOrder()
       
       // Принудительно обновляем 3D модель после удаления фона
       this.$nextTick(() => {
@@ -1144,9 +1279,14 @@ export default {
         const canvasHeight = this.paperScope.view.viewSize.height
         this.createBaseRectangle(canvasWidth, canvasHeight)
         
-        // Текстовые слои уже существуют в this.textLayers и автоматически отображаются
+        // Восстанавливаем текстовые слои на канвасе (так как проект очищали)
+        if (typeof this.restoreTextLayers === 'function') {
+          this.restoreTextLayers()
+        }
+        
         // Обновляем canvas
         this.paperScope.view.update()
+      this.enforceLayerOrder()
         
         // Обновляем 3D модель
         this.$nextTick(() => {
@@ -1154,6 +1294,46 @@ export default {
             this.$refs.threeRenderer.updateTexture()
           }
         })
+      }
+    },
+
+    // Восстановление текстовых слоёв после очистки проекта/перерисовки
+    restoreTextLayers() {
+      if (!this.paperScope || !Array.isArray(this.textLayers)) return
+      const activeLayer = this.paperScope.project?.activeLayer
+      if (!activeLayer) return
+      
+      this.textLayers.forEach((layer) => {
+        try {
+          if (layer && layer.layer) {
+            // Пере-добавляем существующую группу/элемент слоя на сцену
+            activeLayer.addChild(layer.layer)
+            if (layer.position && layer.layer.position) {
+              layer.layer.position = new this.paperScope.Point(layer.position.x, layer.position.y)
+            }
+          } else if (layer && layer.textData) {
+            // Пересоздаём, если нет ссылки на элемент
+            const recreatedRaster = this.createBackgroundWithText(layer.textData, layer.position || { x: 0, y: 0 }, layer.mode)
+            if (recreatedRaster) {
+              const group = new this.paperScope.Group()
+              group.addChild(recreatedRaster)
+              group.position = new this.paperScope.Point((layer.position?.x) || recreatedRaster.position.x, (layer.position?.y) || recreatedRaster.position.y)
+              activeLayer.addChild(group)
+              layer.layer = group
+              layer.raster = recreatedRaster
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Ошибка восстановления текстового слоя', e)
+        }
+      })
+      
+      // Сохраняем порядок слоёв
+      if (typeof this.reorderTextLayersInPaperJS === 'function') {
+        this.reorderTextLayersInPaperJS()
+      }
+      if (typeof this.enforceLayerOrder === 'function') {
+        this.enforceLayerOrder()
       }
     },
 
@@ -1784,10 +1964,19 @@ export default {
     },
 
     onTextDialogOpened() {
+      // Диалог открыт — фон уже без редактируемого слоя
       console.log('Диалог текста открыт')
     },
 
     onTextDialogClosed() {
+      // Возвращаем видимость редактируемого слоя, если скрывали
+      if (this.editingLayerTempHidden) {
+        this.editingLayerTempHidden.visible = true
+        if (this.paperScope && this.paperScope.view) {
+          this.paperScope.view.draw()
+        }
+        this.editingLayerTempHidden = null
+      }
       console.log('Диалог текста закрыт')
     },
 
@@ -1876,6 +2065,8 @@ export default {
         }
         
         this.textLayers.push(layerInfo)
+      this.reorderTextLayersInPaperJS()
+      this.enforceLayerOrder()
         
         console.log('✅ Текстовый слой создан:', layerInfo)
       }
@@ -1913,7 +2104,12 @@ export default {
         console.log('🔧 Добавлен backgroundMode:', mode)
       }
       
-      const layerInfo = this.textLayers[layerIndex]
+      // Ищем слой по id, как в StickerMania
+      let layerInfo = this.textLayers.find(layer => layer.id === layerIndex)
+      if (!layerInfo) {
+        // Fallback на позицию массива
+        layerInfo = this.textLayers[layerIndex]
+      }
       if (!layerInfo) {
         console.error('❌ Слой не найден:', layerIndex)
         return
@@ -1921,35 +2117,39 @@ export default {
       
       // Удаляем старый raster
       if (layerInfo.raster) {
-        layerInfo.raster.remove()
+        try { layerInfo.raster.remove() } catch (e) {}
       }
       
-      // Масштабируем позицию
+      // Масштабируем позицию из превью в основной канвас
       const previewCanvasWidth = 856
       const previewCanvasHeight = 405
       const mainCanvasWidth = this.paperScope.view.viewSize.width
       const mainCanvasHeight = this.paperScope.view.viewSize.height
-      
       const scaleX = mainCanvasWidth / previewCanvasWidth
       const scaleY = mainCanvasHeight / previewCanvasHeight
+      const scaledPosition = { x: position.x * scaleX, y: position.y * scaleY }
       
-      const scaledPosition = {
-        x: position.x * scaleX,
-        y: position.y * scaleY
-      }
-      
-      // Создаём новый raster
+      // Создаём новый raster и добавляем в существующий слой
       const newRaster = this.createBackgroundWithText(textData, scaledPosition, mode)
-      
       if (newRaster) {
-        layerInfo.layer.addChild(newRaster)
-        layerInfo.textData = textData
+        if (layerInfo.layer && layerInfo.layer.addChild) {
+          layerInfo.layer.addChild(newRaster)
+        }
+        layerInfo.textData = { ...textData }
         layerInfo.position = scaledPosition
         layerInfo.mode = mode
         layerInfo.raster = newRaster
-        
-        console.log('✅ Текстовый слой обновлён')
+        console.log('✅ Текстовый слой обновлён:', { id: layerInfo.id, pos: scaledPosition, mode })
       }
+      
+      // Перерисовываем и выравниваем порядок
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.update()
+      }
+      this.reorderTextLayersInPaperJS()
+      this.enforceLayerOrder()
+      this.$forceUpdate?.()
+      this.update3DTexture()
     },
     // КОПИЯ ИЗ GridsPage - начало блока методов создания подложек
 
@@ -2310,7 +2510,6 @@ export default {
         return rect
       }
     },
-    
     // Создание стандартной подложки
     createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       const currentTextData = textData
@@ -4302,10 +4501,76 @@ export default {
     // КОПИЯ ИЗ GridsPage - конец блока методов создания подложек
  
   
-     editTextLayer(index) {
-      const layer = this.textLayers[index]
-      if (this.$refs.textManager) {
-        this.$refs.textManager.openDialog(layer.textData, index)
+    editTextLayer(index) {
+      // Редактирование текста: переносим текущие данные и позицию в TextManager (как в StickerMania)
+      const layerInfo = this.textLayers.find(layer => layer.id === index) || this.textLayers[index]
+      if (!layerInfo) return
+
+      const textManager = this.$refs.textManager
+      if (!textManager) return
+
+      // Актуальная позиция из Paper.js
+      let actualPosition = { ...(layerInfo.position || { x: 0, y: 0 }) }
+      if (layerInfo.layer && layerInfo.layer.position) {
+        actualPosition = {
+          x: layerInfo.layer.position.x,
+          y: layerInfo.layer.position.y
+        }
+      } else if (layerInfo.raster && layerInfo.raster.position) {
+        actualPosition = {
+          x: layerInfo.raster.position.x,
+          y: layerInfo.raster.position.y
+        }
+      }
+
+      // Устанавливаем позицию в редакторе
+      textManager.currentDragPosition = actualPosition
+      // Обновляем сохраненную позицию слоя
+      layerInfo.position = actualPosition
+
+      // Копируем текущие данные текста
+      const dataCopy = JSON.parse(JSON.stringify(layerInfo.textData || {}))
+
+      // Заполняем данные по активному режиму
+      switch (layerInfo.mode) {
+        case 'conversation':
+          if (textManager.textDialogDataConversation) Object.assign(textManager.textDialogDataConversation, dataCopy)
+          break
+        case 'thoughts':
+          if (textManager.textDialogDataThoughts) Object.assign(textManager.textDialogDataThoughts, dataCopy)
+          break
+        case 'standard':
+          if (textManager.textDialogDataStandard) Object.assign(textManager.textDialogDataStandard, dataCopy)
+          break
+        case 'image-text':
+          if (textManager.textDialogDataImageText) Object.assign(textManager.textDialogDataImageText, dataCopy)
+          break
+      }
+
+      // Режим редактирования в TextManager
+      textManager.isEditingText = true
+      textManager.editingLayerIndex = layerInfo.id
+      if (textManager.textDialogActiveTab !== undefined) {
+        textManager.textDialogActiveTab = layerInfo.mode
+      }
+
+      // Временно скрываем редактируемый слой на канвасе
+      if (layerInfo.layer) {
+        this.editingLayerTempHidden = layerInfo.layer
+        this.editingLayerTempHidden.visible = false
+        if (this.paperScope && this.paperScope.view) {
+          this.paperScope.view.draw()
+        }
+      }
+
+      // Открываем диалог редактирования через спец-метод, как в StickerMania
+      if (typeof textManager.editTextLayer === 'function') {
+        textManager.editTextLayer(layerInfo.textData, actualPosition, layerInfo.mode, layerInfo.id)
+      } else if (typeof textManager.openDialog === 'function') {
+        // Fallback: но предпочтителен editTextLayer
+        textManager.openDialog(layerInfo.textData, layerInfo.id)
+      } else {
+        textManager.showTextDialog = true
       }
     },
 
@@ -4323,6 +4588,7 @@ export default {
         
         // Обновляем 3D модель
         this.update3DTexture()
+      this.enforceLayerOrder()
       }
     },
 
@@ -5176,6 +5442,7 @@ export default {
       this.clearAllMaskElements()
       
       console.log('🎭 Создана визуальная маска:', mask.id)
+      this.enforceLayerOrder()
     },
     
     selectMask(maskId) {
@@ -5272,6 +5539,7 @@ export default {
         this.createClippedImageForMask(mask, mask.maskGroup)
         
         console.log('🎨 Маска обновлена с изображением:', image.name)
+        this.enforceLayerOrder()
       }
     },
     
@@ -5320,6 +5588,7 @@ export default {
       }, 100)
       
       console.log('🖼️ Привязка изображения отменена для маски:', maskId)
+      this.enforceLayerOrder()
     },
     
     createMaskStroke(mask) {
@@ -5444,6 +5713,7 @@ export default {
       this.paperScope.project.activeLayer.addChild(group)
       
       console.log('🎨 Создана группа для маски:', mask.id, 'слоев:', group.children.length)
+      this.enforceLayerOrder()
     },
     
     // ========== Методы для перетаскивания масок ==========
@@ -5580,6 +5850,7 @@ export default {
         this.saveAction('deleteMask', { mask, index })
         
         console.log('🗑️ Маска удалена:', maskId)
+        this.enforceLayerOrder()
       }
     },
     
@@ -6470,6 +6741,79 @@ export default {
 }
 .preview-contaner{
   width: fit-content;
+}
+
+/* Стили вкладки "Тексты" (как в StickerMania) */
+.text-layers-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.text-layer-item.dragging {
+  opacity: 0.7;
+  border-style: dashed;
+}
+.text-layer-item.drag-over {
+  background: #eef6ff;
+  border-color: #b6d4fe;
+}
+.layer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.drag-handle {
+  width: 18px;
+  color: #6c757d;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+}
+.layer-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.layer-name {
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.layer-meta {
+  font-size: 12px;
+  color: #6c757d;
+}
+.layer-number {
+  font-size: 12px;
+  color: #6c757d;
+  white-space: nowrap;
+}
+.layer-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* Адаптивность */

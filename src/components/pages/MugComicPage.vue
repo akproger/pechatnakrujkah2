@@ -644,6 +644,7 @@ export default {
       // Фоновое изображение
       backgroundImage: null,
       backgroundRaster: null,
+      canvasBackgroundRect: null,
       
       // Текстовые слои
       textLayers: [],
@@ -665,6 +666,7 @@ export default {
       userMasks: [], // Пользовательские маски
       selectedMask: null, // Выбранная маска
       nextMaskId: 1, // Следующий ID для масок
+      nextMaskLayerIndex: 100, // Индекс слоя масок начинается со 100 и растет
       maskPointElements: [], // Визуальные элементы точек маски для удаления
       
       // Привязка изображений к маскам
@@ -764,19 +766,19 @@ export default {
         this.update3DTexture()
       },
       reorderTextLayersInPaperJS() {
-        // Сначала отправим все текстовые слои назад
-        this.textLayers.forEach(layer => {
-          if (layer && layer.layer && layer.layer.sendToBack) {
-            layer.layer.sendToBack()
-          }
-        })
-        // Затем в порядке массива поднимаем наверх (первый = верхний)
-        for (let i = this.textLayers.length - 1; i >= 0; i--) {
-          const layer = this.textLayers[i]
-          if (layer && layer.layer && layer.layer.bringToFront) {
-            layer.layer.bringToFront()
-          }
+      // Сначала отправим все текстовые слои назад
+      this.textLayers.forEach(layer => {
+        if (layer && layer.layer && layer.layer.sendToBack) {
+          layer.layer.sendToBack()
         }
+      })
+      // Затем в порядке массива поднимаем наверх, где 0-й элемент = самый верхний
+      for (let i = this.textLayers.length - 1; i >= 0; i--) {
+        const layer = this.textLayers[i]
+        if (layer && layer.layer && layer.layer.bringToFront) {
+          layer.layer.bringToFront()
+        }
+      }
         // Гарантируем, что фоновое изображение всегда внизу
         if (this.backgroundRaster && this.backgroundRaster.sendToBack) {
           this.backgroundRaster.sendToBack()
@@ -811,13 +813,20 @@ export default {
       // Устанавливаем размер Paper.js view
       this.paperScope.view.viewSize = new this.paperScope.Size(width, height)
       
-      // Устанавливаем белый фон
-      const background = new this.paperScope.Path.Rectangle({
+      // Устанавливаем белый фон (за всем)
+      this.canvasBackgroundRect = new this.paperScope.Path.Rectangle({
         point: [0, 0],
         size: [width, height],
-        fillColor: 'white'
+        fillColor: null, // без заливки, не перекрывает содержимое
+        strokeColor: null
       })
-      background.sendToBack()
+      try {
+        this.canvasBackgroundRect.locked = true
+        this.canvasBackgroundRect.data = this.canvasBackgroundRect.data || {}
+        this.canvasBackgroundRect.data.isCanvasBackground = true
+        this.canvasBackgroundRect.name = 'canvasBackgroundRect'
+      } catch (e) {}
+      this.canvasBackgroundRect.sendToBack()
       
       // Создаём базовый прямоугольник размером с canvas
       this.createBaseRectangle(width, height)
@@ -944,6 +953,9 @@ export default {
       if (!this.paperScope) return
 
       // 0) Фон всегда в самом низу
+      if (this.canvasBackgroundRect && this.canvasBackgroundRect.sendToBack) {
+        this.canvasBackgroundRect.sendToBack()
+      }
       if (this.backgroundRaster && this.backgroundRaster.sendToBack) {
         this.backgroundRaster.sendToBack()
       }
@@ -959,7 +971,10 @@ export default {
 
       // 2) Пользовательские маски — между базовым прямоугольником и текстами
       if (Array.isArray(this.userMasks) && this.userMasks.length) {
-        for (const mask of this.userMasks) {
+        // Сортируем маски по layerIndex по убыванию (сначала самые новые/верхние)
+        const sortedMasks = [...this.userMasks].sort((a, b) => (b.layerIndex || 0) - (a.layerIndex || 0))
+        for (let i = 0; i < sortedMasks.length; i++) {
+          const mask = sortedMasks[i]
           const maskItem = mask?.maskGroup || mask?.visualPath
           if (maskItem && this.baseRectangle && maskItem.insertAbove) {
             maskItem.insertAbove(this.baseRectangle)
@@ -1369,6 +1384,7 @@ export default {
       // Создаем маску
       const mask = {
         id: this.nextMaskId++,
+        layerIndex: this.nextMaskLayerIndex,
         points: [...this.maskPoints],
         createdAt: new Date(),
         name: `Маска ${this.userMasks.length + 1}`,
@@ -1379,8 +1395,11 @@ export default {
         dragStart: null // Начальная точка перетаскивания
       }
       
-      // Добавляем в список масок
-      this.userMasks.push(mask)
+      // Инкрементируем индекс для следующей маски (больше = выше среди масок)
+      this.nextMaskLayerIndex += 10
+      
+      // Добавляем в начало списка масок
+      this.userMasks.unshift(mask)
       
       // Сохраняем создание маски в историю (заменяет все предыдущие шаги рисования)
       this.saveAction('createMask', { mask })
@@ -2064,7 +2083,8 @@ export default {
           raster: backgroundRaster
         }
         
-        this.textLayers.push(layerInfo)
+        // Новые тексты в начало списка, чтобы визуально были сверху
+        this.textLayers.unshift(layerInfo)
       this.reorderTextLayersInPaperJS()
       this.enforceLayerOrder()
         
@@ -6478,7 +6498,7 @@ export default {
             this.maskPoints = []
           } else {
             // Восстанавливаем маску
-            this.userMasks.push(action.data.mask)
+            this.userMasks.unshift(action.data.mask)
             // Создаем визуальную маску
             this.createMaskVisual(action.data.mask)
           }

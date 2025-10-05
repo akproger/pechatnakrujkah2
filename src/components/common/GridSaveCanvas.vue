@@ -105,6 +105,24 @@ export default {
     textLayers: {
       type: Array,
       default: () => []
+    },
+    // Новые: пользовательские маски и их изображения
+    userMasks: {
+      type: Array,
+      default: () => []
+    },
+    maskImages: {
+      type: Object,
+      default: () => ({})
+    },
+    // Размеры основного канваса для вычисления реального коэффициента масштаба
+    mainCanvasWidth: {
+      type: Number,
+      default: 0
+    },
+    mainCanvasHeight: {
+      type: Number,
+      default: 0
     }
   },
   data() {
@@ -185,6 +203,10 @@ export default {
         maskType: this.maskType,
         uploadedImages: this.uploadedImages?.length || 0
       })
+      console.log('🧩 GridSaveCanvas: входные данные:', {
+        userMasksCount: Array.isArray(this.userMasks) ? this.userMasks.length : 'n/a',
+        maskImagesKeys: this.maskImages ? Object.keys(this.maskImages) : []
+      })
       
       if (this.isSaving) {
         console.log('⚠️ Сохранение уже в процессе, пропускаем')
@@ -242,6 +264,15 @@ export default {
         
         // ИСПРАВЛЕНИЕ: Увеличиваем задержку для стабилизации всех типов сеток
         await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // ДОБАВЛЯЕМ ПОЛЬЗОВАТЕЛЬСКИЕ МАСКИ ПЕРЕД ТЕКСТАМИ
+        try {
+          console.log('🧩 GridSaveCanvas: старт рендера пользовательских масок')
+          await this.drawUserMasksOnSaveCanvas()
+          console.log('🧩 GridSaveCanvas: завершён рендер пользовательских масок')
+        } catch (e) {
+          console.error('❌ Ошибка drawUserMasksOnSaveCanvas:', e)
+        }
         
         // Добавляем текстовые слои
         await this.addTextLayers()
@@ -311,6 +342,15 @@ export default {
       }
       
       console.log('✅ Сетка создана для сохранения')
+      
+      // После построения базовой сетки — отрисуем пользовательские маски
+      try {
+        console.log('🧩 GridSaveCanvas: старт рендера пользовательских масок')
+        await this.drawUserMasksOnSaveCanvas()
+        console.log('🧩 GridSaveCanvas: завершён рендер пользовательских масок')
+      } catch (e) {
+        console.error('❌ Ошибка drawUserMasksOnSaveCanvas:', e)
+      }
     },
     
     // Метод для подсчета ожидаемого количества элементов
@@ -3222,6 +3262,111 @@ export default {
       }
     },
     
+    async drawUserMasksOnSaveCanvas() {
+      const masks = Array.isArray(this.userMasks) ? this.userMasks : []
+      console.log('🧩 GridSaveCanvas: рендер масок (кол-во):', masks.length)
+      // Вычисляем масштаб так же, как для основного прямоугольника
+      // В addMainRectangleStroke толщина умножается на 2, но базовый DPI прирост ~ (canvas сохранения / основной canvas)
+      // Если известны размеры основного канваса — используем точное отношение
+      let scale = 2
+      try {
+        if (this.mainCanvasWidth > 0 && this.mainCanvasHeight > 0) {
+          const sx = this.canvasWidth / this.mainCanvasWidth
+          const sy = this.canvasHeight / this.mainCanvasHeight
+          scale = Math.max(sx, sy)
+        }
+      } catch (e) {}
+
+      // Порядок: снизу вверх (старые ниже, новые выше среди масок)
+      const sorted = [...masks].sort((a, b) => (a.layerIndex || 0) - (b.layerIndex || 0))
+      for (const mask of sorted) {
+        try {
+          const points = []
+          if (mask.visualPath && mask.visualPath.segments?.length >= 3) {
+            mask.visualPath.segments.forEach(seg => points.push({ x: seg.point.x, y: seg.point.y }))
+          } else if (Array.isArray(mask.points) && mask.points.length >= 3) {
+            mask.points.forEach(p => points.push({ x: p.x, y: p.y }))
+          } else {
+            continue
+          }
+
+          // Строим hiDPI-путь
+          const hiPath = new this.paperScope.Path()
+          points.forEach(p => hiPath.add(new this.paperScope.Point(p.x * scale, p.y * scale)))
+          hiPath.closed = true
+          console.log('🧩 GridSaveCanvas: маска bounds:', { id: mask.id, bounds: hiPath.bounds })
+
+          const image = this.maskImages?.[mask.id]
+          if (image) {
+            // Рендер с изображением (clip)
+            const bounds = hiPath.bounds
+            const tempCanvas = document.createElement('canvas')
+            const tempCtx = tempCanvas.getContext('2d')
+            // Чуть увеличим, чтобы избежать клиппинга по краям
+            tempCanvas.width = Math.max(1, Math.ceil(bounds.width) + 2)
+            tempCanvas.height = Math.max(1, Math.ceil(bounds.height) + 2)
+
+            tempCtx.save()
+            tempCtx.beginPath()
+            // Смещаем с учетом добавленного padding (1px со всех сторон)
+            tempCtx.translate(-bounds.x + 1, -bounds.y + 1)
+            const segs = hiPath.segments
+            tempCtx.moveTo(segs[0].point.x, segs[0].point.y)
+            for (let i = 1; i < segs.length; i++) tempCtx.lineTo(segs[i].point.x, segs[i].point.y)
+            tempCtx.closePath()
+            tempCtx.clip()
+
+            await new Promise((resolve) => {
+              const img = new Image()
+              img.onload = () => {
+                const scaleX = tempCanvas.width / img.width
+                const scaleY = tempCanvas.height / img.height
+                const coverScale = Math.max(scaleX, scaleY)
+                const drawW = img.width * coverScale
+                const drawH = img.height * coverScale
+                const offsetX = (tempCanvas.width - drawW) / 2
+                const offsetY = (tempCanvas.height - drawH) / 2
+                tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH)
+                tempCtx.restore()
+                resolve()
+              }
+              img.src = image.url
+            })
+
+            const raster = new this.paperScope.Raster(tempCanvas.toDataURL('image/png'))
+            await new Promise((resolve) => { raster.onLoad = resolve })
+            raster.position = hiPath.bounds.center
+            this.paperScope.project.activeLayer.addChild(raster)
+
+            // Stroke поверх
+            if (mask.strokeColor && (mask.strokeWidth || 0) > 0) {
+              const stroke = hiPath.clone()
+              stroke.fillColor = null
+              try { stroke.strokeColor = new this.paperScope.Color(mask.strokeColor) } catch (e) { stroke.strokeColor = mask.strokeColor }
+              stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+              this.paperScope.project.activeLayer.addChild(stroke)
+            }
+          } else {
+            // Без изображения
+            if (mask.fillColor) {
+              const fillPath = hiPath.clone()
+              try { fillPath.fillColor = new this.paperScope.Color(mask.fillColor) } catch (e) { fillPath.fillColor = mask.fillColor }
+              fillPath.strokeColor = null
+              this.paperScope.project.activeLayer.addChild(fillPath)
+            }
+            if (mask.strokeColor && (mask.strokeWidth || 0) > 0) {
+              const stroke = hiPath.clone()
+              stroke.fillColor = null
+              try { stroke.strokeColor = new this.paperScope.Color(mask.strokeColor) } catch (e) { stroke.strokeColor = mask.strokeColor }
+              stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+              this.paperScope.project.activeLayer.addChild(stroke)
+            }
+          }
+        } catch (e) {
+          console.error('❌ Ошибка рендера маски при сохранении:', e)
+        }
+      }
+    },
   }
 }
 </script>

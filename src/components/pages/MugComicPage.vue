@@ -87,6 +87,10 @@
                     :background-image="backgroundImage"
                     :enable-background-image="!!backgroundImage"
                     :text-layers="textLayers"
+                    :user-masks="userMasks"
+                    :mask-images="maskImages"
+                    :main-canvas-width="paperScope?.view?.viewSize?.width || 0"
+                    :main-canvas-height="paperScope?.view?.viewSize?.height || 0"
                     @save-start="onSaveStart"
                     @save-success="onSaveSuccess"
                     @save-error="onSaveError"
@@ -147,7 +151,7 @@
       </div>
       
       <!-- Табы управления -->
-      <div class="row mt-4">
+      <div class="row tabs-row">
         <div class="col-12">
           <ul class="nav nav-tabs" id="mugComicTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -4793,6 +4797,7 @@ export default {
       console.log('🎨 Перерисовываем все элементы в высоком разрешении')
       console.log('📊 Статистика элементов:')
       console.log('- textLayers:', this.textLayers.length)
+      console.log('- userMasks:', this.userMasks.length)
       
       try {
         // 1. Рисуем базовый прямоугольник (обводку) в высоком разрешении
@@ -4823,7 +4828,18 @@ export default {
           })
         }
         
-        // 2. Перерисовываем все текстовые элементы с подложками
+        // 2. Перерисовываем все пользовательские маски (до текстов)
+        try {
+          const sortedMasks = [...this.userMasks].sort((a, b) => (a.layerIndex || 0) - (b.layerIndex || 0))
+          for (const mask of sortedMasks) {
+            await this.redrawMaskInHighDPI(tempPaperScope, mask, scale)
+          }
+          console.log('✅ Все маски перерисованы в высоком разрешении')
+        } catch (e) {
+          console.error('❌ Ошибка при перерисовке масок в высоком разрешении:', e)
+        }
+
+        // 3. Перерисовываем все текстовые элементы с подложками
         console.log(`📝 Рисуем ${this.textLayers.length} текстовых слоев в правильном порядке`)
         
         // Сортируем текстовые слои по их реальному z-index (порядку наложения на канвасе)
@@ -4868,6 +4884,121 @@ export default {
       } catch (error) {
         console.error('❌ Ошибка при перерисовке элементов в высоком разрешении:', error)
         throw error
+      }
+    },
+
+    // Перерисовать пользовательскую маску в высоком разрешении (с учетом 300 DPI)
+    async redrawMaskInHighDPI(tempPaperScope, mask, scale) {
+      if (!mask) return
+
+      // Источник точек: предпочтительно актуальный visualPath (учитывает все перемещения/правки)
+      const points = []
+      if (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3) {
+        for (const seg of mask.visualPath.segments) {
+          points.push({ x: seg.point.x, y: seg.point.y })
+        }
+      } else if (Array.isArray(mask.points) && mask.points.length >= 3) {
+        // Фолбэк: исходные точки + текущее смещение
+        let deltaX = 0, deltaY = 0
+        try {
+          const currentCenter = (mask.maskGroup?.bounds?.center) || (mask.strokePath?.bounds?.center) || (mask.visualPath?.bounds?.center)
+          const baseCenter = (mask.visualPath?.bounds?.center) || currentCenter
+          if (currentCenter && baseCenter) {
+            deltaX = currentCenter.x - baseCenter.x
+            deltaY = currentCenter.y - baseCenter.y
+          }
+        } catch (e) {}
+        for (const p of mask.points) {
+          points.push({ x: p.x + deltaX, y: p.y + deltaY })
+        }
+      } else {
+        return
+      }
+
+      // Строим путь маски в HiDPI координатах
+      const hiPath = new tempPaperScope.Path()
+      for (const p of points) {
+        hiPath.add(new tempPaperScope.Point(p.x * scale, p.y * scale))
+      }
+      hiPath.closed = true
+
+      // Если к маске привязано изображение — создаем обрезанное изображение в HiDPI
+      const image = this.maskImages?.[mask.id]
+      if (image) {
+        // Создаем временный canvas по размерам маски
+        const bounds = hiPath.bounds
+        const tempCanvas = document.createElement('canvas')
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCanvas.width = Math.max(1, Math.round(bounds.width))
+        tempCanvas.height = Math.max(1, Math.round(bounds.height))
+
+        // Рисуем клип пути
+        tempCtx.save()
+        tempCtx.beginPath()
+        // Переносим путь в (0,0)
+        tempCtx.translate(-bounds.x, -bounds.y)
+        // Аппроксимация fill по сегментам
+        const segments = hiPath.segments || []
+        if (segments.length) {
+          tempCtx.moveTo(segments[0].point.x, segments[0].point.y)
+          for (let i = 1; i < segments.length; i++) {
+            tempCtx.lineTo(segments[i].point.x, segments[i].point.y)
+          }
+          tempCtx.closePath()
+        }
+        tempCtx.clip()
+
+        // Загружаем изображение и вписываем его с покрытием
+        await new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            // Масштаб, чтобы покрыть tempCanvas целиком
+            const scaleX = tempCanvas.width / img.width
+            const scaleY = tempCanvas.height / img.height
+            const coverScale = Math.max(scaleX, scaleY)
+            const drawW = img.width * coverScale
+            const drawH = img.height * coverScale
+            const offsetX = (tempCanvas.width - drawW) / 2
+            const offsetY = (tempCanvas.height - drawH) / 2
+            tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH)
+            tempCtx.restore()
+            resolve()
+          }
+          img.src = image.url
+        })
+
+        // Создаем Raster и позиционируем по центру hiPath
+        const clippedRaster = new tempPaperScope.Raster(tempCanvas.toDataURL('image/png'))
+        await new Promise((resolve) => { clippedRaster.onLoad = resolve })
+        clippedRaster.position = hiPath.bounds.center
+        tempPaperScope.project.activeLayer.addChild(clippedRaster)
+
+        // Обводка поверх (масштабируем толщину)
+        if (mask.strokeColor && (mask.strokeWidth || 0) > 0) {
+          const stroke = hiPath.clone()
+          stroke.fillColor = null
+          stroke.strokeColor = mask.strokeColor
+          stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+          tempPaperScope.project.activeLayer.addChild(stroke)
+        }
+
+        // Не рисуем заливку отдельно, т.к. она изображением
+        return
+      }
+
+      // Случай без изображения: заливаем цветом и рисуем обводку
+      if (mask.fillColor) {
+        const fillPath = hiPath.clone()
+        try { fillPath.fillColor = new tempPaperScope.Color(mask.fillColor) } catch (e) { fillPath.fillColor = mask.fillColor }
+        fillPath.strokeColor = null
+        tempPaperScope.project.activeLayer.addChild(fillPath)
+      }
+      if (mask.strokeColor && (mask.strokeWidth || 0) > 0) {
+        const stroke = hiPath.clone()
+        stroke.fillColor = null
+        try { stroke.strokeColor = new tempPaperScope.Color(mask.strokeColor) } catch (e) { stroke.strokeColor = mask.strokeColor }
+        stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+        tempPaperScope.project.activeLayer.addChild(stroke)
       }
     },
 
@@ -6776,6 +6907,11 @@ export default {
 }
 .preview-contaner{
   width: fit-content;
+}
+
+/* Отступ для строки табов */
+.tabs-row {
+  margin-top: -4.5rem;
 }
 
 /* Стили вкладки "Тексты" (как в StickerMania) */

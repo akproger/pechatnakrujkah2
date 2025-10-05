@@ -3726,11 +3726,19 @@ export default {
         { x1: bgLeft, y1: bgBottom, x2: bgLeft, y2: bgTop } // Лево
       ]
       
+      console.log('🔍 [getTailIntersectionWithBackground] Параметры:', {
+        centerX, centerY, tailEndX, tailEndY,
+        bgLeft, bgTop, bgRight, bgBottom,
+        sides
+      })
+      
       // Собираем ВСЕ пересечения
       const allIntersections = []
       
       for (const side of sides) {
-        const intersection = this.getLineIntersection(
+        console.log('🔍 [getTailIntersectionWithBackground] Проверяем сторону:', side)
+        
+        const intersection = this.getLineIntersectionByCoords(
           centerX, centerY, tailEndX, tailEndY,
           side.x1, side.y1, side.x2, side.y2
         )
@@ -3762,21 +3770,31 @@ export default {
       return null
     },
     
-    // Вычисление пересечения двух линий
-    getLineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+    // Вычисление пересечения двух линий (8 параметров)
+    getLineIntersectionByCoords(x1, y1, x2, y2, x3, y3, x4, y4) {
+      console.log('🔍 [getLineIntersectionByCoords] Параметры:', { x1, y1, x2, y2, x3, y3, x4, y4 })
+      
       const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-      if (Math.abs(den) < 1e-10) return null // Линии параллельны
+      if (Math.abs(den) < 1e-10) {
+        console.log('🔍 [getLineIntersectionByCoords] Линии параллельны')
+        return null // Линии параллельны
+      }
       
       const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
       const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
       
+      console.log('🔍 [getLineIntersectionByCoords] Результат:', { t, u, den })
+      
       if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        return {
+        const result = {
           x: x1 + t * (x2 - x1),
           y: y1 + t * (y2 - y1)
         }
+        console.log('🔍 [getLineIntersectionByCoords] Пересечение найдено:', result)
+        return result
       }
       
+      console.log('🔍 [getLineIntersectionByCoords] Пересечение не найдено')
       return null
     },
     
@@ -5721,17 +5739,38 @@ export default {
       // Проверяем пересечение нового отрезка с уже нарисованными
       if (this.maskPoints.length < 2) return false
       
+      console.log('🔍 [checkLineIntersection] Проверяем пересечение для точки:', newPoint)
+      console.log('🔍 [checkLineIntersection] Текущие точки маски:', this.maskPoints)
+      
+      const lastPoint = this.maskPoints[this.maskPoints.length - 1]
+      if (!lastPoint) {
+        console.log('❌ [checkLineIntersection] Последняя точка маски не найдена')
+        return false
+      }
+      
       const newSegment = {
-        start: this.maskPoints[this.maskPoints.length - 1],
+        start: lastPoint,
         end: newPoint
       }
       
+      console.log('🔍 [checkLineIntersection] Новый сегмент:', newSegment)
+      
       // Проверяем пересечение с каждым существующим отрезком
       for (let i = 0; i < this.maskPoints.length - 1; i++) {
-        const existingSegment = {
-          start: this.maskPoints[i],
-          end: this.maskPoints[i + 1]
+        const startPoint = this.maskPoints[i]
+        const endPoint = this.maskPoints[i + 1]
+        
+        if (!startPoint || !endPoint) {
+          console.log('❌ [checkLineIntersection] Пропускаем сегмент с отсутствующими точками:', { i, startPoint, endPoint })
+          continue
         }
+        
+        const existingSegment = {
+          start: startPoint,
+          end: endPoint
+        }
+        
+        console.log('🔍 [checkLineIntersection] Существующий сегмент:', existingSegment)
         
         // Пропускаем соседние отрезки
         if (i === this.maskPoints.length - 2) continue
@@ -5748,6 +5787,21 @@ export default {
     
     getLineIntersection(seg1, seg2) {
       // Алгоритм проверки пересечения двух отрезков
+      console.log('🔍 [getLineIntersection] Проверяем пересечение:', { seg1, seg2 })
+      
+      // Проверяем, что все точки существуют
+      if (!seg1 || !seg2 || !seg1.start || !seg1.end || !seg2.start || !seg2.end) {
+        console.log('❌ [getLineIntersection] Отсутствуют необходимые точки:', {
+          seg1Exists: !!seg1,
+          seg2Exists: !!seg2,
+          seg1Start: !!seg1?.start,
+          seg1End: !!seg1?.end,
+          seg2Start: !!seg2?.start,
+          seg2End: !!seg2?.end
+        })
+        return false
+      }
+      
       const x1 = seg1.start.x, y1 = seg1.start.y
       const x2 = seg1.end.x, y2 = seg1.end.y
       const x3 = seg2.start.x, y3 = seg2.start.y

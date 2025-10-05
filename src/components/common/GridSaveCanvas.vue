@@ -3265,22 +3265,16 @@ export default {
     async drawUserMasksOnSaveCanvas() {
       const masks = Array.isArray(this.userMasks) ? this.userMasks : []
       console.log('🧩 GridSaveCanvas: рендер масок (кол-во):', masks.length)
-      // Вычисляем масштаб так же, как для основного прямоугольника
-      // В addMainRectangleStroke толщина умножается на 2, но базовый DPI прирост ~ (canvas сохранения / основной canvas)
-      // Если известны размеры основного канваса — используем точное отношение
-      let scale = 2
-      try {
-        if (this.mainCanvasWidth > 0 && this.mainCanvasHeight > 0) {
-          const sx = this.canvasWidth / this.mainCanvasWidth
-          const sy = this.canvasHeight / this.mainCanvasHeight
-          scale = Math.max(sx, sy)
-        }
-      } catch (e) {}
+      // Точный трансформ: из координат основного канваса в координаты сохраняемого
+      const sx = (this.mainCanvasWidth > 0) ? (this.canvasWidth / this.mainCanvasWidth) : 1
+      const sy = (this.mainCanvasHeight > 0) ? (this.canvasHeight / this.mainCanvasHeight) : 1
+      const s = Math.max(sx, sy)
 
       // Порядок: снизу вверх (старые ниже, новые выше среди масок)
       const sorted = [...masks].sort((a, b) => (a.layerIndex || 0) - (b.layerIndex || 0))
       for (const mask of sorted) {
         try {
+          // Геометрия: приоритетно из visualPath (самая актуальная), иначе из points
           const points = []
           if (mask.visualPath && mask.visualPath.segments?.length >= 3) {
             mask.visualPath.segments.forEach(seg => points.push({ x: seg.point.x, y: seg.point.y }))
@@ -3290,60 +3284,74 @@ export default {
             continue
           }
 
-          // Строим hiDPI-путь
+          // Строим hiDPI-путь (точное соответствие трансформу сохранения)
           const hiPath = new this.paperScope.Path()
-          points.forEach(p => hiPath.add(new this.paperScope.Point(p.x * scale, p.y * scale)))
+          points.forEach(p => hiPath.add(new this.paperScope.Point(p.x * sx, p.y * sy)))
           hiPath.closed = true
           console.log('🧩 GridSaveCanvas: маска bounds:', { id: mask.id, bounds: hiPath.bounds })
 
+          // Центроид многоугольника для визуального центрирования внутри наклонённых фигур
+          const segsForCentroid = hiPath.segments.map(s => ({ x: s.point.x, y: s.point.y }))
+          let centroid = hiPath.bounds.center
+          try {
+            let signedArea = 0
+            let cx = 0
+            let cy = 0
+            for (let i = 0; i < segsForCentroid.length; i++) {
+              const p0 = segsForCentroid[i]
+              const p1 = segsForCentroid[(i + 1) % segsForCentroid.length]
+              const a = p0.x * p1.y - p1.x * p0.y
+              signedArea += a
+              cx += (p0.x + p1.x) * a
+              cy += (p0.y + p1.y) * a
+            }
+            signedArea *= 0.5
+            if (Math.abs(signedArea) > 1e-6) {
+              cx = cx / (6 * signedArea)
+              cy = cy / (6 * signedArea)
+              centroid = new this.paperScope.Point(cx, cy)
+            }
+          } catch (e) {}
+
           const image = this.maskImages?.[mask.id]
           if (image) {
-            // Рендер с изображением (clip)
-            const bounds = hiPath.bounds
-            const tempCanvas = document.createElement('canvas')
-            const tempCtx = tempCanvas.getContext('2d')
-            // Чуть увеличим, чтобы избежать клиппинга по краям
-            tempCanvas.width = Math.max(1, Math.ceil(bounds.width) + 2)
-            tempCanvas.height = Math.max(1, Math.ceil(bounds.height) + 2)
-
-            tempCtx.save()
-            tempCtx.beginPath()
-            // Смещаем с учетом добавленного padding (1px со всех сторон)
-            tempCtx.translate(-bounds.x + 1, -bounds.y + 1)
-            const segs = hiPath.segments
-            tempCtx.moveTo(segs[0].point.x, segs[0].point.y)
-            for (let i = 1; i < segs.length; i++) tempCtx.lineTo(segs[i].point.x, segs[i].point.y)
-            tempCtx.closePath()
-            tempCtx.clip()
-
-            await new Promise((resolve) => {
-              const img = new Image()
-              img.onload = () => {
-                const scaleX = tempCanvas.width / img.width
-                const scaleY = tempCanvas.height / img.height
-                const coverScale = Math.max(scaleX, scaleY)
-                const drawW = img.width * coverScale
-                const drawH = img.height * coverScale
-                const offsetX = (tempCanvas.width - drawW) / 2
-                const offsetY = (tempCanvas.height - drawH) / 2
-                tempCtx.drawImage(img, offsetX, offsetY, drawW, drawH)
-                tempCtx.restore()
-                resolve()
-              }
-              img.src = image.url
-            })
-
-            const raster = new this.paperScope.Raster(tempCanvas.toDataURL('image/png'))
+            // Клиппинг силами Paper.js: масштабируем растр по cover к bounds и клипим hiPath
+            const maskBounds = hiPath.bounds
+            const raster = new this.paperScope.Raster(image.url)
             await new Promise((resolve) => { raster.onLoad = resolve })
-            raster.position = hiPath.bounds.center
-            this.paperScope.project.activeLayer.addChild(raster)
+
+            // Масштаб cover
+            const scaleX = maskBounds.width / raster.image.width
+            const scaleY = maskBounds.height / raster.image.height
+            const coverScale = Math.max(scaleX, scaleY)
+            raster.scale(coverScale)
+
+            // Центрируем по центру bounds
+            raster.position = maskBounds.center
+            raster.visible = true
+
+            // Создаём группу с клипом
+            const clipPath = hiPath.clone()
+            const group = new this.paperScope.Group([clipPath, raster])
+            group.clipped = true
+            this.paperScope.project.activeLayer.addChild(group)
+
+            console.log('🧩 GridSaveCanvas: cover расчёт (paper):', {
+              id: mask.id,
+              imgW: raster.image.width,
+              imgH: raster.image.height,
+              scaleX,
+              scaleY,
+              coverScale,
+              bounds: { w: maskBounds.width, h: maskBounds.height }
+            })
 
             // Stroke поверх
             if (mask.strokeColor && (mask.strokeWidth || 0) > 0) {
               const stroke = hiPath.clone()
               stroke.fillColor = null
               try { stroke.strokeColor = new this.paperScope.Color(mask.strokeColor) } catch (e) { stroke.strokeColor = mask.strokeColor }
-              stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+              stroke.strokeWidth = (mask.strokeWidth || 0) * s
               this.paperScope.project.activeLayer.addChild(stroke)
             }
           } else {
@@ -3358,7 +3366,7 @@ export default {
               const stroke = hiPath.clone()
               stroke.fillColor = null
               try { stroke.strokeColor = new this.paperScope.Color(mask.strokeColor) } catch (e) { stroke.strokeColor = mask.strokeColor }
-              stroke.strokeWidth = (mask.strokeWidth || 0) * scale
+              stroke.strokeWidth = (mask.strokeWidth || 0) * s
               this.paperScope.project.activeLayer.addChild(stroke)
             }
           }

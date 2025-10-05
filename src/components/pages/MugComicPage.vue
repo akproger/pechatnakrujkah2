@@ -5588,6 +5588,12 @@ export default {
       
       // Сохраняем ссылку на визуальный путь
       mask.visualPath = path
+      // Сохраняем центр маски для последующего позиционирования при сохранении
+      try {
+        if (path && path.bounds && path.bounds.center) {
+          mask.center = { x: path.bounds.center.x, y: path.bounds.center.y }
+        }
+      } catch (e) {}
       
       // Очищаем вспомогательные элементы
       this.clearAllMaskElements()
@@ -5872,6 +5878,12 @@ export default {
       
       // Сохраняем ссылку на группу
       mask.maskGroup = group
+      // Обновляем центр маски от группы
+      try {
+        if (group && group.bounds && group.bounds.center) {
+          mask.center = { x: group.bounds.center.x, y: group.bounds.center.y }
+        }
+      } catch (e) {}
       
       console.log('🎨 Группа сохранена в маске:', mask.id, 'с', group.children.length, 'элементами')
       
@@ -5917,6 +5929,13 @@ export default {
       mask.isDragging = false
       mask.dragStart = null
       console.log('🎭 Завершено перетаскивание маски:', mask.id)
+      // Фиксируем актуальный центр после перетаскивания
+      try {
+        const c = (mask.maskGroup?.bounds?.center) || (mask.strokePath?.bounds?.center) || (mask.visualPath?.bounds?.center)
+        if (c) {
+          mask.center = { x: c.x, y: c.y }
+        }
+      } catch (e) {}
     },
     
     updateMaskVisualPath(mask) {

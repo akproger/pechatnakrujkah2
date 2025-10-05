@@ -848,6 +848,52 @@ export default {
         // Если у маски нет strokeColor — используем чёрный по умолчанию
         const strokeColor = mask.strokeColor || '#000000'
 
+        // Сначала — заливка изображением, если есть
+        const imgInfo = this.maskImages ? this.maskImages[mask.id] : null
+        if (imgInfo && imgInfo.url) {
+          // Построим путь и включим clip
+          ctx.save()
+          ctx.beginPath()
+          ctx.moveTo(points[0].x * s + offsetX, points[0].y * s + offsetY)
+          for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x * s + offsetX, points[i].y * s + offsetY)
+          }
+          ctx.closePath()
+          ctx.clip()
+
+          const img = new Image()
+          img.onload = () => {
+            const innerW = bw * s
+            const innerH = bh * s
+            const scaleX = innerW / img.width
+            const scaleY = innerH / img.height
+            const coverScale = Math.max(scaleX, scaleY)
+            const drawW = Math.round(img.width * coverScale)
+            const drawH = Math.round(img.height * coverScale)
+            const dx = Math.round(minX * s + offsetX + (innerW - drawW) / 2)
+            const dy = Math.round(minY * s + offsetY + (innerH - drawH) / 2)
+            ctx.drawImage(img, dx, dy, drawW, drawH)
+            ctx.restore()
+
+            // Обводка поверх
+            ctx.save()
+            ctx.beginPath()
+            ctx.moveTo(points[0].x * s + offsetX, points[0].y * s + offsetY)
+            for (let i = 1; i < points.length; i++) {
+              ctx.lineTo(points[i].x * s + offsetX, points[i].y * s + offsetY)
+            }
+            ctx.closePath()
+            ctx.lineJoin = 'round'
+            ctx.lineCap = 'round'
+            ctx.strokeStyle = strokeColor
+            ctx.lineWidth = previewStroke
+            ctx.stroke()
+            ctx.restore()
+          }
+          img.src = imgInfo.url
+          return
+        }
+
         ctx.save()
         ctx.beginPath()
         ctx.moveTo(points[0].x * s + offsetX, points[0].y * s + offsetY)
@@ -5747,6 +5793,14 @@ export default {
       
       // Обновляем визуальную маску с изображением
       this.updateMaskWithImage(maskId)
+
+      // Обновим превью соответствующей маски
+      try {
+        const mask = this.userMasks.find(m => m.id === maskId)
+        if (mask) {
+          this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
+        }
+      } catch (e) {}
       
       // Обновляем 3D модель
       setTimeout(() => {
@@ -6114,6 +6168,8 @@ export default {
         
         console.log('🗑️ Маска удалена:', maskId)
         this.enforceLayerOrder()
+        // Обновим превью после отвязки
+        this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
       }
     },
     

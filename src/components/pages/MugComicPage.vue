@@ -5333,9 +5333,10 @@ export default {
       if (mask.isDragging && mask.dragStart) {
         const delta = event.point.subtract(mask.dragStart)
         
-        // Перемещаем всю группу
+        // Перемещаем всю группу (только один раз!)
         if (mask.maskGroup) {
           mask.maskGroup.position = mask.maskGroup.position.add(delta)
+          console.log('🎭 Обновлена позиция группы:', mask.maskGroup.position.toString())
         }
         
         // Обновляем точки маски для всех слоев
@@ -5344,24 +5345,8 @@ export default {
           mask.points[i].y += delta.y
         }
         
-        // Обновляем визуальные пути
-        if (mask.visualPath) {
-          this.updateMaskVisualPath(mask)
-        }
-        
-        if (mask.imageLayer) {
-          this.updateImageLayerPath(mask)
-        }
-        
-        if (mask.strokePath) {
-          this.updateStrokePath(mask)
-        }
-        
-        // Обновляем позицию группы
-        if (mask.maskGroup) {
-          mask.maskGroup.position = mask.maskGroup.position.add(delta)
-          console.log('🎭 Обновлена позиция группы:', mask.maskGroup.position.toString())
-        }
+        // НЕ обновляем слои - они уже в группе и перемещаются вместе с ней
+        console.log('🔍 [dragMask] Слои в группе, обновление не требуется')
         
         mask.dragStart = event.point
         console.log('🎭 Перетаскивание маски:', mask.id, delta.toString())
@@ -5375,34 +5360,21 @@ export default {
     },
     
     updateMaskVisualPath(mask) {
-      if (mask.visualPath) {
-        mask.visualPath.remove()
-      }
+      console.log('🔍 [updateMaskVisualPath] НЕ создаем новый visualPath при перетаскивании')
+      console.log('🔍 [updateMaskVisualPath] visualPath нужен только для обрезки, не для отображения')
       
-      const path = new this.paperScope.Path()
-      for (let i = 0; i < mask.points.length; i++) {
-        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
-        path.add(point)
-      }
-      path.closed = true
-      path.fillColor = mask.fillColor
-      path.strokeColor = mask.strokeColor
-      path.strokeWidth = mask.strokeWidth
-      
-      mask.visualPath = path
+      // НЕ создаем новый visualPath - он нужен только для обрезки
+      // и не должен отображаться на canvas
+      return
     },
     
     updateImageLayerPath(mask) {
-      if (mask.imageLayer) {
-        mask.imageLayer.remove()
-      }
+      console.log('🔍 [updateImageLayerPath] НЕ создаем новый слой изображения при перетаскивании')
+      console.log('🔍 [updateImageLayerPath] Обрезанное изображение уже в группе, обновление не требуется')
       
-      const imagePath = new this.paperScope.Path()
-      for (let i = 0; i < mask.points.length; i++) {
-        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
-        imagePath.add(point)
-      }
-      imagePath.closed = true
+      // НЕ создаем новый слой изображения - обрезанное изображение уже в группе
+      // и перемещается вместе с группой
+      return
       
       // Восстанавливаем изображение
       if (this.maskImages[mask.id]) {
@@ -5460,21 +5432,12 @@ export default {
     },
     
     updateStrokePath(mask) {
-      if (mask.strokePath) {
-        mask.strokePath.remove()
-      }
+      console.log('🔍 [updateStrokePath] НЕ создаем новую обводку при перетаскивании')
+      console.log('🔍 [updateStrokePath] Обводка уже в группе, обновление не требуется')
       
-      const strokePath = new this.paperScope.Path()
-      for (let i = 0; i < mask.points.length; i++) {
-        const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
-        strokePath.add(point)
-      }
-      strokePath.closed = true
-      strokePath.strokeColor = mask.strokeColor
-      strokePath.strokeWidth = mask.strokeWidth * 2
-      strokePath.fillColor = null
-      
-      mask.strokePath = strokePath
+      // НЕ создаем новую обводку - она уже в группе
+      // и перемещается вместе с группой
+      return
     },
     
     createMaskPoint(point) {

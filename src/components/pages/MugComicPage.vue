@@ -725,6 +725,10 @@ export default {
   },
   mounted() {
     this.initPaperCanvas()
+    // Отрисуем превью масок после первого рендера
+    this.$nextTick(() => {
+      try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
+    })
   },
   beforeUnmount() {
     if (this.paperScope) {
@@ -791,6 +795,76 @@ export default {
           this.paperScope.view.update()
         }
       },
+
+    // ====== Превью масок в списке слоёв ======
+    refreshMaskPreviews() {
+      if (!Array.isArray(this.userMasks) || this.userMasks.length === 0) return
+      for (const mask of this.userMasks) {
+        this.renderMaskPreview(mask)
+      }
+    },
+    renderMaskPreview(mask) {
+      try {
+        const canvasRef = this.$refs[`maskPreview${mask.id}`]
+        const canvas = Array.isArray(canvasRef) ? canvasRef[0] : canvasRef
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        const W = canvas.width
+        const H = canvas.height
+        ctx.clearRect(0, 0, W, H)
+
+        // Берём актуальные точки фигуры
+        const points = []
+        if (mask && mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3) {
+          mask.visualPath.segments.forEach(seg => points.push({ x: seg.point.x, y: seg.point.y }))
+        } else if (Array.isArray(mask?.points) && mask.points.length >= 3) {
+          mask.points.forEach(p => points.push({ x: p.x, y: p.y }))
+        } else {
+          return
+        }
+
+        // Вычисляем границы
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const p of points) {
+          if (p.x < minX) minX = p.x
+          if (p.y < minY) minY = p.y
+          if (p.x > maxX) maxX = p.x
+          if (p.y > maxY) maxY = p.y
+        }
+        const bw = Math.max(1, maxX - minX)
+        const bh = Math.max(1, maxY - minY)
+
+        // Масштаб к превью с небольшим отступом
+        const padding = 6
+        const sx = (W - padding * 2) / bw
+        const sy = (H - padding * 2) / bh
+        const s = Math.min(sx, sy)
+        const offsetX = (W - bw * s) / 2 - minX * s
+        const offsetY = (H - bh * s) / 2 - minY * s
+
+        // Толщина обводки пропорциональна масштабу
+        const baseStroke = mask.strokeWidth || 1
+        const previewStroke = Math.max(1, Math.round(baseStroke * s))
+        // Если у маски нет strokeColor — используем чёрный по умолчанию
+        const strokeColor = mask.strokeColor || '#000000'
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.moveTo(points[0].x * s + offsetX, points[0].y * s + offsetY)
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x * s + offsetX, points[i].y * s + offsetY)
+        }
+        ctx.closePath()
+        ctx.lineJoin = 'round'
+        ctx.lineCap = 'round'
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = previewStroke
+        ctx.stroke()
+        ctx.restore()
+      } catch (e) {
+        console.error('❌ Ошибка рендера превью маски:', e)
+      }
+    },
     // ========== Инициализация Paper.js ==========
     initPaperCanvas() {
       const canvas = this.$refs.comicCanvas
@@ -1404,6 +1478,8 @@ export default {
       
       // Добавляем в начало списка масок
       this.userMasks.unshift(mask)
+      // Перерисуем превью новой маски
+      this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
       
       // Сохраняем создание маски в историю (заменяет все предыдущие шаги рисования)
       this.saveAction('createMask', { mask })
@@ -5600,6 +5676,8 @@ export default {
       
       console.log('🎭 Создана визуальная маска:', mask.id)
       this.enforceLayerOrder()
+      // Обновим превью после создания визуального пути
+      this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
     },
     
     selectMask(maskId) {

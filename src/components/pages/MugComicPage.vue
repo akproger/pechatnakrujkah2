@@ -5240,6 +5240,9 @@ export default {
     },
     
     createMaskStroke(mask) {
+      console.log('🎨 [createMaskStroke] Создаем обводку для маски:', mask.id)
+      console.log('🎨 [createMaskStroke] Исходные точки маски:', mask.points)
+      
       // Удаляем предыдущую обводку если есть
       if (mask.strokePath) {
         mask.strokePath.remove()
@@ -5253,6 +5256,7 @@ export default {
         for (let i = 0; i < mask.points.length; i++) {
           const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
           strokePath.add(point)
+          console.log(`🎨 [createMaskStroke] Точка ${i}: (${point.x}, ${point.y})`)
         }
         
         // Замыкаем контур
@@ -5270,6 +5274,37 @@ export default {
         mask.strokePath = strokePath
         
         console.log('🎨 [createMaskStroke] Создана обводка для маски:', mask.id, 'толщина:', mask.strokeWidth * 2)
+        console.log('🎨 [createMaskStroke] Координаты обводки:', strokePath.segments.map(s => `(${s.point.x}, ${s.point.y})`))
+        
+        // Логируем границы обводки
+        console.log('🎨 [createMaskStroke] Границы обводки:', strokePath.bounds)
+        console.log('🎨 [createMaskStroke] Размеры обводки:', strokePath.bounds.width, 'x', strokePath.bounds.height)
+        
+        // Сравниваем с исходной фигурой
+        if (mask.visualPath) {
+          console.log('🎨 [createMaskStroke] Сравнение с исходной фигурой:')
+          console.log('🎨 [createMaskStroke] Координаты исходной фигуры:', mask.visualPath.segments.map(s => `(${s.point.x}, ${s.point.y})`))
+          console.log('🎨 [createMaskStroke] Границы исходной фигуры:', mask.visualPath.bounds)
+          console.log('🎨 [createMaskStroke] Размеры исходной фигуры:', mask.visualPath.bounds.width, 'x', mask.visualPath.bounds.height)
+          
+          // Сравниваем границы
+          const strokeBounds = strokePath.bounds
+          const visualBounds = mask.visualPath.bounds
+          console.log('🎨 [createMaskStroke] Сравнение границ:')
+          console.log(`🎨 [createMaskStroke] Обводка: x=${strokeBounds.x}, y=${strokeBounds.y}, w=${strokeBounds.width}, h=${strokeBounds.height}`)
+          console.log(`🎨 [createMaskStroke] Фигура: x=${visualBounds.x}, y=${visualBounds.y}, w=${visualBounds.width}, h=${visualBounds.height}`)
+          
+          // Проверяем совпадение координат
+          let coordinatesMatch = true
+          for (let i = 0; i < Math.min(strokePath.segments.length, mask.visualPath.segments.length); i++) {
+            const strokePoint = strokePath.segments[i].point
+            const visualPoint = mask.visualPath.segments[i].point
+            const match = Math.abs(strokePoint.x - visualPoint.x) < 0.001 && Math.abs(strokePoint.y - visualPoint.y) < 0.001
+            console.log(`🎨 [createMaskStroke] Точка ${i}: обводка(${strokePoint.x}, ${strokePoint.y}) vs фигура(${visualPoint.x}, ${visualPoint.y}) - ${match ? 'СОВПАДАЕТ' : 'НЕ СОВПАДАЕТ'}`)
+            if (!match) coordinatesMatch = false
+          }
+          console.log('🎨 [createMaskStroke] Все координаты совпадают:', coordinatesMatch)
+        }
       }
     },
     
@@ -5305,6 +5340,10 @@ export default {
       }
       
       console.log('🎨 [createMaskGroup] Группа создана с обводкой, будет заполнена обрезанным изображением')
+      
+      // Логируем границы группы
+      console.log('🎨 [createMaskGroup] Границы группы:', group.bounds)
+      console.log('🎨 [createMaskGroup] Размеры группы:', group.bounds.width, 'x', group.bounds.height)
       
       // Делаем группу перетаскиваемой
       group.onMouseDown = (event) => {
@@ -5960,6 +5999,11 @@ export default {
           // Позиционируем обрезанный растр в центре маски
           clippedRaster.position = maskBounds.center
           
+          // Логируем размеры и позицию обрезанного изображения
+          console.log('🎨 [createClippedImageForMask] Размеры обрезанного растра:', clippedRaster.bounds.width, 'x', clippedRaster.bounds.height)
+          console.log('🎨 [createClippedImageForMask] Позиция обрезанного растра:', clippedRaster.position)
+          console.log('🎨 [createClippedImageForMask] Границы обрезанного растра:', clippedRaster.bounds)
+          
           // Заменяем старое изображение на обрезанное
           if (mask.imageLayer) {
             mask.imageLayer.remove()
@@ -5971,6 +6015,10 @@ export default {
             // Добавляем обрезанное изображение в группу ПОВЕРХ обводки (чтобы изображение было поверх)
             group.addChild(clippedRaster) // Добавляем в конец (поверх обводки)
             console.log('🎨 [createClippedImageForMask] Обрезанное изображение добавлено в группу ПОВЕРХ обводки')
+            
+            // Логируем границы группы после добавления изображения
+            console.log('🎨 [createClippedImageForMask] Границы группы после добавления изображения:', group.bounds)
+            console.log('🎨 [createClippedImageForMask] Размеры группы после добавления изображения:', group.bounds.width, 'x', group.bounds.height)
             
             // Удаляем слой с серой заливкой - он больше не нужен
             if (mask.visualPath && mask.visualPath.parent) {

@@ -6204,9 +6204,20 @@ export default {
       if (index !== -1) {
         const mask = this.userMasks[index]
         
-        // Удаляем визуальную маску с canvas
+        // Удаляем все элементы маски с canvas
         if (mask.visualPath) {
           mask.visualPath.remove()
+        }
+        if (mask.maskGroup) {
+          mask.maskGroup.remove()
+        }
+        if (mask.strokePath) {
+          mask.strokePath.remove()
+        }
+        
+        // Удаляем связанное изображение
+        if (this.maskImages[maskId]) {
+          delete this.maskImages[maskId]
         }
         
         this.userMasks.splice(index, 1)
@@ -6215,9 +6226,19 @@ export default {
         this.saveAction('deleteMask', { mask, index })
         
         console.log('🗑️ Маска удалена:', maskId)
+        
+        // Обновляем порядок слоев и 3D модель
         this.enforceLayerOrder()
-        // Обновим превью после отвязки
-        this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
+        this.update3DTexture()
+        
+        // Обновляем превью масок
+        this.$nextTick(() => {
+          try {
+            this.refreshMaskPreviews && this.refreshMaskPreviews()
+          } catch (e) {
+            console.warn('Ошибка обновления превью масок:', e)
+          }
+        })
       }
     },
     

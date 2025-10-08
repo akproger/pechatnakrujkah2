@@ -6934,22 +6934,17 @@ export default {
   background: white;
   color: #495057;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   font-size: 18px;
 }
 
 .tool-button:hover:not(:disabled) {
   background: #e9ecef;
-  color: #016527;
-  transform: translateY(-1px);
-}
-
-.tool-button:active:not(:disabled) {
-  transform: translateY(0);
+  color: rgb(13, 110, 253);
 }
 
 .tool-button.active {
-  background: #016527;
+  background: rgb(13, 110, 253);
   color: white;
 }
 

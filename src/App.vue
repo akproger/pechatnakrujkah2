@@ -85,6 +85,15 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.tool-button > i:before{
+  vertical-align: -3px !important;
+}
+.tool-button:active, .tool-button:hover{
+  background: rgb(13, 110, 253) !important;
+}
+.tool-button.active > i:before, .tool-button:hover > i:before{
+  color: #fff !important;
+}
 
 .main-content {
   flex: 1;

@@ -14,7 +14,7 @@
         <div class="col">
           <h1 class="app-title mb-0">
             <router-link to="/" class="text-decoration-none text-dark">
-              Vue Paper Three App
+              Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>
             </router-link>
           </h1>
         </div>
@@ -36,6 +36,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.header-span-1{
+  color: #0e6ffd;
+}
+.header-span-2{
+  color:rgb(241, 10, 10);;
+}
 .app-header {
   background-color: #fff;
   border-bottom: 1px solid #dee2e6;

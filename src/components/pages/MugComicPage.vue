@@ -191,23 +191,6 @@
             <li class="nav-item" role="presentation">
               <button 
                 class="nav-link" 
-                :class="{ 'active': activeTab === 'settings' }"
-                id="settings-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#settings" 
-                type="button" 
-                role="tab" 
-                aria-controls="settings" 
-                aria-selected="activeTab === 'settings'"
-                @click="activeTab = 'settings'"
-              >
-                <i class="bi bi-gear me-2"></i>
-                Настройки
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
                 :class="{ 'active': activeTab === 'userFrames' }"
                 id="userFrames-tab" 
                 data-bs-toggle="tab" 
@@ -220,6 +203,23 @@
               >
                 <i class="bi bi-bounding-box me-2"></i>
                 Рамки пользователя
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button 
+                class="nav-link" 
+                :class="{ 'active': activeTab === 'settings' }"
+                id="settings-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#settings" 
+                type="button" 
+                role="tab" 
+                aria-controls="settings" 
+                aria-selected="activeTab === 'settings'"
+                @click="activeTab = 'settings'"
+              >
+                <i class="bi bi-gear me-2"></i>
+                Настройки
               </button>
             </li>
           </ul>
@@ -6964,15 +6964,15 @@ export default {
   transition: all 0.2s ease;
 }
 .nav-tabs .nav-link:hover {
-  color: #016527;
+  color: rgb(13, 110, 253);
   background-color: transparent;
   border-bottom-color: #dee2e6;
 }
 
 .nav-tabs .nav-link.active {
-  color: #016527;
+  color: rgb(13, 110, 253);
   background-color: transparent;
-  border-bottom-color: #016527;
+  border-bottom-color: rgb(13, 110, 253);
 }
 
 .nav-tabs .nav-link i {

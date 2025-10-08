@@ -11496,15 +11496,15 @@ export default {
 }
 
 .nav-tabs .nav-link:hover {
-  color: #016527;
+  color: rgb(13, 110, 253);
   background-color: transparent;
   border-bottom-color: #dee2e6;
 }
 
 .nav-tabs .nav-link.active {
-  color: #016527;
+  color: rgb(13, 110, 253);
   background-color: transparent;
-  border-bottom-color: #016527;
+  border-bottom-color: rgb(13, 110, 253);
 }
 
 .nav-tabs .nav-link i {

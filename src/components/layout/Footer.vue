@@ -4,7 +4,7 @@
       <div class="row align-items-center">
         <div class="col-md-6">
           <p class="mb-0 text-muted">
-            © {{ currentYear }} Vue Paper Three App. Все права защищены.
+            © {{ currentYear }} Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>. Все права защищены.
           </p>
         </div>
         <div class="col-md-6 text-md-end">

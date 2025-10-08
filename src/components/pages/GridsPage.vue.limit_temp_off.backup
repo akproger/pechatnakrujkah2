@@ -261,10 +261,19 @@
                       <button 
                         @click="$refs.imageInput.click()" 
                         class="btn"
+                        :disabled="uploadedImages.length >= 5"
                         style="background-color: #0d6efd; border: none; color: white;"
                       >
                         <i class="bi bi-cloud-upload me-2"></i>
-                        <span>Загрузить изображения</span>
+                        <span v-if="uploadedImages.length >= 5">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 5)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                        </span>
                       </button>
                     </div>
                     
@@ -2950,6 +2959,13 @@ export default {
     
     handleImageUpload(event) {
       const files = Array.from(event.target.files)
+      const maxImages = 5
+      const remainingSlots = maxImages - this.uploadedImages.length
+      
+      if (files.length > remainingSlots) {
+        alert(`Можно загрузить только ${remainingSlots} изображений`)
+        return
+      }
       
       files.forEach(file => {
         if (file.type.startsWith('image/')) {

@@ -2,6 +2,7 @@
   <div class="grid-save-canvas">
     <!-- Кнопка сохранения -->
     <button 
+      v-if="!hideButton"
       @click.prevent="handleSaveWithLog" 
       :disabled="isSaving"
       class="save-btn"
@@ -123,6 +124,10 @@ export default {
     mainCanvasHeight: {
       type: Number,
       default: 0
+    },
+    hideButton: {
+      type: Boolean,
+      default: false
     }
   },
   data() {

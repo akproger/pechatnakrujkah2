@@ -27,18 +27,21 @@
                     >
                       <i class="bi bi-bounding-box"></i>
                     </button>
+                    <button 
+                      class="tool-button"
+                      @click="openTextManager"
+                      title="Добавить текст"
+                    >
+                      <i class="bi bi-type"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
+                      @click="triggerSave"
+                      title="Сохранить"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
                   </div>
-                </div>
-                
-                <!-- Кнопка добавления текста -->
-                <div class="col" style="padding: 0;">
-                  <button 
-                    @click="openTextManager" 
-                    class="btn canvas-button text-button"
-                  >
-                    <i class="bi bi-type me-2"></i>
-                    Текст
-                  </button>
                 </div>
                 
                 <div class="col" style="padding: 0;">
@@ -52,9 +55,9 @@
                   />
                 </div>
                 
-                <!-- Кнопка сохранения -->
                 <div class="col" style="padding: 0;">
                   <GridSaveCanvas
+                    ref="saveCanvas"
                     :grid-cols="1"
                     :grid-rows="1"
                     :mask-type="'rectangle'"
@@ -75,6 +78,7 @@
                     :mask-images="maskImages"
                     :main-canvas-width="paperScope?.view?.viewSize?.width || 0"
                     :main-canvas-height="paperScope?.view?.viewSize?.height || 0"
+                    :hide-button="true"
                     @save-start="onSaveStart"
                     @save-success="onSaveSuccess"
                     @save-error="onSaveError"
@@ -5397,6 +5401,13 @@ export default {
       await new Promise((resolve, reject) => { raster.onLoad = resolve; raster.onError = reject })
       raster.position = new tempPaperScope.Point(x, y)
       tempPaperScope.project.activeLayer.addChild(raster)
+    },
+
+    // Триггер сохранения из панели инструментов
+    triggerSave() {
+      if (this.$refs.saveCanvas && this.$refs.saveCanvas.handleSaveWithLog) {
+        this.$refs.saveCanvas.handleSaveWithLog()
+      }
     },
 
     // Обработчики событий кнопки сохранения

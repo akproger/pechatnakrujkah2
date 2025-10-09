@@ -40,7 +40,7 @@ export default {
   color: #0e6ffd;
 }
 .header-span-2{
-  color:rgb(241, 10, 10);;
+  color: rgb(241, 10, 10);
 }
 .app-header {
   background-color: #fff;

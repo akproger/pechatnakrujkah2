@@ -11,7 +11,7 @@
       
       <!-- Вкладки и ползунки управления -->
       <div class="row mb-4">
-        <div class="col-12" style="width: 66.66666667%;">
+        <div class="col-12">
           <div class="card">
             <div class="card-body">
               <div class="row align-items-center">
@@ -95,7 +95,7 @@
       
             <!-- Canvas область и 3D превью -->
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-8">
           <div class="card">
             <!-- Кнопки управления -->
             <div class="card-header">
@@ -154,7 +154,7 @@
         </div>
         
         <!-- 3D превью кружки -->
-        <div class="col-md-4">
+        <div class="col-4">
           <div class="card">
             <div class="card-body p-0">
               <ThreeDRenderer 
@@ -6940,6 +6940,8 @@ export default {
   touch-action: none; // Отключаем стандартные touch события браузера
   box-shadow: 4px 4px 12px 0 rgba(0, 0, 0, .15);
   background: #fff;
+  max-width: 100%;
+  max-height: 100%;
   
   &:focus {
     outline: none;

@@ -60,34 +60,6 @@
                   </div>
                 </div>
                 
-                <!-- Ползунки управления -->
-                <div class="d-flex gap-4 ms-auto" style="width: 330px;">
-                  <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Строки: {{ gridRows }}</div>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      id="gridRowsSlider"
-                      v-model.number="gridRows"
-                      min="1" 
-                      max="10" 
-                      step="1"
-                    >
-                  </div>
-                  
-                  <div class="form-group mb-0" style="width: 150px;">
-                    <div class="form-label mb-1" style="text-align: left;">Столбцы: {{ gridCols }}</div>
-                    <input 
-                      type="range" 
-                      class="form-range" 
-                      id="gridColsSlider"
-                      v-model.number="gridCols"
-                      min="1" 
-                      max="20" 
-                      step="1"
-                    >
-                  </div>
-                </div>
                 
                 <div class="col" style="padding: 0;">
                   <!-- Компонент сохранения сетки -->
@@ -768,21 +740,11 @@ export default {
   
   computed: {
     // Получаем текущие настройки строк и столбцов для выбранного типа сетки
-    gridRows: {
-      get() {
-        return this.gridSettings[this.maskType].rows
-      },
-      set(value) {
-        this.gridSettings[this.maskType].rows = value
-      }
+    gridRows() {
+      return this.gridSettings[this.maskType].rows
     },
-    gridCols: {
-      get() {
-        return this.gridSettings[this.maskType].cols
-      },
-      set(value) {
-        this.gridSettings[this.maskType].cols = value
-      }
+    gridCols() {
+      return this.gridSettings[this.maskType].cols
     },
     
     // Конвертируем проценты в пиксели для различных настроек

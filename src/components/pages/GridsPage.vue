@@ -430,15 +430,17 @@
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOpacity"
-                          min="0" 
-                          max="100" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Прозрачность тени: {{ shadowOpacity }}%</label>
+                        <div class="control-scale" role="group" aria-label="Прозрачность тени (в процентах)">
+                          <div
+                            v-for="n in 11"
+                            :key="`so-${(n - 1) * 5}`"
+                            class="control-cell"
+                            :class="{ 'selected': ((n - 1) * 5) <= shadowOpacity }"
+                            :title="`${(n - 1) * 5}%`"
+                            @click="setShadowOpacity((n - 1) * 5)"
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -705,7 +707,7 @@ export default {
       shadowBlur: 0, // Проценты (0-20)
       shadowOffsetX: 0, // Проценты (-50 до +50)
       shadowOffsetY: 0, // Проценты (-50 до +50)
-      shadowOpacity: 50, // Проценты (0-100)
+      shadowOpacity: 50, // Проценты (0-50)
       activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: [],
       
@@ -971,6 +973,13 @@ export default {
       const v = Math.max(0, Math.min(20, pct))
       this.shadowBlur = v
       console.log('✅ Размытие тени установлено:', v)
+    },
+
+    setShadowOpacity(pct) {
+      // защита диапазона 0-50 с шагом 5%
+      const v = Math.max(0, Math.min(50, pct))
+      this.shadowOpacity = v
+      console.log('✅ Прозрачность тени установлена:', v)
     },
 
     initPaper() {
@@ -1341,7 +1350,6 @@ export default {
       
       // Уведомления выводятся только в консоль (alert убран)
     },
-
     // Сохранение холста в высоком разрешении для печати
     async saveCanvasForPrint() {
       console.log('🖨️ Начинаем сохранение холста для печати в 300 DPI')
@@ -2119,7 +2127,6 @@ export default {
       
       console.log('✅ Маски треугольников для высокого разрешения созданы')
     },
-
     // Создание масок ромбов для высокого разрешения
     async createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('💎 Создаем маски ромбов для высокого разрешения')
@@ -7722,7 +7729,6 @@ export default {
   background: rgb(13, 110, 253) !important;
   color: white !important;
 }
-
 .tool-button.active {
   background: rgb(13, 110, 253) !important;
   color: white !important;

@@ -356,7 +356,7 @@
                           class="form-range" 
                           v-model.number="externalMargin"
                           min="0" 
-                          max="50" 
+                          max="20" 
                           step="1"
                         >
                       </div>
@@ -693,7 +693,7 @@ export default {
       selectedCell: null,
       touchStartPos: null,
       // Дополнительные настройки
-      externalMargin: 0, // Проценты (0-50)
+      externalMargin: 0, // Проценты (0-20)
       strokeColor: '#000000',
       strokeWidth: 0, // Проценты (0-20)
       shadowBlur: 0, // Проценты (0-50)
@@ -1036,6 +1036,23 @@ export default {
         if (hitResult && hitResult.item) {
           const item = hitResult.item
           
+          // Проверяем, что элемент не заблокирован
+          if (item.locked) {
+            console.log('🔒 Попытка взаимодействия с заблокированным элементом - игнорируем')
+            return
+          }
+          
+          // Проверяем, что это НЕ маска сетки
+          const isGridMask = item.data && (item.data.type === 'rectangle' || 
+                                          item.data.type === 'triangle' || 
+                                          item.data.type === 'diamond' || 
+                                          item.data.type === 'hexagon')
+          
+          if (isGridMask) {
+            console.log('🔒 Попытка взаимодействия с маской сетки - игнорируем')
+            return
+          }
+          
           // Проверяем, что это текстовый элемент или подложка
           const isTextItem = item.className === 'TextItem' || 
                            item.className === 'Group' || 
@@ -1149,12 +1166,68 @@ export default {
 
     // Обработка одинарного клика
     handleSingleClick(event, clearSelection) {
+      // Проверяем, что элемент под курсором не заблокирован
+      if (this.paperScope && this.paperScope.project) {
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 10
+        })
+        
+        if (hitResult && hitResult.item) {
+          if (hitResult.item.locked) {
+            console.log('🔒 Попытка одинарного клика по заблокированному элементу - игнорируем')
+            return
+          }
+          
+          // Проверяем, что это НЕ маска сетки
+          const isGridMask = hitResult.item.data && (hitResult.item.data.type === 'rectangle' || 
+                                                    hitResult.item.data.type === 'triangle' || 
+                                                    hitResult.item.data.type === 'diamond' || 
+                                                    hitResult.item.data.type === 'hexagon')
+          
+          if (isGridMask) {
+            console.log('🔒 Попытка одинарного клика по маске сетки - игнорируем')
+            return
+          }
+        }
+      }
+      
       // Здесь можно добавить логику для одинарного клика
       console.log('🖱️ Одинарный клик в точке:', event.point)
     },
 
     // Обработка двойного клика
     handleDoubleClick(event) {
+      // Проверяем, что элемент под курсором не заблокирован
+      if (this.paperScope && this.paperScope.project) {
+        const hitResult = this.paperScope.project.hitTest(event.point, {
+          segments: true,
+          stroke: true,
+          fill: true,
+          tolerance: 10
+        })
+        
+        if (hitResult && hitResult.item) {
+          if (hitResult.item.locked) {
+            console.log('🔒 Попытка двойного клика по заблокированному элементу - игнорируем')
+            return
+          }
+          
+          // Проверяем, что это НЕ маска сетки
+          const isGridMask = hitResult.item.data && (hitResult.item.data.type === 'rectangle' || 
+                                                    hitResult.item.data.type === 'triangle' || 
+                                                    hitResult.item.data.type === 'diamond' || 
+                                                    hitResult.item.data.type === 'hexagon')
+          
+          if (isGridMask) {
+            console.log('🔒 Попытка двойного клика по маске сетки - игнорируем')
+            return
+          }
+        }
+      }
+      
       // Логика двойного клика уже реализована в setupPaperTools
       console.log('🖱️ Двойной клик в точке:', event.point)
     },
@@ -1942,6 +2015,7 @@ export default {
           maskGroup.addChild(rect)
           
           rect.data = { row, col, type: 'rectangle' }
+          rect.locked = true // Блокируем маску от перетаскивания
           
           console.log(`✅ Маска [${row}, ${col}] создана и добавлена в группу`)
         }
@@ -2011,6 +2085,7 @@ export default {
           maskGroup.addChild(triangle)
           
           triangle.data = { row, col, type: 'triangle' }
+          triangle.locked = true // Блокируем маску от перетаскивания
         }
       }
       
@@ -2065,6 +2140,7 @@ export default {
           maskGroup.addChild(diamond)
           
           diamond.data = { row, col, type: 'diamond' }
+          diamond.locked = true // Блокируем маску от перетаскивания
         }
       }
       
@@ -2120,6 +2196,7 @@ export default {
           maskGroup.addChild(hexagon)
           
           hexagon.data = { row, col, type: 'hexagon' }
+          hexagon.locked = true // Блокируем маску от перетаскивания
         }
       }
       
@@ -3679,6 +3756,7 @@ export default {
           group.addChild(rect)
           
           rect.data = { row, col, type: 'rectangle' }
+          rect.locked = true // Блокируем маску от перетаскивания
           this.addMaskInteractivity(rect)
         }
       }
@@ -3752,6 +3830,7 @@ export default {
           this.applyMaskStyles(triangle, image)
           
           triangle.data = { row, col: Math.floor(col), type: 'triangle', isEven }
+          triangle.locked = true // Блокируем маску от перетаскивания
           this.addMaskInteractivity(triangle)
           
           // Добавляем маску в группу
@@ -3819,6 +3898,7 @@ export default {
             this.applyMaskStyles(diamond, image)
             
             diamond.data = { row, col: Math.floor(col), type: 'diamond', isEven }
+            diamond.locked = true // Блокируем маску от перетаскивания
             this.addMaskInteractivity(diamond)
             
             // Добавляем маску в группу
@@ -3919,6 +3999,7 @@ export default {
           this.applyMaskStyles(hexagon, image)
           
           hexagon.data = { row, col, type: 'hexagon' }
+          hexagon.locked = true // Блокируем маску от перетаскивания
           this.addMaskInteractivity(hexagon)
           
           // Добавляем маску в группу

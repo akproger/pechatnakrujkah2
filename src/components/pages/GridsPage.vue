@@ -348,9 +348,124 @@
                   <div class="row g-3">
                     <!-- Внешний отступ -->
                     <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Отступ</h6>
-                      <div class="form-group">
-                        <label class="form-label d-block">Внешний отступ: {{ externalMargin }}%</label>
+<div class="card">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <!-- Столбец: Изображение фона и солидная заливка -->
+                    <div class="col-12">
+                      <div class="row d-flex flex-wrap">
+                        <div class="col-12">
+                          <!-- Солидная заливка -->
+                          
+                          <!-- Радиокнопка для выбора солидной заливки -->
+                          <div class="form-check mb-3">
+                            <input 
+                              class="form-check-input" 
+                              type="radio" 
+                              id="backgroundSolid"
+                              name="backgroundType"
+                              value="solid"
+                              v-model="backgroundType"
+                            >
+                            <label class="form-check-label" for="backgroundSolid">
+                              Заливка фона цветом
+                            </label>
+                          </div>
+                          
+                          <div class="form-group">
+                            <button 
+                              type="button"
+                              class="btn btn-outline-secondary d-flex align-items-center"
+                              @click="openColorPicker('solid')"
+                              title="Выберите цвет заливки"
+                            >
+                              <span class="me-2">Выбрать</span>
+                              <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: solidBackgroundColor, border: '1px solid #dee2e6' }"></span>
+                            </button>
+                          </div>
+                          <div class="form-group mt-2">
+                            <label class="form-label">Прозрачность: {{ solidBackgroundOpacity }}%</label>
+                            <div class="control-scale opacity-scale" role="group" aria-label="Прозрачность заливки (в процентах)">
+                              <div
+                                v-for="n in 11"
+                                :key="`sbo-${(n - 1) * 10}`"
+                                class="control-cell"
+                                :class="{ 'selected': ((n - 1) * 10) <= solidBackgroundOpacity }"
+                                :title="`${(n - 1) * 10}%`"
+                                @click="setSolidBackgroundOpacity((n - 1) * 10)"
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <!-- Загрузка изображения фона -->
+
+                          <!-- Радиокнопка для выбора фонового изображения -->
+                          <div class="form-check mt-3">
+                            <input 
+                              class="form-check-input" 
+                              type="radio" 
+                              id="backgroundImage"
+                              name="backgroundType"
+                              value="image"
+                              v-model="backgroundType"
+                              :disabled="!backgroundImage"
+                            >
+                            <label class="form-check-label" for="backgroundImage">
+                              Заливка фона изображением
+                            </label>
+                          </div>
+                          
+                          <!-- Превью фонового изображения -->
+                          <div v-if="backgroundImage" class="mt-3 mb-3">
+                            <img 
+                              :src="backgroundImage" 
+                              alt="Фоновое изображение" 
+                              class="img-fluid rounded"
+                              style="max-height: 150px; object-fit: contain;"
+                            >
+                          </div>
+
+                          <div class="form-group">
+                            <input 
+                              type="file" 
+                              ref="backgroundImageInput"
+                              @change="handleBackgroundImageUpload" 
+                              accept="image/*"
+                              class="d-none"
+                            >
+                            <button 
+                              @click="$refs.backgroundImageInput.click()" 
+                              class="btn btn-outline-primary"
+                              style="background-color: #6f42c1; border: none; color: white;"
+                            >
+                              <i class="bi bi-image me-2"></i>
+                              {{ backgroundImage ? 'Заменить фон' : 'Загрузить фоновое изображение' }}
+                            </button>
+                            <button 
+                              v-if="backgroundImage"
+                              @click="removeBackgroundImage" 
+                              class="btn btn-outline-danger ms-2"
+                              style="background-color: #dc3545; border: none; color: white;"
+                            >
+                              <i class="bi bi-trash me-2"></i>
+                              Удалить фон
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+
+                  </div>
+                </div>
+              </div>
+                    </div>
+                    
+                    <!-- Обводка -->
+                    <div class="col-md-4">
+                      <div class="form-group mb-3">
+                        <label class="form-label d-block">Внешний отступ ячейки: {{ externalMargin }}%</label>
                         <div class="control-scale" role="group" aria-label="Внешний отступ (в процентах)">
                           <div
                             v-for="pct in 10"
@@ -362,13 +477,8 @@
                           ></div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <!-- Обводка -->
-                    <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Обводка</h6>
                       <div class="form-group">
-                        <label class="form-label">Цвет обводки</label>
+                        <label class="form-label">Цвет обводки ячейки</label>
                         <button 
                           type="button"
                           class="btn btn-outline-secondary d-flex align-items-center"
@@ -396,7 +506,6 @@
                     
                     <!-- Тень -->
                     <div class="col-md-4">
-                      <h6 class="text-muted mb-3">Тень</h6>
                       <div class="form-group">
                         <label class="form-label d-block">Размытие тени: {{ shadowBlur }}%</label>
                         <div class="control-scale" role="group" aria-label="Размытие тени (в процентах)">
@@ -460,119 +569,7 @@
         <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
           <div class="row mt-3">
             <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Столбец: Изображение фона и солидная заливка -->
-                    <div class="col-12">
-                      <div class="row">
-                        <div class="col-6">
-                          <!-- Солидная заливка -->
-                          
-                          <!-- Радиокнопка для выбора солидной заливки -->
-                          <div class="form-check mb-3">
-                            <input 
-                              class="form-check-input" 
-                              type="radio" 
-                              id="backgroundSolid"
-                              name="backgroundType"
-                              value="solid"
-                              v-model="backgroundType"
-                            >
-                            <label class="form-check-label" for="backgroundSolid">
-                              Солидная заливка
-                            </label>
-                          </div>
-                          
-                          <div class="form-group">
-                            <label class="form-label">Цвет заливки</label>
-                            <button 
-                              type="button"
-                              class="btn btn-outline-secondary d-flex align-items-center"
-                              @click="openColorPicker('solid')"
-                              title="Выберите цвет заливки"
-                            >
-                              <span class="me-2">Выбрать</span>
-                              <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: solidBackgroundColor, border: '1px solid #dee2e6' }"></span>
-                            </button>
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность: {{ solidBackgroundOpacity }}%</label>
-                            <div class="control-scale opacity-scale" role="group" aria-label="Прозрачность заливки (в процентах)">
-                              <div
-                                v-for="n in 11"
-                                :key="`sbo-${(n - 1) * 10}`"
-                                class="control-cell"
-                                :class="{ 'selected': ((n - 1) * 10) <= solidBackgroundOpacity }"
-                                :title="`${(n - 1) * 10}%`"
-                                @click="setSolidBackgroundOpacity((n - 1) * 10)"
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="col-6">
-                          <!-- Загрузка изображения фона -->
-
-                          <!-- Радиокнопка для выбора фонового изображения -->
-                          <div class="form-check mt-3">
-                            <input 
-                              class="form-check-input" 
-                              type="radio" 
-                              id="backgroundImage"
-                              name="backgroundType"
-                              value="image"
-                              v-model="backgroundType"
-                              :disabled="!backgroundImage"
-                            >
-                            <label class="form-check-label" for="backgroundImage">
-                              Фоновое изображение
-                            </label>
-                          </div>
-                          
-                          <!-- Превью фонового изображения -->
-                          <div v-if="backgroundImage" class="mt-3 mb-3">
-                            <img 
-                              :src="backgroundImage" 
-                              alt="Фоновое изображение" 
-                              class="img-fluid rounded"
-                              style="max-height: 150px; object-fit: contain;"
-                            >
-                          </div>
-
-                          <div class="form-group">
-                            <input 
-                              type="file" 
-                              ref="backgroundImageInput"
-                              @change="handleBackgroundImageUpload" 
-                              accept="image/*"
-                              class="d-none"
-                            >
-                            <button 
-                              @click="$refs.backgroundImageInput.click()" 
-                              class="btn btn-outline-primary"
-                              style="background-color: #6f42c1; border: none; color: white;"
-                            >
-                              <i class="bi bi-image me-2"></i>
-                              {{ backgroundImage ? 'Заменить фон' : 'Загрузить фоновое изображение' }}
-                            </button>
-                            <button 
-                              v-if="backgroundImage"
-                              @click="removeBackgroundImage" 
-                              class="btn btn-outline-danger ms-2"
-                              style="background-color: #dc3545; border: none; color: white;"
-                            >
-                              <i class="bi bi-trash me-2"></i>
-                              Удалить фон
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-
-                  </div>
-                </div>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -7355,7 +7352,7 @@ export default {
 .rows-scale {
   position: absolute;
   top: 0;
-  right: -32px;
+  right: -34px;
   width: 32px;
   height: 100%;
   display: flex;
@@ -7366,7 +7363,7 @@ export default {
 
 .cols-scale {
   position: absolute;
-  bottom: -32px;
+  bottom: -34px;
   left: 0;
   width: 100%;
   height: 32px;

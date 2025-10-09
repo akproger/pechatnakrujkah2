@@ -408,26 +408,30 @@
                         </div>
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Позиция X: {{ shadowOffsetX }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetX"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Позиция X: {{ shadowOffsetX }}%</label>
+                        <div class="control-scale" role="group" aria-label="Позиция тени по X (в процентах)">
+                          <div
+                            v-for="i in 11"
+                            :key="`sx-${(i - 6) * 10}`"
+                            class="control-cell"
+                            :class="offsetCellClassX(i)"
+                            :title="`${(i - 6) * 10}%`"
+                            @click="setShadowOffsetX((i - 6) * 10)"
+                          ></div>
+                        </div>
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Позиция Y: {{ shadowOffsetY }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetY"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Позиция Y: {{ shadowOffsetY }}%</label>
+                        <div class="control-scale" role="group" aria-label="Позиция тени по Y (в процентах)">
+                          <div
+                            v-for="i in 11"
+                            :key="`sy-${(i - 6) * 10}`"
+                            class="control-cell"
+                            :class="offsetCellClassY(i)"
+                            :title="`${(i - 6) * 10}%`"
+                            @click="setShadowOffsetY((i - 6) * 10)"
+                          ></div>
+                        </div>
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label d-block">Прозрачность тени: {{ shadowOpacity }}%</label>
@@ -980,6 +984,38 @@ export default {
       const v = Math.max(0, Math.min(50, pct))
       this.shadowOpacity = v
       console.log('✅ Прозрачность тени установлена:', v)
+    },
+
+    setShadowOffsetX(pct) {
+      // защита диапазона -50..50 с шагом 10%
+      const v = Math.max(-50, Math.min(50, pct))
+      this.shadowOffsetX = v
+      console.log('✅ Смещение тени по X установлено:', v)
+    },
+
+    setShadowOffsetY(pct) {
+      // защита диапазона -50..50 с шагом 10%
+      const v = Math.max(-50, Math.min(50, pct))
+      this.shadowOffsetY = v
+      console.log('✅ Смещение тени по Y установлено:', v)
+    },
+
+    offsetCellClassX(i) {
+      const cellValue = (i - 6) * 10
+      const v = this.shadowOffsetX
+      if (cellValue === 0) return 'cell-zero'
+      if (v === 0) return ''
+      if (v > 0) return cellValue > 0 && cellValue <= v ? 'cell-pos-active' : ''
+      return cellValue < 0 && cellValue >= v ? 'cell-neg-active' : ''
+    },
+
+    offsetCellClassY(i) {
+      const cellValue = (i - 6) * 10
+      const v = this.shadowOffsetY
+      if (cellValue === 0) return 'cell-zero'
+      if (v === 0) return ''
+      if (v > 0) return cellValue > 0 && cellValue <= v ? 'cell-pos-active' : ''
+      return cellValue < 0 && cellValue >= v ? 'cell-neg-active' : ''
     },
 
     initPaper() {
@@ -2181,7 +2217,6 @@ export default {
       
       console.log('✅ Маски ромбов для высокого разрешения созданы')
     },
-
     // Создание масок шестиугольников для высокого разрешения
     async createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('⬡ Создаем маски шестиугольников для высокого разрешения')
@@ -5910,7 +5945,6 @@ export default {
         return rect
       }
     },
-    
     // Создание подложки "Мысли"
     createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       const currentTextData = textData
@@ -6267,7 +6301,7 @@ export default {
       })
       
       for (let i = 0; i < tailCount; i++) {
-        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького (как в превью)
+        // Позиция овалов: маленький в конце, большой на 35% длины хвоста от маленького овала (как в превью)
         let distanceFromCenter
         if (i === 0) {
           // Первый овал (большой) - на 35% длины хвоста от маленького овала
@@ -6525,7 +6559,6 @@ export default {
       
       return false
     },
-    
     // Построение пути суперподложки с хвостом из угла
     buildCornerTailSuperPath(ctx, bgX, bgY, bgWidth, bgHeight, 
                             intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale = 1) {
@@ -7140,7 +7173,6 @@ export default {
         ctx.fillText(line, lineX, lineY)
       })
     },
-    
     // Рисование фона для режима "Разговор"
     drawConversationBackground(ctx, centerX, centerY, backgroundWidth, backgroundHeight, backgroundColor, textData) {
       // Рисуем основную прямоугольную подложку
@@ -7792,7 +7824,6 @@ export default {
   border-color: #007bff;
   background: rgba(0, 123, 255, 0.1);
 }
-
 .scale-cell.selected {
   background: #87ceeb;
   border-color: #007bff;
@@ -7826,5 +7857,37 @@ export default {
 .control-scale .control-cell.selected {
   background: #87ceeb; /* голубой */
   border-color: rgb(13, 110, 253);
+}
+
+/* Дополнительные состояния для шкал X/Y */
+.control-scale .cell-zero {
+  background: #93e68b;
+  border-color: #43c388;
+}
+
+.control-scale .cell-pos-active {
+  background: #87ceeb; /* голубой */
+  border-color: rgb(13, 110, 253);
+}
+
+.control-scale .cell-neg-active {
+  background: #ffc28f;
+  border-color: #f7994b;
+}
+
+/* Hover-состояния: легкое затемнение для наглядности */
+.control-scale .cell-zero:hover {
+  background: #82d67a;
+  border-color: #36b378;
+}
+
+.control-scale .cell-pos-active:hover {
+  background: #6fc0de;
+  border-color: #0b5ed7;
+}
+
+.control-scale .cell-neg-active:hover {
+  background: #f5b77f;
+  border-color: #ea8d3f;
 }
 </style>

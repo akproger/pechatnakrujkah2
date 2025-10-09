@@ -913,7 +913,13 @@ export default {
     // Показываем прелоадер при инициализации
     this.isLoading = true
     
-    this.initPaper()
+    // Ждем следующий тик, чтобы убедиться, что DOM полностью готов
+    this.$nextTick(() => {
+      // Дополнительная задержка для гарантии готовности DOM
+      setTimeout(() => {
+        this.initPaper()
+      }, 100)
+    })
     
     // Three.js теперь инициализируется через компонент ThreeDRenderer
   },
@@ -942,24 +948,36 @@ export default {
     initPaper() {
       const canvas = this.$refs.paperCanvas
       
-      // Устанавливаем размеры canvas сначала
-      this.resizeCanvas()
+      // Проверяем, что canvas существует
+      if (!canvas) {
+        console.error('❌ Canvas не найден при инициализации Paper.js')
+        return
+      }
       
-      // Инициализируем Paper.js с canvas
-      paper.setup(canvas)
-      this.paperScope = paper
-      
-      // Создаем базовую сетку
-      this.generateGrid()
-      
-      // Настраиваем инструменты Paper.js для перетаскивания
-      this.setupPaperTools()
-      
-      // Обработчик изменения размера окна
-      window.addEventListener('resize', this.resizeCanvas)
-      
-      // Обработчик изменения размера Three.js canvas
-      window.addEventListener('resize', this.resizeThreeCanvas)
+      try {
+        // Устанавливаем размеры canvas сначала
+        this.resizeCanvas()
+        
+        // Инициализируем Paper.js с canvas
+        paper.setup(canvas)
+        this.paperScope = paper
+        
+        // Создаем базовую сетку
+        this.generateGrid()
+        
+        // Настраиваем инструменты Paper.js для перетаскивания
+        this.setupPaperTools()
+        
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', this.resizeCanvas)
+        
+        // Обработчик изменения размера Three.js canvas
+        window.addEventListener('resize', this.resizeThreeCanvas)
+        
+        console.log('✅ Paper.js успешно инициализирован')
+      } catch (error) {
+        console.error('❌ Ошибка при инициализации Paper.js:', error)
+      }
     },
 
     // Настройка инструментов Paper.js для перетаскивания
@@ -2729,26 +2747,50 @@ export default {
     },
     
     resizeCanvas() {
-      const canvas = this.$refs.paperCanvas
-      const container = canvas.parentElement.parentElement // Получаем canvas-container
-      const rect = container.getBoundingClientRect()
-      
-      // Увеличиваем разрешение canvas для высокого качества текстуры
-      const devicePixelRatio = window.devicePixelRatio || 1
-      const targetWidth = rect.width * devicePixelRatio * 2 // Увеличиваем в 2 раза для высокого качества
-      const targetHeight = (targetWidth * 9) / 19
-      
-      // Устанавливаем соотношение сторон 19:9 с высоким разрешением
-      canvas.width = targetWidth
-      canvas.height = targetHeight
-      
-      // Устанавливаем CSS размер для отображения
-      canvas.style.width = rect.width + 'px'
-      canvas.style.height = (rect.width * 9) / 19 + 'px'
-      
-      if (this.paperScope) {
-        paper.view.viewSize = new paper.Size(canvas.width, canvas.height)
-        this.generateGrid()
+      try {
+        const canvas = this.$refs.paperCanvas
+        
+        // Проверяем, что canvas существует
+        if (!canvas) {
+          console.warn('⚠️ Canvas не найден при изменении размера')
+          return
+        }
+        
+        const container = canvas.parentElement?.parentElement // Получаем canvas-container
+        
+        // Проверяем, что контейнер существует
+        if (!container) {
+          console.warn('⚠️ Контейнер canvas не найден при изменении размера')
+          return
+        }
+        
+        const rect = container.getBoundingClientRect()
+        
+        // Проверяем, что размеры контейнера валидны
+        if (rect.width <= 0 || rect.height <= 0) {
+          console.warn('⚠️ Некорректные размеры контейнера:', rect)
+          return
+        }
+        
+        // Увеличиваем разрешение canvas для высокого качества текстуры
+        const devicePixelRatio = window.devicePixelRatio || 1
+        const targetWidth = rect.width * devicePixelRatio * 2 // Увеличиваем в 2 раза для высокого качества
+        const targetHeight = (targetWidth * 9) / 19
+        
+        // Устанавливаем соотношение сторон 19:9 с высоким разрешением
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+        
+        // Устанавливаем CSS размер для отображения
+        canvas.style.width = rect.width + 'px'
+        canvas.style.height = (rect.width * 9) / 19 + 'px'
+        
+        if (this.paperScope && paper && paper.view) {
+          paper.view.viewSize = new paper.Size(canvas.width, canvas.height)
+          this.generateGrid()
+        }
+      } catch (error) {
+        console.error('❌ Ошибка при изменении размера canvas:', error)
       }
     },
     
@@ -3974,17 +4016,48 @@ export default {
 
     
     cleanup() {
-      window.removeEventListener('resize', this.resizeCanvas)
-      window.removeEventListener('resize', this.resizeThreeCanvas)
-      
-      if (this.paperScope) {
-        // В Paper.js v0.12 нет метода remove для глобального объекта
-        paper.project.clear()
+      try {
+        // Удаляем обработчики событий
+        window.removeEventListener('resize', this.resizeCanvas)
+        window.removeEventListener('resize', this.resizeThreeCanvas)
+        
+        // Безопасная очистка Paper.js
+        if (this.paperScope && paper && paper.project) {
+          try {
+            // Очищаем все элементы проекта
+            paper.project.clear()
+            
+            // Удаляем все слои
+            if (paper.project.layers) {
+              paper.project.layers.forEach(layer => {
+                if (layer && layer.remove) {
+                  layer.remove()
+                }
+              })
+            }
+            
+            // Сбрасываем инструменты
+            if (paper.tools) {
+              paper.tools.forEach(tool => {
+                if (tool && tool.remove) {
+                  tool.remove()
+                }
+              })
+            }
+            
+            console.log('✅ Paper.js успешно очищен')
+          } catch (error) {
+            console.error('❌ Ошибка при очистке Paper.js:', error)
+          }
+        }
+        
         this.paperScope = null
+        
+        // Очистка Three.js
+        this.cleanupThreeJS()
+      } catch (error) {
+        console.error('❌ Ошибка при общей очистке:', error)
       }
-      
-      // Очистка Three.js
-      this.cleanupThreeJS()
     },
     
     initThreeJS() {

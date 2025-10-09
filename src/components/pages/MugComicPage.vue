@@ -27,22 +27,6 @@
                     >
                       <i class="bi bi-bounding-box"></i>
                     </button>
-                    <button 
-                      class="tool-button"
-                      @click="undoAction"
-                      title="Отмена"
-                      :disabled="!canUndo"
-                    >
-                      <i class="bi bi-arrow-counterclockwise"></i>
-                    </button>
-                    <button 
-                      class="tool-button"
-                      @click="redoAction"
-                      title="Повтор"
-                      :disabled="!canRedo"
-                    >
-                      <i class="bi bi-arrow-clockwise"></i>
-                    </button>
                   </div>
                 </div>
                 
@@ -600,10 +584,6 @@ export default {
       redClickPoint: null, // Красная точка клика при пересечении
       magneticSnapIndicator: null, // Индикация примагничивания к первой точке
       
-      // Система отмены/повтора
-      actionHistory: [], // История действий
-      currentActionIndex: -1, // Текущий индекс в истории
-      maxHistorySize: 50, // Максимальный размер истории
       
       // Настройки скальпеля
       scalpelWidth: 2 // Ширина разреза в пикселях
@@ -622,15 +602,6 @@ export default {
       return (this.strokeWidth / 100) * minDimension
     },
     
-    // Можно ли отменить действие
-    canUndo() {
-      return this.currentActionIndex > 0
-    },
-    
-    // Можно ли повторить действие
-    canRedo() {
-      return this.currentActionIndex < this.actionHistory.length - 1
-    }
   },
   watch: {
     strokeColor() {
@@ -1471,8 +1442,6 @@ export default {
       // Перерисуем превью новой маски
       this.$nextTick(() => { try { this.renderMaskPreview && this.renderMaskPreview(mask) } catch (e) {} })
       
-      // Сохраняем создание маски в историю (заменяет все предыдущие шаги рисования)
-      this.saveAction('createMask', { mask })
       
       // Создаем визуальную маску на canvas
       this.createMaskVisual(mask)
@@ -5542,11 +5511,6 @@ export default {
       // Обновляем линию
       this.updateMaskLine()
       
-      // Сохраняем каждый шаг рисования в историю
-      this.saveAction('addMaskPoint', { 
-        point: { x: point.x, y: point.y },
-        pointIndex: this.maskPoints.length - 1
-      })
       
       console.log('📍 Добавлена точка маски:', point.toString())
     },
@@ -6082,13 +6046,6 @@ export default {
         }
       }
       
-      // Сохраняем изменение в историю
-      this.saveAction('updateMaskSettings', { 
-        maskId: mask.id,
-        fillColor: mask.fillColor,
-        strokeColor: mask.strokeColor,
-        strokeWidth: mask.strokeWidth
-      })
       
       // Обновляем изображение на 3D модели с небольшой задержкой
       // чтобы canvas успел обновиться
@@ -6120,8 +6077,6 @@ export default {
         
         this.userMasks.splice(index, 1)
         
-        // Сохраняем в историю действий
-        this.saveAction('deleteMask', { mask, index })
         
         console.log('🗑️ Маска удалена:', maskId)
         
@@ -6679,139 +6634,6 @@ export default {
       }
     },
     
-    // ========== Система отмены/повтора ==========
-    saveAction(type, data) {
-      const action = {
-        type,
-        data,
-        timestamp: Date.now()
-      }
-      
-      // Удаляем действия после текущего индекса
-      this.actionHistory = this.actionHistory.slice(0, this.currentActionIndex + 1)
-      
-      // Если создаем маску, удаляем все предыдущие шаги рисования этой маски
-      if (type === 'createMask') {
-        // Удаляем все действия addMaskPoint, которые были до этого
-        this.actionHistory = this.actionHistory.filter(action => action.type !== 'addMaskPoint')
-        this.currentActionIndex = this.actionHistory.length - 1
-      }
-      
-      // Добавляем новое действие
-      this.actionHistory.push(action)
-      this.currentActionIndex = this.actionHistory.length - 1
-      
-      // Ограничиваем размер истории
-      if (this.actionHistory.length > this.maxHistorySize) {
-        this.actionHistory.shift()
-        this.currentActionIndex--
-      }
-      
-      console.log('💾 Действие сохранено:', type)
-    },
-    
-    undoAction() {
-      if (!this.canUndo) return
-      
-      this.currentActionIndex--
-      const action = this.actionHistory[this.currentActionIndex]
-      this.executeAction(action, true)
-      
-      console.log('↶ Действие отменено:', action.type)
-    },
-    
-    redoAction() {
-      if (!this.canRedo) return
-      
-      this.currentActionIndex++
-      const action = this.actionHistory[this.currentActionIndex]
-      this.executeAction(action, false)
-      
-      console.log('↷ Действие повторено:', action.type)
-    },
-    
-    executeAction(action, isUndo) {
-      switch (action.type) {
-        case 'addMaskPoint':
-          if (isUndo) {
-            // Удаляем последнюю точку
-            if (this.maskPoints.length > 0) {
-              this.maskPoints.pop()
-              this.removeLastMaskPoint()
-              this.updateMaskLine()
-            }
-          } else {
-            // Восстанавливаем точку
-            this.maskPoints.push(action.data.point)
-            const point = new this.paperScope.Point(action.data.point.x, action.data.point.y)
-            this.createMaskPoint(point)
-            this.updateMaskLine()
-          }
-          break
-          
-        case 'createMask':
-          if (isUndo) {
-            // Удаляем маску из списка
-            const index = this.userMasks.findIndex(mask => mask.id === action.data.mask.id)
-            if (index !== -1) {
-              const mask = this.userMasks[index]
-              // Удаляем визуальную маску с canvas
-              if (mask.visualPath) {
-                mask.visualPath.remove()
-              }
-              this.userMasks.splice(index, 1)
-            }
-            this.maskPoints = []
-          } else {
-            // Восстанавливаем маску
-            this.userMasks.unshift(action.data.mask)
-            // Создаем визуальную маску
-            this.createMaskVisual(action.data.mask)
-          }
-          break
-          
-        case 'deleteMask':
-          if (isUndo) {
-            // Восстанавливаем маску
-            this.userMasks.splice(action.data.index, 0, action.data.mask)
-            // Создаем визуальную маску
-            this.createMaskVisual(action.data.mask)
-          } else {
-            // Удаляем маску
-            const index = this.userMasks.findIndex(mask => mask.id === action.data.mask.id)
-            if (index !== -1) {
-              const mask = this.userMasks[index]
-              // Удаляем визуальную маску с canvas
-              if (mask.visualPath) {
-                mask.visualPath.remove()
-              }
-              this.userMasks.splice(index, 1)
-            }
-          }
-          break
-          
-        case 'updateMaskSettings':
-          const mask = this.userMasks.find(m => m.id === action.data.maskId)
-          if (mask) {
-            if (isUndo) {
-              // Восстанавливаем предыдущие настройки
-              mask.fillColor = action.data.previousFillColor
-              mask.strokeColor = action.data.previousStrokeColor
-              mask.strokeWidth = action.data.previousStrokeWidth
-            } else {
-              // Применяем новые настройки
-              mask.fillColor = action.data.fillColor
-              mask.strokeColor = action.data.strokeColor
-              mask.strokeWidth = action.data.strokeWidth
-            }
-            this.update3DModel()
-          }
-          break
-          
-        default:
-          console.warn('⚠️ Неизвестный тип действия:', action.type)
-      }
-    }
   }
 }
 </script>

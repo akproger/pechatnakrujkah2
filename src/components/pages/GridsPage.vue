@@ -146,6 +146,30 @@
                   @touchend="handleTouchEnd"
                 ></canvas>
                 
+                <!-- Шкала для выбора количества строк (справа от канваса) -->
+                <div class="rows-scale">
+                  <div 
+                    v-for="row in 10" 
+                    :key="`row-${row}`"
+                    class="scale-cell"
+                    :class="{ 'selected': row <= gridRows }"
+                    @click="setGridRows(row)"
+                    :title="`${row} строк`"
+                  ></div>
+                </div>
+                
+                <!-- Шкала для выбора количества столбцов (снизу от канваса) -->
+                <div class="cols-scale">
+                  <div 
+                    v-for="col in 20" 
+                    :key="`col-${col}`"
+                    class="scale-cell"
+                    :class="{ 'selected': col <= gridCols }"
+                    @click="setGridCols(col)"
+                    :title="`${col} столбцов`"
+                  ></div>
+                </div>
+                
                 <!-- Прелоадер -->
                 <div v-if="isLoading" class="canvas-overlay">
                   <div class="spinner-border text-light" role="status">
@@ -940,6 +964,17 @@ export default {
       if (this.$refs.saveCanvas && this.$refs.saveCanvas.handleSaveWithLog) {
         this.$refs.saveCanvas.handleSaveWithLog()
       }
+    },
+
+    // Методы для управления шкалами сетки
+    setGridRows(rows) {
+      this.gridSettings[this.maskType].rows = rows
+      console.log('✅ Количество строк установлено:', rows)
+    },
+
+    setGridCols(cols) {
+      this.gridSettings[this.maskType].cols = cols
+      console.log('✅ Количество столбцов установлено:', cols)
     },
 
     initPaper() {
@@ -7554,6 +7589,67 @@ export default {
   color: #adb5bd !important;
   cursor: not-allowed !important;
   opacity: 0.6 !important;
+}
+
+/* Стили для шкал настройки сетки */
+.canvas-container {
+  position: relative;
+}
+
+.rows-scale {
+  position: absolute;
+  top: 0;
+  right: -32px;
+  width: 32px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 10;
+}
+
+.cols-scale {
+  position: absolute;
+  bottom: -32px;
+  left: 0;
+  width: 100%;
+  height: 32px;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+  z-index: 10;
+}
+
+.scale-cell {
+  background: transparent;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.rows-scale .scale-cell {
+  width: 100%;
+  min-height: 20px;
+}
+
+.cols-scale .scale-cell {
+  height: 100%;
+  min-width: 20px;
+}
+
+.scale-cell:hover {
+  border-color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.scale-cell.selected {
+  background: #87ceeb;
+  border-color: #007bff;
+}
+
+.scale-cell.selected:hover {
+  background: #5dade2;
 }
 
 </style>

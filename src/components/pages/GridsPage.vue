@@ -350,15 +350,17 @@
                     <div class="col-md-4">
                       <h6 class="text-muted mb-3">Отступ</h6>
                       <div class="form-group">
-                        <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="externalMargin"
-                          min="0" 
-                          max="20" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Внешний отступ: {{ externalMargin }}%</label>
+                        <div class="control-scale" role="group" aria-label="Внешний отступ (в процентах)">
+                          <div
+                            v-for="pct in 10"
+                            :key="`ext-${pct * 2}`"
+                            class="control-cell"
+                            :class="{ 'selected': (pct * 2) <= externalMargin }"
+                            :title="`${pct * 2}%`"
+                            @click="setExternalMargin(pct * 2)"
+                          ></div>
+                        </div>
                       </div>
                     </div>
                     
@@ -375,15 +377,17 @@
                         >
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="strokeWidth"
-                          min="0" 
-                          max="20" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Толщина обводки: {{ strokeWidth }}%</label>
+                        <div class="control-scale" role="group" aria-label="Толщина обводки (в процентах)">
+                          <div
+                            v-for="pct in 10"
+                            :key="`sw-${pct * 2}`"
+                            class="control-cell"
+                            :class="{ 'selected': (pct * 2) <= strokeWidth }"
+                            :title="`${pct * 2}%`"
+                            @click="setStrokeWidthPct(pct * 2)"
+                          ></div>
+                        </div>
                       </div>
                     </div>
                     
@@ -391,15 +395,17 @@
                     <div class="col-md-4">
                       <h6 class="text-muted mb-3">Тень</h6>
                       <div class="form-group">
-                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowBlur"
-                          min="0" 
-                          max="50" 
-                          step="1"
-                        >
+                        <label class="form-label d-block">Размытие тени: {{ shadowBlur }}%</label>
+                        <div class="control-scale" role="group" aria-label="Размытие тени (в процентах)">
+                          <div
+                            v-for="pct in 10"
+                            :key="`sb-${pct * 2}`"
+                            class="control-cell"
+                            :class="{ 'selected': (pct * 2) <= shadowBlur }"
+                            :title="`${pct * 2}%`"
+                            @click="setShadowBlur(pct * 2)"
+                          ></div>
+                        </div>
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label">Позиция X: {{ shadowOffsetX }}%</label>
@@ -696,7 +702,7 @@ export default {
       externalMargin: 0, // Проценты (0-20)
       strokeColor: '#000000',
       strokeWidth: 0, // Проценты (0-20)
-      shadowBlur: 0, // Проценты (0-50)
+      shadowBlur: 0, // Проценты (0-20)
       shadowOffsetX: 0, // Проценты (-50 до +50)
       shadowOffsetY: 0, // Проценты (-50 до +50)
       shadowOpacity: 50, // Проценты (0-100)
@@ -943,6 +949,28 @@ export default {
     setGridCols(cols) {
       this.gridSettings[this.maskType].cols = cols
       console.log('✅ Количество столбцов установлено:', cols)
+    },
+
+    // Методы для шкал настроек
+    setExternalMargin(pct) {
+      // защита диапазона 0-20 с шагом 2%
+      const v = Math.max(0, Math.min(20, pct))
+      this.externalMargin = v
+      console.log('✅ Внешний отступ установлен:', v)
+    },
+
+    setStrokeWidthPct(pct) {
+      // защита диапазона 0-20 с шагом 2%
+      const v = Math.max(0, Math.min(20, pct))
+      this.strokeWidth = v
+      console.log('✅ Толщина обводки установлена:', v)
+    },
+
+    setShadowBlur(pct) {
+      // защита диапазона 0-20 с шагом 2%
+      const v = Math.max(0, Math.min(20, pct))
+      this.shadowBlur = v
+      console.log('✅ Размытие тени установлено:', v)
     },
 
     initPaper() {
@@ -7768,4 +7796,29 @@ export default {
   background: #5dade2;
 }
 
+/* Стили для горизонтальных шкал управления (внешний отступ, толщина обводки) */
+.control-scale {
+  display: flex;
+  width: 100%;
+  height: 32px; /* по требованию */
+  gap: 1px;
+}
+
+.control-scale .control-cell {
+  flex: 1;
+  border: 1px solid #dee2e6;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.control-scale .control-cell:hover {
+  background: rgba(13, 110, 253, 0.12);
+  border-color: rgb(13, 110, 253);
+}
+
+.control-scale .control-cell.selected {
+  background: #87ceeb; /* голубой */
+  border-color: rgb(13, 110, 253);
+}
 </style>

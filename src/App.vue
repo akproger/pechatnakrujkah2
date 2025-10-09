@@ -4,7 +4,7 @@
     <SideMenu :isOpen="isMenuOpen" @toggle="toggleMenu" />
     
     <!-- Основной контент -->
-    <div class="main-content" :class="{ 'menu-open': isMenuOpen }">
+    <div class="main-content">
       <!-- Шапка -->
       <Header @menu-toggle="toggleMenu" />
       
@@ -26,53 +26,15 @@ import Footer from './components/layout/Footer.vue'
 
 export default {
   name: 'App',
-  components: {
-    SideMenu,
-    Header,
-    Footer
-  },
+  components: { SideMenu, Header, Footer },
   data() {
     return {
-      isMenuOpen: false
+      isMenuOpen: true
     }
   },
   methods: {
     toggleMenu() {
       this.isMenuOpen = !this.isMenuOpen
-    }
-  },
-  mounted() {
-    // Закрытие меню при клике вне его
-    this.handleClickOutside = (e) => {
-      const sideMenu = document.querySelector('.side-menu')
-      const menuToggle = document.querySelector('.menu-toggle')
-      
-      if (this.isMenuOpen && 
-          !sideMenu?.contains(e.target) && 
-          !menuToggle?.contains(e.target)) {
-        this.isMenuOpen = false
-      }
-    }
-    
-    document.addEventListener('click', this.handleClickOutside)
-    
-    // Закрытие меню при изменении размера экрана на десктоп
-    this.handleResize = () => {
-      if (window.innerWidth >= 992 && this.isMenuOpen) {
-        this.isMenuOpen = false
-      }
-    }
-    
-    window.addEventListener('resize', this.handleResize)
-  },
-  
-  beforeUnmount() {
-    // Очистка обработчиков событий
-    if (this.handleClickOutside) {
-      document.removeEventListener('click', this.handleClickOutside)
-    }
-    if (this.handleResize) {
-      window.removeEventListener('resize', this.handleResize)
     }
   }
 }
@@ -85,52 +47,30 @@ export default {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-.tool-button > i:before{
-  vertical-align: -3px !important;
-}
-.tool-button:active, .tool-button:hover{
-  background: rgb(13, 110, 253) !important;
-}
-.tool-button.active > i:before, .tool-button:hover > i:before{
-  color: #fff !important;
-}
+.tool-button > i:before{ vertical-align: -3px !important; }
+.tool-button:active, .tool-button:hover{ background: rgb(13, 110, 253) !important; }
+.tool-button.active > i:before, .tool-button:hover > i:before{ color: #fff !important; }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  transition: transform 0.3s ease;
-  
-  @media (max-width: 991.98px) {
-    &.menu-open {
-      transform: translateX(280px);
-    }
-  }
 }
 
 .content-area {
   flex: 1;
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: #212121;
   
   @media (max-width: 767.98px) {
     padding: 15px;
   }
 }
 
-/* Общие стили для адаптивности */
-.container-fluid {
-  padding-left: 15px;
-  padding-right: 15px;
-}
+.container-fluid { padding-left: 15px; padding-right: 15px; }
+* { transition: all 0.2s ease; }
 
-/* Плавные переходы */
-* {
-  transition: all 0.2s ease;
-}
-
-/* Стили для touch устройств */
 @media (hover: none) and (pointer: coarse) {
   .btn, .nav-link {
     min-height: 44px;

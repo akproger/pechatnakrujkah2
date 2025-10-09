@@ -30,14 +30,15 @@ export default {
 
 <style lang="scss" scoped>
 .app-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
+  background-color: #2b2b2b;
+  border-top: none;
   padding: 1.5rem 0;
   margin-top: auto;
   
   p {
     font-size: 0.9rem;
     margin: 0;
+    color: #656565 !important;
   }
   
   @media (max-width: 767.98px) {

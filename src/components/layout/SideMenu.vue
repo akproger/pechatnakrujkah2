@@ -1,16 +1,17 @@
 <template>
-  <aside class="side-menu" :class="{ 'open': isOpen }">
-    <div class="side-menu-overlay" @click="$emit('toggle')"></div>
+  <aside class="side-menu" :class="{ 'collapsed': !isOpen }">
     <div class="side-menu-content">
-      <!-- Заголовок меню -->
-      <div class="side-menu-header">
-        <h5 class="mb-0">Меню</h5>
+      <!-- Лого наверху панели -->
+      <div class="side-menu-logo">
+        <router-link to="/" class="logo-link">
+          Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>
+        </router-link>
         <button 
-          class="btn-close" 
+          class="btn-toggle" 
           @click="$emit('toggle')"
-          aria-label="Закрыть меню"
+          aria-label="Свернуть/развернуть панель"
         >
-          <span>&times;</span>
+          <i class="bi" :class="isOpen ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
         </button>
       </div>
       
@@ -19,42 +20,29 @@
         <ul class="nav flex-column">
           <li class="nav-item">
             <router-link 
-              to="/" 
-              class="nav-link d-flex align-items-center"
-              @click="$emit('toggle')"
-            >
-              <i class="bi bi-house-door me-3"></i>
-              Главная
-            </router-link>
-          </li>
-          <li class="nav-item">
-            <router-link 
               to="/grids" 
               class="nav-link d-flex align-items-center"
-              @click="$emit('toggle')"
             >
               <i class="bi bi-grid-3x3-gap me-3"></i>
-              Сетки
+              <span class="nav-text">Сетки</span>
             </router-link>
           </li>
           <li class="nav-item">
             <router-link 
               to="/sticker-mania" 
               class="nav-link d-flex align-items-center"
-              @click="$emit('toggle')"
             >
               <i class="bi bi-sticky me-3"></i>
-              Стикермания
+              <span class="nav-text">Стикермания</span>
             </router-link>
           </li>
           <li class="nav-item">
             <router-link 
               to="/mug-comic" 
               class="nav-link d-flex align-items-center"
-              @click="$emit('toggle')"
             >
               <i class="bi bi-cup me-3"></i>
-              Кружка-комикс
+              <span class="nav-text">Кружка-комикс</span>
             </router-link>
           </li>
         </ul>
@@ -69,7 +57,7 @@ export default {
   props: {
     isOpen: {
       type: Boolean,
-      default: false
+      default: true
     }
   },
   emits: ['toggle']
@@ -77,149 +65,87 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.header-span-1{ color: #0e6ffd; }
+.header-span-2{ color: rgb(241, 10, 10); }
+
 .side-menu {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
   height: 100vh;
   z-index: 1050;
-  pointer-events: none;
-  transition: all 0.3s ease;
-  
-  .side-menu-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    pointer-events: auto;
-  }
-  
-  .side-menu-content {
-    position: absolute;
-    top: 0;
-    left: -280px;
-    width: 280px;
-    height: 100%;
-    background-color: #fff;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    transition: left 0.3s ease;
-    pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    
-    @media (max-width: 575.98px) {
-      width: 260px;
-      left: -260px;
-    }
-  }
-  
-  &.open {
-    pointer-events: auto;
-    
-    .side-menu-overlay {
-      opacity: 1;
-      visibility: visible;
-    }
-    
-    .side-menu-content {
-      left: 0;
-    }
-  }
+  pointer-events: auto;
+  border-right: 1px solid #333;
 }
 
-.side-menu-header {
+.side-menu-content {
+  position: relative;
+  width: 280px;
+  height: 100%;
+  background-color: #181818;
+  color: #fff;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
-  background-color: #f8f9fa;
-  
-  h5 {
-    margin: 0;
-    color: #495057;
-    font-weight: 600;
-  }
-  
-  .btn-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: #6c757d;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      background-color: #e9ecef;
-      color: #495057;
-    }
-    
-    &:active {
-      transform: scale(0.95);
-    }
-  }
+  flex-direction: column;
+  transition: width 0.2s ease;
 }
+
+/* Свёрнутое состояние: только иконки */
+.side-menu.collapsed .side-menu-content {
+  width: 52px;
+}
+
+.side-menu-logo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 12px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.logo-link {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-menu.collapsed .logo-link { display: none; }
+
+.btn-toggle {
+  background: transparent;
+  color: #adb5bd;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
 
 .side-menu-nav {
   flex: 1;
-  padding: 1rem 0;
-  
-  .nav-item {
-    .nav-link {
-      padding: 1rem 1.5rem;
-      color: #495057;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-      border-radius: 0;
-      
-      &:hover {
-        background-color: #e9ecef;
-        color: #016527;
-      }
-      
-      &.router-link-active {
-        background-color: #016527;
-        color: #fff;
-        
-        &:hover {
-          background-color: #015a23;
-        }
-      }
-      
-      i {
-        font-size: 1.2rem;
-        width: 20px;
-        text-align: center;
-      }
-    }
-  }
+  padding: 8px 6px;
+}
+.side-menu-nav .nav-link {
+  padding: 10px 12px;
+  color: #e9ecef;
+  border-radius: 8px;
+}
+.side-menu-nav .nav-link:hover { background-color: rgba(255,255,255,0.06); color: #fff; }
+.side-menu-nav .nav-link.router-link-active { background-color: rgba(13,110,253,0.25); color: #fff; }
+.nav-text{
+  white-space: nowrap !important;
 }
 
-/* Анимация для мобильных устройств */
+/* Текст скрывается в свёрнутом состоянии */
+.side-menu.collapsed .nav-text { display: none; }
+.side-menu.collapsed .nav-link i { margin-right: 0 !important; }
+
+/* Убираем оверлей и анимации мобильного режима */
 @media (max-width: 991.98px) {
-  .side-menu-content {
-    transform: translateX(-100%);
-  }
-  
-  .side-menu.open .side-menu-content {
-    transform: translateX(0);
-  }
+  .side-menu-content { width: 240px; }
+  .side-menu.collapsed .side-menu-content { width: 64px; }
 }
 </style>

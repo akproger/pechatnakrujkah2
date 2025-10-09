@@ -22,27 +22,33 @@
           <div class="card">
             <div class="card-body" style="padding-left: 10px;">
               <div class="row align-items-center">
-                <!-- Кнопка генерации стикеров -->
-                <div class="col" style="padding: 0;">
-                  <button 
-                    @click="handleGenerateClick" 
-                    class="btn canvas-button gen-sticker-button-1"
-                    :disabled="isLoading"
-                  >
-                    <i class="bi bi-lightning-fill me-2"></i>
-                    {{ isLoading ? 'Генерация...' : 'Генерировать стикеры' }}
-                  </button>
-                </div>
                 
-                <!-- Кнопка добавления текста -->
-                <div class="col" style="padding: 0;">
-                  <button 
-                    @click="openTextManager" 
-                    class="btn canvas-button text-button"
-                  >
-                    <i class="bi bi-type me-2"></i>
-                    Текст
-                  </button>
+                <!-- Панель инструментов -->
+                <div class="col-auto" style="padding: 0; margin-right: 20px;">
+                  <div class="tools-panel">
+                    <button 
+                      class="tool-button"
+                      @click="handleGenerateClick"
+                      :disabled="isLoading"
+                      title="Генерировать стикеры"
+                    >
+                      <i class="bi bi-lightning-fill"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
+                      @click="openTextManager"
+                      title="Добавить текст"
+                    >
+                      <i class="bi bi-type"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
+                      @click="triggerSave"
+                      title="Сохранить в высоком качестве"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </div>
                 </div>
                 
                 <div class="col" style="padding: 0;">
@@ -56,14 +62,15 @@
                   />
                 </div>
                 
-                <!-- Кнопка сохранения -->
                 <div class="col" style="padding: 0;">
                   <HighQualitySaveButton
+                    ref="saveButton"
                     :save-function="saveCanvasForPrint"
                     :save-params="{}"
                     button-text="Сохранить в высоком качестве"
                     size="medium"
                     variant="primary"
+                    :hide-button="true"
                     @save-success="onSaveSuccess"
                     @save-error="onSaveError"
                     @show-notification="showNotification"
@@ -757,6 +764,13 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    // Триггер сохранения из панели инструментов
+    triggerSave() {
+      if (this.$refs.saveButton && this.$refs.saveButton.triggerSave) {
+        this.$refs.saveButton.triggerSave()
+      }
+    },
+
     // Обработчики событий для кнопки сохранения
     onSaveSuccess(result) {
       console.log('✅ Сохранение завершено успешно:', result)
@@ -11899,6 +11913,50 @@ export default {
 .text-button {
   width: auto;
   margin-left: 20px;
+}
+
+/* Панель инструментов */
+.tools-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  height: 48px; /* Та же высота, что и кнопка "Текст" */
+}
+
+.tool-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background: white !important;
+  color: #495057 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, color 0.2s ease !important;
+  font-size: 18px !important;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: rgb(13, 110, 253) !important;
+  color: white !important;
+}
+
+.tool-button.active {
+  background: rgb(13, 110, 253) !important;
+  color: white !important;
+}
+
+.tool-button:disabled {
+  background: #e9ecef !important;
+  color: #adb5bd !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
 }
 
 </style>

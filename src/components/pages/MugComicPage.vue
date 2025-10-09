@@ -6757,35 +6757,35 @@ export default {
 }
 
 .tool-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 6px;
-  background: white;
-  color: #495057;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  font-size: 18px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background: white !important;
+  color: #495057 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, color 0.2s ease !important;
+  font-size: 18px !important;
 }
 
 .tool-button:hover:not(:disabled) {
-  background: #e9ecef;
-  color: rgb(13, 110, 253);
+  background: rgb(13, 110, 253) !important;
+  color: white !important;
 }
 
 .tool-button.active {
-  background: rgb(13, 110, 253);
-  color: white;
+  background: rgb(13, 110, 253) !important;
+  color: white !important;
 }
 
 .tool-button:disabled {
-  background: #e9ecef;
-  color: #adb5bd;
-  cursor: not-allowed;
-  opacity: 0.6;
+  background: #e9ecef !important;
+  color: #adb5bd !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
 }
 
 .nav-tabs .nav-link {

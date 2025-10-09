@@ -1,5 +1,6 @@
 <template>
   <button 
+    v-if="!hideButton"
     @click="handleSave" 
     :disabled="isSaving"
     class="high-quality-save-btn"
@@ -49,6 +50,11 @@ export default {
       type: String,
       default: 'primary', // primary, secondary, success
       validator: (value) => ['primary', 'secondary', 'success'].includes(value)
+    },
+    // Скрыть кнопку
+    hideButton: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -57,6 +63,11 @@ export default {
     }
   },
   methods: {
+    // Публичный метод для вызова сохранения извне
+    triggerSave() {
+      this.handleSave()
+    },
+
     async handleSave() {
       if (this.isSaving) return
       

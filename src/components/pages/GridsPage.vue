@@ -10,7 +10,7 @@
       </div>
       
       <!-- Вкладки и ползунки управления -->
-      <div class="row mb-2">
+      <div class="row mb-4">
         <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
             <div class="card-body">
@@ -172,7 +172,7 @@
       </div>
       
       <!-- Табы управления -->
-      <div class="row mt-4">
+      <div class="row tabs-row">
         <div class="col-12">
           <ul class="nav nav-tabs" id="gridsTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -207,23 +207,6 @@
               >
                 <i class="bi bi-gear me-2"></i>
                 Настройки
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ 'active': activeTab === 'background' }"
-                id="background-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#background" 
-                type="button" 
-                role="tab" 
-                aria-controls="background" 
-                aria-selected="activeTab === 'background'"
-                @click="activeTab = 'background'"
-              >
-                <i class="bi bi-palette me-2"></i>
-                Фон
               </button>
             </li>
             
@@ -562,14 +545,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <!-- Таб "Фон" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'background' }" id="background" role="tabpanel" aria-labelledby="background-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              
             </div>
           </div>
         </div>
@@ -7116,6 +7091,9 @@ export default {
   justify-content: center;
   z-index: 1000;
   border-radius: 8px;
+}
+.tabs-row {
+    margin-top: -1.5rem;
 }
 
 /* Адаптивность для мобильных устройств */

@@ -10,7 +10,7 @@
       </div>
       
       <!-- Кнопки управления -->
-      <div class="row mb-2">
+      <div class="row mb-4">
         <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
             <div class="card-body" style="padding-left: 10px;">
@@ -6821,7 +6821,7 @@ export default {
 }
 
 .card-body {
-  padding: 1rem;
+  padding: 0;
 }
 
 .card-body.p-0 {

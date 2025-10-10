@@ -1643,7 +1643,10 @@ export default {
       })
       
       // Вычисляем размеры текста (точно как в режиме "Разговор")
-      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const measureCanvas = document.createElement('canvas')
+      const measureCtx = measureCanvas.getContext('2d')
+      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
+      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
       const textWidthWithPadding = textSize.width + textPadding * 2
       const textHeightWithPadding = textSize.height + textPadding * 2
@@ -2746,7 +2749,10 @@ export default {
       console.log('💬 Рисуем режим "Разговор" на отдельном канвасе')
       
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const measureCanvas = document.createElement('canvas')
+      const measureCtx = measureCanvas.getContext('2d')
+      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
+      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
       const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
       const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
@@ -2810,7 +2816,10 @@ export default {
       console.log('🧠 Рисуем режим "Мысли" на отдельном канвасе')
       
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const measureCanvas = document.createElement('canvas')
+      const measureCtx = measureCanvas.getContext('2d')
+      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
+      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
       const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
       const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
@@ -2874,7 +2883,10 @@ export default {
       console.log('📝 Рисуем режим "Стандарт" на отдельном канвасе')
       
       // Вычисляем размеры текста
-      const textSize = this.calculateMultilineTextSize(textData.text, textData.fontSize, textData.lineHeight, textData)
+      const measureCanvas = document.createElement('canvas')
+      const measureCtx = measureCanvas.getContext('2d')
+      measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
+      const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
       const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
       const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)

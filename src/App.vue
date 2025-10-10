@@ -79,38 +79,38 @@ export default {
 }
 
 .container {
-  width: 880px !important;
+  width: 879px !important;
   max-width: 100% !important;
 }
 
 /* Переопределяем Bootstrap стили для всех размеров экрана */
 @media (min-width: 576px) {
   .container, .container-sm {
-    max-width: 880px !important;
+    max-width: 100% !important;
   }
 }
 
 @media (min-width: 768px) {
   .container, .container-sm, .container-md {
-    max-width: 880px !important;
+    max-width: 100% !important;
   }
 }
 
 @media (min-width: 992px) {
   .container, .container-sm, .container-md, .container-lg {
-    max-width: 880px !important;
+    max-width: 100% !important;
   }
 }
 
 @media (min-width: 1200px) {
   .container, .container-sm, .container-md, .container-lg, .container-xl {
-    max-width: 880px !important;
+    max-width: 100% !important;
   }
 }
 
 @media (min-width: 1400px) {
   .container, .container-sm, .container-md, .container-lg, .container-xl, .container-xxl {
-    max-width: 880px !important;
+    max-width: 100% !important;
   }
 }
 

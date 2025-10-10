@@ -1518,10 +1518,6 @@ export default {
       return 697
     },
 
-    // Данные текста для текущей вкладки
-    textDialogData() {
-      return this.getCurrentTextDialogData()
-    },
 
     // Позиция текста (используем currentDragPosition или дефолтную позицию)
     currentTextPosition() {
@@ -2995,13 +2991,12 @@ export default {
       // Размеры канвасов теперь одинаковые, масштабирование не нужно
       const previewScale = 1
       
-      // Временно заменяем textDialogData на textDialogDataThoughts для отрисовки
-      const originalData = this.textDialogData
-      this.textDialogData = this.textDialogDataThoughts
+      // Используем данные режима "Мысли" напрямую
+      const thoughtsData = this.textDialogDataThoughts
       
       // Размеры дефолтной подложки - используем из настроек
-      const backgroundWidth = this.textDialogData.backgroundWidth || 200
-      const backgroundHeight = this.textDialogData.backgroundHeight || 80
+      const backgroundWidth = thoughtsData.backgroundWidth || 200
+      const backgroundHeight = thoughtsData.backgroundHeight || 80
       
       console.log('🧠 Дефолтная подложка - параметры:', {
         backgroundWidth: backgroundWidth,
@@ -3014,14 +3009,11 @@ export default {
       this.drawThoughtsModeShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, '#f0f0f0', false, true)
       
       // Рисуем дефолтный текст "Текст"
-      ctx.fillStyle = this.textDialogData.textColor || '#000000'
-      ctx.font = `${this.textDialogData.fontWeight || 'normal'} ${this.textDialogData.fontSize || 16}px ${this.textDialogData.font || 'Arial'}`
-      ctx.textAlign = this.textDialogData.textAlign || 'center'
+      ctx.fillStyle = thoughtsData.textColor || '#000000'
+      ctx.font = `${thoughtsData.fontWeight || 'normal'} ${thoughtsData.fontSize || 16}px ${thoughtsData.font || 'Arial'}`
+      ctx.textAlign = thoughtsData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('Текст', previewX, previewY)
-      
-      // Восстанавливаем оригинальные данные
-      this.textDialogData = originalData
       
       console.log('✅ Дефолтная подложка режима "Мысли" отрисована')
     },

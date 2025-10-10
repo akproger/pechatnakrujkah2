@@ -603,8 +603,14 @@ export default {
     this.$nextTick(() => {
       try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
     })
+    
+    // Добавляем обработчик изменения размера окна для пропорционального масштабирования
+    window.addEventListener('resize', this.handleCanvasResize)
   },
   beforeUnmount() {
+    // Удаляем обработчик изменения размера окна
+    window.removeEventListener('resize', this.handleCanvasResize)
+    
     if (this.paperScope) {
       this.paperScope.remove()
       this.paperScope = null
@@ -640,6 +646,83 @@ export default {
         this.reindexUserMasksByOrder()
         this.$forceUpdate?.()
       },
+      
+      // ====== Обработка изменения размера канваса ======
+      handleCanvasResize() {
+        if (this.paperScope) {
+          console.log('🔄 Изменение размера окна - обновляем канвас MugComicPage')
+          this.resizeCanvas()
+          this.updateCanvasContent()
+        }
+      },
+      
+      resizeCanvas() {
+        const canvas = this.$refs.comicCanvas
+        if (!canvas) {
+          console.log('⚠️ Канвас не найден в MugComicPage')
+          return
+        }
+        
+        if (!this.paperScope) {
+          console.log('⚠️ PaperScope не инициализирован в MugComicPage')
+          return
+        }
+        
+        // Получаем размер контейнера (.canvas-container)
+        const container = canvas.parentElement
+        if (!container) {
+          console.log('⚠️ Контейнер не найден в MugComicPage')
+          return
+        }
+        
+        const containerWidth = container.clientWidth
+        const containerHeight = container.clientHeight
+        
+        console.log('📏 Размеры контейнера MugComicPage:', containerWidth, 'x', containerHeight)
+        
+        // Получаем devicePixelRatio для HiDPI поддержки
+        const dpr = window.devicePixelRatio || 1
+        console.log('🖥️ Device Pixel Ratio MugComicPage:', dpr)
+        
+        // Устанавливаем размеры канваса с учетом HiDPI
+        canvas.width = containerWidth * dpr
+        canvas.height = containerHeight * dpr
+        canvas.style.width = containerWidth + 'px'
+        canvas.style.height = containerHeight + 'px'
+        
+        // Масштабируем контекст для HiDPI
+        const ctx = canvas.getContext('2d')
+        ctx.scale(dpr, dpr)
+        
+        // Обновляем размер view в Paper.js (логические размеры, не физические)
+        this.paperScope.view.viewSize = new this.paperScope.Size(containerWidth, containerHeight)
+        
+        console.log('📐 Канвас MugComicPage изменен:', containerWidth, 'x', containerHeight)
+      },
+      
+      updateCanvasContent() {
+        if (!this.paperScope) return
+        
+        // Пересчитываем позиции всех текстовых слоев
+        this.textLayers.forEach((textLayer, index) => {
+          if (textLayer && textLayer.parent) {
+            // Получаем новые размеры канваса
+            const canvasWidth = this.paperScope.view.viewSize.width
+            const canvasHeight = this.paperScope.view.viewSize.height
+            
+            // Пересчитываем позицию (центр канваса)
+            const newX = canvasWidth * 0.5
+            const newY = canvasHeight * 0.5
+            
+            // Обновляем позицию текстового слоя
+            textLayer.position = new this.paperScope.Point(newX, newY)
+          }
+        })
+        
+        // Перерисовываем канвас
+        this.paperScope.view.draw()
+      },
+      
       reindexUserMasksByOrder() {
         // Верх списка = выше слой. Присваиваем большие layerIndex более верхним
         let idx = 100
@@ -5185,12 +5268,70 @@ export default {
       this.buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, textData)
     },
 
-    // Методы отрисовки для высокого разрешения (ЗАГЛУШКИ - как в GridsPage)
+    // Методы отрисовки для высокого разрешения
     async drawConversationBackgroundInHighDPI(ctx, layer, scale) {
       console.log('💬 Рисуем подложку "Разговор" в высоком разрешении')
-      // ЗАГЛУШКА: В GridsPage это тоже заглушка с fillRect
-      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
-      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+      
+      const textData = layer.textData
+      const backgroundColor = textData.backgroundColor || '#FFFFFF'
+      const centerX = layer.bounds.width / 2
+      const centerY = layer.bounds.height / 2
+      const bgWidth = layer.bounds.width
+      const bgHeight = layer.bounds.height
+      
+      console.log('💬 Параметры подложки "Разговор" в высоком разрешении:', {
+        centerX,
+        centerY,
+        bgWidth,
+        bgHeight,
+        scale,
+        backgroundColor,
+        hasShadow: !!textData.shadow,
+        hasStroke: !!textData.stroke,
+        backgroundMode: textData.backgroundMode
+      })
+      
+      // Используем ту же логику, что и в drawConversationModeShapeWithData, но с масштабированием для высокого разрешения
+      // Сначала рисуем тень если включена
+      if (textData.shadow && textData.backgroundMode !== 'image-text') {
+        console.log('🌫️ Рисуем тень для подложки "Разговор" в высоком разрешении')
+        const shadowBlur = (textData.shadowBlur || 10) * scale
+        const shadowOffsetX = (textData.shadowOffsetX || 0) * scale
+        const shadowOffsetY = (textData.shadowOffsetY || 0) * scale
+        const shadowOpacity = textData.shadowOpacity || 0.3
+        
+        ctx.save()
+        ctx.shadowColor = `rgba(0, 0, 0, ${shadowOpacity})`
+        ctx.shadowBlur = shadowBlur
+        ctx.shadowOffsetX = shadowOffsetX
+        ctx.shadowOffsetY = shadowOffsetY
+        
+        // Рисуем подложку "Разговор" с тенью
+        this.drawConversationModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, true, textData)
+        ctx.restore()
+      } else {
+        // Рисуем подложку "Разговор" без тени
+        this.drawConversationModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, false, textData)
+      }
+      
+      // Рисуем обводку если включена
+      if (textData.stroke) {
+        console.log('🖊️ Рисуем обводку для подложки "Разговор" в высоком разрешении')
+        const strokeWidth = (textData.strokeWidth || 2) * scale
+        const strokeColor = textData.strokeColor || '#000000'
+        
+        ctx.save()
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        
+        // Рисуем обводку подложки "Разговор"
+        this.drawConversationModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, 'transparent', false, textData)
+        ctx.restore()
+      }
+      
+      console.log('✅ Подложка "Разговор" полностью нарисована в высоком разрешении')
     },
 
     async drawStandardBackgroundInHighDPI(ctx, layer, scale) {
@@ -5257,9 +5398,114 @@ export default {
 
     async drawThoughtsBackgroundInHighDPI(ctx, layer, scale) {
       console.log('🧠 Рисуем подложку "Мысли" в высоком разрешении')
-      // Здесь будет логика рисования подложки "Мысли" в высоком разрешении
-      ctx.fillStyle = layer.textData.backgroundColor || '#FFFFFF'
-      ctx.fillRect(0, 0, layer.bounds.width, layer.bounds.height)
+      
+      const textData = layer.textData
+      const backgroundColor = textData.backgroundColor || '#FFFFFF'
+      const centerX = layer.bounds.width / 2
+      const centerY = layer.bounds.height / 2
+      const bgWidth = layer.bounds.width
+      const bgHeight = layer.bounds.height
+      
+      console.log('🧠 Параметры подложки "Мысли" в высоком разрешении:', {
+        centerX,
+        centerY,
+        bgWidth,
+        bgHeight,
+        scale,
+        backgroundColor,
+        hasShadow: !!textData.shadow,
+        hasStroke: !!textData.stroke,
+        backgroundMode: textData.backgroundMode
+      })
+      
+      // Используем ту же логику, что и в drawThoughtsModeShapeWithData, но с масштабированием для высокого разрешения
+      // Сначала рисуем тень если включена
+      if (textData.shadow && textData.backgroundMode !== 'image-text') {
+        console.log('🌫️ Рисуем тень для подложки "Мысли" в высоком разрешении')
+        const shadowBlur = (textData.shadowBlur || 10) * scale
+        const shadowOffsetX = (textData.shadowOffsetX || 0) * scale
+        const shadowOffsetY = (textData.shadowOffsetY || 0) * scale
+        const shadowOpacity = textData.shadowOpacity || 0.3
+        
+        ctx.save()
+        ctx.shadowColor = `rgba(0, 0, 0, ${shadowOpacity})`
+        ctx.shadowBlur = shadowBlur
+        ctx.shadowOffsetX = shadowOffsetX
+        ctx.shadowOffsetY = shadowOffsetY
+        
+        // Рисуем овальную подложку с тенью
+        this.drawThoughtsModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, true, true, textData)
+        ctx.restore()
+      } else {
+        // Рисуем овальную подложку без тени
+        this.drawThoughtsModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, false, true, textData)
+      }
+      
+      // Рисуем обводку если включена
+      if (textData.stroke) {
+        console.log('🖊️ Рисуем обводку для подложки "Мысли" в высоком разрешении')
+        const strokeWidth = (textData.strokeWidth || 2) * scale
+        const strokeColor = textData.strokeColor || '#000000'
+        
+        ctx.save()
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        
+        // Рисуем обводку овальной подложки
+        this.drawThoughtsModeShapeWithData(ctx, centerX, centerY, bgWidth, bgHeight, scale, 'transparent', false, true, textData)
+        ctx.restore()
+      }
+      
+      console.log('✅ Подложка "Мысли" полностью нарисована в высоком разрешении')
+    },
+
+    async drawImageTextBackgroundInHighDPI(ctx, layer, scale) {
+      console.log('🖼️ Рисуем подложку "Текст с изображением" в высоком разрешении')
+      
+      const textData = layer.textData
+      const backgroundColor = textData.backgroundColor || '#FFFFFF'
+      const centerX = layer.bounds.width / 2
+      const centerY = layer.bounds.height / 2
+      const bgWidth = layer.bounds.width
+      const bgHeight = layer.bounds.height
+      
+      console.log('🖼️ Параметры подложки "Текст с изображением" в высоком разрешении:', {
+        centerX,
+        centerY,
+        bgWidth,
+        bgHeight,
+        scale,
+        backgroundColor,
+        hasShadow: !!textData.shadow,
+        hasStroke: !!textData.stroke,
+        backgroundMode: textData.backgroundMode
+      })
+      
+      // Для режима "Текст с изображением" тень применяется только к тексту, не к подложке
+      // Рисуем простую прямоугольную подложку
+      ctx.fillStyle = backgroundColor
+      ctx.fillRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+      
+      // Рисуем обводку если включена
+      if (textData.stroke) {
+        console.log('🖊️ Рисуем обводку для подложки "Текст с изображением" в высоком разрешении')
+        const strokeWidth = (textData.strokeWidth || 2) * scale
+        const strokeColor = textData.strokeColor || '#000000'
+        
+        ctx.save()
+        ctx.strokeStyle = strokeColor
+        ctx.lineWidth = strokeWidth
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        
+        // Рисуем обводку прямоугольной подложки
+        ctx.strokeRect(centerX - bgWidth/2, centerY - bgHeight/2, bgWidth, bgHeight)
+        ctx.restore()
+      }
+      
+      console.log('✅ Подложка "Текст с изображением" полностью нарисована в высоком разрешении')
     },
 
     drawTextInHighDPI(ctx, layer) {
@@ -5284,9 +5530,11 @@ export default {
       const originalStroke = textData.stroke
       
       // ИСПРАВЛЕНИЕ: Тень у текста применяется только для режима "Текст с изображением"
+      // НЕ изменяем оригинальные данные, используем локальную переменную
+      let textShadow = textData.shadow
       if (textData.backgroundMode !== 'image-text' && textData.shadow) {
         console.log(`📝 Режим "${textData.backgroundMode}": отключаем тень для текста (тень только для "Текст с изображением")`)
-        textData.shadow = false
+        textShadow = false
       }
       
       // Настраиваем шрифт
@@ -5300,7 +5548,7 @@ export default {
       const centerY = layer.bounds.height / 2
       
       // Применяем тень к тексту только для режима "Текст с изображением"
-      if (textData.backgroundMode === 'image-text' && textData.shadow) {
+      if (textData.backgroundMode === 'image-text' && textShadow) {
         console.log('📝 Применяем тень к тексту в режиме "Текст с изображением"')
         ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
         ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
@@ -5454,13 +5702,13 @@ export default {
     onSaveSuccess(result) {
       console.log('✅ Файл успешно сохранён:', result)
       
-      // Принудительно обновляем основной канвас после сохранения с задержкой
-      setTimeout(() => {
-        if (this.paperScope && this.paperScope.view) {
-          this.paperScope.view.update()
-          console.log('🔄 Основной канвас обновлен после сохранения')
-        }
-      }, 100)
+      // ИСПРАВЛЕНИЕ: НЕ обновляем основной канвас после сохранения, чтобы избежать появления лишних элементов
+      // setTimeout(() => {
+      //   if (this.paperScope && this.paperScope.view) {
+      //     this.paperScope.view.update()
+      //     console.log('🔄 Основной канвас обновлен после сохранения')
+      //   }
+      // }, 100)
       
       // Обновляем 3D модель после сохранения
       this.$nextTick(() => {

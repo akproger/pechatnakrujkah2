@@ -670,7 +670,7 @@ export default {
 
 .rotation-controls {
   position: relative;
-  top: -46px;
+  top: -16px;
   margin-top: 0;
   text-align: center;
   padding: 15px;

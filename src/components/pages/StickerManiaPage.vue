@@ -2864,9 +2864,9 @@ export default {
           // В конце используем маленькие стикеры для заполнения пустот (увеличены в 3 раза)
           sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
         }
-        // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса
+        // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса (x2 множитель)
         const canvasSize = Math.min(viewWidth, viewHeight)
-        const baseStickerSize = canvasSize * 0.12 // 12% от размера канваса (увеличено для лучшей видимости)
+        const baseStickerSize = canvasSize * 0.24 // 24% от размера канваса (x2 множитель)
         const size = baseStickerSize * sizeMultiplier
         
         // Ищем лучшую позицию
@@ -3135,9 +3135,9 @@ export default {
             sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
           }
           
-          // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса
+          // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса (x2 множитель)
           const canvasSize = Math.min(viewWidth, viewHeight)
-          const baseStickerSize = canvasSize * 0.12 // 12% от размера канваса (увеличено для лучшей видимости)
+          const baseStickerSize = canvasSize * 0.24 // 24% от размера канваса (x2 множитель)
           const size = baseStickerSize * sizeMultiplier
           
           // Ищем лучшую позицию

@@ -85,7 +85,7 @@
       
       <!-- Canvas область и 3D превью -->
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-12">
           <div class="card">
             <div class="card-body p-0">
               <div class="canvas-container">
@@ -105,22 +105,7 @@
           </div>
         </div>
         
-        <!-- 3D превью кружки -->
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body p-0">
-              <ThreeDRenderer 
-                ref="threeRenderer"
-                :source-canvas="$refs.testCanvas"
-                :auto-update="true"
-                :rotation-speed="0.01"
-                @initialized="onThreeInitialized"
-                @texture-updated="onTextureUpdated"
-                @texture-error="onTextureError"
-              />
-            </div>
-          </div>
-        </div>
+        <!-- 3D превью перенесён в боковую панель -->
       </div>
       
       
@@ -768,6 +753,37 @@ export default {
     triggerSave() {
       if (this.$refs.saveButton && this.$refs.saveButton.triggerSave) {
         this.$refs.saveButton.triggerSave()
+      }
+    },
+
+    // Обновление 3D модели в боковой панели
+    updateSideMenu3D() {
+      try {
+        // Ищем SideMenu через корневой компонент
+        const app = this.$root
+        const sideMenu = app?.$refs?.sideMenu
+        console.log('🔍 updateSideMenu3D вызван (StickerMania):', { app: !!app, sideMenu: !!sideMenu })
+        
+        if (sideMenu) {
+          const canvas = this.$refs.testCanvas
+          console.log('🔍 Canvas найден (StickerMania):', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+          
+          if (canvas && canvas.width > 0 && canvas.height > 0) {
+            // Обновляем canvas в боковой панели
+            sideMenu.setSourceCanvas(canvas)
+            console.log('✅ 3D модель в боковой панели обновлена (StickerMania)')
+          } else {
+            console.warn('⚠️ Canvas не готов или не найден в StickerManiaPage:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+            // Повторяем попытку через 200мс
+            setTimeout(() => {
+              this.updateSideMenu3D()
+            }, 200)
+          }
+        } else {
+          console.warn('⚠️ SideMenu не найден через $root (StickerMania)')
+        }
+      } catch (error) {
+        console.error('❌ Ошибка обновления 3D модели (StickerMania):', error)
       }
     },
 
@@ -2032,6 +2048,9 @@ export default {
       this.paperScope = new paper.PaperScope()
       this.paperScope.setup(canvas)
       
+      // Эмитим событие готовности canvas для 3D превью
+      this.$emit('canvas-ready', canvas)
+      
       // Настраиваем стили выделения
       this.paperScope.settings.handleSize = 8
       this.paperScope.settings.hitTolerance = 5
@@ -2063,6 +2082,13 @@ export default {
       this.setupPaperTools()
       
       console.log('✅ Paper.js инициализирован')
+      
+      // Обновляем 3D модель в боковой панели
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.updateSideMenu3D()
+        }, 500)
+      })
     },
     
 
@@ -3217,6 +3243,13 @@ export default {
       })
       
       console.log(`📈 Всего уникальных комбинаций: ${Object.keys(combinationUsage).length}/${selectedMasks.length * selectedImages.length}`)
+      
+      // Обновляем 3D модель в боковой панели
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.updateSideMenu3D()
+        }, 500)
+      })
     },
     
     // Создание оптимального стикера
@@ -5642,6 +5675,9 @@ export default {
           // Обычное перемещение
           dragItem.position = event.point.subtract(offset)
           
+          // Обновляем 3D модель в боковой панели
+          this.updateSideMenu3D()
+          
           // Обновляем позицию в данных слоя для всех текстовых слоев
           const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
           if (layerInfo) {
@@ -5674,6 +5710,9 @@ export default {
         if (dragItem) {
           dragItem.selected = false
           console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          
+          // Обновляем 3D модель в боковой панели
+          this.updateSideMenu3D()
           
           dragItem = null
           offset = null
@@ -8691,6 +8730,13 @@ export default {
       
       // Переупорядочиваем текстовые слои в Paper.js согласно порядку в массиве
       this.reorderTextLayersInPaperJS()
+      
+      // Обновляем 3D модель в боковой панели
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.updateSideMenu3D()
+        }, 500)
+      })
       
       // Добавляем в список созданных текстов для отображения во вкладке (тоже в начало)
       const newText = {

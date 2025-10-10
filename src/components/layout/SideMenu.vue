@@ -47,20 +47,73 @@
           </li>
         </ul>
       </nav>
+      
+      <!-- 3D превью кружки -->
+      <div class="side-menu-3d">
+        <ThreeDRenderer 
+          ref="threeRenderer"
+          :source-canvas="sourceCanvas"
+          :auto-update="true"
+          :rotation-speed="0.01"
+          @initialized="onThreeInitialized"
+          @texture-updated="onTextureUpdated"
+          @texture-error="onTextureError"
+        />
+      </div>
     </div>
   </aside>
 </template>
 
 <script>
+import ThreeDRenderer from '../ThreeDRenderer.vue'
+
 export default {
   name: 'SideMenu',
+  components: {
+    ThreeDRenderer
+  },
   props: {
     isOpen: {
       type: Boolean,
       default: true
     }
   },
-  emits: ['toggle']
+  emits: ['toggle'],
+  data() {
+    return {
+      sourceCanvas: null
+    }
+  },
+  watch: {
+    sourceCanvas(newCanvas, oldCanvas) {
+      console.log('🔄 SideMenu sourceCanvas watcher:', { newCanvas, oldCanvas, hasRenderer: !!this.$refs.threeRenderer })
+      // Watcher в ThreeDRenderer автоматически обновит текстуру при изменении sourceCanvas
+      console.log('✅ sourceCanvas обновлён в SideMenu, ThreeDRenderer должен автоматически обновиться')
+    }
+  },
+  methods: {
+    setSourceCanvas(canvas) {
+      console.log('🎨 Устанавливаем canvas в боковой панели:', canvas)
+      this.sourceCanvas = canvas
+      
+      // Принудительно обновляем ThreeDRenderer, так как canvas может быть тот же объект
+      if (this.$refs.threeRenderer) {
+        this.$nextTick(() => {
+          console.log('🔄 Принудительно обновляем ThreeDRenderer')
+          this.$refs.threeRenderer.forceUpdate()
+        })
+      }
+    },
+    onThreeInitialized() {
+      console.log('3D renderer initialized in side menu')
+    },
+    onTextureUpdated() {
+      console.log('Texture updated in side menu')
+    },
+    onTextureError(error) {
+      console.error('Texture error in side menu:', error)
+    }
+  }
 }
 </script>
 
@@ -76,12 +129,12 @@ export default {
   z-index: 1050;
   pointer-events: auto;
   border-right: 1px solid #333;
+  background: #181818;
 }
 
 .side-menu-content {
   position: relative;
   width: 280px;
-  height: 100%;
   background-color: #181818;
   color: #fff;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
@@ -142,6 +195,63 @@ export default {
 /* Текст скрывается в свёрнутом состоянии */
 .side-menu.collapsed .nav-text { display: none; }
 .side-menu.collapsed .nav-link i { margin-right: 0 !important; }
+
+/* 3D превью в боковой панели */
+.side-menu-3d {
+    padding: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.side-menu-3d .three-d-renderer {
+  width: 100%;
+  height: 300px;
+}
+
+.side-menu-3d .preview-container {
+  width: 100%;
+  height: 160px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.05);
+}
+
+.side-menu-3d .three-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.side-menu-3d .rotation-controls {
+  margin-top: 8px;
+}
+
+.side-menu-3d .rotation-toggle-btn {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #e9ecef;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.side-menu-3d .rotation-toggle-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+.side-menu-3d .rotation-toggle-btn.disabled {
+  opacity: 0.5;
+}
+
+/* Скрываем 3D превью в свёрнутом состоянии */
+.side-menu.collapsed .side-menu-3d {
+  display: none;
+}
 
 /* Убираем оверлей и анимации мобильного режима */
 @media (max-width: 991.98px) {

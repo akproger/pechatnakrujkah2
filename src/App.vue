@@ -1,7 +1,7 @@
 <template>
   <div id="app" class="d-flex">
     <!-- Боковая панель меню -->
-    <SideMenu :isOpen="isMenuOpen" @toggle="toggleMenu" />
+    <SideMenu ref="sideMenu" :isOpen="isMenuOpen" @toggle="toggleMenu" />
     
     <!-- Основной контент -->
     <div class="main-content">
@@ -10,7 +10,7 @@
       
       <!-- Контентная область -->
       <main class="content-area">
-        <router-view />
+        <router-view @canvas-ready="onCanvasReady" />
       </main>
       
       <!-- Подвал -->
@@ -35,6 +35,16 @@ export default {
   methods: {
     toggleMenu() {
       this.isMenuOpen = !this.isMenuOpen
+    },
+    onCanvasReady(canvas) {
+      // Передаём canvas в боковую панель для 3D превью
+      console.log('🎨 App.vue onCanvasReady вызван:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+      if (this.$refs.sideMenu) {
+        this.$refs.sideMenu.setSourceCanvas(canvas)
+        console.log('✅ Canvas передан в SideMenu из App.vue')
+      } else {
+        console.warn('⚠️ SideMenu не найден в App.vue')
+      }
     }
   }
 }
@@ -65,6 +75,42 @@ export default {
   
   @media (max-width: 767.98px) {
     padding: 15px;
+  }
+}
+
+.container {
+  width: 880px !important;
+  max-width: 100% !important;
+}
+
+/* Переопределяем Bootstrap стили для всех размеров экрана */
+@media (min-width: 576px) {
+  .container, .container-sm {
+    max-width: 880px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .container, .container-sm, .container-md {
+    max-width: 880px !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .container, .container-sm, .container-md, .container-lg {
+    max-width: 880px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container, .container-sm, .container-md, .container-lg, .container-xl {
+    max-width: 880px !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container, .container-sm, .container-md, .container-lg, .container-xl, .container-xxl {
+    max-width: 880px !important;
   }
 }
 

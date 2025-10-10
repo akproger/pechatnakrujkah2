@@ -95,7 +95,7 @@
       
             <!-- Canvas область и 3D превью -->
       <div class="row">
-        <div class="col-8">
+        <div class="col-12">
           <div class="card">
             <!-- Кнопки управления -->
             <div class="card-header">
@@ -153,22 +153,7 @@
           </div>
         </div>
         
-        <!-- 3D превью кружки -->
-        <div class="col-4">
-          <div class="card">
-            <div class="card-body p-0">
-              <ThreeDRenderer 
-                ref="threeRenderer"
-                :source-canvas="$refs.paperCanvas"
-                :auto-update="true"
-                :rotation-speed="0.01"
-                @initialized="onThreeInitialized"
-                @texture-updated="onTextureUpdated"
-                @texture-error="onTextureError"
-              />
-            </div>
-          </div>
-        </div>
+        <!-- 3D превью перенесён в боковую панель -->
       </div>
       
       <!-- Табы управления -->
@@ -678,14 +663,12 @@
 import paper from 'paper'
 import * as THREE from 'three'
 import { markRaw } from 'vue'
-import ThreeDRenderer from '../ThreeDRenderer.vue'
 import TextManager from '../TextManager.vue'
 import GridSaveCanvas from '../common/GridSaveCanvas.vue'
 
 export default {
   name: 'GridsPage',
   components: {
-    ThreeDRenderer,
     TextManager,
     GridSaveCanvas
   },
@@ -921,13 +904,11 @@ export default {
         }
         
         this.generateGrid()
-        // Также обновляем Three.js текстуру с увеличенной задержкой
+        // Обновляем 3D модель в боковой панели
         this.$nextTick(() => {
           setTimeout(() => {
-            if (this.$refs.threeRenderer) {
-              this.$refs.threeRenderer.forceUpdate()
-            }
-          }, 500) // Увеличили задержку с 300 до 500мс
+            this.updateSideMenu3D()
+          }, 500)
         })
       },
       deep: true
@@ -958,15 +939,48 @@ export default {
       }
     },
 
+    // Обновление 3D модели в боковой панели
+    updateSideMenu3D() {
+      try {
+        // Ищем SideMenu через корневой компонент
+        const app = this.$root
+        const sideMenu = app?.$refs?.sideMenu
+        console.log('🔍 updateSideMenu3D вызван:', { app: !!app, sideMenu: !!sideMenu })
+        
+        if (sideMenu) {
+          const canvas = this.$refs.paperCanvas
+          console.log('🔍 Canvas найден:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+          
+          if (canvas && canvas.width > 0 && canvas.height > 0) {
+            // Обновляем canvas в боковой панели
+            sideMenu.setSourceCanvas(canvas)
+            console.log('✅ 3D модель в боковой панели обновлена')
+          } else {
+            console.warn('⚠️ Canvas не готов или не найден в GridsPage:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+            // Повторяем попытку через 200мс
+            setTimeout(() => {
+              this.updateSideMenu3D()
+            }, 200)
+          }
+        } else {
+          console.warn('⚠️ SideMenu не найден через $root')
+        }
+      } catch (error) {
+        console.error('❌ Ошибка обновления 3D модели:', error)
+      }
+    },
+
     // Методы для управления шкалами сетки
     setGridRows(rows) {
       this.gridSettings[this.maskType].rows = rows
       console.log('✅ Количество строк установлено:', rows)
+      this.generateGrid()
     },
 
     setGridCols(cols) {
       this.gridSettings[this.maskType].cols = cols
       console.log('✅ Количество столбцов установлено:', cols)
+      this.generateGrid()
     },
 
     // Методы для шкал настроек
@@ -975,6 +989,7 @@ export default {
       const v = Math.max(0, Math.min(20, pct))
       this.externalMargin = v
       console.log('✅ Внешний отступ установлен:', v)
+      this.generateGrid()
     },
 
     setStrokeWidthPct(pct) {
@@ -982,6 +997,7 @@ export default {
       const v = Math.max(0, Math.min(20, pct))
       this.strokeWidth = v
       console.log('✅ Толщина обводки установлена:', v)
+      this.generateGrid()
     },
 
     setShadowBlur(pct) {
@@ -989,6 +1005,7 @@ export default {
       const v = Math.max(0, Math.min(20, pct))
       this.shadowBlur = v
       console.log('✅ Размытие тени установлено:', v)
+      this.generateGrid()
     },
 
     setShadowOpacity(pct) {
@@ -996,6 +1013,7 @@ export default {
       const v = Math.max(0, Math.min(50, pct))
       this.shadowOpacity = v
       console.log('✅ Прозрачность тени установлена:', v)
+      this.generateGrid()
     },
 
     setSolidBackgroundOpacity(pct) {
@@ -1040,6 +1058,7 @@ export default {
       const v = Math.max(-50, Math.min(50, pct))
       this.shadowOffsetX = v
       console.log('✅ Смещение тени по X установлено:', v)
+      this.generateGrid()
     },
 
     setShadowOffsetY(pct) {
@@ -1047,6 +1066,7 @@ export default {
       const v = Math.max(-50, Math.min(50, pct))
       this.shadowOffsetY = v
       console.log('✅ Смещение тени по Y установлено:', v)
+      this.generateGrid()
     },
 
     offsetCellClassX(i) {
@@ -1084,6 +1104,9 @@ export default {
         paper.setup(canvas)
         this.paperScope = paper
         
+        // Эмитим событие готовности canvas для 3D превью
+        this.$emit('canvas-ready', canvas)
+        
         // Создаем базовую сетку
         this.generateGrid()
         
@@ -1116,10 +1139,17 @@ export default {
       
       // Функция для снятия выделения
       const clearSelection = () => {
-        if (dragItem) {
-          dragItem.selected = false
+        if (dragItem && dragItem.parent) {
+          try {
+            dragItem.selected = false
+            dragItem = null
+            console.log('🎯 Выделение снято')
+          } catch (error) {
+            console.warn('⚠️ Ошибка при снятии выделения:', error)
+            dragItem = null
+          }
+        } else {
           dragItem = null
-          console.log('🎯 Выделение снято')
         }
       }
       
@@ -1197,50 +1227,58 @@ export default {
       }
       
       dragTool.onMouseDrag = (event) => {
-        if (dragItem && this.paperScope && this.paperScope.project) {
-          // Обычное перемещение
-          dragItem.position = event.point.subtract(offset)
-          
-          // Обновляем позицию в данных слоя для всех текстовых слоев
-          const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
-          if (layerInfo) {
-            layerInfo.position = { x: event.point.x, y: event.point.y }
-            console.log('📍 Обновлена позиция слоя при перетаскивании:', {
-              layerIndex: layerInfo.id,
-              position: layerInfo.position
-            })
-          }
-          
-          // Перерисовываем рендер кружки при перемещении
-          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-            this.$refs.threeRenderer.forceUpdate()
+        if (dragItem && dragItem.parent && this.paperScope && this.paperScope.project) {
+          try {
+            // Обычное перемещение
+            dragItem.position = event.point.subtract(offset)
+            
+            // Обновляем позицию в данных слоя для всех текстовых слоев
+            const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
+            if (layerInfo) {
+              layerInfo.position = { x: event.point.x, y: event.point.y }
+              console.log('📍 Обновлена позиция слоя при перетаскивании:', {
+                layerIndex: layerInfo.id,
+                position: layerInfo.position
+              })
+            }
+            
+            // Обновляем 3D модель в боковой панели
+            this.updateSideMenu3D()
+          } catch (error) {
+            console.warn('⚠️ Ошибка при перетаскивании:', error)
+            dragItem = null
+            offset = null
           }
         }
       }
       
       dragTool.onMouseUp = (event) => {
-        if (dragItem && this.paperScope && this.paperScope.project) {
-          dragItem.selected = false
-          console.log('🎯 Завершено перетаскивание Paper.js элемента')
-          
-          // Находим соответствующий слой и фиксируем итоговую позицию ЦЕНТРА объекта
-          const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
-          if (layerInfo) {
-            layerInfo.position = { x: dragItem.position.x, y: dragItem.position.y }
-            layerInfo.gridType = this.maskType
-            console.log('📌 Финальная фиксация позиции слоя после перетаскивания:', {
-              id: layerInfo.id,
-              position: layerInfo.position,
-              gridType: layerInfo.gridType
-            })
-          }
+        if (dragItem && dragItem.parent && this.paperScope && this.paperScope.project) {
+          try {
+            dragItem.selected = false
+            console.log('🎯 Завершено перетаскивание Paper.js элемента')
+            
+            // Находим соответствующий слой и фиксируем итоговую позицию ЦЕНТРА объекта
+            const layerInfo = this.textLayers.find(layer => layer.backgroundItem === dragItem || layer.layer === dragItem)
+            if (layerInfo) {
+              layerInfo.position = { x: dragItem.position.x, y: dragItem.position.y }
+              layerInfo.gridType = this.maskType
+              console.log('📌 Финальная фиксация позиции слоя после перетаскивания:', {
+                id: layerInfo.id,
+                position: layerInfo.position,
+                gridType: layerInfo.gridType
+              })
+            }
 
-          dragItem = null
-          offset = null
-          
-          // Финальная перерисовка рендера кружки после завершения перемещения
-          if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-            this.$refs.threeRenderer.forceUpdate()
+            dragItem = null
+            offset = null
+            
+            // Обновляем 3D модель в боковой панели
+            this.updateSideMenu3D()
+          } catch (error) {
+            console.warn('⚠️ Ошибка при завершении перетаскивания:', error)
+            dragItem = null
+            offset = null
           }
         }
       }
@@ -3084,9 +3122,8 @@ export default {
       this.$nextTick(() => {
         // Увеличиваем задержку для гарантии полной отрисовки canvas
         setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-            this.$refs.threeRenderer.forceUpdate()
-          }
+          // Обновляем 3D модель в боковой панели
+          this.updateSideMenu3D()
           // Скрываем прелоадер после обновления текстуры
           this.isLoading = false
         }, 500) // Увеличили задержку с 300 до 500мс
@@ -4531,17 +4568,6 @@ export default {
     },
     
     // Обработчики событий ThreeDRenderer
-    onThreeInitialized() {
-      console.log('✅ ThreeDRenderer инициализирован')
-    },
-    
-    onTextureUpdated() {
-      console.log('✅ Текстура ThreeDRenderer обновлена')
-    },
-    
-    onTextureError(error) {
-      console.error('❌ Ошибка текстуры ThreeDRenderer:', error)
-    },
     
     // Методы для работы с текстами
     openTextDialog() {
@@ -6964,10 +6990,14 @@ export default {
 
 .preview-container {
   width: 100%;
-  height: 0;
-  padding-bottom: 100%; // Квадратное соотношение для 3D превью
+  height: 300px;
+  padding-bottom: 100%;
   position: relative;
-  background: transparent;
+  background: #181818;
+  overflow: hidden;
+  display: flex;
+  /* align-items: center; */
+  justify-content: center;
   
   canvas {
     position: absolute;
@@ -7095,7 +7125,7 @@ export default {
   border-radius: 8px;
 }
 .tabs-row {
-    margin-top: -1.5rem;
+    margin-top: 4.5rem;
 }
 
 /* Адаптивность для мобильных устройств */

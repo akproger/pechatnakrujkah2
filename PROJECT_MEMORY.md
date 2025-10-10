@@ -1,5 +1,95 @@
 # PROJECT_MEMORY.md
 
+## Перенос 3D модели кружки в боковую панель (2025-01-14)
+
+**Задача**: Перенести 3D модель кружки с всех страниц в боковую панель под меню.
+
+**Реализовано**:
+1. **Обновлена боковая панель (SideMenu.vue)**:
+   - Добавлен импорт компонента ThreeDRenderer
+   - Добавлен блок `.side-menu-3d` с 3D превью под навигационным меню
+   - Добавлены методы `setSourceCanvas()`, `onThreeInitialized()`, `onTextureUpdated()`, `onTextureError()`
+   - 3D превью скрывается в свёрнутом состоянии панели
+
+2. **Обновлён App.vue**:
+   - Добавлена ссылка на SideMenu через `ref="sideMenu"`
+   - Добавлен обработчик события `@canvas-ready` от страниц
+   - Добавлен метод `onCanvasReady()` для передачи canvas в боковую панель
+
+3. **Обновлены все страницы**:
+   - **GridsPage.vue**: Убран блок 3D превью, изменён col-8 на col-12, добавлен эмит `canvas-ready` в `initPaper()`
+   - **MugComicPage.vue**: Убран блок 3D превью, изменён col-md-8 на col-12, добавлен эмит `canvas-ready` в `initPaperCanvas()`
+   - **StickerManiaPage.vue**: Убран блок 3D превью, изменён col-md-8 на col-12, добавлен эмит `canvas-ready` в `initPaper()`
+
+4. **Добавлены стили для 3D превью в боковой панели**:
+   - Высота 3D рендерера: 200px
+   - Высота контейнера превью: 160px
+   - Стилизованная кнопка управления вращением
+   - Адаптивные стили для мобильных устройств
+
+**Результат**: 3D модель кружки теперь отображается в боковой панели на всех страницах, освобождая место для основного контента и обеспечивая единообразный интерфейс.
+
+**Исправление обновления 3D модели (2025-01-14)**:
+- Добавлен метод `updateSideMenu3D()` на всех страницах (GridsPage, MugComicPage, StickerManiaPage)
+- Метод обращается к боковой панели через `this.$parent.$refs.sideMenu` и вызывает `setSourceCanvas()` для обновления canvas
+- Добавлен watcher в SideMenu.vue для автоматического обновления ThreeDRenderer при изменении sourceCanvas
+- Добавлены вызовы `updateSideMenu3D()` в watcher `uploadedImages` и в метод `generateGrid()` для автоматического обновления 3D модели при изменениях
+- Добавлены вызовы `generateGrid()` во все методы изменения настроек (setGridRows, setGridCols, setExternalMargin, setStrokeWidthPct, setShadowBlur, setShadowOpacity, setShadowOffsetX, setShadowOffsetY)
+- Убраны устаревшие ссылки на `this.$refs.threeRenderer`, так как теперь используется единая 3D модель в боковой панели
+
+**Исправление ошибки мутации prop (2025-01-14)**:
+- Исправлена ошибка "Attempting to mutate prop 'sourceCanvas'. Props are readonly" в SideMenu.vue
+- Убран неправильный код `this.$refs.threeRenderer.sourceCanvas = newCanvas` из watcher
+- Теперь watcher в SideMenu.vue только вызывает `forceUpdate()` через `$nextTick()`
+- ThreeDRenderer уже имеет собственный watcher для `sourceCanvas`, который автоматически обновляет текстуру при изменении canvas
+
+**Отладка обновления 3D текстуры (2025-01-14)**:
+- Добавлена подробная отладочная информация во все компоненты для диагностики проблемы с обновлением текстуры
+- В ThreeDRenderer.vue: добавлены логи в watcher `sourceCanvas` и метод `updateTexture()`
+- В SideMenu.vue: добавлены логи в watcher `sourceCanvas` и метод `setSourceCanvas()`
+- В GridsPage.vue: добавлены логи в метод `updateSideMenu3D()`
+- В App.vue: добавлены логи в метод `onCanvasReady()`
+- Убран fallback поиск canvas в `$parent` из `updateTexture()`, теперь используется только prop `sourceCanvas`
+- Добавлен флаг `immediate: true` в watcher ThreeDRenderer для немедленного срабатывания
+
+**Исправление доступа к SideMenu (2025-01-14)**:
+- Исправлена ошибка "SideMenu не найден" в методах `updateSideMenu3D()`
+- Заменён `this.$parent.$refs.sideMenu` на `this.$root.$refs.sideMenu` во всех страницах
+- Это исправляет проблему с доступом к SideMenu, так как страницы не являются прямыми дочерними компонентами App.vue
+- Теперь все страницы (GridsPage, MugComicPage, StickerManiaPage) правильно находят SideMenu через корневой компонент
+
+**Исправление конфликта обновления 3D текстуры (2025-01-14)**:
+- Убран дублирующий вызов `forceUpdate()` из watcher SideMenu.vue, который конфликтовал с watcher ThreeDRenderer
+- Теперь только watcher в ThreeDRenderer отвечает за обновление текстуры при изменении `sourceCanvas`
+- Добавлена проверка готовности canvas (width > 0 && height > 0) в методе `updateSideMenu3D()`
+- Добавлен механизм повторной попытки обновления через 200мс, если canvas не готов
+- Упрощена логика: SideMenu только передаёт canvas, ThreeDRenderer автоматически обновляется через свой watcher
+
+**Исправление проблемы с обновлением 3D текстуры при повторных вызовах (2025-01-14)**:
+- Проблема: при повторных вызовах `setSourceCanvas()` с тем же canvas объектом, Vue не считает prop изменённым
+- Решение: добавлен принудительный вызов `forceUpdate()` в методе `setSourceCanvas()` в SideMenu.vue
+- Теперь при каждом вызове `setSourceCanvas()` ThreeDRenderer принудительно обновляется через `$nextTick()`
+- Это гарантирует обновление текстуры даже когда canvas объект остаётся тем же, но его содержимое изменилось
+
+**Исправление методов updateSideMenu3D() на всех страницах (2025-01-14)**:
+- Обновлены методы `updateSideMenu3D()` в StickerManiaPage.vue и MugComicPage.vue
+- Добавлены те же проверки готовности canvas (width > 0 && height > 0), что и в GridsPage
+- Добавлен механизм повторной попытки через 200мс, если canvas не готов
+- Добавлены подробные логи с указанием страницы для отладки
+- Теперь все три страницы (GridsPage, StickerManiaPage, MugComicPage) имеют одинаковую логику обновления 3D модели
+
+**Добавление вызовов updateSideMenu3D() в ключевые методы (2025-01-14)**:
+- **StickerManiaPage**: добавлены вызовы `updateSideMenu3D()` в методы `initPaper()` и `generateOptimalStickers()`
+- **MugComicPage**: добавлены вызовы `updateSideMenu3D()` в методы `initPaperCanvas()` и `onCanvasDrop()`
+- Все вызовы обернуты в `$nextTick()` и `setTimeout(500ms)` для гарантии готовности canvas
+- Теперь 3D модель обновляется при инициализации canvas и при всех изменениях содержимого на всех страницах
+
+**Добавление обновления 3D модели во все интерактивные действия (2025-01-14)**:
+- **StickerManiaPage**: добавлены вызовы `updateSideMenu3D()` в методы `onMouseDrag` и `onMouseUp` для перетаскивания стикеров, а также в `onTextApplied` для добавления текста
+- **MugComicPage**: добавлены вызовы `updateSideMenu3D()` в методы `onMouseDrag` и `onMouseUp` для перетаскивания элементов, `dragMask` и `stopDraggingMask` для перетаскивания масок, `setBackgroundFromImage` и `removeBackground` для работы с фоном, `onTextApplied` для добавления текста
+- Теперь 3D модель обновляется в реальном времени при всех интерактивных действиях: перетаскивании стикеров/масок, загрузке фона, добавлении текста
+- Все вызовы обернуты в `$nextTick()` и `setTimeout()` для гарантии готовности canvas
+
 ## Создание панели инструментов на странице StickerManiaPage (2025-01-14)
 
 **Задача**: Создать такую же панель инструментов на странице StickerManiaPage, как на MugComicPage, и перенести туда все три кнопки в виде иконок.

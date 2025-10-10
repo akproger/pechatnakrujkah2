@@ -93,7 +93,7 @@
       
       <!-- Canvas область и 3D превью -->
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-12">
           <div class="card">
             <div class="card-body p-0">
               <div class="canvas-container">
@@ -117,25 +117,7 @@
           </div>
         </div>
         
-        <!-- 3D превью кружки -->
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body p-0">
-              <ThreeDRenderer 
-                ref="threeRenderer"
-                :source-canvas="$refs.comicCanvas"
-                :auto-update="true"
-                :rotation-speed="0.01"
-                :mug-radius="4"
-                :mug-height="9.5"
-                :print-aspect-ratio="19/9"
-                @initialized="onThreeInitialized"
-                @texture-updated="onTextureUpdated"
-                @texture-error="onTextureError"
-              />
-            </div>
-          </div>
-        </div>
+        <!-- 3D превью перенесён в боковую панель -->
       </div>
       
       <!-- Табы управления -->
@@ -854,6 +836,9 @@ export default {
       this.paperScope = new paper.PaperScope()
       this.paperScope.setup(canvas)
       
+      // Эмитим событие готовности canvas для 3D превью
+      this.$emit('canvas-ready', canvas)
+      
       // Получаем размер контейнера (.canvas-container)
       const container = canvas.parentElement
       if (!container) {
@@ -890,6 +875,13 @@ export default {
       this.setupPaperTools()
       
       console.log('Paper.js canvas инициализирован:', width, 'x', height)
+      
+      // Обновляем 3D модель в боковой панели
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.updateSideMenu3D()
+        }, 500)
+      })
     },
 
     // ========== Создание базового прямоугольника ==========
@@ -1133,6 +1125,9 @@ export default {
           // Обычное перемещение
           dragItem.position = event.point.subtract(offset)
           
+          // Обновляем 3D модель в боковой панели
+          this.updateSideMenu3D()
+          
           // Обновляем позицию в данных слоя для всех текстовых слоев
           const layerInfo = this.textLayers.find(layer => layer.raster === dragItem || layer.backgroundItem === dragItem || layer.layer === dragItem)
           if (layerInfo) {
@@ -1154,6 +1149,9 @@ export default {
         if (dragItem && this.paperScope && this.paperScope.project) {
           dragItem.selected = false
           console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          
+          // Обновляем 3D модель в боковой панели
+          this.updateSideMenu3D()
           
           // Находим соответствующий слой и фиксируем итоговую позицию ЦЕНТРА объекта
           const layerInfo = this.textLayers.find(layer => layer.raster === dragItem || layer.backgroundItem === dragItem || layer.layer === dragItem)
@@ -1301,10 +1299,7 @@ export default {
       // Принудительно обновляем 3D модель после удаления фона
       this.$nextTick(() => {
         setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-            console.log('🔄 Принудительное обновление 3D модели после удаления фона')
-            this.$refs.threeRenderer.updateTexture()
-          }
+          this.updateSideMenu3D()
         }, 100)
       })
     },
@@ -1319,10 +1314,7 @@ export default {
       // Принудительно обновляем 3D модель после установки фона
       this.$nextTick(() => {
         setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-            console.log('🔄 Принудительное обновление 3D модели после установки фона')
-            this.$refs.threeRenderer.updateTexture()
-          }
+          this.updateSideMenu3D()
         }, 100)
       })
     },
@@ -2132,6 +2124,13 @@ export default {
       this.enforceLayerOrder()
         
         console.log('✅ Текстовый слой создан:', layerInfo)
+        
+        // Обновляем 3D модель в боковой панели
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.updateSideMenu3D()
+          }, 500)
+        })
       }
     },
     // ========== МЕТОДЫ СОЗДАНИЯ ПОДЛОЖЕК (СКОПИРОВАНО 1 В 1 ИЗ GridsPage) ==========
@@ -5410,6 +5409,37 @@ export default {
       }
     },
 
+    // Обновление 3D модели в боковой панели
+    updateSideMenu3D() {
+      try {
+        // Ищем SideMenu через корневой компонент
+        const app = this.$root
+        const sideMenu = app?.$refs?.sideMenu
+        console.log('🔍 updateSideMenu3D вызван (MugComic):', { app: !!app, sideMenu: !!sideMenu })
+        
+        if (sideMenu) {
+          const canvas = this.$refs.comicCanvas
+          console.log('🔍 Canvas найден (MugComic):', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+          
+          if (canvas && canvas.width > 0 && canvas.height > 0) {
+            // Обновляем canvas в боковой панели
+            sideMenu.setSourceCanvas(canvas)
+            console.log('✅ 3D модель в боковой панели обновлена (MugComic)')
+          } else {
+            console.warn('⚠️ Canvas не готов или не найден в MugComicPage:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+            // Повторяем попытку через 200мс
+            setTimeout(() => {
+              this.updateSideMenu3D()
+            }, 200)
+          }
+        } else {
+          console.warn('⚠️ SideMenu не найден через $root (MugComic)')
+        }
+      } catch (error) {
+        console.error('❌ Ошибка обновления 3D модели (MugComic):', error)
+      }
+    },
+
     // Обработчики событий кнопки сохранения
     onSaveStart() {
       console.log('🔄 Начало сохранения')
@@ -5750,6 +5780,13 @@ export default {
         
         console.log('🎨 Маска обновлена с изображением:', image.name)
         this.enforceLayerOrder()
+        
+        // Обновляем 3D модель в боковой панели
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.updateSideMenu3D()
+          }, 500)
+        })
       }
     },
     
@@ -5964,6 +6001,9 @@ export default {
           console.log('🎭 Обновлена позиция группы:', mask.maskGroup.position.toString())
         }
         
+        // Обновляем 3D модель в боковой панели
+        this.updateSideMenu3D()
+        
         // Обновляем точки маски для всех слоев
         for (let i = 0; i < mask.points.length; i++) {
           mask.points[i].x += delta.x
@@ -5982,6 +6022,10 @@ export default {
       mask.isDragging = false
       mask.dragStart = null
       console.log('🎭 Завершено перетаскивание маски:', mask.id)
+      
+      // Обновляем 3D модель в боковой панели
+      this.updateSideMenu3D()
+      
       // Фиксируем актуальный центр после перетаскивания
       try {
         const c = (mask.maskGroup?.bounds?.center) || (mask.strokePath?.bounds?.center) || (mask.visualPath?.bounds?.center)
@@ -6676,7 +6720,7 @@ export default {
   width: 100%;
   height: 100%;
   display: block;
-  box-shadow: 4px 4px 12px 0 rgba(0,0,0,.15);
+  box-shadow: 4px 4px 12px 0 rgba(255,255,255,.15);
 }
 
 .canvas-overlay {
@@ -6859,7 +6903,7 @@ export default {
 
 /* Отступ для строки табов */
 .tabs-row {
-  margin-top: -4.5rem;
+  margin-top: 0.5rem;
 }
 
 /* Стили вкладки "Тексты" (как в StickerMania) */

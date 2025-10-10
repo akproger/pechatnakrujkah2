@@ -96,16 +96,19 @@ export default {
   },
   watch: {
     sourceCanvas: {
-      handler(newCanvas) {
+      handler(newCanvas, oldCanvas) {
+        console.log('🔄 sourceCanvas watcher сработал:', { newCanvas, oldCanvas, autoUpdate: this.autoUpdate })
         if (newCanvas && this.autoUpdate) {
           this.$nextTick(() => {
             setTimeout(() => {
+              console.log('⏰ Вызываем updateTexture через таймаут')
               this.updateTexture()
             }, 100)
           })
         }
       },
-      deep: true
+      deep: true,
+      immediate: true
     }
   },
   methods: {
@@ -450,9 +453,11 @@ export default {
       }
       
       // Получаем canvas с изображением
-      const sourceCanvas = this.sourceCanvas || this.$parent.$refs.testCanvas || this.$parent.$refs.paperCanvas
+      const sourceCanvas = this.sourceCanvas
+      console.log('🎨 updateTexture вызван, sourceCanvas:', sourceCanvas)
+      
       if (!sourceCanvas) {
-        console.log('🔸 Source canvas не найден')
+        console.log('🔸 Source canvas не найден в prop')
         return
       }
       
@@ -647,6 +652,8 @@ export default {
   position: relative;
   background: transparent;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
 
 .three-canvas {
@@ -658,13 +665,13 @@ export default {
 
 .preview-container > canvas {
   position: relative;
-  top: -30px;
+  top: 0;
 }
 
 .rotation-controls {
   position: relative;
-  top: -71px;
-  margin-top: 10px;
+  top: -46px;
+  margin-top: 0;
   text-align: center;
   padding: 15px;
 }

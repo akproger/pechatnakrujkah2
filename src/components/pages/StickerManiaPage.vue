@@ -2127,26 +2127,21 @@ export default {
       
       console.log('📏 Размеры контейнера:', containerWidth, 'x', containerHeight)
       
-      // Получаем devicePixelRatio для HiDPI поддержки
-      const dpr = window.devicePixelRatio || 1
-      console.log('🖥️ Device Pixel Ratio:', dpr)
-      
-      // Устанавливаем размеры канваса с учетом HiDPI
-      canvas.width = containerWidth * dpr
-      canvas.height = containerHeight * dpr
+      // ИСПРАВЛЕНИЕ: Убираем HiDPI, используем простые размеры
+      // Устанавливаем размеры канваса без HiDPI
+      canvas.width = containerWidth
+      canvas.height = containerHeight
       canvas.style.width = containerWidth + 'px'
       canvas.style.height = containerHeight + 'px'
       
-      // Масштабируем контекст для HiDPI
+      // НЕ масштабируем контекст - это вызывает проблемы с размерами
       const ctx = canvas.getContext('2d')
-      ctx.scale(dpr, dpr)
+      ctx.setTransform(1, 0, 0, 1, 0, 0) // Сбрасываем трансформацию
       
-
-      
-      // Обновляем размер view в Paper.js (логические размеры, не физические)
+      // Обновляем размер view в Paper.js (логические размеры = физические размеры)
       this.paperScope.view.viewSize = new this.paperScope.Size(containerWidth, containerHeight)
       
-      console.log('📐 Канвас изменен:', containerWidth, 'x', containerHeight)
+      console.log('📐 Канвас изменен (без HiDPI):', containerWidth, 'x', containerHeight)
     },
     
     // Обновление содержимого канваса при изменении размера
@@ -2869,7 +2864,10 @@ export default {
           // В конце используем маленькие стикеры для заполнения пустот (увеличены в 3 раза)
           sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
         }
-        const size = this.baseStickerSize * sizeMultiplier
+        // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса
+        const canvasSize = Math.min(viewWidth, viewHeight)
+        const baseStickerSize = canvasSize * 0.12 // 12% от размера канваса (увеличено для лучшей видимости)
+        const size = baseStickerSize * sizeMultiplier
         
         // Ищем лучшую позицию
         const position = findBestPosition(size)
@@ -3137,7 +3135,10 @@ export default {
             sizeMultiplier = 1.5 + Math.random() * 0.5 // 1.5 - 2.0 (было 0.5 - 1.0)
           }
           
-          const size = this.baseStickerSize * sizeMultiplier
+          // ИСПРАВЛЕНИЕ: Размер стикера привязан к размеру канваса
+          const canvasSize = Math.min(viewWidth, viewHeight)
+          const baseStickerSize = canvasSize * 0.12 // 12% от размера канваса (увеличено для лучшей видимости)
+          const size = baseStickerSize * sizeMultiplier
           
           // Ищем лучшую позицию
           const position = findBestPosition(size)

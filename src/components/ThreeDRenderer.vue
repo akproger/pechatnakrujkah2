@@ -682,7 +682,7 @@ export default {
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;

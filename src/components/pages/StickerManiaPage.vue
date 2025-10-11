@@ -166,20 +166,16 @@
               <div class="vertical-tabs-content" v-if="activeSettingsTab">
                 <!-- Таб "Формы стикеров" -->
                 <div v-show="activeSettingsTab === 'shapes'" class="tab-content-panel">
-                  <div class="row g-3">
-                    <div v-for="(mask, index) in stickerMasks" :key="index" class="col-12">
-                      <div class="form-check">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          :id="'settings-mask-' + index"
-                          v-model="mask.selected"
-                          @change="handleMaskChange(index, $event)"
-                        >
-                        <label class="form-check-label d-flex align-items-center" :for="'settings-mask-' + index">
-                          <img :src="mask.url" :alt="mask.name" style="width: 24px; height: 24px; margin-right: 8px;">
-                          {{ mask.name }}
-                        </label>
+                  <div class="sticker-shapes-grid">
+                    <div 
+                      v-for="(mask, index) in stickerMasks" 
+                      :key="index"
+                      class="sticker-shape-item"
+                      :class="{ 'selected': mask.selected }"
+                      @click="toggleMaskSelection(mask)"
+                    >
+                      <div class="shape-preview">
+                        <img :src="mask.url" :alt="mask.name" class="shape-image" />
                       </div>
                     </div>
                   </div>
@@ -432,11 +428,6 @@
                 <div v-show="activeSettingsTab === 'stickers'" class="tab-content-panel">
                   <div class="row">
                     <div class="col-12">
-                      <p class="text-muted mb-3">
-                        Стикеры расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
-                        <i class="bi bi-info-circle me-1"></i>
-                        Перетаскивайте слои для изменения их порядка или двойной клик на стикер на канвасе.
-                      </p>
                       
                       <!-- Список слоев стикеров -->
                       <div class="sticker-layers-list">
@@ -557,7 +548,7 @@ export default {
       isSettingsPanelOpen: true,
       activeSettingsTab: 'shapes',
       settingsTabs: [
-        { id: 'shapes', title: 'Формы стикеров', icon: 'bi-shapes' },
+        { id: 'shapes', title: 'Формы стикеров', icon: 'bi-hexagon' },
         { id: 'images', title: 'Изображения', icon: 'bi-images' },
         { id: 'text', title: 'Тексты', icon: 'bi-type' },
         { id: 'settings', title: 'Настройки', icon: 'bi-gear' },
@@ -2139,6 +2130,12 @@ export default {
       mask.selected = event.target.checked
       
       // НЕ обновляем канвас при выборе масок - только сохраняем состояние
+      console.log(`🎭 Маска "${mask.name}" ${mask.selected ? 'выбрана' : 'отменена'}`)
+    },
+    
+    // Переключение выбора маски (для сетки)
+    toggleMaskSelection(mask) {
+      mask.selected = !mask.selected
       console.log(`🎭 Маска "${mask.name}" ${mask.selected ? 'выбрана' : 'отменена'}`)
     },
     
@@ -12079,7 +12076,7 @@ export default {
 
 .settings-panel-content {
   position: relative;
-  width: 350px;
+  width: 280px;
   background: #f2f2f2;
   color: #333;
   display: flex;
@@ -12110,6 +12107,7 @@ export default {
   font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
+  margin-top: 11px;
 }
 
 .settings-panel-title i {
@@ -12139,11 +12137,13 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 4px;
+  margin-top: 11px;
+  position: relative;
+  left: -5px;
 }
 
 .btn-toggle:hover {
   color: #222;
-  background: rgba(0,0,0,0.05);
 }
 
 .btn-toggle i {
@@ -12452,6 +12452,7 @@ export default {
 
 .generate-text {
   transition: opacity 0.3s ease;
+  font-size: 16px;
 }
 
 .settings-panel.collapsed .generate-text {
@@ -12471,6 +12472,50 @@ export default {
 
 .settings-panel.collapsed .generate-stickers-btn i {
   margin-right: 0 !important;
+}
+
+/* Стили для сетки форм стикеров в правой панели */
+.sticker-shapes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sticker-shape-item {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.sticker-shape-item:hover {
+  border-color: #007bff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.sticker-shape-item.selected {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+.shape-preview {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shape-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 </style>

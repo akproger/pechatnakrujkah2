@@ -7628,7 +7628,7 @@ export default {
 
 .settings-panel-content {
   position: relative;
-  width: 350px;
+  width: 280px;
   background: #f2f2f2;
   color: #333;
   display: flex;
@@ -7659,6 +7659,7 @@ export default {
   font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
+  margin-top: 11px;
 }
 
 .settings-panel-title i {
@@ -7688,11 +7689,13 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 4px;
+  margin-top: 11px;
+  position: relative;
+  left: -5px;
 }
 
 .btn-toggle:hover {
   color: #222;
-  background: rgba(0,0,0,0.05);
 }
 
 .btn-toggle i {

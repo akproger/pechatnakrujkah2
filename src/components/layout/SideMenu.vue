@@ -188,6 +188,12 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 11px;
+  position: relative;
+  left: -5px;
+}
+.side-menu .btn-toggle {
+  left: 0px;
 }
 .btn-toggle:hover { color: #222; }
 

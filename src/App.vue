@@ -10,13 +10,12 @@
       
       <!-- Контентная область -->
       <main class="content-area">
-        <router-view @canvas-ready="onCanvasReady" />
+        <router-view ref="routerView" @canvas-ready="onCanvasReady" />
       </main>
       
       <!-- Подвал -->
       <Footer />
     </div>
-    
   </div>
 </template>
 

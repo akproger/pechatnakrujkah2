@@ -18,22 +18,49 @@
       
       <!-- Контент панели -->
       <div class="settings-panel-body">
-        <slot></slot>
+        <VerticalTabs 
+          :tabs="tabs"
+          :active-tab="activeTab"
+          :is-open="isOpen"
+          @tab-change="onTabChange"
+        >
+          <template v-for="tab in tabs" :key="tab.id" #[tab.id]>
+            <slot :name="tab.id"></slot>
+          </template>
+        </VerticalTabs>
       </div>
     </div>
   </aside>
 </template>
 
 <script>
+import VerticalTabs from '../common/VerticalTabs.vue'
+
 export default {
   name: 'SettingsPanel',
+  components: {
+    VerticalTabs
+  },
   props: {
     isOpen: {
       type: Boolean,
       default: true
+    },
+    tabs: {
+      type: Array,
+      default: () => []
+    },
+    activeTab: {
+      type: String,
+      default: ''
     }
   },
-  emits: ['toggle']
+  emits: ['toggle', 'tab-change'],
+  methods: {
+    onTabChange(tabId) {
+      this.$emit('tab-change', tabId)
+    }
+  }
 }
 </script>
 

@@ -599,6 +599,10 @@ export default {
   },
   mounted() {
     this.initPaperCanvas()
+    
+    // Инициализируем табы для правой панели
+    this.initializeTabs()
+    
     // Отрисуем превью масок после первого рендера
     this.$nextTick(() => {
       try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
@@ -617,6 +621,25 @@ export default {
     }
   },
   methods: {
+    // Инициализация табов для правой панели
+    initializeTabs() {
+      const tabs = [
+        { id: 'images', title: 'Изображения', icon: 'bi bi-images' },
+        { id: 'texts', title: 'Тексты', icon: 'bi bi-type' },
+        { id: 'userFrames', title: 'Рамки пользователя', icon: 'bi bi-bounding-box' },
+        { id: 'settings', title: 'Настройки', icon: 'bi bi-gear' }
+      ]
+      
+      // Передаем табы в App.vue через событие
+      this.$emit('set-page-tabs', tabs, this.activeTab || 'images')
+    },
+    
+    // Обработчик изменения таба
+    onTabChange(tabId) {
+      this.activeTab = tabId
+      console.log(`🔄 Переключение на таб: ${tabId}`)
+    },
+    
       // ====== Drag & Drop масок ======
       handleMaskDragStart(index, event) {
         this.draggedMaskIndex = index

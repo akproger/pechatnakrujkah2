@@ -133,6 +133,18 @@
             </button>
           </div>
           
+          <!-- Кнопка генерации стикеров -->
+          <div class="generate-button-container">
+            <button 
+              class="btn btn-primary w-100 generate-stickers-btn"
+              @click="handleGenerateClick"
+              :disabled="isLoading"
+            >
+              <i class="bi bi-lightning-fill me-2"></i>
+              <span class="generate-text">Сгенерировать стикеры</span>
+            </button>
+          </div>
+          
           <!-- Вертикальные табы -->
           <div class="settings-panel-body">
             <div class="vertical-tabs">
@@ -549,7 +561,7 @@ export default {
         { id: 'images', title: 'Изображения', icon: 'bi-images' },
         { id: 'text', title: 'Тексты', icon: 'bi-type' },
         { id: 'settings', title: 'Настройки', icon: 'bi-gear' },
-        { id: 'stickers', title: 'Стикеры', icon: 'bi-layer-group' }
+        { id: 'stickers', title: 'Стикеры', icon: 'bi-sticky' }
       ],
       
       texts: [],
@@ -12406,6 +12418,59 @@ export default {
 .form-check-input:checked + .form-check-label i {
   color: #016527;
   margin-top: .12rem !important;
+}
+
+/* Стили для кнопки генерации стикеров в правой панели */
+.generate-button-container {
+  padding: 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+
+.generate-stickers-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 16px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.generate-stickers-btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+}
+
+.generate-stickers-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.generate-text {
+  transition: opacity 0.3s ease;
+}
+
+.settings-panel.collapsed .generate-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.settings-panel.collapsed .generate-button-container {
+  padding: 16px 8px;
+}
+
+.settings-panel.collapsed .generate-stickers-btn {
+  padding: 12px 8px !important;
+  justify-content: center !important;
+}
+
+.settings-panel.collapsed .generate-stickers-btn i {
+  margin-right: 0 !important;
 }
 
 </style>

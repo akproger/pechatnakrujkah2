@@ -26,8 +26,7 @@ src/
 ├── components/
 │   ├── layout/
 │   │   ├── Header.vue      # Шапка приложения
-│   │   ├── SideMenu.vue    # Боковое меню
-│   │   └── Footer.vue      # Подвал
+│   │   └── SideMenu.vue    # Боковое меню
 │   └── pages/
 │       ├── HomePage.vue    # Главная страница
 │       └── GridsPage.vue   # Страница с сетками (Paper.js)

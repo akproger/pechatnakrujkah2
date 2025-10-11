@@ -13,8 +13,6 @@
         <router-view ref="routerView" @canvas-ready="onCanvasReady" />
       </main>
       
-      <!-- Подвал -->
-      <Footer />
     </div>
   </div>
 </template>
@@ -22,11 +20,10 @@
 <script>
 import SideMenu from './components/layout/SideMenu.vue'
 import Header from './components/layout/Header.vue'
-import Footer from './components/layout/Footer.vue'
 
 export default {
   name: 'App',
-  components: { SideMenu, Header, Footer },
+  components: { SideMenu, Header },
   data() {
     return {
       isMenuOpen: true

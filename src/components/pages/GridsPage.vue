@@ -7051,12 +7051,12 @@ export default {
 }
 
 .btn-primary {
-  background-color: #016527;
-  border-color: #016527;
+  background-color: #0d70fd;
+  border-color: transparent;
   
   &:hover {
-    background-color: #015a23;
-    border-color: #015a23;
+    background-color: #2a7ff8;
+    border-color: transparent;
   }
 }
 
@@ -7737,7 +7737,7 @@ export default {
 
 .control-cell {
   width: 20px;
-  height: 20px;
+  height: 16px;
   border: 1px solid #dee2e6;
   border-radius: 3px;
   cursor: pointer;

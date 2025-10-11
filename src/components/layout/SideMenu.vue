@@ -63,7 +63,7 @@
     </div>
     <div class="footer-copyright">
       <p class="mb-0 text-muted">
-        © {{ currentYear }} Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>. Все права защищены. Любое копирование материалов сайта без согласия ООО "Апрель" запрежено!
+        © {{ currentYear }} Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>. Все права защищены. Любое копирование материалов сайта без согласия ООО "Апрель" запрещено!
       </p>
     </div>
   </aside>

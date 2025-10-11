@@ -7084,13 +7084,13 @@ export default {
 }
 
 .btn-primary {
-  background-color: #016527;
-  border-color: #016527;
-}
-
-.btn-primary:hover {
-  background-color: #015a23;
-  border-color: #015a23;
+  background-color: #0d70fd;
+  border-color: transparent;
+  
+  &:hover {
+    background-color: #2a7ff8;
+    border-color: transparent;
+  }
 }
 
 .btn-outline-primary {

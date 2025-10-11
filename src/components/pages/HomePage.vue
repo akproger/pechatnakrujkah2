@@ -77,20 +77,12 @@ export default {
 }
 
 .btn-primary {
-  background-color: #016527;
-  border-color: #016527;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  background-color: #0d70fd;
+  border-color: transparent;
   
   &:hover {
-    background-color: #015a23;
-    border-color: #015a23;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(1, 101, 39, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
+    background-color: #2a7ff8;
+    border-color: transparent;
   }
 }
 

@@ -536,68 +536,59 @@
               <div class="vertical-tabs-content" v-if="activeSettingsTab">
                 <!-- Таб "Изображения" -->
                 <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
-                  <div class="row g-3">
-                    <!-- Загрузка изображений -->
-                    <div class="col-12">
-                      <input 
-                        type="file" 
-                        ref="settingsImageInput"
-                        @change="handleImageUpload" 
-                        multiple
-                        accept="image/*"
-                        class="d-none"
+                  <!-- Загрузка изображений -->
+                  <div class="mb-3">
+                    <input 
+                      type="file" 
+                      ref="settingsImageInput"
+                      @change="handleImageUpload" 
+                      multiple
+                      accept="image/*"
+                      class="d-none"
+                    >
+                    <button 
+                      @click="$refs.settingsImageInput.click()" 
+                      class="btn btn-primary w-100"
+                      :disabled="uploadedImages.length >= 10"
+                    >
+                      <i class="bi bi-cloud-upload me-2"></i>
+                      <span v-if="uploadedImages.length >= 10">
+                        Максимальное количество изображений загружено
+                      </span>
+                      <span v-else-if="uploadedImages.length === 0">
+                        Загрузить изображения (до 10)
+                      </span>
+                      <span v-else>
+                        Добавить изображения (осталось {{ 10 - uploadedImages.length }})
+                      </span>
+                    </button>
+                  </div>
+                  
+                  <!-- Список загруженных изображений -->
+                  <div v-if="uploadedImages.length > 0" class="uploaded-images">
+                    <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                    <div class="row g-2">
+                      <div 
+                        v-for="(image, index) in uploadedImages" 
+                        :key="index"
+                        class="col-6"
                       >
-                      <button 
-                        @click="$refs.settingsImageInput.click()" 
-                        class="btn"
-                        :disabled="uploadedImages.length >= 10"
-                        style="background-color: #0d6efd; border: none; color: white;"
-                      >
-                        <i class="bi bi-cloud-upload me-2"></i>
-                        <span v-if="uploadedImages.length >= 10">
-                          Максимальное количество изображений загружено
-                        </span>
-                        <span v-else-if="uploadedImages.length === 0">
-                          Загрузить изображения (до 10)
-                        </span>
-                        <span v-else>
-                          Добавить изображения (осталось {{ 10 - uploadedImages.length }})
-                        </span>
-                      </button>
-                    </div>
-                    
-                    <!-- Список загруженных изображений -->
-                    <div class="col-12" v-if="uploadedImages.length > 0">
-                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
-                      <div class="row g-2">
-                        <div 
-                          v-for="(image, index) in uploadedImages" 
-                          :key="index"
-                          class="col-md-4 col-lg-3 col-xl-2"
-                        >
-                          <div 
-                            class="position-relative"
-                            draggable="true"
-                            @dragstart="onImageDragStart($event, image)"
-                            @dragend="onImageDragEnd"
+                        <div class="position-relative">
+                          <img 
+                            :src="image.url" 
+                            :alt="image.name"
+                            class="img-fluid rounded border"
+                            style="max-height: 80px; width: 100%; object-fit: cover;"
                           >
-                            <img 
-                              :src="image.url" 
-                              :alt="image.name"
-                              class="img-fluid rounded border"
-                              style="max-height: 100px; width: 100%; object-fit: cover;"
-                              draggable="false"
-                            >
-                            <button 
-                              @click="removeImage(index)"
-                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
-                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
-                            >
-                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
-                            </button>
-                          </div>
-                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                          <button 
+                            @click="removeImage(index)"
+                            class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                            style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background-color: #dc3545; border: none; color: white;"
+                          >
+                            <i class="bi bi-x" style="font-size: 12px; line-height: 1;"></i>
+                          </button>
                         </div>
+                        <small class="text-muted d-block mt-1 text-truncate">{{ image.name }}</small>
                       </div>
                     </div>
                   </div>
@@ -7987,6 +7978,16 @@ export default {
 .mask-actions .btn {
   padding: 4px 8px;
   font-size: 12px;
+}
+
+/* Стили для загруженных изображений */
+.uploaded-images .row {
+  margin: 0 -4px;
+}
+
+.uploaded-images .col-6 {
+  padding: 0 4px;
+  margin-bottom: 12px;
 }
 
 </style>

@@ -705,7 +705,7 @@ export default {
     // Конвертируем проценты в пиксели для различных настроек
     strokeWidthPx() {
       // Базовый размер для расчета процентов (средний размер маски)
-      const baseSize = 80 // базовый размер в пикселях для обводки
+      const baseSize = 80 // базовый размер в пикселях для обводки на канвасе (как для сохранения)
       return (this.strokeWidth / 100) * baseSize
     },
     
@@ -716,17 +716,17 @@ export default {
     },
     
     shadowBlurPx() {
-      const baseSize = 60 // базовый размер для размытия тени
+      const baseSize = 60 // базовый размер для размытия тени на канвасе (как для сохранения)
       return (this.shadowBlur / 100) * baseSize
     },
     
     shadowOffsetXPx() {
-      const baseSize = 40 // базовый размер для смещения тени по X
+      const baseSize = 40 // базовый размер для смещения тени по X на канвасе (как для сохранения)
       return (this.shadowOffsetX / 100) * baseSize
     },
     
     shadowOffsetYPx() {
-      const baseSize = 40 // базовый размер для смещения тени по Y
+      const baseSize = 40 // базовый размер для смещения тени по Y на канвасе (как для сохранения)
       return (this.shadowOffsetY / 100) * baseSize
     },
     

@@ -114,7 +114,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- Правая панель настроек -->
       <aside class="settings-panel" :class="{ 'collapsed': !isSettingsPanelOpen }">
         <div class="settings-panel-content">
@@ -124,25 +124,25 @@
               <i class="bi bi-gear"></i>
               <span class="settings-text">Настройки</span>
             </div>
-            <button 
+              <button 
               class="btn-toggle" 
               @click="isSettingsPanelOpen = !isSettingsPanelOpen"
               aria-label="Свернуть/развернуть панель настроек"
             >
               <i class="bi" :class="isSettingsPanelOpen ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-            </button>
+              </button>
           </div>
           
           <!-- Кнопка генерации стикеров -->
           <div class="generate-button-container">
-            <button 
+              <button 
               class="btn btn-primary w-100 generate-stickers-btn"
               @click="handleGenerateClick"
               :disabled="isLoading"
             >
               <i class="bi bi-lightning-fill me-2"></i>
               <span class="generate-text">Сгенерировать стикеры</span>
-            </button>
+              </button>
           </div>
           
           <!-- Вертикальные табы -->
@@ -150,7 +150,7 @@
             <div class="vertical-tabs">
               <!-- Кнопки табов -->
               <div class="vertical-tabs-nav">
-                <button 
+              <button 
                   v-for="tab in settingsTabs" 
                   :key="tab.id"
                   class="vertical-tab-button"
@@ -159,12 +159,12 @@
                 >
                   <i :class="tab.icon"></i>
                   <span class="tab-text">{{ tab.title }}</span>
-                </button>
-              </div>
-              
-              <!-- Контент табов -->
+              </button>
+      </div>
+      
+      <!-- Контент табов -->
               <div class="vertical-tabs-content" v-if="activeSettingsTab">
-                <!-- Таб "Формы стикеров" -->
+        <!-- Таб "Формы стикеров" -->
                 <div v-show="activeSettingsTab === 'shapes'" class="tab-content-panel">
                   <div class="sticker-shapes-grid">
                     <div 
@@ -176,41 +176,41 @@
                     >
                       <div class="shape-preview">
                         <img :src="mask.url" :alt="mask.name" class="shape-image" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Таб "Изображения" -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Изображения" -->
                 <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
                   <!-- Загрузка изображений -->
                   <div class="mb-3">
-                    <input 
+                  <input 
                       ref="settingsImageInput"
-                      type="file" 
-                      @change="handleImageUpload" 
-                      multiple
-                      accept="image/*"
-                      class="d-none"
-                    >
-                    <button 
+                    type="file" 
+                    @change="handleImageUpload" 
+                    multiple
+                    accept="image/*"
+                    class="d-none"
+                  >
+                  <button 
                       @click="$refs.settingsImageInput.click()" 
                       class="btn btn-primary w-100"
-                      :disabled="uploadedImages.length >= 5"
-                    >
-                      <i class="bi bi-cloud-upload me-2"></i>
-                      <span v-if="uploadedImages.length >= 5">
-                        Максимальное количество изображений загружено
-                      </span>
-                      <span v-else-if="uploadedImages.length === 0">
-                        Загрузить изображения (до 5)
-                      </span>
-                      <span v-else>
-                        Добавить изображения (осталось {{ 5 - uploadedImages.length }})
-                      </span>
-                    </button>
+                    :disabled="uploadedImages.length >= 5"
+                  >
+                    <i class="bi bi-cloud-upload me-2"></i>
+                    <span v-if="uploadedImages.length >= 5">
+                      Максимальное количество изображений загружено
+                    </span>
+                    <span v-else-if="uploadedImages.length === 0">
+                      Загрузить изображения (до 5)
+                    </span>
+                    <span v-else>
+                      Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                    </span>
+                  </button>
                   </div>
-                  
+
                   <!-- Список загруженных изображений -->
                   <div v-if="uploadedImages.length > 0" class="uploaded-images">
                     <h6 class="text-muted mb-3">Загруженные изображения</h6>
@@ -248,14 +248,14 @@
                             <label class="form-check-label" :for="'settings-use-image-' + index" title="Использовать в стикерах">
                               <i class="bi bi-sticky"></i>
                             </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
-                
-                <!-- Таб "Тексты" -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Тексты" -->
                 <div v-show="activeSettingsTab === 'text'" class="tab-content-panel">
                   <div v-if="createdTexts.length === 0" class="text-center text-muted py-4">
                     <i class="bi bi-type display-4 mb-3"></i>
@@ -332,13 +332,13 @@
                           >
                             <i class="bi bi-trash"></i>
                           </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-                
-                <!-- Таб "Настройки" -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Таб "Настройки" -->
                 <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
                   <div class="row g-3">
                     <!-- Обводка -->
@@ -419,12 +419,12 @@
                           step="1"
                           @input="updateStickerStyles"
                         >
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Таб "Стикеры" -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Таб "Стикеры" -->
                 <div v-show="activeSettingsTab === 'stickers'" class="tab-content-panel">
                   <div class="row">
                     <div class="col-12">

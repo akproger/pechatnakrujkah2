@@ -175,41 +175,61 @@
                 
                 <!-- Таб "Изображения" -->
                 <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
-                  <h6 class="text-muted mb-3">Загрузите изображения для стикеров</h6>
+                  <!-- Загрузка изображений -->
+                  <div class="mb-3">
+                    <input 
+                      ref="settingsImageInput"
+                      type="file" 
+                      @change="handleImageUpload" 
+                      multiple
+                      accept="image/*"
+                      class="d-none"
+                    >
+                    <button 
+                      @click="$refs.settingsImageInput.click()" 
+                      class="btn btn-primary w-100"
+                      :disabled="uploadedImages.length >= 5"
+                    >
+                      <i class="bi bi-cloud-upload me-2"></i>
+                      <span v-if="uploadedImages.length >= 5">
+                        Максимальное количество изображений загружено
+                      </span>
+                      <span v-else-if="uploadedImages.length === 0">
+                        Загрузить изображения (до 5)
+                      </span>
+                      <span v-else>
+                        Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                      </span>
+                    </button>
+                  </div>
                   
-                  <!-- Кнопка загрузки -->
-                  <input 
-                    ref="settingsImageInput"
-                    type="file" 
-                    @change="handleImageUpload" 
-                    multiple
-                    accept="image/*"
-                    class="d-none"
-                  >
-                  <button 
-                    @click="$refs.settingsImageInput.click()" 
-                    class="btn canvas-button"
-                    :disabled="uploadedImages.length >= 5"
-                  >
-                    <i class="bi bi-cloud-upload me-2"></i>
-                    <span v-if="uploadedImages.length >= 5">
-                      Максимальное количество изображений загружено
-                    </span>
-                    <span v-else-if="uploadedImages.length === 0">
-                      Загрузить изображения (до 5)
-                    </span>
-                    <span v-else>
-                      Добавить изображения (осталось {{ 5 - uploadedImages.length }})
-                    </span>
-                  </button>
-
                   <!-- Список загруженных изображений -->
-                  <div v-if="uploadedImages.length > 0" class="mt-3">
-                    <h6 class="text-muted">Загруженные изображения:</h6>
+                  <div v-if="uploadedImages.length > 0" class="uploaded-images">
+                    <h6 class="text-muted mb-3">Загруженные изображения</h6>
                     <div class="row g-2">
-                      <div v-for="(image, index) in uploadedImages" :key="index" class="col-12">
-                        <div class="d-flex align-items-center p-2 border rounded">
-                          <div class="form-check me-2">
+                      <div 
+                        v-for="(image, index) in uploadedImages" 
+                        :key="index"
+                        class="col-6"
+                      >
+                        <div class="position-relative">
+                          <img 
+                            :src="image.url" 
+                            :alt="image.name"
+                            class="img-fluid rounded border"
+                            style="max-height: 80px; width: 100%; object-fit: cover;"
+                          >
+                          <button 
+                            @click="removeImage(index)"
+                            class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                            style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background-color: #dc3545; border: none; color: white;"
+                          >
+                            <i class="bi bi-x" style="font-size: 12px; line-height: 1;"></i>
+                          </button>
+                        </div>
+                        <small class="text-muted d-block mt-1 text-truncate">{{ image.name }}</small>
+                        <div class="d-flex gap-2 mt-2">
+                          <div class="form-check">
                             <input 
                               class="form-check-input" 
                               type="checkbox" 
@@ -217,16 +237,10 @@
                               v-model="image.useInStickers"
                               @change="generateOptimalStickers"
                             >
+                            <label class="form-check-label" :for="'settings-use-image-' + index" title="Использовать в стикерах">
+                              <i class="bi bi-sticky"></i>
+                            </label>
                           </div>
-                          <img :src="image.url" :alt="image.name" style="width: 40px; height: 40px; object-fit: cover; margin-right: 8px;">
-                          <span class="flex-grow-1 text-truncate">{{ image.name }}</span>
-                          <button 
-                            @click="removeImage(index)" 
-                            class="btn btn-sm btn-outline-danger"
-                            style="background-color: #6c757d; border: none; color: white;"
-                          >
-                            <i class="bi bi-trash"></i>
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -12370,6 +12384,28 @@ export default {
 .layer-position {
   font-size: 11px;
   color: #6c757d;
+}
+
+/* Стили для загруженных изображений */
+.uploaded-images .row {
+  margin: 0 -4px;
+}
+
+.uploaded-images .col-6 {
+  padding: 0 4px;
+  margin-bottom: 12px;
+}
+
+/* Стили для иконки в чекбоксе */
+.form-check-label i {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: .12rem !important;
+}
+
+.form-check-input:checked + .form-check-label i {
+  color: #016527;
+  margin-top: .12rem !important;
 }
 
 </style>

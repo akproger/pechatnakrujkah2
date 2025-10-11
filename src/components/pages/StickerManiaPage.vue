@@ -630,41 +630,326 @@
               <div class="vertical-tabs-content" v-if="activeSettingsTab">
                 <!-- Таб "Формы стикеров" -->
                 <div v-show="activeSettingsTab === 'shapes'" class="tab-content-panel">
-                  <div class="p-3 text-muted">
-                    <p>Содержимое таба "Формы стикеров"</p>
-                    <p class="small">Здесь будут формы стикеров</p>
+                  <div class="row g-3">
+                    <div v-for="(mask, index) in stickerMasks" :key="index" class="col-12">
+                      <div class="form-check">
+                        <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          :id="'settings-mask-' + index"
+                          v-model="mask.selected"
+                          @change="handleMaskChange(index, $event)"
+                        >
+                        <label class="form-check-label d-flex align-items-center" :for="'settings-mask-' + index">
+                          <img :src="mask.url" :alt="mask.name" style="width: 24px; height: 24px; margin-right: 8px;">
+                          {{ mask.name }}
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <!-- Таб "Изображения" -->
                 <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
-                  <div class="p-3 text-muted">
-                    <p>Содержимое таба "Изображения"</p>
-                    <p class="small">Здесь будут изображения</p>
+                  <h6 class="text-muted mb-3">Загрузите изображения для стикеров</h6>
+                  
+                  <!-- Кнопка загрузки -->
+                  <input 
+                    ref="settingsImageInput"
+                    type="file" 
+                    @change="handleImageUpload" 
+                    multiple
+                    accept="image/*"
+                    class="d-none"
+                  >
+                  <button 
+                    @click="$refs.settingsImageInput.click()" 
+                    class="btn canvas-button"
+                    :disabled="uploadedImages.length >= 5"
+                  >
+                    <i class="bi bi-cloud-upload me-2"></i>
+                    <span v-if="uploadedImages.length >= 5">
+                      Максимальное количество изображений загружено
+                    </span>
+                    <span v-else-if="uploadedImages.length === 0">
+                      Загрузить изображения (до 5)
+                    </span>
+                    <span v-else>
+                      Добавить изображения (осталось {{ 5 - uploadedImages.length }})
+                    </span>
+                  </button>
+
+                  <!-- Список загруженных изображений -->
+                  <div v-if="uploadedImages.length > 0" class="mt-3">
+                    <h6 class="text-muted">Загруженные изображения:</h6>
+                    <div class="row g-2">
+                      <div v-for="(image, index) in uploadedImages" :key="index" class="col-12">
+                        <div class="d-flex align-items-center p-2 border rounded">
+                          <div class="form-check me-2">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              :id="'settings-use-image-' + index"
+                              v-model="image.useInStickers"
+                              @change="generateOptimalStickers"
+                            >
+                          </div>
+                          <img :src="image.url" :alt="image.name" style="width: 40px; height: 40px; object-fit: cover; margin-right: 8px;">
+                          <span class="flex-grow-1 text-truncate">{{ image.name }}</span>
+                          <button 
+                            @click="removeImage(index)" 
+                            class="btn btn-sm btn-outline-danger"
+                            style="background-color: #6c757d; border: none; color: white;"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <!-- Таб "Тексты" -->
                 <div v-show="activeSettingsTab === 'text'" class="tab-content-panel">
-                  <div class="p-3 text-muted">
-                    <p>Содержимое таба "Тексты"</p>
-                    <p class="small">Здесь будут тексты</p>
+                  <div v-if="createdTexts.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p>Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
+                  </div>
+                  <div v-else>
+                    <div class="mb-3">
+                      <p class="text-muted mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка или двойной клик на текст на канвасе.
+                      </p>
+                    </div>
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
+                      <div 
+                        v-for="(text, index) in createdTexts" 
+                        :key="text.id || index" 
+                        class="text-layer-item"
+                        :class="{ 
+                          'dragging': draggedTextIndex === index,
+                          'drag-over': dragOverTextIndex === index
+                        }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
+                      >
+                        <div class="layer-info">
+                          <!-- Иконка перетаскивания -->
+                          <div class="drag-handle">
+                            <i class="bi bi-grip-vertical"></i>
+                          </div>
+                          
+                          <!-- Информация о слое -->
+                          <div class="layer-details">
+                            <div class="layer-name">{{ text.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta">
+                            Шрифт: {{ text.font || 'Arial' }} | 
+                            Размер: {{ text.fontSize || 16 }}px |
+                            <span v-if="text.color">Цвет: {{ text.color }}</span>
+                              <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
+                        </div>
+                            <div class="layer-number">Слой #{{ text.layerIndex || (index + 1) }}</div>
+                          </div>
+                        </div>
+                        
+                        <!-- Действия со слоем -->
+                        <div class="layer-actions">
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            @click="editTextLayer(text.layerIndex || (index + 1))"
+                            title="Редактировать"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            @click="toggleTextLayerVisibility(text.layerIndex || (index + 1))"
+                            title="Показать/скрыть"
+                          >
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            @click="removeTextLayer(text.layerIndex || (index + 1))"
+                            title="Удалить"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <!-- Таб "Настройки" -->
                 <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
-                  <div class="p-3 text-muted">
-                    <p>Содержимое таба "Настройки"</p>
-                    <p class="small">Здесь будут настройки</p>
+                  <div class="row g-3">
+                    <!-- Обводка -->
+                    <div class="col-12">
+                      <h6 class="text-muted mb-3">Обводка</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет обводки</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="strokeColor"
+                          @change="generateOptimalStickers"
+                          title="Выберите цвет обводки"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="strokeWidth"
+                          min="0" 
+                          max="20" 
+                          step="1"
+                          @input="updateStickerStyles"
+                        >
+                      </div>
+                    </div>
+                    
+                    <!-- Тень -->
+                    <div class="col-12">
+                      <h6 class="text-muted mb-3">Тень</h6>
+                      <div class="form-group">
+                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowBlur"
+                          min="0" 
+                          max="50" 
+                          step="1"
+                          @input="updateStickerStyles"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Смещение по X: {{ shadowOffsetX }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetX"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                          @input="updateStickerStyles"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Смещение по Y: {{ shadowOffsetY }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOffsetY"
+                          min="-50" 
+                          max="50" 
+                          step="1"
+                          @input="updateStickerStyles"
+                        >
+                      </div>
+                      
+                      <div class="form-group mt-2">
+                        <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="shadowOpacity"
+                          min="0" 
+                          max="100" 
+                          step="1"
+                          @input="updateStickerStyles"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <!-- Таб "Стикеры" -->
                 <div v-show="activeSettingsTab === 'stickers'" class="tab-content-panel">
-                  <div class="p-3 text-muted">
-                    <p>Содержимое таба "Стикеры"</p>
-                    <p class="small">Здесь будут стикеры</p>
+                  <div class="row">
+                    <div class="col-12">
+                      <p class="text-muted mb-3">
+                        Стикеры расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка или двойной клик на стикер на канвасе.
+                      </p>
+                      
+                      <!-- Список слоев стикеров -->
+                      <div class="sticker-layers-list">
+                        <div 
+                          v-for="(sticker, index) in stickers" 
+                          :key="index"
+                          class="sticker-layer-item"
+                          :class="{ 
+                            'active': selectedStickerIndex === index,
+                            'dragging': draggedIndex === index,
+                            'drag-over': dragOverIndex === index
+                          }"
+                          draggable="true"
+                          @click="selectSticker(index)"
+                          @dragstart="handleDragStart(index, $event)"
+                          @dragend="handleDragEnd"
+                          @dragover="handleDragOver(index, $event)"
+                          @dragleave="handleDragLeave"
+                          @drop="handleDrop(index, $event)"
+                        >
+                          <div class="layer-info">
+                            <!-- Иконка перетаскивания -->
+                            <div class="drag-handle">
+                              <i class="bi bi-grip-vertical"></i>
+                            </div>
+                            
+                            <!-- Превью стикера -->
+                            <div class="sticker-preview">
+                              <img 
+                                v-if="stickerPreviews[`${sticker.mask}_${sticker.image}_${index}`]"
+                                :src="stickerPreviews[`${sticker.mask}_${sticker.image}_${index}`]"
+                                :alt="`Превью ${sticker.mask}`"
+                                class="preview-image"
+                                @error="handlePreviewError(index)"
+                              />
+                              <div 
+                                v-else 
+                                class="preview-placeholder"
+                                :title="`Генерация превью для ${sticker.mask}...`"
+                              >
+                                <i class="bi bi-image"></i>
+                              </div>
+                            </div>
+                            <div class="layer-number">{{ sticker.originalNumber }}</div>
+                            <div class="layer-details">
+                              <div class="layer-name">Стикер {{ sticker.originalNumber }}</div>
+                              <div class="layer-position">
+                                Позиция: ({{ Math.round(sticker.group.position.x) }}, {{ Math.round(sticker.group.position.y) }})
+                              </div>
+                            </div>
+                          </div>
+                          <div class="layer-actions">
+                            <button 
+                              class="btn btn-sm btn-outline-danger"
+                              @click.stop="deleteSticker(index)"
+                              title="Удалить стикер"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -12407,6 +12692,160 @@ export default {
 
 .settings-panel.collapsed .vertical-tabs-content {
   display: none;
+}
+
+/* Стили для текстовых слоев */
+.text-layers-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  cursor: move;
+  transition: all 0.2s ease;
+}
+
+.text-layer-item:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.text-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.text-layer-item.drag-over {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.1);
+}
+
+.layer-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-handle {
+  color: #6c757d;
+  margin-right: 12px;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.layer-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.layer-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.layer-meta {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.layer-number {
+  font-size: 11px;
+  color: #adb5bd;
+  font-weight: 500;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.layer-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Стили для стикеров */
+.sticker-layers-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sticker-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sticker-layer-item:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.sticker-layer-item.active {
+  background: rgba(13, 110, 253, 0.1);
+  border-color: #0d6efd;
+}
+
+.sticker-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.sticker-layer-item.drag-over {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.1);
+}
+
+.sticker-preview {
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-placeholder {
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.layer-position {
+  font-size: 11px;
+  color: #6c757d;
 }
 
 </style>

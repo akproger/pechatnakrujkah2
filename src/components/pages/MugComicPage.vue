@@ -536,29 +536,200 @@
               <div class="vertical-tabs-content" v-if="activeSettingsTab">
                 <!-- Таб "Изображения" -->
                 <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
-                  <div class="placeholder-content">
-                    <p class="text-muted">Содержимое таба "Изображения" будет добавлено позже</p>
+                  <div class="row g-3">
+                    <!-- Загрузка изображений -->
+                    <div class="col-12">
+                      <input 
+                        type="file" 
+                        ref="settingsImageInput"
+                        @change="handleImageUpload" 
+                        multiple
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.settingsImageInput.click()" 
+                        class="btn"
+                        :disabled="uploadedImages.length >= 10"
+                        style="background-color: #0d6efd; border: none; color: white;"
+                      >
+                        <i class="bi bi-cloud-upload me-2"></i>
+                        <span v-if="uploadedImages.length >= 10">
+                          Максимальное количество изображений загружено
+                        </span>
+                        <span v-else-if="uploadedImages.length === 0">
+                          Загрузить изображения (до 10)
+                        </span>
+                        <span v-else>
+                          Добавить изображения (осталось {{ 10 - uploadedImages.length }})
+                        </span>
+                      </button>
+                    </div>
+                    
+                    <!-- Список загруженных изображений -->
+                    <div class="col-12" v-if="uploadedImages.length > 0">
+                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                      <div class="row g-2">
+                        <div 
+                          v-for="(image, index) in uploadedImages" 
+                          :key="index"
+                          class="col-md-4 col-lg-3 col-xl-2"
+                        >
+                          <div 
+                            class="position-relative"
+                            draggable="true"
+                            @dragstart="onImageDragStart($event, image)"
+                            @dragend="onImageDragEnd"
+                          >
+                            <img 
+                              :src="image.url" 
+                              :alt="image.name"
+                              class="img-fluid rounded border"
+                              style="max-height: 100px; width: 100%; object-fit: cover;"
+                              draggable="false"
+                            >
+                            <button 
+                              @click="removeImage(index)"
+                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
+                            >
+                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
+                            </button>
+                          </div>
+                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Таб "Тексты" -->
                 <div v-show="activeSettingsTab === 'texts'" class="tab-content-panel">
-                  <div class="placeholder-content">
-                    <p class="text-muted">Содержимое таба "Тексты" будет добавлено позже</p>
+                  <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p>Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст" над основным канвасом, затем кликните на канвас для добавления текста</p>
+                  </div>
+                  <div v-else>
+                    <div class="mb-3">
+                      <p class="text-muted mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой.
+                        <i class="bi bi-info-circle ms-1"></i>
+                        Перетаскивайте слои для изменения их порядка.
+                      </p>
+                    </div>
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
+                      <div 
+                        v-for="(layer, index) in textLayers" 
+                        :key="layer.id || index" 
+                        class="text-layer-item"
+                        :class="{ 'dragging': draggedTextIndex === index, 'drag-over': dragOverTextIndex === index }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
+                      >
+                        <div class="layer-info">
+                          <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
+                          <div class="layer-details">
+                            <div class="layer-name">{{ layer.text || layer.textData?.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta">
+                              Шрифт: {{ layer.font || layer.textData?.font || 'Arial' }} |
+                              Размер: {{ layer.fontSize || layer.textData?.fontSize || 16 }}px |
+                              <span v-if="layer.fillColor || layer.textData?.color">Цвет: {{ layer.fillColor || layer.textData?.color }}</span>
+                            </div>
+                            <div class="layer-number">Слой #{{ index + 1 }}</div>
+                          </div>
+                        </div>
+                        <div class="layer-actions">
+                          <button type="button" class="btn btn-outline-primary btn-sm" @click="editTextLayer(layer.id)" title="Редактировать">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" @click="deleteTextLayer(index)" title="Удалить">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Таб "Рамки пользователя" -->
                 <div v-show="activeSettingsTab === 'userFrames'" class="tab-content-panel">
-                  <div class="placeholder-content">
-                    <p class="text-muted">Содержимое таба "Рамки пользователя" будет добавлено позже</p>
+                  <h6 class="text-muted mb-3">Пользовательские маски</h6>
+                  <div class="user-masks-container">
+                    <div v-if="userMasks.length === 0" class="text-center text-muted py-4">
+                      <i class="bi bi-palette fs-1"></i>
+                      <p class="mt-2">Нет созданных масок</p>
+                      <small>Используйте инструмент рисования масок для создания контуров</small>
+                    </div>
+                    <div v-else class="masks-list">
+                      <div 
+                        v-for="(mask, index) in userMasks" 
+                        :key="mask.id"
+                        class="mask-item-full"
+                        :class="{ active: selectedMask === mask.id, 'dragging': draggedMaskIndex === index, 'drag-over': dragOverMaskIndex === index }"
+                        @click="selectMask(mask.id)"
+                        draggable="true"
+                        @dragstart="handleMaskDragStart(index, $event)"
+                        @dragend="handleMaskDragEnd"
+                        @dragover="handleMaskDragOver(index, $event)"
+                        @dragleave="handleMaskDragLeave"
+                        @drop="handleMaskDrop(index, $event)"
+                      >
+                        <div class="mask-header">
+                          <div class="mask-preview">
+                            <canvas :ref="`maskPreview${mask.id}`" width="80" height="50"></canvas>
+                          </div>
+                          <div class="mask-info">
+                            <div class="mask-name">{{ mask.name || `Маска ${index + 1}` }}</div>
+                            <div class="mask-meta">Создана: {{ new Date(mask.createdAt).toLocaleDateString() }}</div>
+                          </div>
+                        </div>
+                        <div class="mask-actions">
+                          <button 
+                            class="btn btn-sm btn-outline-danger" 
+                            @click.stop="deleteUserMask(mask.id)"
+                            title="Удалить маску"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Таб "Настройки" -->
                 <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
-                  <div class="placeholder-content">
-                    <p class="text-muted">Содержимое таба "Настройки" будет добавлено позже</p>
+                  <div class="row g-3">
+                    <!-- Обводка -->
+                    <div class="col-12">
+                      <h6 class="text-muted mb-3">Обводка основного поля</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет обводки</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="strokeColor"
+                          title="Выберите цвет обводки"
+                        >
+                      </div>
+                      <div class="form-group mt-2">
+                        <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          v-model.number="strokeWidth"
+                          min="0" 
+                          max="20" 
+                          step="1"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -7639,6 +7810,183 @@ export default {
   text-align: center;
   padding: 20px;
   color: #666;
+}
+
+/* Стили для текстовых слоев */
+.text-layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: move;
+  transition: all 0.2s ease;
+}
+
+.text-layer-item:hover {
+  background: #f8f9fa;
+  border-color: #d0d0d0;
+}
+
+.text-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.text-layer-item.drag-over {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.layer-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-handle {
+  margin-right: 12px;
+  color: #999;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.layer-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.layer-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.layer-number {
+  font-size: 11px;
+  color: #999;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.layer-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Стили для пользовательских масок */
+.user-masks-container {
+  width: 100%;
+}
+
+.masks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mask-item-full {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mask-item-full:hover {
+  background: #f8f9fa;
+  border-color: #d0d0d0;
+}
+
+.mask-item-full.active {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.mask-item-full.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.mask-item-full.drag-over {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.mask-header {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mask-preview {
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.mask-preview canvas {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.mask-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mask-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mask-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.mask-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mask-actions .btn {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 </style>

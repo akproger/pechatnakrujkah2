@@ -17,14 +17,6 @@
       <Footer />
     </div>
     
-    <!-- Правая панель настроек -->
-    <SettingsPanel 
-      ref="settingsPanel" 
-      :isOpen="isSettingsPanelOpen" 
-      @toggle="toggleSettingsPanel"
-    >
-      <slot name="settings-content"></slot>
-    </SettingsPanel>
   </div>
 </template>
 
@@ -32,23 +24,18 @@
 import SideMenu from './components/layout/SideMenu.vue'
 import Header from './components/layout/Header.vue'
 import Footer from './components/layout/Footer.vue'
-import SettingsPanel from './components/layout/SettingsPanel.vue'
 
 export default {
   name: 'App',
-  components: { SideMenu, Header, Footer, SettingsPanel },
+  components: { SideMenu, Header, Footer },
   data() {
     return {
-      isMenuOpen: true,
-      isSettingsPanelOpen: true
+      isMenuOpen: true
     }
   },
   methods: {
     toggleMenu() {
       this.isMenuOpen = !this.isMenuOpen
-    },
-    toggleSettingsPanel() {
-      this.isSettingsPanelOpen = !this.isSettingsPanelOpen
     },
     onCanvasReady(canvas) {
       // Передаём canvas в боковую панель для 3D превью

@@ -1,6 +1,8 @@
 <template>
   <div class="grids-page">
-    <div class="container">
+    <div class="page-layout">
+      <div class="main-content">
+        <div class="container">
       <!-- Заголовок страницы -->
       <div class="row">
         <div class="col">
@@ -656,6 +658,415 @@
           ></div>
         </div>
       </div>
+        </div>
+      </div>
+      <!-- Правая панель настроек -->
+      <aside class="settings-panel" :class="{ 'collapsed': !isSettingsPanelOpen }">
+        <div class="settings-panel-content">
+          <!-- Заголовок панели -->
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">
+              <i class="bi bi-gear"></i>
+              <span class="settings-text">Настройки</span>
+            </div>
+            <button 
+              class="btn-toggle" 
+              @click="isSettingsPanelOpen = !isSettingsPanelOpen"
+              aria-label="Свернуть/развернуть панель настроек"
+            >
+              <i class="bi" :class="isSettingsPanelOpen ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+            </button>
+          </div>
+          
+          <!-- Вертикальные табы -->
+          <div class="settings-panel-body">
+            <div class="vertical-tabs">
+              <!-- Кнопки табов -->
+              <div class="vertical-tabs-nav">
+                <button 
+                  v-for="tab in settingsTabs" 
+                  :key="tab.id"
+                  class="vertical-tab-button"
+                  :class="{ 'active': activeSettingsTab === tab.id }"
+                  @click="activeSettingsTab = activeSettingsTab === tab.id ? null : tab.id"
+                >
+                  <i class="bi" :class="tab.icon"></i>
+                  <span class="tab-text">{{ tab.title }}</span>
+                </button>
+              </div>
+              
+              <!-- Контент табов -->
+              <div class="vertical-tabs-content" v-if="activeSettingsTab">
+                <!-- Таб "Изображения" -->
+                <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
+                  
+                  <!-- Загрузка изображений -->
+                  <div class="mb-3">
+                    <input 
+                      type="file" 
+                      ref="imageInput"
+                      @change="handleImageUpload" 
+                      multiple
+                      accept="image/*"
+                      class="d-none"
+                    >
+                    <button 
+                      @click="$refs.imageInput.click()" 
+                      class="btn btn-primary w-100"
+                    >
+                      <i class="bi bi-cloud-upload me-2"></i>
+                      <span>Загрузить изображения</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Список загруженных изображений -->
+                  <div v-if="uploadedImages.length > 0" class="uploaded-images">
+                    <h6 class="text-muted mb-3">Загруженные изображения</h6>
+                    <div class="row g-2">
+                      <div 
+                        v-for="(image, index) in uploadedImages" 
+                        :key="index"
+                        class="col-6"
+                      >
+                        <div class="position-relative">
+                          <img 
+                            :src="image.url" 
+                            :alt="image.name"
+                            class="img-fluid rounded border"
+                            style="max-height: 80px; width: 100%; object-fit: cover;"
+                          >
+                          <button 
+                            @click="removeImage(index)"
+                            class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                            style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background-color: #dc3545; border: none; color: white;"
+                          >
+                            <i class="bi bi-x" style="font-size: 12px; line-height: 1;"></i>
+                          </button>
+                        </div>
+                        <small class="text-muted d-block mt-1 text-truncate">{{ image.name }}</small>
+                        <div class="d-flex gap-2 mt-2">
+                          <div class="form-check">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              :id="'image-' + index"
+                              v-model="image.useInGrid"
+                              @change="handleUseInGridChange(index, $event)"
+                            >
+                            <label class="form-check-label" :for="'image-' + index" title="Использовать в сетке">
+                              <i class="bi bi-grid-3x3-gap"></i>
+                            </label>
+                          </div>
+                          
+                          <div class="form-check">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              :id="'disable-stroke-' + index"
+                              v-model="image.disableStroke"
+                              @change="handleDisableStrokeChange(index, $event)"
+                            >
+                            <label class="form-check-label" :for="'disable-stroke-' + index" title="Отключить обводку">
+                              <i class="bi bi-border"></i>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Таб "Настройки" -->
+                <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
+                  
+                  <!-- Внешний отступ -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
+                    <div class="control-scale" role="group">
+                      <div
+                        v-for="pct in 10"
+                        :key="`ext-${pct * 2}`"
+                        class="control-cell"
+                        :class="{ 'selected': (pct * 2) <= externalMargin }"
+                        :title="`${pct * 2}%`"
+                        @click="setExternalMargin(pct * 2)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Цвет обводки -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Цвет обводки</label>
+                    <button 
+                      type="button"
+                      class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
+                      @click="openColorPicker('stroke')"
+                    >
+                      <span class="me-2">Выбрать</span>
+                      <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor, border: '1px solid #dee2e6' }"></span>
+                    </button>
+                  </div>
+                  
+                  <!-- Толщина обводки -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
+                    <div class="control-scale" role="group">
+                      <div
+                        v-for="pct in 10"
+                        :key="`sw-${pct * 2}`"
+                        class="control-cell"
+                        :class="{ 'selected': (pct * 2) <= strokeWidth }"
+                        :title="`${pct * 2}%`"
+                        @click="setStrokeWidthPct(pct * 2)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Размытие тени -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
+                    <div class="control-scale" role="group">
+                      <div
+                        v-for="pct in 10"
+                        :key="`sb-${pct * 2}`"
+                        class="control-cell"
+                        :class="{ 'selected': (pct * 2) <= shadowBlur }"
+                        :title="`${pct * 2}%`"
+                        @click="setShadowBlur(pct * 2)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Позиция тени X -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Позиция тени X: {{ shadowOffsetX }}%</label>
+                    <div class="control-scale" role="group">
+                      <div
+                        v-for="i in 11"
+                        :key="`sx-${(i - 6) * 10}`"
+                        class="control-cell"
+                        :class="offsetCellClassX(i)"
+                        :title="`${(i - 6) * 10}%`"
+                        @click="setShadowOffsetX((i - 6) * 10)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Позиция тени Y -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Позиция тени Y: {{ shadowOffsetY }}%</label>
+                    <div class="control-scale" role="group">
+                      <div
+                        v-for="i in 11"
+                        :key="`sy-${(i - 6) * 10}`"
+                        class="control-cell"
+                        :class="offsetCellClassY(i)"
+                        :title="`${(i - 6) * 10}%`"
+                        @click="setShadowOffsetY((i - 6) * 10)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Прозрачность тени -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
+                    <div class="control-scale opacity-scale" role="group">
+                      <div
+                        v-for="n in 11"
+                        :key="`so-${(n - 1) * 5}`"
+                        class="control-cell"
+                        :class="{ 'selected': ((n - 1) * 5) <= shadowOpacity }"
+                        :title="`${(n - 1) * 5}%`"
+                        @click="setShadowOpacity((n - 1) * 5)"
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Фон -->
+                  <div class="setting-group">
+                    <label class="form-label">Фон</label>
+                    
+                    <!-- Солидная заливка -->
+                    <div class="form-check mb-2">
+                      <input 
+                        class="form-check-input" 
+                        type="radio" 
+                        id="backgroundSolid"
+                        name="backgroundType"
+                        value="solid"
+                        v-model="backgroundType"
+                      >
+                      <label class="form-check-label" for="backgroundSolid">
+                        Цвет
+                      </label>
+                    </div>
+                    
+                    <div v-if="backgroundType === 'solid'" class="mb-2">
+                      <button 
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center"
+                        @click="openColorPicker('solid')"
+                      >
+                        <span class="me-2">Выбрать</span>
+                        <span :style="{ width: '16px', height: '16px', display: 'inline-block', borderRadius: '3px', background: solidBackgroundColor, border: '1px solid #dee2e6' }"></span>
+                      </button>
+                      <div class="mt-2">
+                        <label class="form-label small">Прозрачность: {{ solidBackgroundOpacity }}%</label>
+                        <div class="control-scale opacity-scale" role="group">
+                          <div
+                            v-for="n in 11"
+                            :key="`sbo-${(n - 1) * 10}`"
+                            class="control-cell"
+                            :class="{ 'selected': ((n - 1) * 10) <= solidBackgroundOpacity }"
+                            :title="`${(n - 1) * 10}%`"
+                            @click="setSolidBackgroundOpacity((n - 1) * 10)"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Фоновое изображение -->
+                    <div class="form-check mb-2">
+                      <input 
+                        class="form-check-input" 
+                        type="radio" 
+                        id="backgroundImage"
+                        name="backgroundType"
+                        value="image"
+                        v-model="backgroundType"
+                        :disabled="!backgroundImage"
+                      >
+                      <label class="form-check-label" for="backgroundImage">
+                        Изображение
+                      </label>
+                    </div>
+                    
+                    <div v-if="backgroundType === 'image' && backgroundImage" class="mb-2">
+                      <img 
+                        :src="backgroundImage" 
+                        alt="Фоновое изображение" 
+                        class="img-fluid rounded mb-2"
+                        style="max-height: 80px; object-fit: contain;"
+                      >
+                    </div>
+                    
+                    <div>
+                      <input 
+                        type="file" 
+                        ref="backgroundImageInput"
+                        @change="handleBackgroundImageUpload" 
+                        accept="image/*"
+                        class="d-none"
+                      >
+                      <button 
+                        @click="$refs.backgroundImageInput.click()" 
+                        class="btn btn-outline-primary btn-sm w-100"
+                      >
+                        <i class="bi bi-image me-1"></i>
+                        {{ backgroundImage ? 'Заменить' : 'Загрузить' }}
+                      </button>
+                      <button 
+                        v-if="backgroundImage"
+                        @click="removeBackgroundImage" 
+                        class="btn btn-outline-danger btn-sm w-100 mt-1"
+                      >
+                        <i class="bi bi-trash me-1"></i>
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Таб "Тексты" -->
+                <div v-show="activeSettingsTab === 'texts'" class="tab-content-panel">
+                  
+                  <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
+                    <i class="bi bi-type display-4 mb-3"></i>
+                    <p class="small">Пока не добавлено ни одного текста</p>
+                    <p class="small">Нажмите на кнопку "Текст 2" над основным канвасом, затем кликните на канвас для добавления текста</p>
+                  </div>
+                  
+                  <div v-else>
+                    <div class="mb-3">
+                      <p class="text-muted small mb-3">
+                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
+                        <i class="bi bi-info-circle me-1"></i>
+                        Перетаскивайте слои для изменения их порядка или двойной клик на текст на канвасе.
+                      </p>
+                    </div>
+                    
+                    <!-- Список текстовых слоев с возможностью перетаскивания -->
+                    <div class="text-layers-list">
+                      <div 
+                        v-for="(text, index) in textLayers" 
+                        :key="text.id || index" 
+                        class="text-layer-item"
+                        :class="{ 
+                          'dragging': draggedTextIndex === index,
+                          'drag-over': dragOverTextIndex === index
+                        }"
+                        draggable="true"
+                        @dragstart="handleTextDragStart(index, $event)"
+                        @dragend="handleTextDragEnd"
+                        @dragover="handleTextDragOver(index, $event)"
+                        @dragleave="handleTextDragLeave"
+                        @drop="handleTextDrop(index, $event)"
+                      >
+                        <div class="layer-info">
+                          <!-- Иконка перетаскивания -->
+                          <div class="drag-handle">
+                            <i class="bi bi-grip-vertical"></i>
+                          </div>
+                          
+                          <!-- Информация о слое -->
+                          <div class="layer-details">
+                            <div class="layer-name">{{ text.textData?.text || 'Пустой текст' }}</div>
+                            <div class="layer-meta small">
+                              Шрифт: {{ text.textData?.font || 'Arial' }} | 
+                              Размер: {{ text.textData?.fontSize || 16 }}px |
+                              <span v-if="text.textData?.textColor">Цвет: {{ text.textData.textColor }}</span>
+                              <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
+                            </div>
+                            <div class="layer-number small">Слой #{{ text.layerIndex || (index + 1) }}</div>
+                          </div>
+                        </div>
+                        
+                        <!-- Действия со слоем -->
+                        <div class="layer-actions">
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            @click="editTextLayer(index)"
+                            title="Редактировать"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            @click="toggleTextLayerVisibility(index)"
+                            title="Показать/скрыть"
+                          >
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            @click="deleteTextLayer(index)"
+                            title="Удалить"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 </template>
@@ -695,6 +1106,15 @@ export default {
       shadowOpacity: 50, // Проценты (0-50)
       activeTab: 'images', // По умолчанию открыт таб "Изображения"
       uploadedImages: [],
+      
+      // Настройки правой панели
+      isSettingsPanelOpen: true,
+      activeSettingsTab: 'images',
+      settingsTabs: [
+        { id: 'images', title: 'Изображения', icon: 'bi-images' },
+        { id: 'settings', title: 'Настройки', icon: 'bi-gear' },
+        { id: 'texts', title: 'Тексты', icon: 'bi-type' }
+      ],
       
       // Настройки фона
       backgroundImage: null, // URL фонового изображения
@@ -917,6 +1337,24 @@ export default {
   mounted() {
     // Показываем прелоадер при инициализации
     this.isLoading = true
+    
+          // Отладочная информация для правой панели
+          console.log('🔧 GridsPage mounted - правая панель:', {
+            isSettingsPanelOpen: this.isSettingsPanelOpen,
+            activeSettingsTab: this.activeSettingsTab,
+            settingsTabs: this.settingsTabs
+          })
+          
+          // Дополнительная отладка через 1 секунду
+          setTimeout(() => {
+            console.log('🔧 GridsPage через 1 сек - правая панель:', {
+              isSettingsPanelOpen: this.isSettingsPanelOpen,
+              activeSettingsTab: this.activeSettingsTab,
+              settingsTabs: this.settingsTabs,
+              panelElement: document.querySelector('.settings-panel'),
+              panelVisible: document.querySelector('.settings-panel') ? 'видна' : 'НЕ ВИДНА'
+            })
+          }, 1000)
     
     // Ждем следующий тик, чтобы убедиться, что DOM полностью готов
     this.$nextTick(() => {
@@ -7450,15 +7888,15 @@ export default {
 
 .control-scale .control-cell {
   flex: 1;
-  border: 1px solid #dee2e6;
-  background: transparent;
+  border: none;
+  background: #fff;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .control-scale .control-cell:hover {
-  background: rgba(13, 110, 253, 0.12);
-  border-color: rgb(13, 110, 253);
+  background: #87ceeb;
+  border-color: initial;
 }
 
 .control-scale .control-cell.selected {
@@ -7540,5 +7978,336 @@ export default {
 .opacity-scale {
   width: 340px;
   max-width: 100%;
+}
+
+/* Правая панель настроек */
+.page-layout {
+  display: flex;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 1050;
+  pointer-events: auto;
+  background: #f2f2f2;
+  transition: all 0.3s ease;
+}
+
+.settings-panel-content {
+  position: relative;
+  width: 350px;
+  background: #f2f2f2;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  height: 100vh;
+}
+
+.settings-panel.collapsed .settings-panel-content {
+  width: 52px;
+}
+
+.settings-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+  background: #f8f9fa;
+}
+
+.settings-panel-title {
+  display: flex;
+  align-items: center;
+  color: #333;
+  font-weight: 600;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.settings-panel-title i {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.settings-text {
+  transition: opacity 0.3s ease;
+}
+
+.settings-panel.collapsed .settings-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.btn-toggle {
+  background: transparent;
+  color: #333;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  
+  &:hover {
+    color: #222;
+    background: rgba(0,0,0,0.05);
+  }
+  
+  i {
+    font-size: 16px;
+  }
+}
+
+.settings-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.vertical-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vertical-tabs-nav {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.vertical-tab-button {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  white-space: nowrap;
+  
+  i {
+    font-size: 18px;
+    min-width: 20px;
+    margin-right: 10px;
+  }
+  
+  .tab-text {
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover {
+    background: rgba(0,0,0,0.03);
+    color: #333;
+  }
+  
+  &.active {
+    background: rgba(13, 110, 253, 0.08);
+    border-left-color: #0d6efd;
+    color: #0d6efd;
+    font-weight: 500;
+  }
+}
+
+.settings-panel.collapsed .vertical-tab-button {
+  padding: 14px 16px;
+  justify-content: center;
+  
+  .tab-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
+  
+  i {
+    margin-right: 0;
+  }
+}
+
+.vertical-tabs-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.tab-content-panel {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.settings-panel.collapsed .vertical-tabs-content {
+  display: none;
+}
+
+/* Стили для контента табов */
+
+.setting-group:last-child {
+  border-bottom: none;
+}
+
+.control-scale {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.control-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8f9fa;
+}
+
+.control-cell:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.control-cell.selected {
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.opacity-scale .control-cell {
+  width: 16px;
+  height: 16px;
+}
+
+.uploaded-images .row {
+  margin: 0 -4px;
+}
+
+.uploaded-images .col-6 {
+  padding: 0 4px;
+  margin-bottom: 12px;
+}
+
+.text-layers-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.text-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.text-layer-item:hover {
+  border-color: #0d6efd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.text-layer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.text-layer-item.drag-over {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.05);
+}
+
+.layer-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-handle {
+  margin-right: 8px;
+  color: #6c757d;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.layer-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.layer-name {
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.layer-meta {
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.layer-number {
+  color: #6c757d;
+  font-size: 11px;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.layer-actions .btn {
+  padding: 4px 6px;
+  font-size: 12px;
 }
 </style>

@@ -48,6 +48,15 @@
                     >
                       <i class="bi bi-download"></i>
                     </button>
+                    <button 
+                      class="tool-button"
+                      :class="{ active: isManualStickerMode }"
+                      :disabled="!getSelectedMasks() || getSelectedMasks().length === 0 || !getSelectedImages() || getSelectedImages().length === 0"
+                      @click="toggleManualStickerMode"
+                      title="Ручное размещение стикеров"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
                   </div>
                 </div>
                 
@@ -626,6 +635,7 @@ export default {
       activeTab: 'shapes',
       showSelectionModal: false,
       isFirstTime: true,
+      isManualStickerMode: false,
       texts: [],
       textItems: [], // Массив для отслеживания текстовых элементов на канвасе
       htmlTextElements: [], // Массив для отслеживания HTML текстовых элементов
@@ -700,6 +710,15 @@ export default {
     }
   },
   computed: {
+    // Получение выбранных масок
+    getSelectedMasks() {
+      return () => this.stickerMasks.filter(mask => mask.selected)
+    },
+    
+    // Получение выбранных изображений
+    getSelectedImages() {
+      return () => this.uploadedImages.filter(img => img.useInStickers)
+    },
     
     // Размеры для превью канваса - логические размеры (без HiDPI)
     previewCanvasWidth() {
@@ -751,6 +770,9 @@ export default {
   methods: {
     // Триггер сохранения из панели инструментов
     triggerSave() {
+      // Отключаем режим ручного размещения при клике на другую кнопку
+      this.isManualStickerMode = false
+      
       if (this.$refs.saveButton && this.$refs.saveButton.triggerSave) {
         this.$refs.saveButton.triggerSave()
       }
@@ -4049,12 +4071,103 @@ export default {
     
     // Обработчик клика на кнопку генерации
     handleGenerateClick() {
+      // Отключаем режим ручного размещения при клике на другую кнопку
+      this.isManualStickerMode = false
+      
       if (this.isFirstTime) {
         // Первый раз - показываем лайтбокс
         this.showSelectionModal = true
       } else {
         // Последующие разы - запускаем генерацию напрямую
         this.generateOptimalStickers()
+      }
+    },
+    
+    // Переключение режима ручного размещения стикеров
+    toggleManualStickerMode() {
+      this.isManualStickerMode = !this.isManualStickerMode
+      console.log(`🎯 Режим ручного размещения стикеров: ${this.isManualStickerMode ? 'включен' : 'выключен'}`)
+    },
+    
+    // Создание стикера в режиме ручного размещения
+    async createManualSticker(point) {
+      console.log(`🎯 Создание стикера в точке (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`)
+      
+      // Получаем выбранные маски и изображения
+      const selectedMasks = this.stickerMasks.filter(mask => mask.selected)
+      const selectedImages = this.uploadedImages.filter(img => img.useInStickers)
+      
+      // Проверяем, что у нас есть выбранные маски и изображения
+      if (!selectedMasks || selectedMasks.length === 0) {
+        console.warn('⚠️ Нет выбранных масок для создания стикера')
+        this.showNotification({
+          type: 'warning',
+          message: 'Сначала выберите маски в лайтбоксе!'
+        })
+        return
+      }
+      
+      if (!selectedImages || selectedImages.length === 0) {
+        console.warn('⚠️ Нет выбранных изображений для создания стикера')
+        this.showNotification({
+          type: 'warning',
+          message: 'Сначала выберите изображения в лайтбоксе!'
+        })
+        return
+      }
+      
+      // Выбираем случайную маску из выбранных пользователем
+      const randomMaskIndex = Math.floor(Math.random() * selectedMasks.length)
+      const selectedMask = selectedMasks[randomMaskIndex]
+      const randomMasks = [selectedMask] // Создаем массив с одной случайной маской
+      
+      console.log(`🎲 Выбрана случайная маска: ${selectedMask.name} (${randomMaskIndex + 1}/${selectedMasks.length})`)
+      
+      // Определяем размер стикера (больше, чем в автоматической генерации)
+      const viewWidth = this.paperScope.view.viewSize.width
+      const viewHeight = this.paperScope.view.viewSize.height
+      const canvasSize = Math.min(viewWidth, viewHeight)
+      const baseStickerSize = canvasSize * 0.35 // 35% от размера канваса (больше чем 24%)
+      const sizeMultiplier = 0.8 + Math.random() * 0.4 // от 0.8 до 1.2 (больше чем 0.5-1.2)
+      const size = baseStickerSize * sizeMultiplier
+      
+      console.log(`📏 Размеры стикера: canvas=${canvasSize}, base=${baseStickerSize.toFixed(1)}, multiplier=${sizeMultiplier.toFixed(2)}, final=${size.toFixed(1)}`)
+      
+      try {
+        // Получаем выбранные изображения
+        const selectedImages = this.uploadedImages.filter(img => img.useInStickers)
+        
+        const sticker = await this.createOptimalSticker(
+          randomMasks, 
+          selectedImages, 
+          point.x, 
+          point.y, 
+          size, 
+          this.stickers.length + 1
+        )
+        
+        if (sticker) {
+          this.stickers.push(sticker)
+          this.updateStickerLayersDisplay()
+          this.paperScope.view.draw()
+          
+          console.log(`✅ Стикер создан в позиции (${point.x.toFixed(1)}, ${point.y.toFixed(1)}) с маской "${selectedMask.name}"`)
+          
+          // Обновляем 3D модель
+          this.$nextTick(() => {
+            setTimeout(() => {
+              if (this.$refs.threeRenderer) {
+                this.$refs.threeRenderer.forceUpdate()
+              }
+            }, 100)
+          })
+        }
+      } catch (error) {
+        console.error('❌ Ошибка создания стикера:', error)
+        this.showNotification({
+          type: 'error',
+          message: 'Ошибка создания стикера'
+        })
       }
     },
     
@@ -6318,6 +6431,12 @@ export default {
     handleSingleClick(event, clearSelection) {
       console.log('🎯 Обработка одинарного клика в точке:', event.point)
       
+      // Если включен режим ручного размещения стикеров
+      if (this.isManualStickerMode) {
+        this.createManualSticker(event.point)
+        return // Не продолжаем с обычной логикой выбора
+      }
+      
       const hitResult = this.paperScope.project.hitTest(event.point, {
         segments: true,
         stroke: true,
@@ -6508,6 +6627,9 @@ export default {
 
     // Открытие диалога TextManager
     openTextManager() {
+      // Отключаем режим ручного размещения при клике на другую кнопку
+      this.isManualStickerMode = false
+      
       console.log('📝 Открытие диалога TextManager')
       if (this.$refs.textManager) {
         this.$refs.textManager.openDialog()

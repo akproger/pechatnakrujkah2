@@ -61,6 +61,11 @@
         />
       </div>
     </div>
+    <div class="footer-copyright">
+      <p class="mb-0 text-muted">
+        © {{ currentYear }} Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>. Все права защищены. Любое копирование материалов сайта без согласия ООО "Апрель" запрежено!
+      </p>
+    </div>
   </aside>
 </template>
 
@@ -271,6 +276,13 @@ export default {
 /* Скрываем 3D превью в свёрнутом состоянии */
 .side-menu.collapsed .side-menu-3d {
   display: none;
+}
+.footer-copyright{
+  padding: 10px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  font-size: 12px;
 }
 
 /* Убираем оверлей и анимации мобильного режима */

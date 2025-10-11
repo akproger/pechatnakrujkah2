@@ -497,6 +497,25 @@
           </div>
         </div>
       </div>
+      <!-- Правая панель настроек -->
+      <aside class="settings-panel" :class="{ 'collapsed': !isSettingsPanelOpen }">
+        <div class="settings-panel-content">
+          <!-- Заголовок панели -->
+          <div class="settings-panel-header">
+            <div class="settings-panel-title">
+              <i class="bi bi-gear"></i>
+              <span class="settings-text">Настройки</span>
+            </div>
+            <button 
+              class="btn-toggle" 
+              @click="isSettingsPanelOpen = !isSettingsPanelOpen"
+              aria-label="Свернуть/развернуть панель настроек"
+            >
+              <i class="bi" :class="isSettingsPanelOpen ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 </template>
@@ -525,6 +544,9 @@ export default {
       
       // Вкладки
       activeTab: 'images',
+      
+      // Правая панель настроек
+      isSettingsPanelOpen: true,
       
       // Изображения
       uploadedImages: [],
@@ -7362,4 +7384,106 @@ export default {
 .mask-settings .form-range-sm {
   height: 0.5rem;
 }
+
+/* Правая панель настроек */
+.page-layout {
+  display: flex;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 1050;
+  pointer-events: auto;
+  background: #f2f2f2;
+  transition: all 0.3s ease;
+}
+
+.settings-panel-content {
+  position: relative;
+  width: 350px;
+  background: #f2f2f2;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  height: 100vh;
+}
+
+.settings-panel.collapsed .settings-panel-content {
+  width: 52px;
+}
+
+.settings-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+  background: #f8f9fa;
+}
+
+.settings-panel-title {
+  display: flex;
+  align-items: center;
+  color: #333;
+  font-weight: 600;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.settings-panel-title i {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.settings-text {
+  transition: opacity 0.3s ease;
+}
+
+.settings-panel.collapsed .settings-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.btn-toggle {
+  background: transparent;
+  color: #333;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.btn-toggle:hover {
+  color: #222;
+  background: rgba(0,0,0,0.05);
+}
+
+.btn-toggle i {
+  font-size: 16px;
+}
+
+.settings-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 </style>

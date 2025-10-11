@@ -71,7 +71,7 @@ export default {
 .content-area {
   flex: 1;
   padding: 20px;
-  background-color: #212121;
+  background-color: #fff;
   
   @media (max-width: 767.98px) {
     padding: 15px;

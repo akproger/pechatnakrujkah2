@@ -36,6 +36,15 @@
                     </button>
                     <button 
                       class="tool-button"
+                      :class="{ active: isManualStickerMode }"
+                      :disabled="!getSelectedMasks() || getSelectedMasks().length === 0 || !getSelectedImages() || getSelectedImages().length === 0"
+                      @click="toggleManualStickerMode"
+                      title="Ручное размещение стикеров"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
                       @click="openTextManager"
                       title="Добавить текст"
                     >
@@ -47,15 +56,6 @@
                       title="Сохранить в высоком качестве"
                     >
                       <i class="bi bi-download"></i>
-                    </button>
-                    <button 
-                      class="tool-button"
-                      :class="{ active: isManualStickerMode }"
-                      :disabled="!getSelectedMasks() || getSelectedMasks().length === 0 || !getSelectedImages() || getSelectedImages().length === 0"
-                      @click="toggleManualStickerMode"
-                      title="Ручное размещение стикеров"
-                    >
-                      <i class="bi bi-plus-lg"></i>
                     </button>
                   </div>
                 </div>

@@ -7382,23 +7382,23 @@ export default {
 }
 
 .rows-scale {
-  position: absolute;
-  top: 0;
-  right: -34px;
-  width: 32px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  z-index: 10;
+    position: absolute;
+    top: 0;
+    right: -21px;
+    width: 15px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    z-index: 10;
 }
 
 .cols-scale {
   position: absolute;
-  bottom: -34px;
+  bottom: -21px;
   left: 0;
   width: 100%;
-  height: 32px;
+  height: 15px;
   display: flex;
   flex-direction: row;
   gap: 1px;
@@ -7407,20 +7407,24 @@ export default {
 
 .scale-cell {
   background: transparent;
-  border: 1px solid #dee2e6;
+  border: trnsparent;
   cursor: pointer;
   transition: all 0.2s ease;
   flex: 1;
+  box-shadow: 2px 2px 6px 0 rgba(0,0,0,.15);
+  border-radius: 2px;
 }
 
 .rows-scale .scale-cell {
   width: 100%;
   min-height: 20px;
+  border-radius: 2px;
 }
 
 .cols-scale .scale-cell {
   height: 100%;
   min-width: 20px;
+  border-radius: 2px;
 }
 
 .scale-cell:hover {
@@ -7429,7 +7433,7 @@ export default {
 }
 .scale-cell.selected {
   background: #87ceeb;
-  border-color: #007bff;
+  border-color: transparent;
 }
 
 .scale-cell.selected:hover {

@@ -128,16 +128,14 @@ export default {
   height: 100vh;
   z-index: 1050;
   pointer-events: auto;
-  border-right: 1px solid #333;
-  background: #181818;
+  background: #f2f2f2;
 }
 
 .side-menu-content {
   position: relative;
   width: 280px;
-  background-color: #181818;
+  background: #f2f2f2;
   color: #fff;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   transition: width 0.2s ease;
@@ -156,7 +154,7 @@ export default {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .logo-link {
-  color: #fff;
+  color: #111;
   text-decoration: none;
   font-weight: 600;
   white-space: nowrap;
@@ -167,7 +165,7 @@ export default {
 
 .btn-toggle {
   background: transparent;
-  color: #adb5bd;
+  color: #333;
   border: none;
   width: 32px;
   height: 32px;
@@ -175,7 +173,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
-.btn-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
+.btn-toggle:hover { color: #222; }
 
 .side-menu-nav {
   flex: 1;
@@ -183,11 +181,11 @@ export default {
 }
 .side-menu-nav .nav-link {
   padding: 10px 12px;
-  color: #e9ecef;
+  color: #333;
   border-radius: 8px;
 }
-.side-menu-nav .nav-link:hover { background-color: rgba(255,255,255,0.06); color: #fff; }
-.side-menu-nav .nav-link.router-link-active { background-color: rgba(13,110,253,0.25); color: #fff; }
+.side-menu-nav .nav-link:hover { color: #222; }
+.side-menu-nav .nav-link.router-link-active { background-color: #fff; color: #222; }
 .nav-text{
   white-space: nowrap !important;
 }

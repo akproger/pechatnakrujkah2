@@ -608,6 +608,68 @@
               <i class="bi" :class="isSettingsPanelOpen ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
             </button>
           </div>
+          
+          <!-- Вертикальные табы -->
+          <div class="settings-panel-body">
+            <div class="vertical-tabs">
+              <!-- Кнопки табов -->
+              <div class="vertical-tabs-nav">
+                <button 
+                  v-for="tab in settingsTabs" 
+                  :key="tab.id"
+                  class="vertical-tab-button"
+                  :class="{ 'active': activeSettingsTab === tab.id }"
+                  @click="activeSettingsTab = activeSettingsTab === tab.id ? null : tab.id"
+                >
+                  <i :class="tab.icon"></i>
+                  <span class="tab-text">{{ tab.title }}</span>
+                </button>
+              </div>
+              
+              <!-- Контент табов -->
+              <div class="vertical-tabs-content" v-if="activeSettingsTab">
+                <!-- Таб "Формы стикеров" -->
+                <div v-show="activeSettingsTab === 'shapes'" class="tab-content-panel">
+                  <div class="p-3 text-muted">
+                    <p>Содержимое таба "Формы стикеров"</p>
+                    <p class="small">Здесь будут формы стикеров</p>
+                  </div>
+                </div>
+                
+                <!-- Таб "Изображения" -->
+                <div v-show="activeSettingsTab === 'images'" class="tab-content-panel">
+                  <div class="p-3 text-muted">
+                    <p>Содержимое таба "Изображения"</p>
+                    <p class="small">Здесь будут изображения</p>
+                  </div>
+                </div>
+                
+                <!-- Таб "Тексты" -->
+                <div v-show="activeSettingsTab === 'text'" class="tab-content-panel">
+                  <div class="p-3 text-muted">
+                    <p>Содержимое таба "Тексты"</p>
+                    <p class="small">Здесь будут тексты</p>
+                  </div>
+                </div>
+                
+                <!-- Таб "Настройки" -->
+                <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
+                  <div class="p-3 text-muted">
+                    <p>Содержимое таба "Настройки"</p>
+                    <p class="small">Здесь будут настройки</p>
+                  </div>
+                </div>
+                
+                <!-- Таб "Стикеры" -->
+                <div v-show="activeSettingsTab === 'stickers'" class="tab-content-panel">
+                  <div class="p-3 text-muted">
+                    <p>Содержимое таба "Стикеры"</p>
+                    <p class="small">Здесь будут стикеры</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
@@ -658,6 +720,14 @@ export default {
       
       // Правая панель настроек
       isSettingsPanelOpen: true,
+      activeSettingsTab: 'shapes',
+      settingsTabs: [
+        { id: 'shapes', title: 'Формы стикеров', icon: 'bi-shapes' },
+        { id: 'images', title: 'Изображения', icon: 'bi-images' },
+        { id: 'text', title: 'Тексты', icon: 'bi-type' },
+        { id: 'settings', title: 'Настройки', icon: 'bi-gear' },
+        { id: 'stickers', title: 'Стикеры', icon: 'bi-layer-group' }
+      ],
       
       texts: [],
       textItems: [], // Массив для отслеживания текстовых элементов на канвасе
@@ -12249,6 +12319,94 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.vertical-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vertical-tabs-nav {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.vertical-tab-button {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.vertical-tab-button i {
+  font-size: 18px;
+  min-width: 20px;
+  margin-right: 10px;
+}
+
+.vertical-tab-button .tab-text {
+  transition: opacity 0.3s ease;
+}
+
+.vertical-tab-button:hover {
+  background: rgba(0,0,0,0.03);
+  color: #333;
+}
+
+.vertical-tab-button.active {
+  background: rgba(13, 110, 253, 0.08);
+  border-left-color: #0d6efd;
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+.settings-panel.collapsed .vertical-tab-button {
+  padding: 14px 16px;
+  justify-content: center;
+}
+
+.settings-panel.collapsed .vertical-tab-button .tab-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.settings-panel.collapsed .vertical-tab-button i {
+  margin-right: 0;
+}
+
+.vertical-tabs-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.tab-content-panel {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-panel.collapsed .vertical-tabs-content {
+  display: none;
 }
 
 </style>

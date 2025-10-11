@@ -918,6 +918,9 @@ export default {
     // Показываем прелоадер при инициализации
     this.isLoading = true
     
+    // Инициализируем табы для правой панели
+    this.initializeTabs()
+    
     // Ждем следующий тик, чтобы убедиться, что DOM полностью готов
     this.$nextTick(() => {
       // Дополнительная задержка для гарантии готовности DOM
@@ -932,6 +935,24 @@ export default {
     this.cleanup()
   },
   methods: {
+    // Инициализация табов для правой панели
+    initializeTabs() {
+      const tabs = [
+        { id: 'images', title: 'Изображения', icon: 'bi bi-images' },
+        { id: 'settings', title: 'Настройки', icon: 'bi bi-gear' },
+        { id: 'texts', title: 'Тексты', icon: 'bi bi-type' }
+      ]
+      
+      // Передаем табы в App.vue через событие
+      this.$emit('set-page-tabs', tabs, this.activeTab || 'images')
+    },
+    
+    // Обработчик изменения таба
+    onTabChange(tabId) {
+      this.activeTab = tabId
+      console.log(`🔄 Переключение на таб: ${tabId}`)
+    },
+    
     // Триггер сохранения из панели инструментов
     triggerSave() {
       if (this.$refs.saveCanvas && this.$refs.saveCanvas.handleSaveWithLog) {

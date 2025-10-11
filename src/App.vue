@@ -10,7 +10,7 @@
       
       <!-- Контентная область -->
       <main class="content-area">
-        <router-view @canvas-ready="onCanvasReady" />
+        <router-view ref="routerView" @canvas-ready="onCanvasReady" @tab-change="onTabChange" @set-page-tabs="setPageTabs" />
       </main>
       
       <!-- Подвал -->
@@ -21,9 +21,14 @@
     <SettingsPanel 
       ref="settingsPanel" 
       :isOpen="isSettingsPanelOpen" 
+      :tabs="currentPageTabs"
+      :activeTab="currentActiveTab"
       @toggle="toggleSettingsPanel"
+      @tab-change="onTabChange"
     >
-      <slot name="settings-content"></slot>
+      <template v-for="tab in currentPageTabs" :key="tab.id" #[tab.id]>
+        <slot :name="`tab-${tab.id}`"></slot>
+      </template>
     </SettingsPanel>
   </div>
 </template>
@@ -40,7 +45,9 @@ export default {
   data() {
     return {
       isMenuOpen: true,
-      isSettingsPanelOpen: true
+      isSettingsPanelOpen: true,
+      currentPageTabs: [],
+      currentActiveTab: ''
     }
   },
   methods: {
@@ -49,6 +56,21 @@ export default {
     },
     toggleSettingsPanel() {
       this.isSettingsPanelOpen = !this.isSettingsPanelOpen
+    },
+    onTabChange(tabId) {
+      this.currentActiveTab = tabId
+      // Передаем событие в текущую страницу
+      if (this.$refs.routerView && this.$refs.routerView.$children[0]) {
+        const currentPage = this.$refs.routerView.$children[0]
+        if (currentPage.onTabChange) {
+          currentPage.onTabChange(tabId)
+        }
+      }
+    },
+    setPageTabs(tabs, defaultTab = '') {
+      this.currentPageTabs = tabs
+      this.currentActiveTab = defaultTab || (tabs.length > 0 ? tabs[0].id : '')
+      console.log('📋 Табы установлены:', { tabs, defaultTab, currentActiveTab: this.currentActiveTab })
     },
     onCanvasReady(canvas) {
       // Передаём canvas в боковую панель для 3D превью

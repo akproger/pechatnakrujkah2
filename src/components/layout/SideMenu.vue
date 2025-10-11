@@ -4,7 +4,7 @@
       <!-- Лого наверху панели -->
       <div class="side-menu-logo">
         <router-link to="/" class="logo-link">
-          Печать<span class="header-span-1">на</span>кружках<span class="header-span-2">.рф</span>
+          <img src="@/assets/images/logo.svg" alt="Печать на кружках" class="logo-image" />
         </router-link>
         <button 
           class="btn-toggle" 
@@ -118,8 +118,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.header-span-1{ color: #0e6ffd; }
-.header-span-2{ color: rgb(241, 10, 10); }
 
 .side-menu {
   position: fixed;
@@ -160,8 +158,26 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  margin: 12px auto 0;
 }
-.side-menu.collapsed .logo-link { display: none; }
+
+.logo-image {
+  height: 52px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.side-menu.collapsed .logo-link { 
+  display: flex;
+  justify-content: center;
+}
+
+.side-menu.collapsed .logo-image {
+  height: 24px;
+}
 
 .btn-toggle {
   background: transparent;

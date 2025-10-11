@@ -11,7 +11,7 @@
           'disabled': !isAutoRotationEnabled
         }"
       >
-        Автоматическое вращение
+        {{ isAutoRotationEnabled ? 'Остановить вращение' : 'Запустить вращение' }}
       </button>
     </div>
   </div>
@@ -677,7 +677,7 @@ export default {
 }
 
 .rotation-toggle-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0e6ffd;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -690,7 +690,7 @@ export default {
 }
 
 .rotation-toggle-btn:hover:not(.disabled) {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  background:rgb(47, 130, 255);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -699,13 +699,13 @@ export default {
 }
 
 .rotation-toggle-btn.disabled {
-  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  background:rgb(117, 33, 196);
   opacity: 0.7;
   cursor: pointer;
 }
 
 .rotation-toggle-btn.disabled:hover {
-  background: linear-gradient(135deg, #5a6268 0%, #3d4043 100%);
+  background:rgb(117, 33, 196);
   transform: none;
   box-shadow: none;
 }

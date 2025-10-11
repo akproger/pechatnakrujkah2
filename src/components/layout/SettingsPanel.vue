@@ -108,6 +108,7 @@ export default {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-top: 11px;
   
   &:hover {
     color: #222;
@@ -124,7 +125,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 0;
-  background: #fff;
+  background: #f2f2f2;
 }
 
 /* Адаптивность */

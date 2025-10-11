@@ -158,479 +158,7 @@
         <!-- 3D превью перенесён в боковую панель -->
       </div>
       
-      <!-- Табы управления -->
-      <div class="row tabs-row">
-        <div class="col-12">
-          <ul class="nav nav-tabs" id="gridsTab" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ 'active': activeTab === 'images' }"
-                id="images-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#images" 
-                type="button" 
-                role="tab" 
-                aria-controls="images" 
-                aria-selected="activeTab === 'images'"
-                @click="activeTab = 'images'"
-              >
-                <i class="bi bi-images me-2"></i>
-                Изображения
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ 'active': activeTab === 'settings' }"
-                id="settings-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#settings" 
-                type="button" 
-                role="tab" 
-                aria-controls="settings" 
-                aria-selected="activeTab === 'settings'"
-                @click="activeTab = 'settings'"
-              >
-                <i class="bi bi-gear me-2"></i>
-                Настройки
-              </button>
-            </li>
-            
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ 'active': activeTab === 'texts' }"
-                id="texts-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#texts" 
-                type="button" 
-                role="tab" 
-                aria-controls="texts" 
-                aria-selected="activeTab === 'texts'"
-                @click="activeTab = 'texts'"
-              >
-                <i class="bi bi-type me-2"></i>
-                Тексты
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
       
-      <!-- Контент табов -->
-      <div class="tab-content" id="gridsTabContent">
-        <!-- Таб "Изображения" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'images' }" id="images" role="tabpanel" aria-labelledby="images-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Загрузка изображений -->
-                    <div class="col-12">
-                      <input 
-                        type="file" 
-                        ref="imageInput"
-                        @change="handleImageUpload" 
-                        multiple
-                        accept="image/*"
-                        class="d-none"
-                      >
-                      <button 
-                        @click="$refs.imageInput.click()" 
-                        class="btn"
-                        style="background-color: #0d6efd; border: none; color: white;"
-                      >
-                        <i class="bi bi-cloud-upload me-2"></i>
-                        <span>Загрузить изображения</span>
-                      </button>
-                    </div>
-                    
-                    <!-- Список загруженных изображений -->
-                    <div class="col-12" v-if="uploadedImages.length > 0">
-                      <h6 class="text-muted mb-3">Загруженные изображения</h6>
-                      <div class="row g-2">
-                        <div 
-                          v-for="(image, index) in uploadedImages" 
-                          :key="index"
-                          class="col-md-4 col-lg-3 col-xl-2"
-                        >
-                          <div class="position-relative">
-                            <img 
-                              :src="image.url" 
-                              :alt="image.name"
-                              class="img-fluid rounded border"
-                              style="max-height: 100px; width: 100%; object-fit: cover;"
-                            >
-                            <button 
-                              @click="removeImage(index)"
-                              class="btn btn-sm position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
-                              style="width: 24px; height: 24px; padding: 0; border-radius: 50%; background-color: #495057; border: none; color: white;"
-                            >
-                              <i class="bi bi-x" style="font-size: 14px; line-height: 1;"></i>
-                            </button>
-                          </div>
-                          <small class="text-muted d-block mt-1">{{ image.name }}</small>
-                          <div class="d-flex gap-3 mt-2">
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'image-' + index"
-                                v-model="image.useInGrid"
-                                @change="handleUseInGridChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'image-' + index" title="Использовать в сетке">
-                                <i class="bi bi-grid-3x3-gap me-1"></i>
-                              </label>
-                            </div>
-                            
-                            <div class="form-check">
-                              <input 
-                                class="form-check-input" 
-                                type="checkbox" 
-                                :id="'disable-stroke-' + index"
-                                v-model="image.disableStroke"
-                                @change="handleDisableStrokeChange(index, $event)"
-                              >
-                              <label class="form-check-label d-flex align-items-center" :for="'disable-stroke-' + index" title="Отключить обводку и тень для этого изображения">
-                                <i class="bi bi-border me-1"></i>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Таб "Настройки" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'settings' }" id="settings" role="tabpanel" aria-labelledby="settings-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Внешний отступ -->
-                    <div class="col-md-4">
-<div class="card">
-                <div class="card-body">
-                  <div class="row g-3">
-                    <!-- Столбец: Изображение фона и солидная заливка -->
-                    <div class="col-12">
-                      <div class="row d-flex flex-wrap">
-                        <div class="col-12">
-                          <!-- Солидная заливка -->
-                          
-                          <!-- Радиокнопка для выбора солидной заливки -->
-                          <div class="form-check mb-3">
-                            <input 
-                              class="form-check-input" 
-                              type="radio" 
-                              id="backgroundSolid"
-                              name="backgroundType"
-                              value="solid"
-                              v-model="backgroundType"
-                            >
-                            <label class="form-check-label" for="backgroundSolid">
-                              Заливка фона цветом
-                            </label>
-                          </div>
-                          
-                          <div class="form-group">
-                            <button 
-                              type="button"
-                              class="btn btn-outline-secondary d-flex align-items-center"
-                              @click="openColorPicker('solid')"
-                              title="Выберите цвет заливки"
-                            >
-                              <span class="me-2">Выбрать</span>
-                              <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: solidBackgroundColor, border: '1px solid #dee2e6' }"></span>
-                            </button>
-                          </div>
-                          <div class="form-group mt-2">
-                            <label class="form-label">Прозрачность: {{ solidBackgroundOpacity }}%</label>
-                            <div class="control-scale opacity-scale" role="group" aria-label="Прозрачность заливки (в процентах)">
-                              <div
-                                v-for="n in 11"
-                                :key="`sbo-${(n - 1) * 10}`"
-                                class="control-cell"
-                                :class="{ 'selected': ((n - 1) * 10) <= solidBackgroundOpacity }"
-                                :title="`${(n - 1) * 10}%`"
-                                @click="setSolidBackgroundOpacity((n - 1) * 10)"
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="col-12">
-                          <!-- Загрузка изображения фона -->
-
-                          <!-- Радиокнопка для выбора фонового изображения -->
-                          <div class="form-check mt-3">
-                            <input 
-                              class="form-check-input" 
-                              type="radio" 
-                              id="backgroundImage"
-                              name="backgroundType"
-                              value="image"
-                              v-model="backgroundType"
-                              :disabled="!backgroundImage"
-                            >
-                            <label class="form-check-label" for="backgroundImage">
-                              Заливка фона изображением
-                            </label>
-                          </div>
-                          
-                          <!-- Превью фонового изображения -->
-                          <div v-if="backgroundImage" class="mt-3 mb-3">
-                            <img 
-                              :src="backgroundImage" 
-                              alt="Фоновое изображение" 
-                              class="img-fluid rounded"
-                              style="max-height: 150px; object-fit: contain;"
-                            >
-                          </div>
-
-                          <div class="form-group">
-                            <input 
-                              type="file" 
-                              ref="backgroundImageInput"
-                              @change="handleBackgroundImageUpload" 
-                              accept="image/*"
-                              class="d-none"
-                            >
-                            <button 
-                              @click="$refs.backgroundImageInput.click()" 
-                              class="btn btn-outline-primary"
-                              style="background-color: #6f42c1; border: none; color: white;"
-                            >
-                              <i class="bi bi-image me-2"></i>
-                              {{ backgroundImage ? 'Заменить фон' : 'Загрузить фоновое изображение' }}
-                            </button>
-                            <button 
-                              v-if="backgroundImage"
-                              @click="removeBackgroundImage" 
-                              class="btn btn-outline-danger ms-2"
-                              style="background-color: #dc3545; border: none; color: white;"
-                            >
-                              <i class="bi bi-trash me-2"></i>
-                              Удалить фон
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-
-                  </div>
-                </div>
-              </div>
-                    </div>
-                    
-                    <!-- Обводка -->
-                    <div class="col-md-4">
-                      <div class="form-group mb-3">
-                        <label class="form-label d-block">Внешний отступ ячейки: {{ externalMargin }}%</label>
-                        <div class="control-scale" role="group" aria-label="Внешний отступ (в процентах)">
-                          <div
-                            v-for="pct in 10"
-                            :key="`ext-${pct * 2}`"
-                            class="control-cell"
-                            :class="{ 'selected': (pct * 2) <= externalMargin }"
-                            :title="`${pct * 2}%`"
-                            @click="setExternalMargin(pct * 2)"
-                          ></div>
-                        </div>
-                      </div>
-                      <div class="form-group">
-                        <label class="form-label">Цвет обводки ячейки</label>
-                        <button 
-                          type="button"
-                          class="btn btn-outline-secondary d-flex align-items-center"
-                          @click="openColorPicker('stroke')"
-                          title="Выберите цвет обводки"
-                        >
-                          <span class="me-2">Выбрать</span>
-                          <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor, border: '1px solid #dee2e6' }"></span>
-                        </button>
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label d-block">Толщина обводки: {{ strokeWidth }}%</label>
-                        <div class="control-scale" role="group" aria-label="Толщина обводки (в процентах)">
-                          <div
-                            v-for="pct in 10"
-                            :key="`sw-${pct * 2}`"
-                            class="control-cell"
-                            :class="{ 'selected': (pct * 2) <= strokeWidth }"
-                            :title="`${pct * 2}%`"
-                            @click="setStrokeWidthPct(pct * 2)"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <!-- Тень -->
-                    <div class="col-md-4">
-                      <div class="form-group">
-                        <label class="form-label d-block">Размытие тени: {{ shadowBlur }}%</label>
-                        <div class="control-scale" role="group" aria-label="Размытие тени (в процентах)">
-                          <div
-                            v-for="pct in 10"
-                            :key="`sb-${pct * 2}`"
-                            class="control-cell"
-                            :class="{ 'selected': (pct * 2) <= shadowBlur }"
-                            :title="`${pct * 2}%`"
-                            @click="setShadowBlur(pct * 2)"
-                          ></div>
-                        </div>
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label d-block">Позиция X: {{ shadowOffsetX }}%</label>
-                        <div class="control-scale" role="group" aria-label="Позиция тени по X (в процентах)">
-                          <div
-                            v-for="i in 11"
-                            :key="`sx-${(i - 6) * 10}`"
-                            class="control-cell"
-                            :class="offsetCellClassX(i)"
-                            :title="`${(i - 6) * 10}%`"
-                            @click="setShadowOffsetX((i - 6) * 10)"
-                          ></div>
-                        </div>
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label d-block">Позиция Y: {{ shadowOffsetY }}%</label>
-                        <div class="control-scale" role="group" aria-label="Позиция тени по Y (в процентах)">
-                          <div
-                            v-for="i in 11"
-                            :key="`sy-${(i - 6) * 10}`"
-                            class="control-cell"
-                            :class="offsetCellClassY(i)"
-                            :title="`${(i - 6) * 10}%`"
-                            @click="setShadowOffsetY((i - 6) * 10)"
-                          ></div>
-                        </div>
-                      </div>
-                      <div class="form-group mt-2">
-                        <label class="form-label d-block">Прозрачность тени: {{ shadowOpacity }}%</label>
-                        <div class="control-scale" role="group" aria-label="Прозрачность тени (в процентах)">
-                          <div
-                            v-for="n in 11"
-                            :key="`so-${(n - 1) * 5}`"
-                            class="control-cell"
-                            :class="{ 'selected': ((n - 1) * 5) <= shadowOpacity }"
-                            :title="`${(n - 1) * 5}%`"
-                            @click="setShadowOpacity((n - 1) * 5)"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Таб "Тексты" -->
-        <div class="tab-pane fade" :class="{ 'show active': activeTab === 'texts' }" id="texts" role="tabpanel" aria-labelledby="texts-tab">
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header">
-                  <h5 class="card-title mb-0">Добавленные тексты</h5>
-                </div>
-                <div class="card-body">
-                  <div v-if="textLayers.length === 0" class="text-center text-muted py-4">
-                    <i class="bi bi-type display-4 mb-3"></i>
-                    <p>Пока не добавлено ни одного текста</p>
-                    <p class="small">Нажмите на кнопку "Текст 2" над основным канвасом, затем кликните на канвас для добавления текста</p>
-                  </div>
-                  <div v-else>
-                    <div class="mb-3">
-                      <p class="text-muted mb-3">
-                        Текстовые слои расположены в порядке слоев (сверху вниз). Первый в списке = самый верхний слой. 
-                        <i class="bi bi-info-circle me-1"></i>
-                        Перетаскивайте слои для изменения их порядка или двойной клик на текст на канвасе.
-                      </p>
-                    </div>
-                    <!-- Список текстовых слоев с возможностью перетаскивания -->
-                    <div class="text-layers-list">
-                      <div 
-                        v-for="(text, index) in textLayers" 
-                        :key="text.id || index" 
-                        class="text-layer-item"
-                        :class="{ 
-                          'dragging': draggedTextIndex === index,
-                          'drag-over': dragOverTextIndex === index
-                        }"
-                        draggable="true"
-                        @dragstart="handleTextDragStart(index, $event)"
-                        @dragend="handleTextDragEnd"
-                        @dragover="handleTextDragOver(index, $event)"
-                        @dragleave="handleTextDragLeave"
-                        @drop="handleTextDrop(index, $event)"
-                      >
-                        <div class="layer-info">
-                          <!-- Иконка перетаскивания -->
-                          <div class="drag-handle">
-                            <i class="bi bi-grip-vertical"></i>
-      </div>
-      
-                          <!-- Информация о слое -->
-                          <div class="layer-details">
-                            <div class="layer-name">{{ text.textData?.text || 'Пустой текст' }}</div>
-                            <div class="layer-meta">
-                            Шрифт: {{ text.textData?.font || 'Arial' }} | 
-                            Размер: {{ text.textData?.fontSize || 16 }}px |
-                            <span v-if="text.textData?.textColor">Цвет: {{ text.textData.textColor }}</span>
-                              <span v-if="text.mode"> | Режим: {{ getModeDisplayName(text.mode) }}</span>
-                        </div>
-                            <div class="layer-number">Слой #{{ text.layerIndex || (index + 1) }}</div>
-                          </div>
-                        </div>
-                        
-                        <!-- Действия со слоем -->
-                        <div class="layer-actions">
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-primary btn-sm"
-                            @click="editTextLayer(index)"
-                            title="Редактировать"
-                          >
-                            <i class="bi bi-pencil"></i>
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-secondary btn-sm"
-                            @click="toggleTextLayerVisibility(index)"
-                            title="Показать/скрыть"
-                          >
-                            <i class="bi bi-eye"></i>
-                          </button>
-                          <button 
-                            type="button" 
-                            class="btn btn-outline-danger btn-sm"
-                            @click="deleteTextLayer(index)"
-                            title="Удалить"
-                          >
-                            <i class="bi bi-trash"></i>
-                          </button>
-    </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
       
 
     </div>
@@ -780,7 +308,7 @@
                 <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
                   
                   <!-- Внешний отступ -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
                     <div class="control-scale" role="group">
                       <div
@@ -795,7 +323,7 @@
                   </div>
                   
                   <!-- Цвет обводки -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Цвет обводки</label>
                     <button 
                       type="button"
@@ -808,7 +336,7 @@
                   </div>
                   
                   <!-- Толщина обводки -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
                     <div class="control-scale" role="group">
                       <div
@@ -823,7 +351,7 @@
                   </div>
                   
                   <!-- Размытие тени -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
                     <div class="control-scale" role="group">
                       <div
@@ -838,7 +366,7 @@
                   </div>
                   
                   <!-- Позиция тени X -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Позиция тени X: {{ shadowOffsetX }}%</label>
                     <div class="control-scale" role="group">
                       <div
@@ -853,7 +381,7 @@
                   </div>
                   
                   <!-- Позиция тени Y -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Позиция тени Y: {{ shadowOffsetY }}%</label>
                     <div class="control-scale" role="group">
                       <div
@@ -868,7 +396,7 @@
                   </div>
                   
                   <!-- Прозрачность тени -->
-                  <div class="setting-group mb-3">
+                  <div class="setting-group">
                     <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
                     <div class="control-scale opacity-scale" role="group">
                       <div
@@ -901,7 +429,7 @@
                       </label>
                     </div>
                     
-                    <div v-if="backgroundType === 'solid'" class="mb-2">
+                    <div v-if="backgroundType === 'solid'">
                       <button 
                         type="button"
                         class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center"
@@ -7713,10 +7241,6 @@ export default {
   background-color: #f8f9fa;
 }
 
-.text-layer-item:last-child {
-  border-bottom: none;
-}
-
 /* Стили для перетаскивания текстовых слоев */
 .text-layer-item.dragging {
   opacity: 0.5;
@@ -8245,6 +7769,7 @@ export default {
 .text-layers-list {
   max-height: 300px;
   overflow-y: auto;
+  padding: 7px 7px 0;
 }
 
 .text-layer-item {

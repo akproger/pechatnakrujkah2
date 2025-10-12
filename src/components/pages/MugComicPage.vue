@@ -353,6 +353,20 @@
                         >
                       </div>
                     </div>
+                    
+                    <!-- Фон основного поля -->
+                    <div class="col-12">
+                      <h6 class="text-muted mb-3">Фон основного поля</h6>
+                      <div class="form-group">
+                        <label class="form-label">Цвет фона</label>
+                        <input 
+                          type="color" 
+                          class="form-control form-control-color" 
+                          v-model="backgroundColor"
+                          title="Выберите цвет фона основного поля"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -420,6 +434,9 @@ export default {
       strokeColor: '#000000',
       strokeWidth: 5, // Проценты (0-20)
       
+      // Настройки фона основного поля
+      backgroundColor: '#ffffff',
+      
       // Система масок
       maskMode: false, // Режим рисования масок
       maskPoints: [], // Точки текущей маски
@@ -467,6 +484,9 @@ export default {
       this.updateBaseRectangle()
     },
     strokeWidth() {
+      this.updateBaseRectangle()
+    },
+    backgroundColor() {
       this.updateBaseRectangle()
     }
   },
@@ -880,7 +900,7 @@ export default {
       this.baseRectangle = new this.paperScope.Path.Rectangle({
         point: [0, 0],
         size: [width, height],
-        fillColor: null, // Без заливки
+        fillColor: this.backgroundColor, // Цвет фона основного поля
         strokeColor: this.strokeColor,
         strokeWidth: initialStrokeWidth
       })
@@ -952,6 +972,9 @@ export default {
       this.baseRectangle.strokeColor = this.strokeColor
       this.baseRectangle.strokeWidth = this.strokeWidthPx
       
+      // Обновляем цвет фона
+      this.baseRectangle.fillColor = this.backgroundColor
+      
       // Перерисовываем view
       this.paperScope.view.update()
       
@@ -960,7 +983,8 @@ export default {
       
       console.log('🔄 Базовый прямоугольник обновлён:', {
         strokeColor: this.strokeColor,
-        strokeWidth: this.strokeWidthPx
+        strokeWidth: this.strokeWidthPx,
+        backgroundColor: this.backgroundColor
       })
     },
 
@@ -7254,14 +7278,15 @@ export default {
   height: 100vh;
   z-index: 1050;
   pointer-events: auto;
-  background: #f2f2f2;
+  background: #fff;
+  box-shadow: 0 0 12px 0 rgba(0,0,0,.15);
   transition: all 0.3s ease;
 }
 
 .settings-panel-content {
   position: relative;
   width: 280px;
-  background: #f2f2f2;
+  background: #fff;
   color: #333;
   display: flex;
   flex-direction: column;
@@ -7321,7 +7346,6 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 4px;
-  margin-top: 11px;
   position: relative;
   left: -5px;
 }

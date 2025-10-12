@@ -306,7 +306,7 @@
                 
                 <!-- Таб "Настройки" -->
                 <div v-show="activeSettingsTab === 'settings'" class="tab-content-panel">
-                  
+                  <h3 class="settings-subheader">Отступ</h3>
                   <!-- Внешний отступ -->
                   <div class="setting-group">
                     <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
@@ -321,20 +321,7 @@
                       ></div>
                     </div>
                   </div>
-                  
-                  <!-- Цвет обводки -->
-                  <div class="setting-group">
-                    <label class="form-label">Цвет обводки</label>
-                    <button 
-                      type="button"
-                      class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
-                      @click="openColorPicker('stroke')"
-                    >
-                      <span class="me-2">Выбрать</span>
-                      <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor, border: '1px solid #dee2e6' }"></span>
-                    </button>
-                  </div>
-                  
+                  <h3 class="settings-subheader">Обводка</h3>
                   <!-- Толщина обводки -->
                   <div class="setting-group">
                     <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
@@ -349,7 +336,19 @@
                       ></div>
                     </div>
                   </div>
-                  
+
+                  <!-- Цвет обводки -->
+                  <div class="setting-group mb-3">
+                    <label class="form-label">Цвет обводки</label>
+                    <button 
+                      type="button"
+                      class="btn d-flex align-items-center justify-content-center p-0 mt-2 color-chooser"
+                      @click="openColorPicker('stroke')"
+                    >
+                      <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor }"></span>
+                    </button>
+                  </div>
+                  <h3 class="settings-subheader">Тень</h3>
                   <!-- Размытие тени -->
                   <div class="setting-group">
                     <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
@@ -412,7 +411,7 @@
                   
                   <!-- Фон -->
                   <div class="setting-group">
-                    <label class="form-label">Фон</label>
+                    <h3 class="settings-subheader">Фон</h3>
                     
                     <!-- Солидная заливка -->
                     <div class="form-check mb-2">
@@ -432,11 +431,10 @@
                     <div v-if="backgroundType === 'solid'">
                       <button 
                         type="button"
-                        class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center"
+                        class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center color-chooser p-0 mt-2"
                         @click="openColorPicker('solid')"
                       >
-                        <span class="me-2">Выбрать</span>
-                        <span :style="{ width: '16px', height: '16px', display: 'inline-block', borderRadius: '3px', background: solidBackgroundColor, border: '1px solid #dee2e6' }"></span>
+                        <span :style="{ width: '16px', height: '16px', display: 'inline-block', borderRadius: '3px', background: solidBackgroundColor }"></span>
                       </button>
                       <div class="mt-2">
                         <label class="form-label small">Прозрачность: {{ solidBackgroundOpacity }}%</label>
@@ -488,7 +486,7 @@
                       >
                       <button 
                         @click="$refs.backgroundImageInput.click()" 
-                        class="btn btn-outline-primary btn-sm w-100"
+                        class="btn btn-primary btn-sm w-100"
                       >
                         <i class="bi bi-image me-1"></i>
                         {{ backgroundImage ? 'Заменить' : 'Загрузить' }}
@@ -7050,7 +7048,7 @@ export default {
 }
 
 .btn-outline-secondary {
-  border-color: #6c757d;
+  border-color: transparent;
   color: #6c757d;
   
   &:hover {
@@ -7420,7 +7418,7 @@ export default {
 .control-scale .control-cell {
   flex: 1;
   border: none;
-  background: #fff;
+  background: #efefef;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
@@ -7529,14 +7527,15 @@ export default {
   height: 100vh;
   z-index: 1050;
   pointer-events: auto;
-  background: #f2f2f2;
+  background: #fff;
+  box-shadow: 0 0 12px 0 rgba(0,0,0,.15);
   transition: all 0.3s ease;
 }
 
 .settings-panel-content {
   position: relative;
   width: 280px;
-  background: #f2f2f2;
+  background: #fff;
   color: #333;
   display: flex;
   flex-direction: column;
@@ -7596,7 +7595,6 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 4px;
-  margin-top: 11px;
   position: relative;
   left: -5px;
   
@@ -7844,5 +7842,20 @@ export default {
 .layer-actions .btn {
   padding: 4px 6px;
   font-size: 12px;
+}
+.color-chooser{
+  box-shadow: 2px 2px 6px 0 rgba(0,0,0,.2);
+}
+.settings-subheader{
+  padding: 6px;
+  background: #d5f2d2;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  color: #000;
+  font-size: 18px;
 }
 </style>

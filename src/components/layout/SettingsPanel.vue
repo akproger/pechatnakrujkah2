@@ -72,13 +72,14 @@ export default {
   height: 100vh;
   z-index: 1050;
   pointer-events: auto;
-  background: #f2f2f2;
+  background: #fff;
+  box-shadow: 0 0 12px 0 rgba(0,0,0,.15);
 }
 
 .settings-panel-content {
   position: relative;
   width: 280px;
-  background: #f2f2f2;
+  background: #fff;
   color: #333;
   display: flex;
   flex-direction: column;
@@ -136,7 +137,6 @@ export default {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-top: 11px;
   position: relative;
   left: -5px;
   

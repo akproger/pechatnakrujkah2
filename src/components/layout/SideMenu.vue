@@ -4,7 +4,7 @@
       <!-- Лого наверху панели -->
       <div class="side-menu-logo">
         <router-link to="/" class="logo-link">
-          <img src="@/assets/images/logo.svg" alt="Печать на кружках" class="logo-image" />
+          <img src="@/assets/images/logo.png" alt="Печать на кружках" class="logo-image" />
         </router-link>
         <button 
           class="btn-toggle" 
@@ -131,13 +131,14 @@ export default {
   height: 100vh;
   z-index: 1050;
   pointer-events: auto;
-  background: #f2f2f2;
+  background: #ffffff;
+  box-shadow: 0 0 12px 0 rgba(0, 0, 0, .15);
 }
 
 .side-menu-content {
   position: relative;
   width: 280px;
-  background: #f2f2f2;
+  background: #ffffff;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -154,7 +155,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 12px 12px 12px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: #ff0200;
 }
 .logo-link {
   color: #111;
@@ -165,11 +166,11 @@ export default {
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  margin: 12px auto 0;
+  margin: 12px auto;
 }
 
 .logo-image {
-  height: 52px;
+  height: 43px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
@@ -186,21 +187,20 @@ export default {
 
 .btn-toggle {
   background: transparent;
-  color: #333;
+  color: #fff;
   border: none;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 11px;
   position: relative;
   left: -5px;
 }
 .side-menu .btn-toggle {
   left: 0px;
 }
-.btn-toggle:hover { color: #222; }
+.btn-toggle:hover { color: #fff; }
 
 .side-menu-nav {
   flex: 1;
@@ -281,8 +281,13 @@ export default {
   padding: 10px;
   position: absolute;
   bottom: 0;
-  width: 100%;
+  width: 280px;
   font-size: 12px;
+  right: 0;
+  transition: all .2s ease-in-out;
+}
+.side-menu.collapsed .footer-copyright{
+  right: 50px;
 }
 
 /* Убираем оверлей и анимации мобильного режима */

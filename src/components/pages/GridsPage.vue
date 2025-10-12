@@ -2506,13 +2506,16 @@ export default {
         // Создаем путь маски на canvas в зависимости от типа маски (как в обычном методе)
         // maskBounds уже объявлена выше
         
-        // Уменьшаем размер маски для обрезки на половину величины обводки
+        // Увеличиваем размер изображения на 2%, но оставляем обводку того же размера
+        const imageScaleFactor = 1.02 // Увеличиваем на 2%
         const strokeInset = (this.getStrokeWidthForMask(maskBounds) || 0) / 2
         
-        const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
-        const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
-        const clipOffsetX = strokeInset
-        const clipOffsetY = strokeInset
+        // Увеличиваем размер маски для обрезки на 2%
+        const clipWidth = Math.max(1, maskBounds.width * imageScaleFactor)
+        const clipHeight = Math.max(1, maskBounds.height * imageScaleFactor)
+        // Центрируем увеличенное изображение
+        const clipOffsetX = (maskBounds.width - clipWidth) / 2
+        const clipOffsetY = (maskBounds.height - clipHeight) / 2
         
         tempCtx.save() // Сохраняем состояние
         tempCtx.beginPath()
@@ -2546,7 +2549,7 @@ export default {
         } else if (mask.data && mask.data.type === 'hexagon') {
           // Для шестигранников используем реальную геометрию маски
           if (mask.segments && mask.segments.length > 0) {
-            const strokeHalf = strokeInset / 2
+            // Создаем увеличенную копию реальной геометрии шестигранника на 2%
             
             // Первая точка
             const firstPoint = mask.segments[0].point
@@ -2554,7 +2557,12 @@ export default {
               firstPoint.x - maskBounds.x,
               firstPoint.y - maskBounds.y
             )
-            tempCtx.moveTo(relativeFirstPoint.x + strokeHalf, relativeFirstPoint.y + strokeHalf)
+            
+            // Увеличиваем размер на 2% и центрируем
+            const scaledX = relativeFirstPoint.x * imageScaleFactor + clipOffsetX
+            const scaledY = relativeFirstPoint.y * imageScaleFactor + clipOffsetY
+            
+            tempCtx.moveTo(scaledX, scaledY)
             
             // Остальные точки
             for (let i = 1; i < mask.segments.length; i++) {
@@ -2563,7 +2571,12 @@ export default {
                 point.x - maskBounds.x,
                 point.y - maskBounds.y
               )
-              tempCtx.lineTo(relativePoint.x + strokeHalf, relativePoint.y + strokeHalf)
+              
+              // Увеличиваем размер на 2% и центрируем
+              const scaledPointX = relativePoint.x * imageScaleFactor + clipOffsetX
+              const scaledPointY = relativePoint.y * imageScaleFactor + clipOffsetY
+              
+              tempCtx.lineTo(scaledPointX, scaledPointY)
             }
             tempCtx.closePath()
           } else {
@@ -3503,15 +3516,16 @@ export default {
           // Получаем размеры маски
           const maskBounds = mask.bounds
           
-          // Уменьшаем размер маски для обрезки на половину величины обводки
-          // (чтобы изображение уходило под контур обводки по всем сторонам)
+          // Увеличиваем размер изображения на 2%, но оставляем обводку того же размера
+          const imageScaleFactor = 1.02 // Увеличиваем на 2%
           const strokeInset = (this.getStrokeWidthForMask(maskBounds) || 0) / 2
           
-          // Стандартное уменьшение маски для обрезки на величину обводки
-          const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
-          const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
-          const clipOffsetX = strokeInset
-          const clipOffsetY = strokeInset
+          // Увеличиваем размер маски для обрезки на 2%
+          const clipWidth = Math.max(1, maskBounds.width * imageScaleFactor)
+          const clipHeight = Math.max(1, maskBounds.height * imageScaleFactor)
+          // Центрируем увеличенное изображение
+          const clipOffsetX = (maskBounds.width - clipWidth) / 2
+          const clipOffsetY = (maskBounds.height - clipHeight) / 2
           
           tempCanvas.width = maskBounds.width
           tempCanvas.height = maskBounds.height
@@ -3562,8 +3576,7 @@ export default {
             tempCtx.beginPath()
             
             if (mask.segments && mask.segments.length > 0) {
-              // Создаем уменьшенную копию реальной геометрии шестигранника
-              const strokeHalf = strokeInset / 2
+              // Создаем увеличенную копию реальной геометрии шестигранника на 2%
               
               // Первая точка
               const firstPoint = mask.segments[0].point
@@ -3572,9 +3585,9 @@ export default {
                 firstPoint.y - maskBounds.y
               )
               
-              // Уменьшаем размер на половину обводки
-              const scaledX = relativeFirstPoint.x * ((maskBounds.width - strokeInset) / maskBounds.width) + strokeHalf
-              const scaledY = relativeFirstPoint.y * ((maskBounds.height - strokeInset) / maskBounds.height) + strokeHalf
+              // Увеличиваем размер на 2% и центрируем
+              const scaledX = relativeFirstPoint.x * imageScaleFactor + clipOffsetX
+              const scaledY = relativeFirstPoint.y * imageScaleFactor + clipOffsetY
               
               tempCtx.moveTo(scaledX, scaledY)
               
@@ -3586,9 +3599,9 @@ export default {
                   segment.point.y - maskBounds.y
                 )
                 
-                // Уменьшаем размер на половину обводки
-                const scaledPointX = relativePoint.x * ((maskBounds.width - strokeInset) / maskBounds.width) + strokeHalf
-                const scaledPointY = relativePoint.y * ((maskBounds.height - strokeInset) / maskBounds.height) + strokeHalf
+                // Увеличиваем размер на 2% и центрируем
+                const scaledPointX = relativePoint.x * imageScaleFactor + clipOffsetX
+                const scaledPointY = relativePoint.y * imageScaleFactor + clipOffsetY
                 
                 tempCtx.lineTo(scaledPointX, scaledPointY)
               }

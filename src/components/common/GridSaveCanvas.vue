@@ -869,13 +869,16 @@ export default {
         // Получаем размеры маски
         const maskBounds = mask.bounds
         
-        // Уменьшаем размер маски для обрезки на половину величины обводки
+        // Увеличиваем размер изображения на 2%, но оставляем обводку того же размера
+        const imageScaleFactor = 1.02 // Увеличиваем на 2%
         const strokeInset = (this.strokeWidth || 0) / 2
         
-        const clipWidth = Math.max(1, maskBounds.width - strokeInset * 2)
-        const clipHeight = Math.max(1, maskBounds.height - strokeInset * 2)
-        const clipOffsetX = strokeInset
-        const clipOffsetY = strokeInset
+        // Увеличиваем размер маски для обрезки на 2%
+        const clipWidth = Math.max(1, maskBounds.width * imageScaleFactor)
+        const clipHeight = Math.max(1, maskBounds.height * imageScaleFactor)
+        // Центрируем увеличенное изображение
+        const clipOffsetX = (maskBounds.width - clipWidth) / 2
+        const clipOffsetY = (maskBounds.height - clipHeight) / 2
         
         tempCanvas.width = maskBounds.width
         tempCanvas.height = maskBounds.height
@@ -916,25 +919,35 @@ export default {
         } else if (mask.data && mask.data.type === 'hexagon') {
           // Для шестигранников используем реальную геометрию маски
           if (mask.segments && mask.segments.length > 0) {
-            const strokeHalf = strokeInset / 2
+            // Создаем увеличенную копию реальной геометрии шестигранника на 2%
             
-              // Первая точка
-              const firstPoint = mask.segments[0].point
-              const relativeFirstPoint = new this.paperScope.Point(
-                firstPoint.x - maskBounds.x,
-                firstPoint.y - maskBounds.y
+            // Первая точка
+            const firstPoint = mask.segments[0].point
+            const relativeFirstPoint = new this.paperScope.Point(
+              firstPoint.x - maskBounds.x,
+              firstPoint.y - maskBounds.y
+            )
+            
+            // Увеличиваем размер на 2% и центрируем
+            const scaledX = relativeFirstPoint.x * imageScaleFactor + clipOffsetX
+            const scaledY = relativeFirstPoint.y * imageScaleFactor + clipOffsetY
+            
+            tempCtx.moveTo(scaledX, scaledY)
+            
+            // Остальные точки
+            for (let i = 1; i < mask.segments.length; i++) {
+              const point = mask.segments[i].point
+              const relativePoint = new this.paperScope.Point(
+                point.x - maskBounds.x,
+                point.y - maskBounds.y
               )
-              tempCtx.moveTo(relativeFirstPoint.x + strokeHalf, relativeFirstPoint.y + strokeHalf)
               
-              // Остальные точки
-              for (let i = 1; i < mask.segments.length; i++) {
-                const point = mask.segments[i].point
-                const relativePoint = new this.paperScope.Point(
-                  point.x - maskBounds.x,
-                  point.y - maskBounds.y
-                )
-                tempCtx.lineTo(relativePoint.x + strokeHalf, relativePoint.y + strokeHalf)
-              }
+              // Увеличиваем размер на 2% и центрируем
+              const scaledPointX = relativePoint.x * imageScaleFactor + clipOffsetX
+              const scaledPointY = relativePoint.y * imageScaleFactor + clipOffsetY
+              
+              tempCtx.lineTo(scaledPointX, scaledPointY)
+            }
             tempCtx.closePath()
           } else {
             // Fallback для шестигранника

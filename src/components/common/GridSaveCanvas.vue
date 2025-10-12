@@ -1068,26 +1068,70 @@ export default {
         return
       }
       
-      // Создаем клон маски для обводки
-      const strokeMask = originalMask.clone()
+      // Создаем обводку ВОКРУГ маски (того же размера, что и маска)
+      let strokeMask = null
+      
+      if (originalMask.data && originalMask.data.type === 'rectangle') {
+        // Создаем прямоугольную обводку ВОКРУГ маски
+        const bounds = originalMask.bounds
+        strokeMask = new this.paperScope.Path.Rectangle({
+          point: [bounds.left, bounds.top],
+          size: [bounds.width, bounds.height]
+        })
+      } else if (originalMask.data && originalMask.data.type === 'triangle') {
+        // Создаем треугольную обводку ВОКРУГ маски
+        const bounds = originalMask.bounds
+        const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
+        
+        if (isInverted) {
+          // Перевернутый треугольник
+          strokeMask = new this.paperScope.Path([
+            new this.paperScope.Point(bounds.center.x, bounds.bottom),
+            new this.paperScope.Point(bounds.left, bounds.top),
+            new this.paperScope.Point(bounds.right, bounds.top)
+          ])
+        } else {
+          // Обычный треугольник
+          strokeMask = new this.paperScope.Path([
+            new this.paperScope.Point(bounds.center.x, bounds.top),
+            new this.paperScope.Point(bounds.left, bounds.bottom),
+            new this.paperScope.Point(bounds.right, bounds.bottom)
+          ])
+        }
+      } else if (originalMask.data && originalMask.data.type === 'diamond') {
+        // Создаем ромбовидную обводку ВОКРУГ маски
+        const bounds = originalMask.bounds
+        strokeMask = new this.paperScope.Path([
+          new this.paperScope.Point(bounds.center.x, bounds.top),
+          new this.paperScope.Point(bounds.left, bounds.center.y),
+          new this.paperScope.Point(bounds.center.x, bounds.bottom),
+          new this.paperScope.Point(bounds.right, bounds.center.y)
+        ])
+      } else if (originalMask.data && originalMask.data.type === 'hexagon') {
+        // Создаем шестиугольную обводку ВОКРУГ маски (того же размера, что и маска)
+        if (originalMask.segments && originalMask.segments.length > 0) {
+          // Используем реальные сегменты маски без изменений
+          const points = originalMask.segments.map(segment => segment.point)
+          strokeMask = new this.paperScope.Path(points)
+          strokeMask.closePath()
+        } else {
+          // Fallback - создаем идеальный шестиугольник того же размера
+          const bounds = originalMask.bounds
+          const hexPoints = this.getHexagonPoints(bounds.width, bounds.height)
+          const points = hexPoints.map(p => new this.paperScope.Point(bounds.left + p.x, bounds.top + p.y))
+          strokeMask = new this.paperScope.Path(points)
+          strokeMask.closePath()
+        }
+      } else {
+        // Для других типов масок используем клон
+        strokeMask = originalMask.clone()
+      }
       
       // Настраиваем обводку
       strokeMask.fillColor = 'transparent'
       strokeMask.strokeColor = this.strokeColor
       strokeMask.strokeWidth = this.strokeWidth
       strokeMask.visible = true
-      
-      // Делаем обводку немного меньше маски и отцентрируем её
-      const strokeInset = this.strokeWidth / 4 // Четверть толщины обводки для отступа внутрь
-      const scaleFactor = 1 - (strokeInset / Math.min(originalMask.bounds.width, originalMask.bounds.height))
-      const finalScale = Math.max(scaleFactor, 0.95) // Минимум 95% размера
-      
-      // Сохраняем центр перед масштабированием
-      const center = originalMask.bounds.center
-      strokeMask.scale(finalScale)
-      
-      // Центрируем обводку относительно оригинальной маски
-      strokeMask.position = center
       
       // Добавляем обводку ПОВЕРХ maskedRaster
       this.paperScope.project.activeLayer.addChild(strokeMask)
@@ -1099,10 +1143,28 @@ export default {
         position: strokeMask.position.toString(),
         originalBounds: originalMask.bounds.toString(),
         strokeBounds: strokeMask.bounds.toString(),
-        scaleFactor: finalScale,
-        strokeInset: strokeInset,
-        note: 'Обводка немного меньше маски и отцентрирована'
+        maskType: originalMask.data?.type || 'unknown',
+        note: 'Обводка создана ВОКРУГ маски (того же размера)'
       })
+    },
+    
+    // Получение точек шестиугольника
+    getHexagonPoints(width, height) {
+      const points = []
+      const centerX = width / 2
+      const centerY = height / 2
+      const radiusX = width / 2
+      const radiusY = height / 2
+      
+      // Создаем 6 точек шестиугольника
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3
+        const x = centerX + radiusX * Math.cos(angle)
+        const y = centerY + radiusY * Math.sin(angle)
+        points.push({ x, y })
+      }
+      
+      return points
     },
     
     // Применение теней к маске

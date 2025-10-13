@@ -128,6 +128,15 @@ export default {
     hideButton: {
       type: Boolean,
       default: false
+    },
+    // Целевой DPI и физическая высота печати (для вычисления размеров save-canvas)
+    targetDPI: {
+      type: Number,
+      default: 300
+    },
+    printHeightInches: {
+      type: Number,
+      default: 9.5 // высота печати, как на кружке
     }
   },
   data() {
@@ -248,6 +257,36 @@ export default {
       console.log('🔄 isSaving установлен в true')
       
       try {
+        // Перед началом — поднимем разрешение save-canvas под 300 DPI с сохранением соотношения сторон основного канваса
+        try {
+          const targetHeightPx = Math.max(1, Math.round(this.printHeightInches * this.targetDPI))
+          const aspect = (this.mainCanvasWidth > 0 && this.mainCanvasHeight > 0)
+            ? (this.mainCanvasWidth / this.mainCanvasHeight)
+            : (this.canvasWidth / this.canvasHeight)
+          const targetWidthPx = Math.max(1, Math.round(targetHeightPx * aspect))
+
+          this.canvasWidth = targetWidthPx
+          this.canvasHeight = targetHeightPx
+
+          const canvasEl = this.$refs.saveCanvas
+          if (canvasEl) {
+            canvasEl.width = this.canvasWidth
+            canvasEl.height = this.canvasHeight
+          }
+          if (this.paperScope && this.paperScope.view) {
+            this.paperScope.view.viewSize = new paper.Size(this.canvasWidth, this.canvasHeight)
+            // Настройки сглаживания для лучшего ресемплинга
+            try {
+              const ctx = this.paperScope.view?.context
+              if (ctx) {
+                ctx.imageSmoothingEnabled = true
+                ctx.imageSmoothingQuality = 'high'
+              }
+            } catch (e) {}
+          }
+          console.log('🖼️ save-canvas перенаcтроен под 300 DPI:', { w: this.canvasWidth, h: this.canvasHeight, targetDPI: this.targetDPI })
+        } catch (e) { console.warn('⚠️ Не удалось пересчитать размер save-canvas под 300 DPI', e) }
+
         console.log('🖨️ Начинаем сохранение сетки')
         
         // Сбрасываем счетчики

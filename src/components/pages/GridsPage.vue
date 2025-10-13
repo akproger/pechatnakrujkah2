@@ -624,7 +624,7 @@ export default {
       touchStartPos: null,
       // Дополнительные настройки
       externalMargin: 0, // Проценты (0-20) - устаревшее, используем externalMarginPx
-      externalMarginPx: 10, // Пиксели (0-50)
+      externalMarginPx: 0, // Пиксели (0-50) - по умолчанию без отступов
       strokeColor: '#000000',
       strokeWidth: 0, // Проценты (0-20)
       shadowBlur: 0, // Проценты (0-20)
@@ -3961,24 +3961,28 @@ export default {
       // Между ними: фиксированные отступы
       const numCols = this.gridCols
       
-      // Общая ширина, которую должны покрыть треугольники
-      // Первый треугольник: половина уходит за левую границу
-      // Последний треугольник: центр на правой границе, половина уходит за правую границу
-      // Значит нужно покрыть: ширина канваса + половина первого треугольника + половина последнего треугольника
-      const totalWidthToCover = viewWidth + (this.externalMarginPx * 2) // Добавляем отступы с обеих сторон
+      // Правильная логика расчета ширины треугольников:
+      // Первый треугольник: половина за левой границей
+      // Последний треугольник: половина за правой границей
+      // Между ними: (numCols - 2) целых треугольников
+      // Значит нужно покрыть: ширина канваса + отступы с обеих сторон
+      const totalWidthToCover = viewWidth + (this.externalMarginPx * 2) // Отступы с обеих сторон
       
-      // Рассчитываем ширину треугольника с учетом того, что они выходят за границы
-      // Формула: totalWidthToCover = numCols * triangleBaseWidth + (numCols - 1) * externalMarginPx
+      // Рассчитываем ширину треугольника:
+      // 2 половины (слева и справа) = 1 целая ячейка
+      // Значит нужно делить на (numCols - 1), а не на numCols
+      // totalWidthToCover = (numCols - 1) * triangleBaseWidth + (numCols - 1) * externalMarginPx
+      // Откуда: triangleBaseWidth = (totalWidthToCover - (numCols - 1) * externalMarginPx) / (numCols - 1)
       const triangleBaseWidth = numCols > 1 
-        ? (totalWidthToCover - (numCols - 1) * this.externalMarginPx) / numCols
+        ? (totalWidthToCover - (numCols - 1) * this.externalMarginPx) / (numCols - 1)
         : totalWidthToCover
       
       // Растягиваем треугольники на половину их ширины
       const triangleStretch = triangleBaseWidth / 2
       
-      // Расстояние между центрами треугольников = базовая ширина + отступ + растяжение
-      // Учитываем, что треугольники растянуты на половину своей ширины
-      const colSpacing = triangleBaseWidth + this.externalMarginPx + triangleStretch
+      // Расстояние между центрами треугольников = базовая ширина + отступ
+      // Растяжение уже учтено в triangleBaseWidth
+      const colSpacing = triangleBaseWidth + this.externalMarginPx
       
       console.log('🔺 Отладка треугольников:', {
         viewWidth,
@@ -4005,13 +4009,27 @@ export default {
       // Используем gridCols для определения количества треугольников в строке
       const numTriangles = this.gridCols
       
+      console.log('🔺 Количество треугольников в строке:', {
+        gridCols: this.gridCols,
+        numTriangles,
+        note: 'При максимальной настройке 20 столбцов должно быть 20 треугольников в строке'
+      })
+      
       // Сдвигаем все треугольники влево так, чтобы половина первых треугольников ушла за левую границу канваса
       // Центр первого треугольника должен быть на половину его ширины левее левого края
-      // Но нужно учесть, что центр последнего треугольника должен быть на правой границе канваса
-      const startX = -(triangleBaseWidth + triangleStretch) / 2
+      const startX = -triangleBaseWidth / 2
       
       for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numTriangles; col++) {
+          // Отладка для первой строки - показываем сколько треугольников создается
+          if (row === 0 && col === 0) {
+            console.log('🔺 Создание треугольников:', {
+              numRows,
+              numTriangles,
+              totalTrianglesToCreate: numRows * numTriangles,
+              note: `Создаем ${numTriangles} треугольников в каждой из ${numRows} строк`
+            })
+          }
           const x = startX + col * colSpacing
           // Y позиция: отступ сверху + (высота треугольника + отступ между строками) * номер строки
           const y = margin + row * (triangleHeight + rowSpacing)
@@ -4034,9 +4052,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new paper.Path({
               segments: [
-                [x + (triangleBaseWidth + triangleStretch) / 2, y], // вершина
-                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
-                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
+                [x + triangleBaseWidth / 2, y], // вершина
+                [x - triangleBaseWidth * 0.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
+                [x + triangleBaseWidth * 1.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -4045,9 +4063,9 @@ export default {
             // Треугольник основанием вверх
             triangle = new paper.Path({
               segments: [
-                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y], // левый угол основания
-                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y], // правый угол основания
-                [x + (triangleBaseWidth + triangleStretch) / 2, y + triangleHeight * verticalMultiplier] // вершина
+                [x - triangleBaseWidth * 0.5125, y], // левый угол основания
+                [x + triangleBaseWidth * 1.5125, y], // правый угол основания
+                [x + triangleBaseWidth / 2, y + triangleHeight * verticalMultiplier] // вершина
               ],
               closed: true
             })
@@ -4079,48 +4097,54 @@ export default {
       // Применяем фиксированный внешний отступ в пикселях
       const margin = this.externalMarginPx
       
-      // Вычисляем размеры ромба (возвращаем правильную геометрию)
-      let diamondWidth = cellWidth * 2
-      let diamondHeight = cellHeight * 2
-
-      // Увеличиваем ромб: +2.5% и минимум +2 px как в HiDPI, чтобы скрыть щели
-      const sizeIncreaseDiamond = 0.025
-      diamondWidth += diamondWidth * sizeIncreaseDiamond + 2
-      diamondHeight += diamondHeight * sizeIncreaseDiamond + 2
-      
-      // ВАЖНО: Делаем расстояние между строками равным расстоянию между столбцами
-      // Используем одинаковое расстояние для обоих направлений
-      const uniformSpacing = Math.max(diamondWidth, diamondHeight) // Берем большее из двух расстояний
-      
-      // Используем gridRows и gridCols для определения количества
+      // Правильная логика расчета размеров ромбов (как для треугольников):
+      // 2 половины (слева и справа) = 1 целая ячейка
+      // Значит нужно делить на (numCols - 1), а не на numCols
+      const numCols = this.gridCols
       const numRows = this.gridRows
-      const numDiamonds = this.gridCols
       
-      // Начинаем от левого края с половиной ширины первого ромба + отступ
-      const startX = -cellWidth * 0.5 + margin
-      // Начинаем сверху с половиной высоты ромба за верхней границей + отступ
-      const startY = -cellHeight * 0.5 + margin
+      // Общая ширина, которую должны покрыть ромбы
+      const totalWidthToCover = viewWidth + (this.externalMarginPx * 2) // Отступы с обеих сторон
+      
+      // Рассчитываем ширину ромба:
+      // totalWidthToCover = (numCols - 1) * diamondWidth + (numCols - 1) * externalMarginPx
+      // Откуда: diamondWidth = (totalWidthToCover - (numCols - 1) * externalMarginPx) / (numCols - 1)
+      const diamondWidth = numCols > 1 
+        ? (totalWidthToCover - (numCols - 1) * this.externalMarginPx) / (numCols - 1)
+        : totalWidthToCover
+      
+      // Высота ромба рассчитывается аналогично
+      const totalHeightToCover = viewHeight + (this.externalMarginPx * 2)
+      const diamondHeight = numRows > 1 
+        ? (totalHeightToCover - (numRows - 1) * this.externalMarginPx) / (numRows - 1)
+        : totalHeightToCover
+      
+      // Расстояние между центрами ромбов
+      const colSpacing = diamondWidth + this.externalMarginPx
+      const rowSpacing = diamondHeight + this.externalMarginPx
+      
+      // Начинаем от левого края с половиной ширины первого ромба
+      const startX = -diamondWidth / 2
+      // Начинаем сверху с половиной высоты ромба за верхней границей
+      const startY = -diamondHeight / 2
       
       for (let row = 0; row < numRows; row++) {
-        for (let col = 0; col < numDiamonds; col++) {
+        for (let col = 0; col < numCols; col++) {
           const isEven = (row + col) % 2 === 0
           
           if (isEven) {
-            // Ромб - по сути два треугольника, соединенные основаниями
-            // Компенсируем увеличение, чтобы ромб оставался по центру ячейки
-            const xOffset = (diamondWidth - cellWidth * 2) / 2
-            const yOffset = (diamondHeight - cellHeight * 2) / 2
-            const x = startX + col * uniformSpacing - xOffset
-            const y = startY + row * uniformSpacing - yOffset
+            // Позиция центра ромба с сдвигом на половину размера
+            const x = startX + col * colSpacing + diamondWidth / 2 // сдвиг вправо на половину
+            const y = startY + row * rowSpacing + diamondHeight / 2 // сдвиг вниз на половину
             
-            // Дополнительно слегка увеличим контур ромба (1%), чтобы гарантировать перекрытие
-            const sizeMultiplier = 1.01
+            // Ромб - повернутый квадрат (диагонали пересекаются под прямым углом)
+            // Увеличиваем ромбы в 2 раза, не меняя их центры
             const diamond = new paper.Path({
               segments: [
-                [x + cellWidth / 2 * sizeMultiplier, y - cellHeight * 1.49592857723 * sizeMultiplier], // верхняя вершина
-                [x + cellWidth * 2.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier], // правая середина
-                [x + cellWidth / 2 * sizeMultiplier, y + cellHeight * 2.49592857723 * sizeMultiplier], // нижняя вершина
-                [x - cellWidth * 1.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier] // левая середина
+                [x, y - diamondHeight], // верхняя вершина (увеличено в 2 раза)
+                [x + diamondWidth, y], // правая вершина (увеличено в 2 раза)
+                [x, y + diamondHeight], // нижняя вершина (увеличено в 2 раза)
+                [x - diamondWidth, y] // левая вершина (увеличено в 2 раза)
               ],
               closed: true
             })

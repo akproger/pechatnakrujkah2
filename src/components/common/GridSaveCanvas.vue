@@ -70,7 +70,7 @@ export default {
     },
     externalMarginPx: {
       type: Number,
-      default: 10
+      default: 0
     },
     // Настройки теней
     shadowBlur: {
@@ -557,8 +557,9 @@ export default {
         return
       }
       
-      // Применяем фиксированный внешний отступ в пикселях
-      const margin = this.externalMarginPx
+      // Применяем фиксированный внешний отступ в пикселях с учетом масштабирования
+      const scale = this.canvasWidth / 855 // Масштаб для высокого разрешения (855 - ширина основного канваса)
+      const margin = this.externalMarginPx * scale
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -614,25 +615,29 @@ export default {
       const viewWidth = this.canvasWidth
       const viewHeight = this.canvasHeight
       
-      // Применяем фиксированный внешний отступ в пикселях
-      const margin = this.externalMarginPx
+      // Применяем фиксированный внешний отступ в пикселях с учетом масштабирования
+      const scale = this.canvasWidth / 855 // Масштаб для высокого разрешения (855 - ширина основного канваса)
+      const margin = this.externalMarginPx * scale
+      const scaledExternalMarginPx = this.externalMarginPx * scale
       
       console.log('🔺 Отступы для треугольной сетки:', {
         cellWidth,
         cellHeight,
         margin,
-        note: 'Используем фиксированный отступ в пикселях'
+        scale,
+        scaledExternalMarginPx,
+        note: 'Используем масштабированный отступ в пикселях'
       })
       
       // Вычисляем размеры треугольника с учетом высоты канваса и отступов
       // triangleBaseWidth будет переопределен ниже с учетом доступной ширины
       
       // Рассчитываем доступную высоту для треугольников
-      const availableHeight = this.canvasHeight - (this.externalMarginPx * 2) // Высота канваса минус отступы сверху и снизу
+      const availableHeight = this.canvasHeight - (scaledExternalMarginPx * 2) // Высота канваса минус отступы сверху и снизу
       const numRows = this.gridRows
       
       // Отступ между строками в два раза меньше внешнего отступа
-      const rowSpacing = this.externalMarginPx / 2
+      const rowSpacing = scaledExternalMarginPx / 2
       
       // Рассчитываем высоту треугольника так, чтобы все треугольники поместились в канвас
       // Формула: availableHeight = numRows * triangleHeight + (numRows - 1) * rowSpacing
@@ -650,24 +655,28 @@ export default {
       // Между ними: фиксированные отступы
       const numCols = this.gridCols
       
-      // Общая ширина, которую должны покрыть треугольники
-      // Первый треугольник: половина уходит за левую границу
-      // Последний треугольник: центр на правой границе, половина уходит за правую границу
-      // Значит нужно покрыть: ширина канваса + половина первого треугольника + половина последнего треугольника
-      const totalWidthToCover = this.canvasWidth + (this.externalMarginPx * 2) // Добавляем отступы с обеих сторон
+      // Правильная логика расчета ширины треугольников:
+      // Первый треугольник: половина за левой границей
+      // Последний треугольник: половина за правой границей
+      // Между ними: (numCols - 2) целых треугольников
+      // Значит нужно покрыть: ширина канваса + отступы с обеих сторон
+      const totalWidthToCover = this.canvasWidth + (scaledExternalMarginPx * 2) // Отступы с обеих сторон
       
-      // Рассчитываем ширину треугольника с учетом того, что они выходят за границы
-      // Формула: totalWidthToCover = numCols * triangleBaseWidth + (numCols - 1) * externalMarginPx
+      // Рассчитываем ширину треугольника:
+      // 2 половины (слева и справа) = 1 целая ячейка
+      // Значит нужно делить на (numCols - 1), а не на numCols
+      // totalWidthToCover = (numCols - 1) * triangleBaseWidth + (numCols - 1) * externalMarginPx
+      // Откуда: triangleBaseWidth = (totalWidthToCover - (numCols - 1) * externalMarginPx) / (numCols - 1)
       const triangleBaseWidth = numCols > 1 
-        ? (totalWidthToCover - (numCols - 1) * this.externalMarginPx) / numCols
+        ? (totalWidthToCover - (numCols - 1) * scaledExternalMarginPx) / (numCols - 1)
         : totalWidthToCover
       
       // Растягиваем треугольники на половину их ширины
       const triangleStretch = triangleBaseWidth / 2
       
-      // Расстояние между центрами треугольников = базовая ширина + отступ + растяжение
-      // Учитываем, что треугольники растянуты на половину своей ширины
-      const colSpacing = triangleBaseWidth + this.externalMarginPx + triangleStretch
+      // Расстояние между центрами треугольников = базовая ширина + отступ
+      // Растяжение уже учтено в triangleBaseWidth
+      const colSpacing = triangleBaseWidth + scaledExternalMarginPx
       
       console.log('🔺 Расстояния в треугольной сетке:', {
         triangleBaseWidth,
@@ -691,14 +700,18 @@ export default {
       
       // numRows уже объявлен выше
       
-      // Для полного покрытия канваса вычисляем необходимое количество треугольников
-      const canvasWidth = this.canvasWidth
-      const trianglesNeededForFullWidth = Math.ceil(canvasWidth / triangleBaseWidth) + 2 // +2 для запаса
-      const numTriangles = Math.max(trianglesNeededForFullWidth, 20) // Минимум 20 треугольников
+      // Используем gridCols для определения количества треугольников в строке (как в основном канвасе)
+      const numTriangles = this.gridCols
+      
+      console.log('🔺 GridSaveCanvas - Количество треугольников в строке:', {
+        gridCols: this.gridCols,
+        numTriangles,
+        note: 'Должно совпадать с основным канвасом'
+      })
       
       // Сдвигаем все треугольники влево так, чтобы половина первых треугольников ушла за левую границу канваса
       // Центр первого треугольника должен быть на половину его ширины левее левого края
-      const startX = -(triangleBaseWidth + triangleStretch) / 2
+      const startX = -triangleBaseWidth / 2
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
@@ -715,9 +728,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x + (triangleBaseWidth + triangleStretch) / 2, y], // вершина
-                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
-                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
+                [x + triangleBaseWidth / 2, y], // вершина
+                [x - triangleBaseWidth * 0.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
+                [x + triangleBaseWidth * 1.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -726,9 +739,9 @@ export default {
             // Треугольник основанием вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y], // левый угол основания
-                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y], // правый угол основания
-                [x + (triangleBaseWidth + triangleStretch) / 2, y + triangleHeight * verticalMultiplier] // вершина
+                [x - triangleBaseWidth * 0.5125, y], // левый угол основания
+                [x + triangleBaseWidth * 1.5125, y], // правый угол основания
+                [x + triangleBaseWidth / 2, y + triangleHeight * verticalMultiplier] // вершина
               ],
               closed: true
             })
@@ -759,63 +772,72 @@ export default {
       const viewWidth = this.canvasWidth
       const viewHeight = this.canvasHeight
       
-      // Применяем фиксированный внешний отступ в пикселях
-      const margin = this.externalMarginPx
+      // Применяем фиксированный внешний отступ в пикселях с учетом масштабирования
+      const scale = this.canvasWidth / 855 // Масштаб для высокого разрешения (855 - ширина основного канваса)
+      const margin = this.externalMarginPx * scale
+      const scaledExternalMarginPx = this.externalMarginPx * scale
       
-      console.log('💎 Отступы для ромбовидной сетки:', {
-        cellWidth,
-        cellHeight,
-        margin,
-        note: 'Используем фиксированный отступ в пикселях'
-      })
+      // Правильная логика расчета размеров ромбов (как для треугольников):
+      // 2 половины (слева и справа) = 1 целая ячейка
+      // Значит нужно делить на (numCols - 1), а не на numCols
+      const numCols = this.gridCols
+      const numRows = this.gridRows
       
-      // Вычисляем размеры ромба (возвращаем правильную геометрию)
-      const diamondWidth = cellWidth * 2
-      const diamondHeight = cellHeight * 2
+      // Общая ширина, которую должны покрыть ромбы
+      const totalWidthToCover = viewWidth + (scaledExternalMarginPx * 2) // Отступы с обеих сторон
       
-      // ВАЖНО: Делаем расстояние между строками равным расстоянию между столбцами
-      // Используем одинаковое расстояние для обоих направлений
-      const uniformSpacing = Math.max(diamondWidth, diamondHeight) // Берем большее из двух расстояний
+      // Рассчитываем ширину ромба:
+      // totalWidthToCover = (numCols - 1) * diamondWidth + (numCols - 1) * externalMarginPx
+      // Откуда: diamondWidth = (totalWidthToCover - (numCols - 1) * externalMarginPx) / (numCols - 1)
+      const diamondWidth = numCols > 1 
+        ? (totalWidthToCover - (numCols - 1) * scaledExternalMarginPx) / (numCols - 1)
+        : totalWidthToCover
+      
+      // Высота ромба рассчитывается аналогично
+      const totalHeightToCover = viewHeight + (scaledExternalMarginPx * 2)
+      const diamondHeight = numRows > 1 
+        ? (totalHeightToCover - (numRows - 1) * scaledExternalMarginPx) / (numRows - 1)
+        : totalHeightToCover
+      
+      // Расстояние между центрами ромбов
+      const colSpacing = diamondWidth + scaledExternalMarginPx
+      const rowSpacing = diamondHeight + scaledExternalMarginPx
       
       console.log('💎 Расстояния в ромбовидной сетке:', {
         diamondWidth,
         diamondHeight,
-        uniformSpacing,
-        note: 'Используем единое расстояние для обоих направлений'
+        colSpacing,
+        rowSpacing,
+        numCols,
+        numRows,
+        note: 'Используем правильную формулу как для треугольников'
       })
       
-      // Используем gridRows и gridCols для определения количества
-      const numRows = this.gridRows
-      
-      // Для полного покрытия канваса вычисляем необходимое количество ромбов
-      const diamondsNeededForFullWidth = Math.ceil(this.canvasWidth / diamondWidth) + 2 // +2 для запаса
-      const numDiamonds = Math.max(diamondsNeededForFullWidth, 16) // Минимум 16 ромбов
-      
-      // Начинаем от левого края с половины ширины первого ромба + отступ
-      const startX = -cellWidth * 0.5 + margin
-      // Начинаем сверху с половины высоты ромба за верхней границей + отступ
-      const startY = -cellHeight * 0.5 + margin
+      // Начинаем от левого края с половиной ширины первого ромба
+      const startX = -diamondWidth / 2
+      // Начинаем сверху с половиной высоты ромба за верхней границей
+      const startY = -diamondHeight / 2
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
       for (let row = 0; row < numRows; row++) {
-        for (let col = 0; col < numDiamonds; col++) {
+        for (let col = 0; col < numCols; col++) {
           const isEven = (row + col) % 2 === 0
           
           if (isEven) {
-            // Ромб - по сути два треугольника, соединенные основаниями
-            const x = startX + col * uniformSpacing
-            const y = startY + row * uniformSpacing
+            // Позиция центра ромба с сдвигом на половину размера (масштабированным)
+            const x = startX + col * colSpacing + diamondWidth / 2 // сдвиг вправо на половину
+            const y = startY + row * rowSpacing + diamondHeight / 2 // сдвиг вниз на половину
             
-            // Увеличиваем ромб на 0.5% для устранения просветов
-            const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
+            // Ромб - повернутый квадрат (диагонали пересекаются под прямым углом)
+            // Увеличиваем ромбы в 2 раза, не меняя их центры
             const diamond = new this.paperScope.Path({
               segments: [
-                [x + cellWidth / 2 * sizeMultiplier, y - cellHeight * 1.49592857723 * sizeMultiplier], // верхняя вершина
-                [x + cellWidth * 2.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier], // правая середина
-                [x + cellWidth / 2 * sizeMultiplier, y + cellHeight * 2.49592857723 * sizeMultiplier], // нижняя вершина
-                [x - cellWidth * 1.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier] // левая середина
+                [x, y - diamondHeight], // верхняя вершина (увеличено в 2 раза)
+                [x + diamondWidth, y], // правая вершина (увеличено в 2 раза)
+                [x, y + diamondHeight], // нижняя вершина (увеличено в 2 раза)
+                [x - diamondWidth, y] // левая вершина (увеличено в 2 раза)
               ],
               closed: true
             })
@@ -847,8 +869,9 @@ export default {
       const totalHeight = this.canvasHeight
       
       // Применяем внешний отступ - используем одинаковый отступ по обеим осям
-      // Применяем фиксированный внешний отступ в пикселях
-      const margin = this.externalMarginPx
+      // Применяем фиксированный внешний отступ в пикселях с учетом масштабирования
+      const scale = this.canvasWidth / 855 // Масштаб для высокого разрешения (855 - ширина основного канваса)
+      const margin = this.externalMarginPx * scale
       
       // Вычисляем размеры шестиугольника
       const adjustedCols = this.gridCols + 1

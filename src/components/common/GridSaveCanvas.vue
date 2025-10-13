@@ -68,6 +68,10 @@ export default {
       type: Number,
       default: 10
     },
+    externalMarginPx: {
+      type: Number,
+      default: 10
+    },
     // Настройки теней
     shadowBlur: {
       type: Number,
@@ -553,8 +557,8 @@ export default {
         return
       }
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -610,34 +614,66 @@ export default {
       const viewWidth = this.canvasWidth
       const viewHeight = this.canvasHeight
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       
-      // Вычисляем размеры треугольника
-      const triangleHeight = cellHeight // Высота треугольника равна высоте ячейки
+      console.log('🔺 Отступы для треугольной сетки:', {
+        cellWidth,
+        cellHeight,
+        margin,
+        note: 'Используем фиксированный отступ в пикселях'
+      })
+      
+      // Вычисляем размеры треугольника с учетом высоты канваса и отступов
       const triangleBaseWidth = cellWidth * 2 // Основание треугольника равно 2 ячейкам
+      
+      // Рассчитываем доступную высоту для треугольников
+      const availableHeight = this.canvasHeight - (this.externalMarginPx * 2) // Высота канваса минус отступы сверху и снизу
+      const numRows = this.gridRows
+      
+      // Рассчитываем высоту треугольника так, чтобы все треугольники поместились в канвас
+      // Формула: availableHeight = numRows * triangleHeight + (numRows - 1) * externalMarginPx
+      // Отсюда: triangleHeight = (availableHeight - (numRows - 1) * externalMarginPx) / numRows
+      const triangleHeight = numRows > 1 
+        ? (availableHeight - (numRows - 1) * this.externalMarginPx) / numRows
+        : availableHeight
+      
+      // ВАЖНО: Разделяем высоту треугольника и отступы между строками
+      const colSpacing = triangleBaseWidth // Расстояние между столбцами остается как основание треугольника
+      
+      console.log('🔺 Расстояния в треугольной сетке:', {
+        triangleBaseWidth,
+        triangleHeight,
+        colSpacing,
+        availableHeight,
+        numRows,
+        externalMarginPx: this.externalMarginPx,
+        spacingBetweenRows: this.externalMarginPx,
+        calculatedTotalHeight: numRows * triangleHeight + (numRows - 1) * this.externalMarginPx,
+        note: 'Отступы разделены от высоты треугольника'
+      })
       
       // Увеличиваем треугольники по вертикали на 0.5% для устранения просветов
       const verticalMultiplier = 1.005 // Увеличиваем на 0.5%
       
-      // Используем gridRows и gridCols для определения количества
-      const numRows = this.gridRows
+      // numRows уже объявлен выше
       
       // Для полного покрытия канваса вычисляем необходимое количество треугольников
       const canvasWidth = this.canvasWidth
       const trianglesNeededForFullWidth = Math.ceil(canvasWidth / triangleBaseWidth) + 2 // +2 для запаса
       const numTriangles = Math.max(trianglesNeededForFullWidth, 20) // Минимум 20 треугольников
       
-      // Начинаем от левого края с половины основания первого треугольника
-      const startX = -cellWidth * 0.5
+      // Начинаем от левого края с половины основания первого треугольника + отступ
+      const startX = -cellWidth * 0.5 + margin
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
       
       for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numTriangles; col++) {
-          const x = startX + col * triangleBaseWidth + margin
-          const y = row * triangleHeight + margin
+          const x = startX + col * colSpacing
+          // Y позиция: отступ сверху + (высота треугольника + отступ) * номер строки
+          const y = margin + row * (triangleHeight + this.externalMarginPx)
           const isEven = (row + col) % 2 === 0
           
           let triangle
@@ -645,9 +681,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x + (cellWidth - margin * 2) / 2, y], // вершина
-                [x - (cellWidth - margin * 2) * 1.5125, y + (cellHeight - margin * 2) * verticalMultiplier], // левый угол основания
-                [x + (cellWidth - margin * 2) * 2.5125, y + (cellHeight - margin * 2) * verticalMultiplier] // правый угол основания
+                [x + cellWidth / 2, y], // вершина
+                [x - cellWidth * 1.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
+                [x + cellWidth * 2.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -656,9 +692,9 @@ export default {
             // Треугольник основанием вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x - (cellWidth - margin * 2) * 1.5125, y], // левый угол основания
-                [x + (cellWidth - margin * 2) * 2.5125, y], // правый угол основания
-                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2) * verticalMultiplier] // вершина
+                [x - cellWidth * 1.5125, y], // левый угол основания
+                [x + cellWidth * 2.5125, y], // правый угол основания
+                [x + cellWidth / 2, y + triangleHeight * verticalMultiplier] // вершина
               ],
               closed: true
             })
@@ -689,12 +725,30 @@ export default {
       const viewWidth = this.canvasWidth
       const viewHeight = this.canvasHeight
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       
-      // Вычисляем размеры ромба
+      console.log('💎 Отступы для ромбовидной сетки:', {
+        cellWidth,
+        cellHeight,
+        margin,
+        note: 'Используем фиксированный отступ в пикселях'
+      })
+      
+      // Вычисляем размеры ромба (возвращаем правильную геометрию)
       const diamondWidth = cellWidth * 2
       const diamondHeight = cellHeight * 2
+      
+      // ВАЖНО: Делаем расстояние между строками равным расстоянию между столбцами
+      // Используем одинаковое расстояние для обоих направлений
+      const uniformSpacing = Math.max(diamondWidth, diamondHeight) // Берем большее из двух расстояний
+      
+      console.log('💎 Расстояния в ромбовидной сетке:', {
+        diamondWidth,
+        diamondHeight,
+        uniformSpacing,
+        note: 'Используем единое расстояние для обоих направлений'
+      })
       
       // Используем gridRows и gridCols для определения количества
       const numRows = this.gridRows
@@ -703,10 +757,10 @@ export default {
       const diamondsNeededForFullWidth = Math.ceil(this.canvasWidth / diamondWidth) + 2 // +2 для запаса
       const numDiamonds = Math.max(diamondsNeededForFullWidth, 16) // Минимум 16 ромбов
       
-      // Начинаем от левого края с половины ширины первого ромба
-      const startX = -cellWidth * 0.5
-      // Начинаем сверху с половины высоты ромба за верхней границей
-      const startY = -cellHeight * 0.5
+      // Начинаем от левого края с половины ширины первого ромба + отступ
+      const startX = -cellWidth * 0.5 + margin
+      // Начинаем сверху с половины высоты ромба за верхней границей + отступ
+      const startY = -cellHeight * 0.5 + margin
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
@@ -717,17 +771,17 @@ export default {
           
           if (isEven) {
             // Ромб - по сути два треугольника, соединенные основаниями
-            const x = startX + col * diamondWidth + margin
-            const y = startY + row * diamondHeight + margin
+            const x = startX + col * uniformSpacing
+            const y = startY + row * uniformSpacing
             
             // Увеличиваем ромб на 0.5% для устранения просветов
             const sizeMultiplier = 1.005 // Увеличиваем на 0.5%
             const diamond = new this.paperScope.Path({
               segments: [
-                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y - (cellHeight - margin * 2) * 1.49592857723 * sizeMultiplier], // верхняя вершина
-                [x + (cellWidth - margin * 2) * 2.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier], // правая середина
-                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y + (cellHeight - margin * 2) * 2.49592857723 * sizeMultiplier], // нижняя вершина
-                [x - (cellWidth - margin * 2) * 1.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier] // левая середина
+                [x + cellWidth / 2 * sizeMultiplier, y - cellHeight * 1.49592857723 * sizeMultiplier], // верхняя вершина
+                [x + cellWidth * 2.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier], // правая середина
+                [x + cellWidth / 2 * sizeMultiplier, y + cellHeight * 2.49592857723 * sizeMultiplier], // нижняя вершина
+                [x - cellWidth * 1.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier] // левая середина
               ],
               closed: true
             })
@@ -759,9 +813,8 @@ export default {
       const totalHeight = this.canvasHeight
       
       // Применяем внешний отступ - используем одинаковый отступ по обеим осям
-      // Для шестигранников отступ должен быть одинаковым по вертикали и горизонтали
-      const baseMargin = Math.min(cellWidth, cellHeight)
-      const margin = (this.externalMargin / 100) * baseMargin
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       
       // Вычисляем размеры шестиугольника
       const adjustedCols = this.gridCols + 1
@@ -1123,66 +1176,79 @@ export default {
       // Создаем обводку ВОКРУГ маски (того же размера, что и маска)
       let strokeMask = null
       
-      if (originalMask.data && originalMask.data.type === 'rectangle') {
-        // Создаем прямоугольную обводку ВОКРУГ маски
-        const bounds = originalMask.bounds
-        strokeMask = new this.paperScope.Path.Rectangle({
-          point: [bounds.left, bounds.top],
-          size: [bounds.width, bounds.height]
+      // ВАЖНО: Для всех типов масок используем реальные сегменты, если они есть
+      if (originalMask.segments && originalMask.segments.length > 0) {
+        // Используем реальные сегменты маски для точного повторения формы
+        const points = originalMask.segments.map(segment => segment.point)
+        strokeMask = new this.paperScope.Path(points)
+        strokeMask.closePath()
+        console.log('🎯 Используем реальные сегменты маски для обводки:', {
+          segmentsCount: originalMask.segments.length,
+          maskType: originalMask.data?.type || 'unknown'
         })
-      } else if (originalMask.data && originalMask.data.type === 'triangle') {
-        // Создаем треугольную обводку ВОКРУГ маски
-        const bounds = originalMask.bounds
-        const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
-        
-        if (isInverted) {
-          // Перевернутый треугольник
-          strokeMask = new this.paperScope.Path([
-            new this.paperScope.Point(bounds.center.x, bounds.bottom),
-            new this.paperScope.Point(bounds.left, bounds.top),
-            new this.paperScope.Point(bounds.right, bounds.top)
-          ])
-        } else {
-          // Обычный треугольник
+      } else {
+        // Fallback - создаем обводку по типу маски
+        if (originalMask.data && originalMask.data.type === 'rectangle') {
+          // Создаем прямоугольную обводку ВОКРУГ маски
+          const bounds = originalMask.bounds
+          strokeMask = new this.paperScope.Path.Rectangle({
+            point: [bounds.left, bounds.top],
+            size: [bounds.width, bounds.height]
+          })
+        } else if (originalMask.data && originalMask.data.type === 'triangle') {
+          // Создаем треугольную обводку ВОКРУГ маски
+          const bounds = originalMask.bounds
+          const isInverted = (originalMask.data.row + originalMask.data.col) % 2 === 1
+          
+          if (isInverted) {
+            // Перевернутый треугольник
+            strokeMask = new this.paperScope.Path([
+              new this.paperScope.Point(bounds.center.x, bounds.bottom),
+              new this.paperScope.Point(bounds.left, bounds.top),
+              new this.paperScope.Point(bounds.right, bounds.top)
+            ])
+          } else {
+            // Обычный треугольник
+            strokeMask = new this.paperScope.Path([
+              new this.paperScope.Point(bounds.center.x, bounds.top),
+              new this.paperScope.Point(bounds.left, bounds.bottom),
+              new this.paperScope.Point(bounds.right, bounds.bottom)
+            ])
+          }
+        } else if (originalMask.data && originalMask.data.type === 'diamond') {
+          // Создаем ромбовидную обводку ВОКРУГ маски
+          const bounds = originalMask.bounds
           strokeMask = new this.paperScope.Path([
             new this.paperScope.Point(bounds.center.x, bounds.top),
-            new this.paperScope.Point(bounds.left, bounds.bottom),
-            new this.paperScope.Point(bounds.right, bounds.bottom)
+            new this.paperScope.Point(bounds.left, bounds.center.y),
+            new this.paperScope.Point(bounds.center.x, bounds.bottom),
+            new this.paperScope.Point(bounds.right, bounds.center.y)
           ])
-        }
-      } else if (originalMask.data && originalMask.data.type === 'diamond') {
-        // Создаем ромбовидную обводку ВОКРУГ маски
-        const bounds = originalMask.bounds
-        strokeMask = new this.paperScope.Path([
-          new this.paperScope.Point(bounds.center.x, bounds.top),
-          new this.paperScope.Point(bounds.left, bounds.center.y),
-          new this.paperScope.Point(bounds.center.x, bounds.bottom),
-          new this.paperScope.Point(bounds.right, bounds.center.y)
-        ])
-      } else if (originalMask.data && originalMask.data.type === 'hexagon') {
-        // Создаем шестиугольную обводку ВОКРУГ маски (того же размера, что и маска)
-        if (originalMask.segments && originalMask.segments.length > 0) {
-          // Используем реальные сегменты маски без изменений
-          const points = originalMask.segments.map(segment => segment.point)
-          strokeMask = new this.paperScope.Path(points)
-          strokeMask.closePath()
-        } else {
+        } else if (originalMask.data && originalMask.data.type === 'hexagon') {
           // Fallback - создаем идеальный шестиугольник того же размера
           const bounds = originalMask.bounds
           const hexPoints = this.getHexagonPoints(bounds.width, bounds.height)
           const points = hexPoints.map(p => new this.paperScope.Point(bounds.left + p.x, bounds.top + p.y))
           strokeMask = new this.paperScope.Path(points)
           strokeMask.closePath()
+        } else {
+          // Для других типов масок используем клон
+          strokeMask = originalMask.clone()
         }
-      } else {
-        // Для других типов масок используем клон
-        strokeMask = originalMask.clone()
+        console.log('⚠️ Fallback: создаем обводку по типу маски:', {
+          maskType: originalMask.data?.type || 'unknown'
+        })
       }
       
-      // Настраиваем обводку
+      // Вычисляем правильный масштабный коэффициент для обводки
+      const sx = (this.mainCanvasWidth > 0) ? (this.canvasWidth / this.mainCanvasWidth) : 1
+      const sy = (this.mainCanvasHeight > 0) ? (this.canvasHeight / this.mainCanvasHeight) : 1
+      const scale = Math.max(sx, sy)
+      
+      // Настраиваем обводку с правильным масштабированием и множителем x4
       strokeMask.fillColor = 'transparent'
       strokeMask.strokeColor = this.strokeColor
-      strokeMask.strokeWidth = this.strokeWidth
+      strokeMask.strokeWidth = this.strokeWidth * scale * 4 // Добавляем множитель x4
       strokeMask.visible = true
       
       // Добавляем обводку ПОВЕРХ maskedRaster
@@ -1192,11 +1258,14 @@ export default {
       console.log('✅ Обводка создана для маски:', {
         strokeColor: strokeMask.strokeColor.toString(),
         strokeWidth: strokeMask.strokeWidth,
+        originalStrokeWidth: this.strokeWidth,
+        scale: scale,
+        multiplier: 4,
         position: strokeMask.position.toString(),
         originalBounds: originalMask.bounds.toString(),
         strokeBounds: strokeMask.bounds.toString(),
         maskType: originalMask.data?.type || 'unknown',
-        note: 'Обводка создана ВОКРУГ маски (того же размера)'
+        note: 'Обводка создана ВОКРУГ маски с правильным масштабированием и множителем x4'
       })
     },
     
@@ -1254,9 +1323,9 @@ export default {
       shadowMask.strokeColor = null
       shadowMask.visible = true
       
-      // Смещаем тень
-      const offsetX = this.shadowOffsetX
-      const offsetY = this.shadowOffsetY
+      // Смещаем тень с множителем x2 для процесса сохранения
+      const offsetX = this.shadowOffsetX * 2
+      const offsetY = this.shadowOffsetY * 2
       
       console.log('🔍 Тень создается:', {
         shadowOpacity: shadowOpacity,
@@ -1265,7 +1334,10 @@ export default {
         visible: shadowMask.visible,
         originalMaskBounds: originalMask.bounds.toString(),
         hasOffset: offsetX !== 0 || offsetY !== 0,
-        hasBlur: this.shadowBlur > 0
+        hasBlur: this.shadowBlur > 0,
+        originalOffsetX: this.shadowOffsetX,
+        originalOffsetY: this.shadowOffsetY,
+        multiplier: 2
       })
       
       // Увеличиваем смещение для лучшей видимости теней
@@ -1318,11 +1390,11 @@ export default {
         return
       }
       
-      // Применяем настройки тени к Raster (точно как на основном канвасе)
+      // Применяем настройки тени к Raster с множителем x2 для процесса сохранения
       const shadowColor = new this.paperScope.Color(0, 0, 0, this.shadowOpacity / 100)
       raster.shadowColor = shadowColor
       raster.shadowBlur = this.shadowBlur
-      raster.shadowOffset = new this.paperScope.Point(this.shadowOffsetX, this.shadowOffsetY)
+      raster.shadowOffset = new this.paperScope.Point(this.shadowOffsetX * 2, this.shadowOffsetY * 2)
       
       // Принудительно обновляем отображение
       raster.shadowColor = shadowColor
@@ -1331,6 +1403,9 @@ export default {
         shadowColor: shadowColor.toString(),
         shadowBlur: raster.shadowBlur,
         shadowOffset: raster.shadowOffset.toString(),
+        originalOffsetX: this.shadowOffsetX,
+        originalOffsetY: this.shadowOffsetY,
+        multiplier: 2,
         visible: raster.visible
       })
     },
@@ -1340,16 +1415,21 @@ export default {
       if (this.gridCols === 1 && this.gridRows === 1 && this.strokeWidth > 0) {
         console.log('🎯 Добавляем основной прямоугольник с обводкой для кружки-комикс')
         
+        // Вычисляем правильный масштабный коэффициент для обводки
+        const sx = (this.mainCanvasWidth > 0) ? (this.canvasWidth / this.mainCanvasWidth) : 1
+        const sy = (this.mainCanvasHeight > 0) ? (this.canvasHeight / this.mainCanvasHeight) : 1
+        const scale = Math.max(sx, sy)
+        
         // Создаем основной прямоугольник с обводкой
         const mainRect = new this.paperScope.Path.Rectangle({
           point: [0, 0],
           size: [this.canvasWidth, this.canvasHeight]
         })
         
-        // Настраиваем обводку (в 2 раза толще для сохранения)
+        // Настраиваем обводку с правильным масштабированием и множителем x4
         mainRect.fillColor = null // Без заливки
         mainRect.strokeColor = this.strokeColor
-        mainRect.strokeWidth = this.strokeWidth * 2 // Увеличиваем толщину в 2 раза
+        mainRect.strokeWidth = this.strokeWidth * scale * 4 // Используем правильный масштаб с множителем x4
         mainRect.strokeJoin = 'miter'
         mainRect.strokeCap = 'butt'
         
@@ -1359,8 +1439,10 @@ export default {
         
         console.log('✅ Основной прямоугольник с обводкой добавлен:', {
           strokeColor: this.strokeColor,
-          strokeWidth: this.strokeWidth * 2, // Показываем увеличенную толщину
+          strokeWidth: this.strokeWidth * scale * 4, // Показываем масштабированную толщину с множителем x4
           originalStrokeWidth: this.strokeWidth,
+          scale: scale,
+          multiplier: 4,
           size: `${this.canvasWidth}x${this.canvasHeight}`
         })
       }

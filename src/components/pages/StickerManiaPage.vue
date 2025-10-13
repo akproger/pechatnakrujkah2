@@ -627,7 +627,7 @@ export default {
         '#6A5ACD','#7B68EE','#9370DB','#BA55D3','#FF69B4','#DB7093','#CD5C5C','#F08080',
         '#FA8072','#E9967A','#D2691E','#8B4513','#708090','#2E8B57','#3CB371','#8FBC8F'
       ],
-      strokeWidth: 8, // Проценты (0-20)
+      strokeWidth: 10, // Проценты (0-20)
       shadowBlur: 4, // Пиксели (0-20 px)
       
       shadowOffsetX: 3, // Проценты (-5 до +5)

@@ -73,7 +73,7 @@
                     :uploaded-images="uploadedImages"
                     :stroke-color="strokeColor"
                     :stroke-width="strokeWidthPxForSave"
-                    :external-margin="externalMargin"
+                    :external-margin-px="externalMarginPx"
                     :shadow-blur="shadowBlurPxForSave"
                     :shadow-offset-x="shadowOffsetXPxForSave"
                     :shadow-offset-y="shadowOffsetYPxForSave"
@@ -309,15 +309,15 @@
                   <h3 class="settings-subheader">Отступ</h3>
                   <!-- Внешний отступ -->
                   <div class="setting-group">
-                    <label class="form-label">Внешний отступ: {{ externalMargin }}%</label>
+                    <label class="form-label">Внешний отступ: {{ externalMarginPx }}px</label>
                     <div class="control-scale" role="group">
                       <div
-                        v-for="pct in 10"
-                        :key="`ext-${pct * 2}`"
+                        v-for="px in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]"
+                        :key="`ext-${px}`"
                         class="control-cell"
-                        :class="{ 'selected': (pct * 2) <= externalMargin }"
-                        :title="`${pct * 2}%`"
-                        @click="setExternalMargin(pct * 2)"
+                        :class="{ 'selected': px <= externalMarginPx }"
+                        :title="`${px}px`"
+                        @click="setExternalMarginPx(px)"
                       ></div>
                     </div>
                   </div>
@@ -623,7 +623,8 @@ export default {
       selectedCell: null,
       touchStartPos: null,
       // Дополнительные настройки
-      externalMargin: 0, // Проценты (0-20)
+      externalMargin: 0, // Проценты (0-20) - устаревшее, используем externalMarginPx
+      externalMarginPx: 10, // Пиксели (0-50)
       strokeColor: '#000000',
       strokeWidth: 0, // Проценты (0-20)
       shadowBlur: 0, // Проценты (0-20)
@@ -785,6 +786,10 @@ export default {
     },
     // Дополнительные настройки
     externalMargin() {
+      if (this.isSaving) return
+      this.generateGrid()
+    },
+    externalMarginPx() {
       if (this.isSaving) return
       this.generateGrid()
     },
@@ -971,6 +976,13 @@ export default {
       const v = Math.max(0, Math.min(20, pct))
       this.externalMargin = v
       console.log('✅ Внешний отступ установлен:', v)
+      this.generateGrid()
+    },
+    setExternalMarginPx(px) {
+      // защита диапазона 0-50 с шагом 5px
+      const v = Math.max(0, Math.min(50, px))
+      this.externalMarginPx = v
+      console.log('✅ Внешний отступ установлен:', v, 'px')
       this.generateGrid()
     },
 
@@ -2111,11 +2123,11 @@ export default {
         originalRows: this.gridRows,
         doubledCols,
         doubledRows,
-        externalMargin: this.externalMargin
+        externalMarginPx: this.externalMarginPx
       })
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -2186,8 +2198,8 @@ export default {
       const viewWidth = tempPaperScope.view.element.width
       const viewHeight = tempPaperScope.view.element.height
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -2242,8 +2254,8 @@ export default {
     async createDiamondMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('💎 Создаем маски ромбов для высокого разрешения')
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -2296,8 +2308,8 @@ export default {
     async createHexagonMasksForHighDPI(tempPaperScope, maskGroup, cellWidth, cellHeight, scale, doubledCols, doubledRows) {
       console.log('⬡ Создаем маски шестиугольников для высокого разрешения')
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -3864,8 +3876,8 @@ export default {
     },
     
     createRectangleMasks(group, cellWidth, cellHeight) {
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       let adjustedWidth = cellWidth - margin * 2
       let adjustedHeight = cellHeight - margin * 2
       
@@ -3920,27 +3932,62 @@ export default {
         cellHeight
       })
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       
-      // Вычисляем размеры треугольника
-      const triangleHeight = cellHeight // Высота треугольника равна высоте ячейки
+      // Вычисляем размеры треугольника с учетом высоты канваса и отступов
       const triangleBaseWidth = cellWidth * 2 // Основание треугольника равно 2 ячейкам
+      
+      // Рассчитываем доступную высоту для треугольников
+      const availableHeight = viewHeight - (this.externalMarginPx * 2) // Высота канваса минус отступы сверху и снизу
+      const numRows = this.gridRows
+      
+      // Рассчитываем высоту треугольника так, чтобы все треугольники поместились в канвас
+      // Формула: availableHeight = numRows * triangleHeight + (numRows - 1) * externalMarginPx
+      // Отсюда: triangleHeight = (availableHeight - (numRows - 1) * externalMarginPx) / numRows
+      const triangleHeight = numRows > 1 
+        ? (availableHeight - (numRows - 1) * this.externalMarginPx) / numRows
+        : availableHeight
+      
+      console.log('🔺 Отладка треугольников:', {
+        viewHeight,
+        availableHeight,
+        numRows,
+        externalMarginPx: this.externalMarginPx,
+        triangleHeight,
+        calculatedTotalHeight: numRows * triangleHeight + (numRows - 1) * this.externalMarginPx,
+        spacingBetweenRows: this.externalMarginPx,
+        note: 'Проверяем расчеты высоты и отступов'
+      })
+      
+      // ВАЖНО: Разделяем высоту треугольника и отступы между строками
+      const colSpacing = triangleBaseWidth // Расстояние между столбцами остается как основание треугольника
       
       // Увеличиваем треугольники по вертикали на 0.5% для устранения просветов
       const verticalMultiplier = 1.005 // Увеличиваем на 0.5%
       
-      // Используем gridRows и gridCols для определения количества
-      const numRows = this.gridRows
+      // Используем gridCols для определения количества треугольников в строке
       const numTriangles = this.gridCols
       
-      // Начинаем от левого края с половиной основания первого треугольника
-      const startX = -cellWidth * 0.5
+      // Начинаем от левого края с половиной основания первого треугольника + отступ
+      const startX = -cellWidth * 0.5 + margin
       
       for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numTriangles; col++) {
-          const x = startX + col * triangleBaseWidth + margin
-          const y = row * triangleHeight + margin
+          const x = startX + col * colSpacing
+          // Y позиция: отступ сверху + (высота треугольника + отступ) * номер строки
+          const y = margin + row * (triangleHeight + this.externalMarginPx)
+          
+          // Отладка только для первого столбца
+          if (col === 0) {
+            console.log(`🔺 Строка ${row}:`, {
+              y,
+              triangleHeight,
+              externalMarginPx: this.externalMarginPx,
+              spacing: triangleHeight + this.externalMarginPx,
+              note: `Позиция Y для строки ${row}`
+            })
+          }
           const isEven = (row + col) % 2 === 0
           
           let triangle
@@ -3948,9 +3995,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new paper.Path({
               segments: [
-                [x + (cellWidth - margin * 2) / 2, y], // вершина
-                [x - (cellWidth - margin * 2) * 1.5125, y + (cellHeight - margin * 2) * verticalMultiplier], // левый угол основания
-                [x + (cellWidth - margin * 2) * 2.5125, y + (cellHeight - margin * 2) * verticalMultiplier] // правый угол основания
+                [x + cellWidth / 2, y], // вершина
+                [x - cellWidth * 1.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
+                [x + cellWidth * 2.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -3959,9 +4006,9 @@ export default {
             // Треугольник основанием вверх
             triangle = new paper.Path({
               segments: [
-                [x - (cellWidth - margin * 2) * 1.5125, y], // левый угол основания
-                [x + (cellWidth - margin * 2) * 2.5125, y], // правый угол основания
-                [x + (cellWidth - margin * 2) / 2, y + (cellHeight - margin * 2) * verticalMultiplier] // вершина
+                [x - cellWidth * 1.5125, y], // левый угол основания
+                [x + cellWidth * 2.5125, y], // правый угол основания
+                [x + cellWidth / 2, y + triangleHeight * verticalMultiplier] // вершина
               ],
               closed: true
             })
@@ -3990,10 +4037,10 @@ export default {
       const viewWidth = paper.view.viewSize.width
       const viewHeight = paper.view.viewSize.height
       
-      // Применяем внешний отступ
-      const margin = (this.externalMargin / 100) * Math.min(cellWidth, cellHeight)
+      // Применяем фиксированный внешний отступ в пикселях
+      const margin = this.externalMarginPx
       
-      // Вычисляем размеры ромба
+      // Вычисляем размеры ромба (возвращаем правильную геометрию)
       let diamondWidth = cellWidth * 2
       let diamondHeight = cellHeight * 2
 
@@ -4002,14 +4049,18 @@ export default {
       diamondWidth += diamondWidth * sizeIncreaseDiamond + 2
       diamondHeight += diamondHeight * sizeIncreaseDiamond + 2
       
+      // ВАЖНО: Делаем расстояние между строками равным расстоянию между столбцами
+      // Используем одинаковое расстояние для обоих направлений
+      const uniformSpacing = Math.max(diamondWidth, diamondHeight) // Берем большее из двух расстояний
+      
       // Используем gridRows и gridCols для определения количества
       const numRows = this.gridRows
       const numDiamonds = this.gridCols
       
-      // Начинаем от левого края с половиной ширины первого ромба
-      const startX = -cellWidth * 0.5
-      // Начинаем сверху с половиной высоты ромба за верхней границей
-      const startY = -cellHeight * 0.5
+      // Начинаем от левого края с половиной ширины первого ромба + отступ
+      const startX = -cellWidth * 0.5 + margin
+      // Начинаем сверху с половиной высоты ромба за верхней границей + отступ
+      const startY = -cellHeight * 0.5 + margin
       
       for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numDiamonds; col++) {
@@ -4020,17 +4071,17 @@ export default {
             // Компенсируем увеличение, чтобы ромб оставался по центру ячейки
             const xOffset = (diamondWidth - cellWidth * 2) / 2
             const yOffset = (diamondHeight - cellHeight * 2) / 2
-            const x = startX + col * (cellWidth * 2) + margin - xOffset
-            const y = startY + row * (cellHeight * 2) + margin - yOffset
+            const x = startX + col * uniformSpacing - xOffset
+            const y = startY + row * uniformSpacing - yOffset
             
             // Дополнительно слегка увеличим контур ромба (1%), чтобы гарантировать перекрытие
             const sizeMultiplier = 1.01
             const diamond = new paper.Path({
               segments: [
-                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y - (cellHeight - margin * 2) * 1.49592857723 * sizeMultiplier], // верхняя вершина
-                [x + (cellWidth - margin * 2) * 2.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier], // правая середина
-                [x + (cellWidth - margin * 2) / 2 * sizeMultiplier, y + (cellHeight - margin * 2) * 2.49592857723 * sizeMultiplier], // нижняя вершина
-                [x - (cellWidth - margin * 2) * 1.487375 * sizeMultiplier, y + (cellHeight - margin * 2) / 2 * sizeMultiplier] // левая середина
+                [x + cellWidth / 2 * sizeMultiplier, y - cellHeight * 1.49592857723 * sizeMultiplier], // верхняя вершина
+                [x + cellWidth * 2.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier], // правая середина
+                [x + cellWidth / 2 * sizeMultiplier, y + cellHeight * 2.49592857723 * sizeMultiplier], // нижняя вершина
+                [x - cellWidth * 1.487375 * sizeMultiplier, y + cellHeight / 2 * sizeMultiplier] // левая середина
               ],
               closed: true
             })
@@ -4066,10 +4117,9 @@ export default {
         cellHeight
       })
       
-      // Применяем внешний отступ - используем одинаковый отступ по обеим осям
+      // Применяем фиксированный внешний отступ в пикселях
       // Для шестигранников отступ должен быть одинаковым по вертикали и горизонтали
-      const baseMargin = Math.min(cellWidth, cellHeight)
-      const margin = (this.externalMargin / 100) * baseMargin
+      const margin = this.externalMarginPx
       
       // Вычисляем оптимальный размер шестиугольника для покрытия canvas + 50% за границами
       // Учитываем смещение в шахматном порядке (чередующиеся ряды)

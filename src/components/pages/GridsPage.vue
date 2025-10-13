@@ -7386,7 +7386,7 @@ export default {
 }
 
 .scale-cell {
-  background: transparent;
+  background: #fff;
   border: trnsparent;
   cursor: pointer;
   transition: all 0.2s ease;

@@ -356,15 +356,16 @@
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="strokeWidth"
-                          min="0" 
-                          max="20" 
-                          step="1"
-                          @input="updateStickerStyles"
-                        >
+                        <div class="control-scale" role="group">
+                          <div
+                            v-for="pct in 10"
+                            :key="`sw-sm-${pct * 2}`"
+                            class="control-cell"
+                            :class="{ 'selected': (pct * 2) <= strokeWidth }"
+                            :title="`${pct * 2}%`"
+                            @click="setStrokeWidthPct(pct * 2)"
+                          ></div>
+                        </div>
                       </div>
                     </div>
                     
@@ -372,16 +373,17 @@
                     <div class="col-12">
                       <h6 class="text-muted mb-3">Тень</h6>
                       <div class="form-group">
-                        <label class="form-label">Размытие тени: {{ shadowBlur }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowBlur"
-                          min="0" 
-                          max="50" 
-                          step="1"
-                          @input="updateStickerStyles"
-                        >
+                        <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
+                        <div class="control-scale" role="group">
+                          <div
+                            v-for="n in 11"
+                            :key="`sb-sm-${(n - 1) * 2}`"
+                            class="control-cell"
+                            :class="{ 'selected': ((n - 1) * 2) <= shadowBlur }"
+                            :title="`${(n - 1) * 2}px`"
+                            @click="setShadowBlur((n - 1) * 2)"
+                          ></div>
+                        </div>
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label">Смещение по X: {{ shadowOffsetX }}%</label>
@@ -591,7 +593,8 @@ export default {
       // Настройки
       strokeColor: '#ffffff',
       strokeWidth: 8, // Проценты (0-20)
-      shadowBlur: 2, // Проценты (0-50)
+      shadowBlur: 4, // Пиксели (0-20 px)
+      
       shadowOffsetX: 5, // Проценты (-50 до +50)
       shadowOffsetY: 5, // Проценты (-50 до +50)
       shadowOpacity: 40, // Проценты (0-100)
@@ -687,6 +690,16 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    setShadowBlur(pct) {
+      const v = Math.max(0, Math.min(20, pct))
+      this.shadowBlur = v
+      this.updateStickerStyles()
+    },
+    setStrokeWidthPct(pct) {
+      const v = Math.max(0, Math.min(20, pct))
+      this.strokeWidth = v
+      this.updateStickerStyles()
+    },
     // Триггер сохранения из панели инструментов
     triggerSave() {
       // Отключаем режим ручного размещения при клике на другую кнопку
@@ -1598,7 +1611,7 @@ export default {
           
           // Применяем тень к заполненной маске (масштабируем параметры)
           shadowPath.shadowColor = `rgba(0, 0, 0, ${shadowAlpha})`
-          shadowPath.shadowBlur = this.shadowBlur * scale // Масштабируем размытость тени
+          shadowPath.shadowBlur = this.shadowBlur * scale // Размытие тени в пикселях (масштабируем для high-res)
           shadowPath.shadowOffset = new tempPaperScope.Point(
             this.shadowOffsetX * scale, // Масштабируем смещение тени по X
             this.shadowOffsetY * scale  // Масштабируем смещение тени по Y
@@ -11023,6 +11036,67 @@ export default {
 .sticker-mania-page {
   min-height: 100vh;
   padding: 20px 0;
+}
+
+/* Горизонтальная шкала выбора значений (как на странице Сетки) */
+.control-scale {
+  display: flex;
+  width: 100%;
+  height: 32px; /* по требованию */
+  gap: 1px;
+}
+
+.control-scale .control-cell {
+  flex: 1;
+  width: 20px;
+  height: 16px;
+  border: none;
+  border-radius: 3px;
+  background: #efefef;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.control-scale .control-cell:hover {
+  background: #87ceeb;
+  border-color: initial;
+}
+
+.control-scale .control-cell.selected {
+  background: #87ceeb; /* голубой */
+  border-color: rgb(13, 110, 253);
+}
+
+/* Дополнительные состояния для шкал X/Y */
+.control-scale .cell-zero {
+  background: #93e68b;
+  border-color: #43c388;
+}
+
+.control-scale .cell-pos-active {
+  background: #87ceeb; /* голубой */
+  border-color: rgb(13, 110, 253);
+}
+
+.control-scale .cell-neg-active {
+  background: #ffc28f;
+  border-color: #f7994b;
+}
+
+/* Hover-состояния: легкое затемнение для наглядности */
+.control-scale .cell-zero:hover {
+  background: #82d67a;
+  border-color: #36b378;
+}
+
+.control-scale .cell-pos-active:hover {
+  background: #6fc0de;
+  border-color: #0b5ed7;
+}
+
+.control-scale .cell-neg-active:hover {
+  background: #f5b77f;
+  border-color: #ea8d3f;
 }
 
 /* Стили для элементов управления текстом */

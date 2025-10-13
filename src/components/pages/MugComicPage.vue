@@ -9,6 +9,21 @@
         </div>
       </div>
       
+    <!-- Диалог выбора цвета 8x8 -->
+    <div v-if="showColorPicker" class="color-picker-backdrop" @click.self="closeColorPicker">
+      <div class="color-picker-dialog" @click.stop>
+        <div class="color-grid">
+          <div 
+            v-for="(c, idx) in paletteColors" 
+            :key="`cp-mug-${idx}`" 
+            class="color-swatch" 
+            :style="{ background: c }"
+            @click="applyPickedColor(c)"
+          ></div>
+        </div>
+      </div>
+    </div>
+
       <!-- Кнопки управления -->
       <div class="row mb-4">
         <div class="col-12" style="width: 66.66666667%;">
@@ -309,7 +324,46 @@
                           </div>
                           <div class="mask-info">
                             <div class="mask-name">{{ mask.name || `Маска ${index + 1}` }}</div>
-                            <div class="mask-meta">Создана: {{ new Date(mask.createdAt).toLocaleDateString() }}</div>
+                          </div>
+                        </div>
+                        <div class="mask-controls mt-2">
+                          <!-- Цвет обводки -->
+                          <div class="form-group mb-2">
+                            <label class="form-label small">Цвет обводки</label>
+                            <button 
+                              type="button"
+                              class="btn d-flex align-items-center justify-content-center p-0 mt-1 color-chooser"
+                              @click.stop="openColorPicker({ type: 'mask', id: mask.id, field: 'strokeColor' })"
+                            >
+                              <span :style="{ width: '16px', height: '16px', display: 'inline-block', borderRadius: '3px', background: (mask.strokeColor || '#000000') }"></span>
+                            </button>
+                          </div>
+
+                          <!-- Толщина обводки -->
+                          <div class="form-group mb-2">
+                            <label class="form-label small">Толщина обводки: {{ mask.strokeWidth || 0 }}%</label>
+                            <div class="control-scale" role="group">
+                              <div
+                                v-for="pct in 10"
+                                :key="`um-sw-${mask.id}-${(pct-1)*2}`"
+                                class="control-cell"
+                                :class="{ 'selected': ((pct-1)*2) <= (mask.strokeWidth || 0) }"
+                                :title="`${(pct-1)*2}%`"
+                                @click.stop="setUserMaskStrokeWidth(mask, (pct-1)*2)"
+                              ></div>
+                            </div>
+                          </div>
+
+                          <!-- Цвет фона -->
+                          <div class="form-group mb-2">
+                            <label class="form-label small">Цвет фона</label>
+                            <button 
+                              type="button"
+                              class="btn d-flex align-items-center justify-content-center p-0 mt-1 color-chooser"
+                              @click.stop="openColorPicker({ type: 'mask', id: mask.id, field: 'fillColor' })"
+                            >
+                              <span :style="{ width: '16px', height: '16px', display: 'inline-block', borderRadius: '3px', background: (mask.fillColor || '#ffffff') }"></span>
+                            </button>
                           </div>
                         </div>
                         <div class="mask-actions">
@@ -331,40 +385,43 @@
                   <div class="row g-3">
                     <!-- Обводка -->
                     <div class="col-12">
-                      <h6 class="text-muted mb-3">Обводка основного поля</h6>
+                      <h3 class="settings-subheader">Подложка</h3>
                       <div class="form-group">
                         <label class="form-label">Цвет обводки</label>
-                        <input 
-                          type="color" 
-                          class="form-control form-control-color" 
-                          v-model="strokeColor"
-                          title="Выберите цвет обводки"
+                        <button 
+                          type="button"
+                          class="btn d-flex align-items-center justify-content-center p-0 mt-2 color-chooser"
+                          @click="openColorPicker('stroke')"
                         >
+                          <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor }"></span>
+                        </button>
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="strokeWidth"
-                          min="0" 
-                          max="20" 
-                          step="1"
-                        >
+                        <div class="control-scale" role="group">
+                          <div
+                            v-for="pct in 10"
+                            :key="`sw-mug-${(pct-1)*2}`"
+                            class="control-cell"
+                            :class="{ 'selected': ((pct-1)*2) <= strokeWidth }"
+                            :title="`${(pct-1)*2}%`"
+                            @click="setStrokeWidthPct((pct-1)*2)"
+                          ></div>
+                        </div>
                       </div>
                     </div>
                     
                     <!-- Фон основного поля -->
                     <div class="col-12">
-                      <h6 class="text-muted mb-3">Фон основного поля</h6>
                       <div class="form-group">
                         <label class="form-label">Цвет фона</label>
-                        <input 
-                          type="color" 
-                          class="form-control form-control-color" 
-                          v-model="backgroundColor"
-                          title="Выберите цвет фона основного поля"
+                        <button 
+                          type="button"
+                          class="btn d-flex align-items-center justify-content-center p-0 mt-2 color-chooser"
+                          @click="openColorPicker('background')"
                         >
+                          <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: backgroundColor }"></span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -418,6 +475,18 @@ export default {
       
       // Фоновое изображение
       backgroundImage: null,
+      showColorPicker: false,
+      colorPickerTarget: null, // 'stroke' | 'background'
+      paletteColors: [
+        '#000000','#333333','#666666','#999999','#CCCCCC','#EFEFEF','#FFFFFF','#FF0000',
+        '#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#800000','#808000','#008080',
+        '#800080','#008000','#000080','#C0C0C0','#FFA500','#A52A2A','#B8860B','#2F4F4F',
+        '#DC143C','#FF1493','#00CED1','#20B2AA','#4169E1','#1E90FF','#87CEEB','#ADD8E6',
+        '#90EE90','#32CD32','#228B22','#006400','#B22222','#FF8C00','#FFD700','#EEE8AA',
+        '#ADFF2F','#7CFC00','#98FB98','#66CDAA','#48D1CC','#40E0D0','#5F9EA0','#4682B4',
+        '#6A5ACD','#7B68EE','#9370DB','#BA55D3','#FF69B4','#DB7093','#CD5C5C','#F08080',
+        '#FA8072','#E9967A','#D2691E','#8B4513','#708090','#2E8B57','#3CB371','#8FBC8F'
+      ],
       backgroundRaster: null,
       canvasBackgroundRect: null,
       
@@ -432,7 +501,7 @@ export default {
       
       // Настройки обводки
       strokeColor: '#000000',
-      strokeWidth: 5, // Проценты (0-20)
+      strokeWidth: 8, // Проценты (0-18), дефолт 8%
       
       // Настройки фона основного поля
       backgroundColor: '#ffffff',
@@ -514,6 +583,121 @@ export default {
     }
   },
   methods: {
+    // ====== Применение стилей маски на канвасе и обновление 3D ======
+    getStrokeWidthPxForMask(pct) {
+      if (!this.baseRectangle || !this.paperScope) return 0
+      const bounds = this.baseRectangle.bounds
+      const minDimension = Math.min(bounds.width, bounds.height)
+      return (Math.max(0, Math.min(100, pct || 0)) / 100) * minDimension
+    },
+    updateMaskAppearance(mask) {
+      if (!mask || !this.paperScope) return
+      const strokeColor = mask.strokeColor || '#000000'
+      const strokeWidthVal = mask.strokeWidth || 0
+      // Обновляем визуальный путь в тех же единицах, что и раньше (значение маски)
+      if (mask.visualPath) {
+        try {
+          mask.visualPath.strokeColor = strokeColor
+          mask.visualPath.strokeWidth = strokeWidthVal
+        } catch (e) {}
+      }
+      if (mask.maskGroup && Array.isArray(mask.maskGroup.children)) {
+        try {
+          mask.maskGroup.children.forEach(ch => {
+            if (!ch) return
+            if (typeof ch.strokeColor !== 'undefined') ch.strokeColor = strokeColor
+            if (typeof ch.strokeWidth !== 'undefined') ch.strokeWidth = strokeWidthVal
+          })
+        } catch (e) {}
+      }
+      if (this.paperScope?.view) this.paperScope.view.update()
+      this.update3DTexture()
+    },
+    deleteUserMask(maskId) {
+      // Удаляем маску из массива
+      const idx = this.userMasks.findIndex(m => m.id === maskId)
+      if (idx !== -1) {
+        const mask = this.userMasks[idx]
+        // Удаляем визуальный путь
+        if (mask && mask.visualPath && typeof mask.visualPath.remove === 'function') {
+          try { mask.visualPath.remove() } catch (e) {}
+          mask.visualPath = null
+        }
+        // Удаляем группу маски (если рисовали сложный контур с растрами)
+        if (mask && mask.maskGroup && typeof mask.maskGroup.remove === 'function') {
+          try { mask.maskGroup.remove() } catch (e) {}
+          mask.maskGroup = null
+        }
+        // Удаляем возможные растр-элементы, если хранили
+        if (mask && mask.raster && typeof mask.raster.remove === 'function') {
+          try { mask.raster.remove() } catch (e) {}
+          mask.raster = null
+        }
+        if (mask && mask.clippedRaster && typeof mask.clippedRaster.remove === 'function') {
+          try { mask.clippedRaster.remove() } catch (e) {}
+          mask.clippedRaster = null
+        }
+        // Удаляем из хранилища изображений
+        if (this.maskImages && this.maskImages[maskId]) {
+          delete this.maskImages[maskId]
+        }
+        this.userMasks.splice(idx, 1)
+        // Перестроим порядок слоёв
+        this.reindexUserMasksByOrder()
+        // Обновим превью
+        try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
+        // Обновим канвас
+        if (this.paperScope?.view) {
+          this.enforceLayerOrder()
+          this.paperScope.view.update()
+        }
+        // Обновим текстуру 3D модели
+        this.update3DTexture()
+        console.log('🗑️ Маска удалена:', maskId)
+      }
+    },
+    setUserMaskStrokeWidth(mask, pct) {
+      const v = Math.max(0, Math.min(18, pct))
+      this.$set ? this.$set(mask, 'strokeWidth', v) : (mask.strokeWidth = v)
+      // обновим предпросмотр маски
+      try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
+      // применим на канвасе и 3D
+      this.updateMaskAppearance(mask)
+    },
+    setStrokeWidthPct(pct) {
+      const v = Math.max(0, Math.min(18, pct))
+      this.strokeWidth = v
+      this.updateBaseRectangle()
+    },
+    openColorPicker(target) {
+      this.colorPickerTarget = target
+      this.showColorPicker = true
+    },
+    closeColorPicker() {
+      this.showColorPicker = false
+      this.colorPickerTarget = null
+    },
+    applyPickedColor(color) {
+      // Глобальные поля страницы
+      if (this.colorPickerTarget === 'stroke') {
+        this.strokeColor = color
+        this.updateBaseRectangle()
+      } else if (this.colorPickerTarget === 'background') {
+        this.backgroundColor = color
+        this.updateBaseRectangle()
+      // Настройки конкретной пользовательской маски
+      } else if (this.colorPickerTarget && this.colorPickerTarget.type === 'mask') {
+        const { id, field } = this.colorPickerTarget
+        const mask = this.userMasks.find(m => m.id === id)
+        if (mask) {
+          this.$set ? this.$set(mask, field, color) : (mask[field] = color)
+          try { this.refreshMaskPreviews && this.refreshMaskPreviews() } catch (e) {}
+          // Применяем изменения к Paper.js и 3D
+          this.updateMaskAppearance(mask)
+        }
+      }
+      this.closeColorPicker()
+    },
     // Инициализация табов для правой панели
     initializeTabs() {
       const tabs = [
@@ -1115,7 +1299,7 @@ export default {
             
             // Это текстовый элемент
             dragItem = item
-            console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
+            // console.log('🎯 Начато перетаскивание текстового элемента:', dragItem.className, dragItem.data)
             
             offset = event.point.subtract(dragItem.position)
             dragItem.selected = true
@@ -1151,7 +1335,7 @@ export default {
       dragTool.onMouseUp = (event) => {
         if (dragItem && this.paperScope && this.paperScope.project) {
           dragItem.selected = false
-          console.log('🎯 Завершено перетаскивание Paper.js элемента')
+          // console.log('🎯 Завершено перетаскивание Paper.js элемента')
           
           // Обновляем 3D модель в боковой панели
           this.updateSideMenu3D()
@@ -1311,6 +1495,8 @@ export default {
     setBackgroundFromImage(image) {
       this.backgroundImage = image.url
       console.log('✅ Фоновое изображение установлено из перетаскивания:', image.name)
+      // Делаем фон основной подложки прозрачным, чтобы видеть изображение
+      this.backgroundColor = 'rgba(0,0,0,0)'
       this.updateCanvasWithBackground()
       this.enforceLayerOrder()
       
@@ -1428,7 +1614,7 @@ export default {
         name: `Маска ${this.userMasks.length + 1}`,
         fillColor: '#f0f0f0', // Светло-серый по умолчанию
         strokeColor: '#000000', // Черный по умолчанию
-        strokeWidth: 8, // 8px по умолчанию
+        strokeWidth: 16, // 16% по умолчанию
         isDragging: false, // Флаг перетаскивания
         dragStart: null // Начальная точка перетаскивания
       }
@@ -1444,6 +1630,8 @@ export default {
       
       // Создаем визуальную маску на canvas
       this.createMaskVisual(mask)
+      // Применяем начальные стили, чтобы толщина совпала в пикселях с основной рамкой
+      this.updateMaskAppearance(mask)
       
       // Сбрасываем режим
       this.maskMode = false
@@ -4932,18 +5120,45 @@ export default {
     async redrawMaskInHighDPI(tempPaperScope, mask, scale) {
       if (!mask) return
 
-      // Источник точек: предпочтительно актуальный visualPath (учитывает все перемещения/правки)
+      // Источник точек: ПРИОРИТЕТ strokePath (он всегда в актуальной позиции в составе группы),
+      // затем актуальный visualPath (если он ещё существует), иначе исходные points с попыткой смещения
       const points = []
-      if (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3) {
+      if (mask.strokePath && mask.strokePath.segments && mask.strokePath.segments.length >= 3) {
+        // Координаты детей группы могут быть в локальной системе координат группы — переводим в глобальные через globalMatrix
+        for (const seg of mask.strokePath.segments) {
+          try {
+            const gp = mask.strokePath.globalMatrix.transformPoint(seg.point)
+            points.push({ x: gp.x, y: gp.y })
+          } catch (e) {
+            try {
+              const gp2 = mask.strokePath.localToGlobal(seg.point)
+              points.push({ x: gp2.x, y: gp2.y })
+            } catch (e2) {
+              points.push({ x: seg.point.x, y: seg.point.y })
+            }
+          }
+        }
+      } else if (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3) {
         for (const seg of mask.visualPath.segments) {
-          points.push({ x: seg.point.x, y: seg.point.y })
+          try {
+            const gp = mask.visualPath.globalMatrix.transformPoint(seg.point)
+            points.push({ x: gp.x, y: gp.y })
+          } catch (e) {
+            try {
+              const gp2 = mask.visualPath.localToGlobal(seg.point)
+              points.push({ x: gp2.x, y: gp2.y })
+            } catch (e2) {
+              points.push({ x: seg.point.x, y: seg.point.y })
+            }
+          }
         }
       } else if (Array.isArray(mask.points) && mask.points.length >= 3) {
         // Фолбэк: исходные точки + текущее смещение
         let deltaX = 0, deltaY = 0
         try {
           const currentCenter = (mask.maskGroup?.bounds?.center) || (mask.strokePath?.bounds?.center) || (mask.visualPath?.bounds?.center)
-          const baseCenter = (mask.visualPath?.bounds?.center) || currentCenter
+          // Если есть сохранённый центр маски (в момент создания), используем его как базовый, иначе fallback к текущему
+          const baseCenter = (mask.center) ? new tempPaperScope.Point(mask.center.x, mask.center.y) : currentCenter
           if (currentCenter && baseCenter) {
             deltaX = currentCenter.x - baseCenter.x
             deltaY = currentCenter.y - baseCenter.y
@@ -4962,6 +5177,31 @@ export default {
         hiPath.add(new tempPaperScope.Point(p.x * scale, p.y * scale))
       }
       hiPath.closed = true
+
+      // Логи центров/границ перед HiDPI клипом
+      try {
+        const grpC = mask.maskGroup?.globalMatrix?.transformPoint(mask.maskGroup.bounds.center)
+        console.log('📐 [HiDPI] centers', {
+          id: mask.id,
+          pointsCount: points.length,
+          hiPathCenter: { x: hiPath.bounds.center.x, y: hiPath.bounds.center.y },
+          groupCenterGlobal: grpC ? { x: grpC.x, y: grpC.y } : null
+        })
+      } catch (e) {}
+
+      // Доп. коррекция: выравниваем центр hiPath с глобальным центром mask.maskGroup (если есть)
+      try {
+        if (mask.maskGroup && mask.maskGroup.bounds && mask.maskGroup.globalMatrix) {
+          const grpCenterGlobal = mask.maskGroup.globalMatrix.transformPoint(mask.maskGroup.bounds.center)
+          const hiCenter = hiPath.bounds.center
+          // delta в координатах исходного пространства → умножаем на scale для hiPath
+          const deltaX = (grpCenterGlobal.x - (hiCenter.x / scale)) * scale
+          const deltaY = (grpCenterGlobal.y - (hiCenter.y / scale)) * scale
+          if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+            hiPath.translate(new tempPaperScope.Point(deltaX, deltaY))
+          }
+        }
+      } catch (e) { /* ignore alignment errors */ }
 
       // Если к маске привязано изображение — создаем обрезанное изображение в HiDPI
       const image = this.maskImages?.[mask.id]
@@ -5572,9 +5812,15 @@ export default {
 
     // Триггер сохранения из панели инструментов
     triggerSave() {
-      if (this.$refs.saveCanvas && this.$refs.saveCanvas.handleSaveWithLog) {
-        this.$refs.saveCanvas.handleSaveWithLog()
-      }
+      // Перед сохранением НОРМАЛИЗУЕМ координаты всех пользовательских масок
+      try { this.normalizeUserMasksForSave() } catch (e) { /* no-op */ }
+
+      // Дадим Vue применить изменения в пропсах дочернего GridSaveCanvas
+      this.$nextTick(() => {
+        if (this.$refs.saveCanvas && this.$refs.saveCanvas.handleSaveWithLog) {
+          this.$refs.saveCanvas.handleSaveWithLog()
+        }
+      })
     },
 
     // Обновление 3D модели в боковой панели
@@ -5583,25 +5829,25 @@ export default {
         // Ищем SideMenu через корневой компонент
         const app = this.$root
         const sideMenu = app?.$refs?.sideMenu
-        console.log('🔍 updateSideMenu3D вызван (MugComic):', { app: !!app, sideMenu: !!sideMenu })
+        // Лог вызова отключён для снижения шума в консоли
         
         if (sideMenu) {
           const canvas = this.$refs.comicCanvas
-          console.log('🔍 Canvas найден (MugComic):', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+          // console.log('🔍 Canvas найден (MugComic):', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
           
           if (canvas && canvas.width > 0 && canvas.height > 0) {
             // Обновляем canvas в боковой панели
             sideMenu.setSourceCanvas(canvas)
-            console.log('✅ 3D модель в боковой панели обновлена (MugComic)')
+            // console.log('✅ 3D модель в боковой панели обновлена (MugComic)')
           } else {
-            console.warn('⚠️ Canvas не готов или не найден в MugComicPage:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
+            // console.warn('⚠️ Canvas не готов или не найден в MugComicPage:', { canvas: !!canvas, width: canvas?.width, height: canvas?.height })
             // Повторяем попытку через 200мс
             setTimeout(() => {
               this.updateSideMenu3D()
             }, 200)
           }
         } else {
-          console.warn('⚠️ SideMenu не найден через $root (MugComic)')
+          // console.warn('⚠️ SideMenu не найден через $root (MugComic)')
         }
       } catch (error) {
         console.error('❌ Ошибка обновления 3D модели (MugComic):', error)
@@ -5619,6 +5865,58 @@ export default {
       })
     },
 
+    // Нормализация масок перед сохранением: записываем актуальные ГЛОБАЛЬНЫЕ точки и центр
+    normalizeUserMasksForSave() {
+      if (!Array.isArray(this.userMasks) || this.userMasks.length === 0) return
+      for (const mask of this.userMasks) {
+        try {
+          // Пытаемся взять точки из strokePath (чаще всего актуальнее), иначе из visualPath
+          const sourcePath = (mask.strokePath && mask.strokePath.segments && mask.strokePath.segments.length >= 3)
+            ? mask.strokePath
+            : (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3)
+              ? mask.visualPath
+              : null
+
+          if (sourcePath) {
+            const newPoints = []
+            for (const seg of sourcePath.segments) {
+              let gp
+              try {
+                gp = sourcePath.globalMatrix ? sourcePath.globalMatrix.transformPoint(seg.point) : sourcePath.localToGlobal(seg.point)
+              } catch (e) {
+                gp = sourcePath.localToGlobal ? sourcePath.localToGlobal(seg.point) : seg.point
+              }
+              newPoints.push({ x: gp.x, y: gp.y })
+            }
+            if (newPoints.length >= 3) {
+              mask.points = newPoints
+            }
+          } else if (Array.isArray(mask.points) && mask.points.length >= 3) {
+            // Если нет путей, но есть points — дополнительно сдвинем на delta группы, если группа есть
+            if (mask.maskGroup && mask.maskGroup.bounds && mask.maskGroup.globalMatrix) {
+              const grpC = mask.maskGroup.globalMatrix.transformPoint(mask.maskGroup.bounds.center)
+              const baseC = (mask.center && typeof mask.center.x === 'number' && typeof mask.center.y === 'number') ? mask.center : grpC
+              const dx = grpC.x - baseC.x
+              const dy = grpC.y - baseC.y
+              if ((Math.abs(dx) + Math.abs(dy)) > 0) {
+                mask.points = mask.points.map(p => ({ x: p.x + dx, y: p.y + dy }))
+              }
+            }
+          }
+
+          // Обновляем сохранённый центр
+          try {
+            if (mask.maskGroup && mask.maskGroup.bounds && mask.maskGroup.globalMatrix) {
+              const gc = mask.maskGroup.globalMatrix.transformPoint(mask.maskGroup.bounds.center)
+              mask.center = { x: gc.x, y: gc.y }
+            } else if (mask.visualPath && mask.visualPath.bounds) {
+              mask.center = { x: mask.visualPath.bounds.center.x, y: mask.visualPath.bounds.center.y }
+            }
+          } catch (_) {}
+        } catch (_) {}
+      }
+    },
+
     onSaveSuccess(result) {
       console.log('✅ Файл успешно сохранён:', result)
       
@@ -5634,7 +5932,7 @@ export default {
       this.$nextTick(() => {
         if (this.$refs.threeRenderer) {
           this.$refs.threeRenderer.updateTexture()
-          console.log('🔄 3D модель обновлена после сохранения')
+          // console.log('🔄 3D модель обновлена после сохранения')
         }
       })
     },
@@ -5855,11 +6153,11 @@ export default {
         image: image
       }))
       event.dataTransfer.effectAllowed = 'copy'
-      console.log('🖼️ Начато перетаскивание изображения:', image.name)
+      // console.log('🖼️ Начато перетаскивание изображения:', image.name)
     },
     
     onImageDragEnd() {
-      console.log('🖼️ Завершено перетаскивание изображения')
+      // console.log('🖼️ Завершено перетаскивание изображения')
     },
     
     onCanvasDragOver(event) {
@@ -5888,6 +6186,9 @@ export default {
           } else {
             // Если маска не найдена, применяем изображение как фон
             this.setBackgroundFromImage(image)
+            // Делаем фон базового прямоугольника прозрачным, чтобы растр был виден
+            this.backgroundColor = 'rgba(0,0,0,0)'
+            this.updateBaseRectangle()
             console.log('🖼️ Изображение применено как фон:', image.name)
           }
         }
@@ -6030,63 +6331,28 @@ export default {
         mask.strokePath.remove()
       }
       
-      // Создаем обводку поверх изображения
+      // Создаем обводку поверх изображения, используя ТЕКУЩИЕ координаты visualPath (учитывают переносы)
       if (mask.strokeColor && mask.strokeWidth > 0) {
         const strokePath = new this.paperScope.Path()
-        
-        // Копируем точки маски для обводки
-        for (let i = 0; i < mask.points.length; i++) {
-          const point = new this.paperScope.Point(mask.points[i].x, mask.points[i].y)
-          strokePath.add(point)
-          console.log(`🎨 [createMaskStroke] Точка ${i}: (${point.x}, ${point.y})`)
+        const sourceSegments = (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3)
+          ? mask.visualPath.segments.map(seg => seg.point)
+          : (mask.points || []).map(p => new this.paperScope.Point(p.x, p.y))
+
+        for (let i = 0; i < sourceSegments.length; i++) {
+          const pt = sourceSegments[i]
+          strokePath.add(new this.paperScope.Point(pt.x, pt.y))
         }
-        
-        // Замыкаем контур
+
         strokePath.closed = true
-        
-        // Настраиваем обводку - используем обычную толщину, чтобы обводка была внутри маски
         strokePath.strokeColor = mask.strokeColor
-        strokePath.strokeWidth = mask.strokeWidth // НЕ увеличиваем в 2 раза!
-        strokePath.fillColor = null // Только обводка, без заливки
-        
-        // НЕ добавляем на canvas - добавим в группу позже
-        console.log('🎨 [createMaskStroke] Обводка создана, но НЕ добавлена на canvas (будет добавлена в группу)')
-        
-        // Сохраняем ссылку на обводку
+        strokePath.strokeWidth = mask.strokeWidth
+        strokePath.fillColor = null
         mask.strokePath = strokePath
-        
-        console.log('🎨 [createMaskStroke] Создана обводка для маски:', mask.id, 'толщина:', mask.strokeWidth)
-        console.log('🎨 [createMaskStroke] Координаты обводки:', strokePath.segments.map(s => `(${s.point.x}, ${s.point.y})`))
-        
-        // Логируем границы обводки
-        console.log('🎨 [createMaskStroke] Границы обводки:', strokePath.bounds)
-        console.log('🎨 [createMaskStroke] Размеры обводки:', strokePath.bounds.width, 'x', strokePath.bounds.height)
-        
-        // Сравниваем с исходной фигурой
-        if (mask.visualPath) {
-          console.log('🎨 [createMaskStroke] Сравнение с исходной фигурой:')
-          console.log('🎨 [createMaskStroke] Координаты исходной фигуры:', mask.visualPath.segments.map(s => `(${s.point.x}, ${s.point.y})`))
-          console.log('🎨 [createMaskStroke] Границы исходной фигуры:', mask.visualPath.bounds)
-          console.log('🎨 [createMaskStroke] Размеры исходной фигуры:', mask.visualPath.bounds.width, 'x', mask.visualPath.bounds.height)
-          
-          // Сравниваем границы
-          const strokeBounds = strokePath.bounds
-          const visualBounds = mask.visualPath.bounds
-          console.log('🎨 [createMaskStroke] Сравнение границ:')
-          console.log(`🎨 [createMaskStroke] Обводка: x=${strokeBounds.x}, y=${strokeBounds.y}, w=${strokeBounds.width}, h=${strokeBounds.height}`)
-          console.log(`🎨 [createMaskStroke] Фигура: x=${visualBounds.x}, y=${visualBounds.y}, w=${visualBounds.width}, h=${visualBounds.height}`)
-          
-          // Проверяем совпадение координат
-          let coordinatesMatch = true
-          for (let i = 0; i < Math.min(strokePath.segments.length, mask.visualPath.segments.length); i++) {
-            const strokePoint = strokePath.segments[i].point
-            const visualPoint = mask.visualPath.segments[i].point
-            const match = Math.abs(strokePoint.x - visualPoint.x) < 0.001 && Math.abs(strokePoint.y - visualPoint.y) < 0.001
-            console.log(`🎨 [createMaskStroke] Точка ${i}: обводка(${strokePoint.x}, ${strokePoint.y}) vs фигура(${visualPoint.x}, ${visualPoint.y}) - ${match ? 'СОВПАДАЕТ' : 'НЕ СОВПАДАЕТ'}`)
-            if (!match) coordinatesMatch = false
-          }
-          console.log('🎨 [createMaskStroke] Все координаты совпадают:', coordinatesMatch)
-        }
+        try {
+          const sc = strokePath.bounds.center
+          const gc = mask.maskGroup?.globalMatrix?.transformPoint(mask.maskGroup.bounds.center)
+          console.log('🎨 [createMaskStroke] centers', { strokeCenter: { x: sc.x, y: sc.y }, groupCenterGlobal: gc ? { x: gc.x, y: gc.y } : null })
+        } catch (e) {}
       }
     },
     
@@ -6124,14 +6390,25 @@ export default {
       // Делаем группу перетаскиваемой
       group.onMouseDown = (event) => {
         this.startDraggingMask(mask, event)
+        try {
+          const gc = group.globalMatrix.transformPoint(group.bounds.center)
+          const sc = mask.strokePath?.bounds?.center
+          console.log('🟡 [MaskDrag] DOWN', { id: mask.id, groupCenterGlobal: { x: gc.x, y: gc.y }, strokeCenter: sc ? { x: sc.x, y: sc.y } : null })
+        } catch (e) {}
       }
       
       group.onMouseDrag = (event) => {
         this.dragMask(mask, event)
+        // Логи в процессе перетаскивания отключены, чтобы не зашумлять консоль
       }
       
       group.onMouseUp = (event) => {
         this.stopDraggingMask(mask, event)
+        try {
+          const gc = group.globalMatrix.transformPoint(group.bounds.center)
+          const sc = mask.strokePath?.bounds?.center
+          console.log('🟡 [MaskDrag] UP', { id: mask.id, groupCenterGlobal: { x: gc.x, y: gc.y }, strokeCenter: sc ? { x: sc.x, y: sc.y } : null })
+        } catch (e) {}
       }
       
       // Сохраняем ссылку на группу
@@ -6156,7 +6433,7 @@ export default {
     startDraggingMask(mask, event) {
       mask.isDragging = true
       mask.dragStart = event.point
-      console.log('🎭 Начато перетаскивание маски:', mask.id)
+      // console.log('🎭 Начато перетаскивание маски:', mask.id)
     },
     
     dragMask(mask, event) {
@@ -6166,7 +6443,7 @@ export default {
         // Перемещаем всю группу (только один раз!)
         if (mask.maskGroup) {
           mask.maskGroup.position = mask.maskGroup.position.add(delta)
-          console.log('🎭 Обновлена позиция группы:', mask.maskGroup.position.toString())
+          // Лог позиции во время перетаскивания отключён
         }
         
         // Обновляем 3D модель в боковой панели
@@ -6179,17 +6456,40 @@ export default {
         }
         
         // НЕ обновляем слои - они уже в группе и перемещаются вместе с ней
-        console.log('🔍 [dragMask] Слои в группе, обновление не требуется')
+        // Лог служебного статуса отключён
         
         mask.dragStart = event.point
-        console.log('🎭 Перетаскивание маски:', mask.id, delta.toString())
+        // Лог процесса перетаскивания отключён
       }
     },
     
     stopDraggingMask(mask, event) {
       mask.isDragging = false
       mask.dragStart = null
-      console.log('🎭 Завершено перетаскивание маски:', mask.id)
+      console.log('🎯 UP маски (финал):', mask.id)
+
+      // После финального положения — денормализуем координаты mask.points по смещению группы
+      try {
+        if (mask.maskGroup && mask.maskGroup.bounds && mask.maskGroup.globalMatrix) {
+          const groupCenterGlobal = mask.maskGroup.globalMatrix.transformPoint(mask.maskGroup.bounds.center)
+          const prevCenter = (mask.center && typeof mask.center.x === 'number' && typeof mask.center.y === 'number')
+            ? mask.center
+            : groupCenterGlobal
+          const dx = groupCenterGlobal.x - prevCenter.x
+          const dy = groupCenterGlobal.y - prevCenter.y
+          if ((Math.abs(dx) + Math.abs(dy)) > 0) {
+            if (Array.isArray(mask.points)) {
+              mask.points = mask.points.map(p => ({ x: p.x + dx, y: p.y + dy }))
+            }
+            mask.center = { x: groupCenterGlobal.x, y: groupCenterGlobal.y }
+          }
+        } else if (mask.visualPath && mask.visualPath.bounds) {
+          // Фолбэк: если нет группы, берём центр из visualPath
+          mask.center = { x: mask.visualPath.bounds.center.x, y: mask.visualPath.bounds.center.y }
+        }
+      } catch (e) {
+        // no-op
+      }
       
       // Обновляем 3D модель в боковой панели
       this.updateSideMenu3D()
@@ -6529,131 +6829,62 @@ export default {
       raster.onLoad = () => {
         console.log(`🖼️ Растр загружен: ${image.name}, размеры: ${raster.image.width}x${raster.image.height}`)
         
+        // Глобальные точки текущего контура (strokePath приоритетно)
+        const segs = (mask.strokePath && mask.strokePath.segments && mask.strokePath.segments.length >= 3)
+          ? mask.strokePath.segments.map(s => { try { const p = mask.strokePath.globalMatrix.transformPoint(s.point); return { x: p.x, y: p.y } } catch (e) { return { x: s.point.x, y: s.point.y } } })
+          : (mask.visualPath && mask.visualPath.segments && mask.visualPath.segments.length >= 3)
+            ? mask.visualPath.segments.map(s => { try { const p = mask.visualPath.globalMatrix.transformPoint(s.point); return { x: p.x, y: p.y } } catch (e) { return { x: s.point.x, y: s.point.y } } })
+            : (mask.points || [])
+        if (segs.length < 3) return
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const p of segs) { if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y; if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y }
+        const width = Math.max(1, Math.round(maxX - minX))
+        const height = Math.max(1, Math.round(maxY - minY))
+        const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 }
+        
         // Создаем временный canvas для обрезки изображения
         const tempCanvas = document.createElement('canvas')
         const tempCtx = tempCanvas.getContext('2d')
+        tempCanvas.width = width
+        tempCanvas.height = height
+        tempCtx.clearRect(0, 0, width, height)
         
-        // Получаем размеры маски
-        const maskBounds = mask.visualPath.bounds
-        console.log(`📐 Размеры маски: ${maskBounds.width}x${maskBounds.height}`)
-        
-        tempCanvas.width = maskBounds.width
-        tempCanvas.height = maskBounds.height
-        
-        // Очищаем canvas
-        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height)
-        
-        // Создаем путь маски на canvas
+        // Клип по глобальным точкам, приведенным к локальным координатам tempCanvas
         tempCtx.save()
         tempCtx.beginPath()
-        
-        // Рисуем путь маски (используем сегменты)
-        if (mask.visualPath.segments && mask.visualPath.segments.length > 0) {
-          console.log('🔍 Сегменты пути:', mask.visualPath.segments.length)
-          
-          // Первая точка
-          const firstPoint = mask.visualPath.segments[0].point
-          const relativeFirstPoint = new this.paperScope.Point(
-            firstPoint.x - maskBounds.x,
-            firstPoint.y - maskBounds.y
-          )
-          tempCtx.moveTo(relativeFirstPoint.x, relativeFirstPoint.y)
-          
-          // Остальные точки
-          for (let i = 1; i < mask.visualPath.segments.length; i++) {
-            const segment = mask.visualPath.segments[i]
-            const relativePoint = new this.paperScope.Point(
-              segment.point.x - maskBounds.x,
-              segment.point.y - maskBounds.y
-            )
-            tempCtx.lineTo(relativePoint.x, relativePoint.y)
-          }
+        tempCtx.moveTo(segs[0].x - minX, segs[0].y - minY)
+        for (let i = 1; i < segs.length; i++) {
+          tempCtx.lineTo(segs[i].x - minX, segs[i].y - minY)
         }
-        
         tempCtx.closePath()
         tempCtx.clip()
         
-        // Рисуем изображение на canvas с сохранением пропорций
+        // Рисуем изображение с cover
         const imgWidth = raster.image.width
         const imgHeight = raster.image.height
-        const canvasWidth = maskBounds.width
-        const canvasHeight = maskBounds.height
-        
-        // Вычисляем масштаб для заполнения всей площади
-        const scaleX = canvasWidth / imgWidth
-        const scaleY = canvasHeight / imgHeight
-        const scale = Math.max(scaleX, scaleY) // Используем Math.max для заполнения всей площади
-        
-        // Дополнительно увеличиваем масштаб для гарантированного заполнения
-        const extraScale = 1.1 // Увеличиваем на 10% для гарантии заполнения
-        const finalScale = scale * extraScale
-        
-        // Вычисляем размеры масштабированного изображения
-        const scaledWidth = imgWidth * finalScale
-        const scaledHeight = imgHeight * finalScale
-        
-        // Вычисляем смещение для центрирования
-        const offsetX = (canvasWidth - scaledWidth) / 2
-        const offsetY = (canvasHeight - scaledHeight) / 2
-        
-        // Рисуем изображение
-        tempCtx.drawImage(
-          raster.image,
-          offsetX,
-          offsetY,
-          scaledWidth,
-          scaledHeight
-        )
-        
+        const scaleX = width / imgWidth
+        const scaleY = height / imgHeight
+        const coverScale = Math.max(scaleX, scaleY)
+        const drawW = imgWidth * coverScale
+        const drawH = imgHeight * coverScale
+        const dx = (width - drawW) / 2
+        const dy = (height - drawH) / 2
+        tempCtx.drawImage(raster.image, dx, dy, drawW, drawH)
         tempCtx.restore()
         
-        // Создаем новый растр из обрезанного изображения
+        // Создаем новый растр и позиционируем по глобальному центру
         const dataURL = tempCanvas.toDataURL('image/png')
-        console.log(`✂️ Создан обрезанный растр, размер dataURL: ${dataURL.length} символов`)
         const clippedRaster = new this.paperScope.Raster(dataURL)
-        
         clippedRaster.onLoad = () => {
-          console.log(`✅ Обрезанный растр загружен, позиционируем в центре маски`)
-          
-          // Позиционируем обрезанный растр в центре маски
-          clippedRaster.position = maskBounds.center
-          
-          // Логируем размеры и позицию обрезанного изображения
-          console.log('🎨 [createClippedImageForMask] Размеры обрезанного растра:', clippedRaster.bounds.width, 'x', clippedRaster.bounds.height)
-          console.log('🎨 [createClippedImageForMask] Позиция обрезанного растра:', clippedRaster.position)
-          console.log('🎨 [createClippedImageForMask] Границы обрезанного растра:', clippedRaster.bounds)
-          
-          // Заменяем старое изображение на обрезанное
-          if (mask.imageLayer) {
-            mask.imageLayer.remove()
-          }
+          clippedRaster.position = new this.paperScope.Point(center.x, center.y)
+          if (mask.imageLayer) mask.imageLayer.remove()
           mask.imageLayer = clippedRaster
-          
-          // Добавляем в группу (если группа еще существует)
           if (group && group.parent) {
-            // Добавляем обрезанное изображение в группу ПЕРВЫМ (под обводку)
-            group.addChild(clippedRaster) // Добавляем первым (под обводку)
-            console.log('🎨 [createClippedImageForMask] Обрезанное изображение добавлено в группу ПОД обводку')
-            
-            // Добавляем обводку ПОВЕРХ изображения
-            if (mask.strokePath) {
-              group.addChild(mask.strokePath) // Добавляем поверх изображения
-              console.log('🎨 [createClippedImageForMask] Обводка добавлена в группу ПОВЕРХ изображения')
-            }
-            
-            // Логируем границы группы после добавления изображения
-            console.log('🎨 [createClippedImageForMask] Границы группы после добавления изображения:', group.bounds)
-            console.log('🎨 [createClippedImageForMask] Размеры группы после добавления изображения:', group.bounds.width, 'x', group.bounds.height)
-            
-            // Удаляем слой с серой заливкой - он больше не нужен
-            if (mask.visualPath && mask.visualPath.parent) {
-              mask.visualPath.remove()
-              console.log('🗑️ Удален слой с серой заливкой')
-            }
+            group.addChild(clippedRaster)
+            if (mask.strokePath) group.addChild(mask.strokePath)
+            if (mask.visualPath && mask.visualPath.parent) mask.visualPath.remove()
           } else {
-            // Если группа не существует, добавляем напрямую в проект
             this.paperScope.project.activeLayer.addChild(clippedRaster)
-            console.log('🎨 Обрезанное изображение добавлено в проект')
           }
         }
       }
@@ -6862,6 +7093,79 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+/* Палитра цветов 8x8 как на странице Сетки */
+.color-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.color-picker-dialog {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 24px);
+  grid-auto-rows: 24px;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #cfd4da;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+  border-color: #adb5bd;
+}
+
+.color-chooser{
+  box-shadow: 2px 2px 6px 0 rgba(0,0,0,.2);
+}
+
+/* Горизонтальная шкала выбора значений (как на странице Сетки) */
+.control-scale {
+  display: flex;
+  width: 100%;
+  height: 32px; /* по требованию */
+  gap: 1px;
+}
+
+.control-scale .control-cell {
+  flex: 1;
+  width: 20px;
+  height: 16px;
+  border: none;
+  border-radius: 3px;
+  background: #efefef;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.control-scale .control-cell:hover {
+  background: #87ceeb;
+  border-color: initial;
+}
+
+.control-scale .control-cell.selected {
+  background: #87ceeb; /* голубой */
+  border-color: rgb(13, 110, 253);
+}
 .mug-comic-page {
   // Пустой блок для scope
 }
@@ -7562,7 +7866,6 @@ export default {
 
 .mask-item-full {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   padding: 12px;
   background: #fff;
@@ -7570,6 +7873,8 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-direction: column;
+  position: relative;
 }
 
 .mask-item-full:hover {
@@ -7602,10 +7907,10 @@ export default {
 .mask-preview {
   margin-right: 12px;
   flex-shrink: 0;
+  background: #fff;
 }
 
 .mask-preview canvas {
-  border: 1px solid #ddd;
   border-radius: 4px;
 }
 
@@ -7632,11 +7937,21 @@ export default {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+  position: absolute;
+  right: 30px;
+  background: #fff;
+  right: 12px;
+  top: 19px;
 }
 
 .mask-actions .btn {
   padding: 4px 8px;
   font-size: 12px;
+  border: none;
+  background: #000;
+  color: #fff;
+  width: 32px;
+  height: 32px;
 }
 
 /* Стили для загруженных изображений */
@@ -7647,6 +7962,26 @@ export default {
 .uploaded-images .col-6 {
   padding: 0 4px;
   margin-bottom: 12px;
+}.color-chooser{
+  box-shadow: 2px 2px 6px 0 rgba(0,0,0,.2);
+}
+.settings-subheader{
+  padding: 6px;
+  background: #d5f2d2;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  color: #000;
+  font-size: 18px;
+}
+.mask-item-full active{
+  display: flex;
+  flex-direction: column !important;
+  align-items: flex-start;
+  position: relative;
 }
 
 </style>

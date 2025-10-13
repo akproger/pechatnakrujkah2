@@ -97,11 +97,11 @@ export default {
   watch: {
     sourceCanvas: {
       handler(newCanvas, oldCanvas) {
-        console.log('🔄 sourceCanvas watcher сработал:', { newCanvas, oldCanvas, autoUpdate: this.autoUpdate })
+        // console.log('🔄 sourceCanvas watcher сработал:', { newCanvas, oldCanvas, autoUpdate: this.autoUpdate })
         if (newCanvas && this.autoUpdate) {
           this.$nextTick(() => {
             setTimeout(() => {
-              console.log('⏰ Вызываем updateTexture через таймаут')
+              // console.log('⏰ Вызываем updateTexture через таймаут')
               this.updateTexture()
             }, 100)
           })
@@ -117,7 +117,7 @@ export default {
       const canvas = this.$refs.threeCanvas
       if (!canvas) return
       
-      console.log('🎨 Инициализация Three.js компонента')
+      // console.log('🎨 Инициализация Three.js компонента')
       
       // Создаем сцену
       this.threeInstance.scene = markRaw(new THREE.Scene())
@@ -197,7 +197,7 @@ export default {
       this.setupMouseControls()
       
       this.isInitialized = true
-      console.log('✅ Three.js компонент инициализирован')
+      // console.log('✅ Three.js компонент инициализирован')
       
       // Убеждаемся, что автоматическое вращение запущено по умолчанию
       this.mouseState.autoRotationSpeed = 0.01
@@ -217,37 +217,31 @@ export default {
       const targetRatio = 19 / 9 // Используем фиксированное соотношение как в оригинале
       const maxPrintWidth = printSurfaceHeight * targetRatio
       
-      console.log('🔍 Отладка области печати:')
-      console.log('  - Радиус кружки:', this.mugRadius)
-      console.log('  - Радиус поверхности печати:', printSurfaceRadius)
-      console.log('  - Высота кружки:', printSurfaceHeight)
-      console.log('  - Окружность цилиндра:', cylinderCircumference)
-      console.log('  - Максимальная ширина печати:', maxPrintWidth)
-      console.log('  - Соотношение сторон:', targetRatio)
+      // Подробные отладочные логи отключены
       
       // Определяем размеры области печати
       let printWidth, printHeight
       if (maxPrintWidth > cylinderCircumference) {
         printWidth = cylinderCircumference
         printHeight = cylinderCircumference / targetRatio
-        console.log('  - Используем полную окружность')
+        // console.log('  - Используем полную окружность')
       } else {
         printWidth = maxPrintWidth
         printHeight = printSurfaceHeight
-        console.log('  - Используем ограниченную ширину')
+        // console.log('  - Используем ограниченную ширину')
       }
       
-      console.log('  - Итоговая ширина печати:', printWidth)
-      console.log('  - Итоговая высота печати:', printHeight)
+      // console.log('  - Итоговая ширина печати:', printWidth)
+      // console.log('  - Итоговая высота печати:', printHeight)
       
       // Вычисляем углы для области печати
       const angleWidth = (printWidth / cylinderCircumference) * Math.PI * 2
       const angleStart = -angleWidth / 2
       const angleEnd = angleWidth / 2
       
-      console.log('  - Ширина угла (радианы):', angleWidth)
-      console.log('  - Начальный угол:', angleStart)
-      console.log('  - Конечный угол:', angleEnd)
+      // console.log('  - Ширина угла (радианы):', angleWidth)
+      // console.log('  - Начальный угол:', angleStart)
+      // console.log('  - Конечный угол:', angleEnd)
       
       // Создаем кастомную геометрию
       const printSurfaceGeometry = markRaw(new THREE.BufferGeometry())
@@ -281,11 +275,11 @@ export default {
         }
       }
       
-      console.log('  - Количество вершин:', vertices.length / 3)
-      console.log('  - Количество UV координат:', uvs.length / 2)
-      console.log('  - Количество индексов:', indices.length)
-      console.log('  - Первые UV координаты:', uvs.slice(0, 10))
-      console.log('  - Последние UV координаты:', uvs.slice(-10))
+      // console.log('  - Количество вершин:', vertices.length / 3)
+      // console.log('  - Количество UV координат:', uvs.length / 2)
+      // console.log('  - Количество индексов:', indices.length)
+      // console.log('  - Первые UV координаты:', uvs.slice(0, 10))
+      // console.log('  - Последние UV координаты:', uvs.slice(-10))
       
       // Создаем индексы для треугольников (правильный порядок для внешней стороны)
       for (let y = 0; y < segmentsY; y++) {
@@ -376,7 +370,7 @@ export default {
       // Обработчик отпускания мыши вне области (для случая, когда мышь выходит за границы)
       document.addEventListener('mouseup', this.mouseHandlers.mouseUp)
       
-      console.log('🖱️ Обработчики мыши для 3D модели настроены')
+      // console.log('🖱️ Обработчики мыши для 3D модели настроены')
     },
     
     // Обработчик входа мыши в область
@@ -386,7 +380,7 @@ export default {
       // Останавливаем вращение при наведении
       this.mouseState.currentRotationSpeed = 0
       
-      console.log('🖱️ Мышь над 3D моделью - вращение остановлено')
+      // console.log('🖱️ Мышь над 3D моделью - вращение остановлено')
     },
     
     // Обработчик выхода мыши из области
@@ -399,7 +393,7 @@ export default {
       this.mouseState.autoRotationSpeed = 0
       this.mouseState.currentRotationSpeed = 0
       
-      console.log('🖱️ Мышь покинула 3D модель - автоматическое вращение отключено')
+      // console.log('🖱️ Мышь покинула 3D модель - автоматическое вращение отключено')
     },
     
     // Обработчик нажатия мыши
@@ -413,7 +407,7 @@ export default {
       const canvas = this.$refs.threeCanvas
       canvas.style.cursor = 'grabbing'
       
-      console.log('🖱️ Начато перетаскивание 3D модели')
+      // console.log('🖱️ Начато перетаскивание 3D модели')
     },
     
     // Обработчик движения мыши
@@ -429,7 +423,7 @@ export default {
       // Обновляем позицию мыши для следующего кадра
       this.mouseState.lastMouseX = event.clientX
       
-      console.log(`🖱️ Перетаскивание: deltaX=${deltaX.toFixed(2)}, rotation=${rotationDelta.toFixed(4)}`)
+      // console.log(`🖱️ Перетаскивание: deltaX=${deltaX.toFixed(2)}, rotation=${rotationDelta.toFixed(4)}`)
     },
     
     // Обработчик отпускания мыши
@@ -442,28 +436,28 @@ export default {
       const canvas = this.$refs.threeCanvas
       canvas.style.cursor = 'grab'
       
-      console.log('🖱️ Перетаскивание завершено')
+      // console.log('🖱️ Перетаскивание завершено')
     },
     
     // Обновление текстуры
     updateTexture() {
       if (!this.threeInstance.printSurface) {
-        console.log('🔸 Поверхность печати не найдена')
+      // console.log('🔸 Поверхность печати не найдена')
         return
       }
       
       // Получаем canvas с изображением
       const sourceCanvas = this.sourceCanvas
-      console.log('🎨 updateTexture вызван, sourceCanvas:', sourceCanvas)
+      // console.log('🎨 updateTexture вызван, sourceCanvas:', sourceCanvas)
       
       if (!sourceCanvas) {
-        console.log('🔸 Source canvas не найден в prop')
+        // console.log('🔸 Source canvas не найден в prop')
         return
       }
       
       // Проверяем, что canvas имеет размеры и готов к рендерингу
       if (sourceCanvas.width === 0 || sourceCanvas.height === 0) {
-        console.log('🔸 Canvas еще не готов, откладываем обновление')
+        // console.log('🔸 Canvas еще не готов, откладываем обновление')
         setTimeout(() => {
           this.updateTexture()
         }, 100)
@@ -471,18 +465,14 @@ export default {
       }
       
       try {
-        console.log('🔍 Отладка текстуры:')
-        console.log('  - Размеры source canvas:', sourceCanvas.width, 'x', sourceCanvas.height)
-        console.log('  - Размеры области печати:', this.threeInstance.printSurface.geometry.boundingBox)
+        // Подробные логи текстуры отключены
         
         // Создаем текстуру из canvas с высоким качеством
         const texture = markRaw(new THREE.CanvasTexture(sourceCanvas))
         texture.needsUpdate = true
         
         // Ждем, пока текстура загрузится
-        texture.addEventListener('load', () => {
-          console.log('✅ Текстура загружена успешно')
-        })
+        // texture.addEventListener('load', () => { console.log('✅ Текстура загружена успешно') })
         
         // Настраиваем параметры текстуры для высокого качества и насыщенных цветов
         texture.generateMipmaps = false
@@ -507,9 +497,9 @@ export default {
         }
         this.threeInstance.printSurface.material = material
         
-        console.log('  - Текстура применена к материалу')
-        console.log('  - Размеры текстуры:', texture.image ? `${texture.image.width}x${texture.image.height}` : 'не загружена')
-        console.log('✅ Текстура обновлена успешно')
+        // console.log('  - Текстура применена к материалу')
+        // console.log('  - Размеры текстуры:', texture.image ? `${texture.image.width}x${texture.image.height}` : 'не загружена')
+        // console.log('✅ Текстура обновлена успешно')
         this.$emit('texture-updated')
       } catch (error) {
         console.error('❌ Ошибка при обновлении текстуры:', error)
@@ -546,12 +536,12 @@ export default {
         this.mouseState.autoRotationSpeed = 0.01
         // Запускаем вращение сразу (независимо от положения мыши)
         this.mouseState.currentRotationSpeed = 0.01
-        console.log('🔄 Автоматическое вращение включено кнопкой')
+        // console.log('🔄 Автоматическое вращение включено кнопкой')
       } else {
         // Выключаем автоматическое вращение
         this.mouseState.autoRotationSpeed = 0
         this.mouseState.currentRotationSpeed = 0
-        console.log('⏹️ Автоматическое вращение выключено кнопкой')
+        // console.log('⏹️ Автоматическое вращение выключено кнопкой')
       }
     },
     
@@ -587,7 +577,7 @@ export default {
         mouseUp: null
       }
       
-      console.log('🖱️ Обработчики мыши для 3D модели удалены')
+      // console.log('🖱️ Обработчики мыши для 3D модели удалены')
     },
     
     // Очистка ресурсов

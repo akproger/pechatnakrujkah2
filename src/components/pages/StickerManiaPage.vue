@@ -46,6 +46,7 @@
                     <button 
                       class="tool-button"
                       @click="openTextManager"
+                      :disabled="!stickersGenerated"
                       title="Добавить текст"
                     >
                       <i class="bi bi-type"></i>
@@ -53,6 +54,7 @@
                     <button 
                       class="tool-button"
                       @click="triggerSave"
+                      :disabled="!stickersGenerated"
                       title="Сохранить в высоком качестве"
                     >
                       <i class="bi bi-download"></i>
@@ -155,7 +157,8 @@
                   :key="tab.id"
                   class="vertical-tab-button"
                   :class="{ 'active': activeSettingsTab === tab.id }"
-                  @click="activeSettingsTab = activeSettingsTab === tab.id ? null : tab.id"
+                  :disabled="isTabDisabled(tab.id)"
+                  @click="!isTabDisabled(tab.id) && (activeSettingsTab = activeSettingsTab === tab.id ? null : tab.id)"
                 >
                   <i :class="tab.icon"></i>
                   <span class="tab-text">{{ tab.title }}</span>
@@ -566,7 +569,7 @@ export default {
       
       // Правая панель настроек
       isSettingsPanelOpen: true,
-      activeSettingsTab: 'shapes',
+      activeSettingsTab: null,
       settingsTabs: [
         { id: 'shapes', title: 'Формы стикеров', icon: 'bi-hexagon' },
         { id: 'images', title: 'Изображения', icon: 'bi-images' },
@@ -574,6 +577,7 @@ export default {
         { id: 'settings', title: 'Настройки', icon: 'bi-gear' },
         { id: 'stickers', title: 'Стикеры', icon: 'bi-sticky' }
       ],
+      stickersGenerated: false,
       
       texts: [],
       textItems: [], // Массив для отслеживания текстовых элементов на канвасе
@@ -721,6 +725,10 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    isTabDisabled(tabId) {
+      // До генерации блокируем ВСЕ вкладки панели
+      return !this.stickersGenerated
+    },
     openColorPicker(target) {
       this.colorPickerTarget = target
       this.showColorPicker = true
@@ -4096,6 +4104,8 @@ export default {
         // Последующие разы - запускаем генерацию напрямую
         this.generateOptimalStickers()
       }
+      // После старта генерации разблокируем вкладки
+      this.stickersGenerated = true
     },
     
     // Переключение режима ручного размещения стикеров
@@ -12376,6 +12386,15 @@ export default {
   transition: all 0.2s ease;
   text-align: left;
   white-space: nowrap;
+}
+
+.vertical-tab-button:disabled {
+  color: #cecece;
+  cursor: not-allowed;
+}
+
+.vertical-tab-button:disabled i {
+  color: #cecece;
 }
 
 .vertical-tab-button i {

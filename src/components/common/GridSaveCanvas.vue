@@ -3378,21 +3378,37 @@ export default {
       const sorted = [...masks].sort((a, b) => (a.layerIndex || 0) - (b.layerIndex || 0))
       for (const mask of sorted) {
         try {
-          // Геометрия: приоритетно из visualPath (самая актуальная), иначе из points
+          // Геометрия: ПРИОРИТЕТ — подготовленные глобальные точки mask.points
           const points = []
-          if (mask.visualPath && mask.visualPath.segments?.length >= 3) {
-            mask.visualPath.segments.forEach(seg => points.push({ x: seg.point.x, y: seg.point.y }))
-          } else if (Array.isArray(mask.points) && mask.points.length >= 3) {
+          if (Array.isArray(mask.points) && mask.points.length >= 3) {
             mask.points.forEach(p => points.push({ x: p.x, y: p.y }))
+          } else if (mask.visualPath && mask.visualPath.segments?.length >= 3) {
+            // Запасной вариант — берём глобальные из visualPath
+            mask.visualPath.segments.forEach(seg => {
+              const gp = mask.visualPath.localToGlobal(seg.point)
+              points.push({ x: gp.x, y: gp.y })
+            })
           } else {
             continue
           }
+
+          // ЛОГ: входные точки (основной канвас), центр и bounds до масштабирования
+          const preBounds = (() => {
+            const tmp = new this.paperScope.Path()
+            points.forEach(p => tmp.add(new this.paperScope.Point(p.x, p.y)))
+            tmp.closed = true
+            const b = tmp.bounds
+            tmp.remove()
+            return b
+          })()
+          const preCenter = { x: preBounds.center.x, y: preBounds.center.y }
+          console.log('🧭 [GSC] Входные точки маски', { id: mask.id, pointsCount: points.length, center: preCenter, bounds: preBounds })
 
           // Строим hiDPI-путь (точное соответствие трансформу сохранения)
           const hiPath = new this.paperScope.Path()
           points.forEach(p => hiPath.add(new this.paperScope.Point(p.x * sx, p.y * sy)))
           hiPath.closed = true
-          console.log('🧩 GridSaveCanvas: маска bounds:', { id: mask.id, bounds: hiPath.bounds })
+          console.log('🧮 [GSC] hiPath', { id: mask.id, center: { x: hiPath.bounds.center.x, y: hiPath.bounds.center.y }, bounds: hiPath.bounds })
 
           // Центроид многоугольника для визуального центрирования внутри наклонённых фигур
           const segsForCentroid = hiPath.segments.map(s => ({ x: s.point.x, y: s.point.y }))

@@ -89,31 +89,36 @@ export default {
       sourceCanvas: null
     }
   },
+  computed: {
+    currentYear() {
+      return new Date().getFullYear()
+    }
+  },
   watch: {
     sourceCanvas(newCanvas, oldCanvas) {
-      console.log('🔄 SideMenu sourceCanvas watcher:', { newCanvas, oldCanvas, hasRenderer: !!this.$refs.threeRenderer })
+      // console.log('🔄 SideMenu sourceCanvas watcher:', { newCanvas, oldCanvas, hasRenderer: !!this.$refs.threeRenderer })
       // Watcher в ThreeDRenderer автоматически обновит текстуру при изменении sourceCanvas
-      console.log('✅ sourceCanvas обновлён в SideMenu, ThreeDRenderer должен автоматически обновиться')
+      // console.log('✅ sourceCanvas обновлён в SideMenu, ThreeDRenderer должен автоматически обновиться')
     }
   },
   methods: {
     setSourceCanvas(canvas) {
-      console.log('🎨 Устанавливаем canvas в боковой панели:', canvas)
+      // console.log('🎨 Устанавливаем canvas в боковой панели:', canvas)
       this.sourceCanvas = canvas
       
       // Принудительно обновляем ThreeDRenderer, так как canvas может быть тот же объект
       if (this.$refs.threeRenderer) {
         this.$nextTick(() => {
-          console.log('🔄 Принудительно обновляем ThreeDRenderer')
+          // console.log('🔄 Принудительно обновляем ThreeDRenderer')
           this.$refs.threeRenderer.forceUpdate()
         })
       }
     },
     onThreeInitialized() {
-      console.log('3D renderer initialized in side menu')
+      // console.log('3D renderer initialized in side menu')
     },
     onTextureUpdated() {
-      console.log('Texture updated in side menu')
+      // console.log('Texture updated in side menu')
     },
     onTextureError(error) {
       console.error('Texture error in side menu:', error)

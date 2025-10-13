@@ -343,16 +343,16 @@
                   <div class="row g-3">
                     <!-- Обводка -->
                     <div class="col-12">
-                      <h6 class="text-muted mb-3">Обводка</h6>
+                      <h3 class="settings-subheader">Обводка</h3>
                       <div class="form-group">
                         <label class="form-label">Цвет обводки</label>
-                        <input 
-                          type="color" 
-                          class="form-control form-control-color" 
-                          v-model="strokeColor"
-                          @change="generateOptimalStickers"
-                          title="Выберите цвет обводки"
+                        <button 
+                          type="button"
+                          class="btn d-flex align-items-center justify-content-center p-0 mt-2 color-chooser"
+                          @click="openColorPicker('stroke')"
                         >
+                          <span :style="{ width: '20px', height: '20px', display: 'inline-block', borderRadius: '4px', background: strokeColor }"></span>
+                        </button>
                       </div>
                       <div class="form-group mt-2">
                         <label class="form-label">Толщина обводки: {{ strokeWidth }}%</label>
@@ -369,9 +369,24 @@
                       </div>
                     </div>
                     
+    <!-- Диалог выбора цвета (как на странице Сетки) -->
+    <div v-if="showColorPicker" class="color-picker-backdrop" @click.self="closeColorPicker">
+      <div class="color-picker-dialog" @click.stop>
+        <div class="color-grid">
+          <div 
+            v-for="(c, idx) in paletteColors"
+            :key="`cp-sm-${idx}`"
+            class="color-swatch"
+            :style="{ background: c }"
+            @click="applyPickedColor(c)"
+          ></div>
+        </div>
+      </div>
+    </div>
+
                     <!-- Тень -->
                     <div class="col-12">
-                      <h6 class="text-muted mb-3">Тень</h6>
+                      <h3 class="settings-subheader">Тень</h3>
                       <div class="form-group">
                         <label class="form-label">Размытие тени: {{ shadowBlur }}px</label>
                         <div class="control-scale" role="group">
@@ -595,6 +610,19 @@ export default {
       
       // Настройки
       strokeColor: '#ffffff',
+      showColorPicker: false,
+      colorPickerTarget: null,
+      // 64 цвета в порядке как на странице Сетки
+      paletteColors: [
+        '#000000','#333333','#666666','#999999','#CCCCCC','#EFEFEF','#FFFFFF','#FF0000',
+        '#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#800000','#808000','#008080',
+        '#800080','#008000','#000080','#C0C0C0','#FFA500','#A52A2A','#B8860B','#2F4F4F',
+        '#DC143C','#FF1493','#00CED1','#20B2AA','#4169E1','#1E90FF','#87CEEB','#ADD8E6',
+        '#90EE90','#32CD32','#228B22','#006400','#B22222','#FF8C00','#FFD700','#EEE8AA',
+        '#ADFF2F','#7CFC00','#98FB98','#66CDAA','#48D1CC','#40E0D0','#5F9EA0','#4682B4',
+        '#6A5ACD','#7B68EE','#9370DB','#BA55D3','#FF69B4','#DB7093','#CD5C5C','#F08080',
+        '#FA8072','#E9967A','#D2691E','#8B4513','#708090','#2E8B57','#3CB371','#8FBC8F'
+      ],
       strokeWidth: 8, // Проценты (0-20)
       shadowBlur: 4, // Пиксели (0-20 px)
       
@@ -693,6 +721,21 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    openColorPicker(target) {
+      this.colorPickerTarget = target
+      this.showColorPicker = true
+    },
+    closeColorPicker() {
+      this.showColorPicker = false
+      this.colorPickerTarget = null
+    },
+    applyPickedColor(color) {
+      if (this.colorPickerTarget === 'stroke') {
+        this.strokeColor = color
+        this.updateStickerStyles()
+      }
+      this.closeColorPicker()
+    },
     setShadowOpacity(pct) {
       const v = Math.max(0, Math.min(100, pct))
       this.shadowOpacity = v
@@ -11133,6 +11176,51 @@ export default {
   border-color: #ea8d3f;
 }
 
+/* Палитра цветов (как на странице Сетки) */
+.color-chooser {
+  box-shadow: 2px 2px 6px 0 rgba(0,0,0,.2);
+}
+
+.color-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.color-picker-dialog {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 24px);
+  grid-auto-rows: 24px;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #cfd4da;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+  border-color: #adb5bd;
+}
+
 /* Стили для элементов управления текстом */
 .text-controls {
   animation: fadeIn 0.3s ease;
@@ -12624,6 +12712,18 @@ export default {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+.settings-subheader{
+  padding: 6px;
+  background: #d5f2d2;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  color: #000;
+  font-size: 18px;
 }
 
 </style>

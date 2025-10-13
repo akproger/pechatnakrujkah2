@@ -625,32 +625,65 @@ export default {
       })
       
       // Вычисляем размеры треугольника с учетом высоты канваса и отступов
-      const triangleBaseWidth = cellWidth * 2 // Основание треугольника равно 2 ячейкам
+      // triangleBaseWidth будет переопределен ниже с учетом доступной ширины
       
       // Рассчитываем доступную высоту для треугольников
       const availableHeight = this.canvasHeight - (this.externalMarginPx * 2) // Высота канваса минус отступы сверху и снизу
       const numRows = this.gridRows
       
+      // Отступ между строками в два раза меньше внешнего отступа
+      const rowSpacing = this.externalMarginPx / 2
+      
       // Рассчитываем высоту треугольника так, чтобы все треугольники поместились в канвас
-      // Формула: availableHeight = numRows * triangleHeight + (numRows - 1) * externalMarginPx
-      // Отсюда: triangleHeight = (availableHeight - (numRows - 1) * externalMarginPx) / numRows
+      // Формула: availableHeight = numRows * triangleHeight + (numRows - 1) * rowSpacing
+      // Отсюда: triangleHeight = (availableHeight - (numRows - 1) * rowSpacing) / numRows
       const triangleHeight = numRows > 1 
-        ? (availableHeight - (numRows - 1) * this.externalMarginPx) / numRows
+        ? (availableHeight - (numRows - 1) * rowSpacing) / numRows
         : availableHeight
       
       // ВАЖНО: Разделяем высоту треугольника и отступы между строками
-      const colSpacing = triangleBaseWidth // Расстояние между столбцами остается как основание треугольника
+      // Также добавляем отступы между столбцами
+      // Используем фиксированное расстояние между столбцами, не зависящее от количества столбцов
+      // Рассчитываем ширину треугольников так, чтобы они выходили за границы канваса
+      // Первый треугольник: половина уходит за левую границу
+      // Последний треугольник: половина уходит за правую границу
+      // Между ними: фиксированные отступы
+      const numCols = this.gridCols
+      
+      // Общая ширина, которую должны покрыть треугольники
+      // Первый треугольник: половина уходит за левую границу
+      // Последний треугольник: центр на правой границе, половина уходит за правую границу
+      // Значит нужно покрыть: ширина канваса + половина первого треугольника + половина последнего треугольника
+      const totalWidthToCover = this.canvasWidth + (this.externalMarginPx * 2) // Добавляем отступы с обеих сторон
+      
+      // Рассчитываем ширину треугольника с учетом того, что они выходят за границы
+      // Формула: totalWidthToCover = numCols * triangleBaseWidth + (numCols - 1) * externalMarginPx
+      const triangleBaseWidth = numCols > 1 
+        ? (totalWidthToCover - (numCols - 1) * this.externalMarginPx) / numCols
+        : totalWidthToCover
+      
+      // Растягиваем треугольники на половину их ширины
+      const triangleStretch = triangleBaseWidth / 2
+      
+      // Расстояние между центрами треугольников = базовая ширина + отступ + растяжение
+      // Учитываем, что треугольники растянуты на половину своей ширины
+      const colSpacing = triangleBaseWidth + this.externalMarginPx + triangleStretch
       
       console.log('🔺 Расстояния в треугольной сетке:', {
         triangleBaseWidth,
+        triangleStretch,
         triangleHeight,
-        colSpacing,
+        totalWidthToCover,
         availableHeight,
         numRows,
+        numCols,
         externalMarginPx: this.externalMarginPx,
-        spacingBetweenRows: this.externalMarginPx,
-        calculatedTotalHeight: numRows * triangleHeight + (numRows - 1) * this.externalMarginPx,
-        note: 'Отступы разделены от высоты треугольника'
+        colSpacing,
+        spacingBetweenRows: rowSpacing,
+        spacingBetweenCols: this.externalMarginPx,
+        calculatedTotalHeight: numRows * triangleHeight + (numRows - 1) * rowSpacing,
+        calculatedTotalWidth: numCols * triangleBaseWidth + (numCols - 1) * this.externalMarginPx,
+        note: 'Треугольники выходят за границы канваса: половина первого слева, половина последнего справа'
       })
       
       // Увеличиваем треугольники по вертикали на 0.5% для устранения просветов
@@ -663,8 +696,9 @@ export default {
       const trianglesNeededForFullWidth = Math.ceil(canvasWidth / triangleBaseWidth) + 2 // +2 для запаса
       const numTriangles = Math.max(trianglesNeededForFullWidth, 20) // Минимум 20 треугольников
       
-      // Начинаем от левого края с половины основания первого треугольника + отступ
-      const startX = -cellWidth * 0.5 + margin
+      // Сдвигаем все треугольники влево так, чтобы половина первых треугольников ушла за левую границу канваса
+      // Центр первого треугольника должен быть на половину его ширины левее левого края
+      const startX = -(triangleBaseWidth + triangleStretch) / 2
       
       // Получаем изображения для сетки
       const gridImages = this.getImagesForGrid()
@@ -673,7 +707,7 @@ export default {
         for (let col = 0; col < numTriangles; col++) {
           const x = startX + col * colSpacing
           // Y позиция: отступ сверху + (высота треугольника + отступ) * номер строки
-          const y = margin + row * (triangleHeight + this.externalMarginPx)
+          const y = margin + row * (triangleHeight + rowSpacing)
           const isEven = (row + col) % 2 === 0
           
           let triangle
@@ -681,9 +715,9 @@ export default {
             // Треугольник вершиной вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x + cellWidth / 2, y], // вершина
-                [x - cellWidth * 1.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
-                [x + cellWidth * 2.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
+                [x + (triangleBaseWidth + triangleStretch) / 2, y], // вершина
+                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y + triangleHeight * verticalMultiplier], // левый угол основания
+                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y + triangleHeight * verticalMultiplier] // правый угол основания
               ],
               closed: true
             })
@@ -692,9 +726,9 @@ export default {
             // Треугольник основанием вверх
             triangle = new this.paperScope.Path({
               segments: [
-                [x - cellWidth * 1.5125, y], // левый угол основания
-                [x + cellWidth * 2.5125, y], // правый угол основания
-                [x + cellWidth / 2, y + triangleHeight * verticalMultiplier] // вершина
+                [x - (triangleBaseWidth + triangleStretch) * 0.5125, y], // левый угол основания
+                [x + (triangleBaseWidth + triangleStretch) * 1.5125, y], // правый угол основания
+                [x + (triangleBaseWidth + triangleStretch) / 2, y + triangleHeight * verticalMultiplier] // вершина
               ],
               closed: true
             })

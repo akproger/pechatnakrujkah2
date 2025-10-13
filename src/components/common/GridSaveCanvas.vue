@@ -1302,10 +1302,10 @@ export default {
       const sy = (this.mainCanvasHeight > 0) ? (this.canvasHeight / this.mainCanvasHeight) : 1
       const scale = Math.max(sx, sy)
       
-      // Настраиваем обводку с правильным масштабированием и множителем x4
+      // Настраиваем обводку с правильным масштабированием и множителем x3.5
       strokeMask.fillColor = 'transparent'
       strokeMask.strokeColor = this.strokeColor
-      strokeMask.strokeWidth = this.strokeWidth * scale * 4 // Добавляем множитель x4
+      strokeMask.strokeWidth = this.strokeWidth * scale * 3.5 // Добавляем множитель x3.5
       strokeMask.visible = true
       
       // Добавляем обводку ПОВЕРХ maskedRaster
@@ -1447,11 +1447,11 @@ export default {
         return
       }
       
-      // Применяем настройки тени к Raster с множителем x2 для процесса сохранения
+      // Применяем настройки тени к Raster с множителем x1.5 для размытия и x1.75 для сдвига при сохранении
       const shadowColor = new this.paperScope.Color(0, 0, 0, this.shadowOpacity / 100)
       raster.shadowColor = shadowColor
-      raster.shadowBlur = this.shadowBlur
-      raster.shadowOffset = new this.paperScope.Point(this.shadowOffsetX * 2, this.shadowOffsetY * 2)
+      raster.shadowBlur = this.shadowBlur * 1.5 // Увеличиваем размытие в 1.5 раза для высокого разрешения
+      raster.shadowOffset = new this.paperScope.Point(this.shadowOffsetX * 1.75, this.shadowOffsetY * 1.75)
       
       // Принудительно обновляем отображение
       raster.shadowColor = shadowColor
@@ -1459,10 +1459,12 @@ export default {
       console.log('✅ Тень применена к Raster:', {
         shadowColor: shadowColor.toString(),
         shadowBlur: raster.shadowBlur,
+        originalShadowBlur: this.shadowBlur,
+        shadowBlurMultiplier: 1.5,
         shadowOffset: raster.shadowOffset.toString(),
         originalOffsetX: this.shadowOffsetX,
         originalOffsetY: this.shadowOffsetY,
-        multiplier: 2,
+        multiplier: 1.75,
         visible: raster.visible
       })
     },
@@ -1483,10 +1485,10 @@ export default {
           size: [this.canvasWidth, this.canvasHeight]
         })
         
-        // Настраиваем обводку с правильным масштабированием и множителем x4
+        // Настраиваем обводку с правильным масштабированием и множителем x3.5
         mainRect.fillColor = null // Без заливки
         mainRect.strokeColor = this.strokeColor
-        mainRect.strokeWidth = this.strokeWidth * scale * 4 // Используем правильный масштаб с множителем x4
+        mainRect.strokeWidth = this.strokeWidth * scale * 3.5 // Используем правильный масштаб с множителем x3.5
         mainRect.strokeJoin = 'miter'
         mainRect.strokeCap = 'butt'
         
@@ -1496,10 +1498,10 @@ export default {
         
         console.log('✅ Основной прямоугольник с обводкой добавлен:', {
           strokeColor: this.strokeColor,
-          strokeWidth: this.strokeWidth * scale * 4, // Показываем масштабированную толщину с множителем x4
+          strokeWidth: this.strokeWidth * scale * 3.5, // Показываем масштабированную толщину с множителем x3.5
           originalStrokeWidth: this.strokeWidth,
           scale: scale,
-          multiplier: 4,
+          multiplier: 3.5,
           size: `${this.canvasWidth}x${this.canvasHeight}`
         })
       }

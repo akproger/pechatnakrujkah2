@@ -386,42 +386,45 @@
                         </div>
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Смещение по X: {{ shadowOffsetX }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetX"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                          @input="updateStickerStyles"
-                        >
+                        <label class="form-label">Позиция тени X: {{ shadowOffsetX }}%</label>
+                        <div class="control-scale" role="group">
+                          <div
+                            v-for="i in 11"
+                            :key="`sx-sm-${(i - 6)}`"
+                            class="control-cell"
+                            :class="offsetCellClassX(i)"
+                            :title="`${(i - 6)}%`"
+                            @click="setShadowOffsetX((i - 6))"
+                          ></div>
+                        </div>
                       </div>
                       <div class="form-group mt-2">
-                        <label class="form-label">Смещение по Y: {{ shadowOffsetY }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOffsetY"
-                          min="-50" 
-                          max="50" 
-                          step="1"
-                          @input="updateStickerStyles"
-                        >
+                        <label class="form-label">Позиция тени Y: {{ shadowOffsetY }}%</label>
+                        <div class="control-scale" role="group">
+                          <div
+                            v-for="i in 11"
+                            :key="`sy-sm-${(i - 6)}`"
+                            class="control-cell"
+                            :class="offsetCellClassY(i)"
+                            :title="`${(i - 6)}%`"
+                            @click="setShadowOffsetY((i - 6))"
+                          ></div>
+                        </div>
                       </div>
                       
                       <div class="form-group mt-2">
                         <label class="form-label">Прозрачность тени: {{ shadowOpacity }}%</label>
-                        <input 
-                          type="range" 
-                          class="form-range" 
-                          v-model.number="shadowOpacity"
-                          min="0" 
-                          max="100" 
-                          step="1"
-                          @input="updateStickerStyles"
-                        >
-              </div>
+                        <div class="control-scale opacity-scale" role="group">
+                          <div
+                            v-for="n in 11"
+                            :key="`so-sm-${(n - 1) * 10}`"
+                            class="control-cell"
+                            :class="{ 'selected': ((n - 1) * 10) <= shadowOpacity }"
+                            :title="`${(n - 1) * 10}%`"
+                            @click="setShadowOpacity((n - 1) * 10)"
+                          ></div>
+                        </div>
+                      </div>
             </div>
           </div>
         </div>
@@ -595,9 +598,9 @@ export default {
       strokeWidth: 8, // Проценты (0-20)
       shadowBlur: 4, // Пиксели (0-20 px)
       
-      shadowOffsetX: 5, // Проценты (-50 до +50)
-      shadowOffsetY: 5, // Проценты (-50 до +50)
-      shadowOpacity: 40, // Проценты (0-100)
+      shadowOffsetX: 3, // Проценты (-5 до +5)
+      shadowOffsetY: 3, // Проценты (-5 до +5)
+      shadowOpacity: 80, // Проценты (0-100)
       
       // Управление стикерами
       selectedStickerIndex: -1,
@@ -690,6 +693,37 @@ export default {
     window.removeEventListener('resize', () => {})
   },
   methods: {
+    setShadowOpacity(pct) {
+      const v = Math.max(0, Math.min(100, pct))
+      this.shadowOpacity = v
+      this.updateStickerStyles()
+    },
+    setShadowOffsetX(pct) {
+      const v = Math.max(-5, Math.min(5, pct))
+      this.shadowOffsetX = v
+      this.updateStickerStyles()
+    },
+    setShadowOffsetY(pct) {
+      const v = Math.max(-5, Math.min(5, pct))
+      this.shadowOffsetY = v
+      this.updateStickerStyles()
+    },
+    offsetCellClassX(i) {
+      const cellValue = (i - 6)
+      const v = this.shadowOffsetX
+      if (cellValue === 0) return 'cell-zero'
+      if (v === 0) return ''
+      if (v > 0) return cellValue > 0 && cellValue <= v ? 'cell-pos-active' : ''
+      return cellValue < 0 && cellValue >= v ? 'cell-neg-active' : ''
+    },
+    offsetCellClassY(i) {
+      const cellValue = (i - 6)
+      const v = this.shadowOffsetY
+      if (cellValue === 0) return 'cell-zero'
+      if (v === 0) return ''
+      if (v > 0) return cellValue > 0 && cellValue <= v ? 'cell-pos-active' : ''
+      return cellValue < 0 && cellValue >= v ? 'cell-neg-active' : ''
+    },
     setShadowBlur(pct) {
       const v = Math.max(0, Math.min(20, pct))
       this.shadowBlur = v

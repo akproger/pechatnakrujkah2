@@ -1485,10 +1485,10 @@ export default {
           size: [this.canvasWidth, this.canvasHeight]
         })
         
-        // Настраиваем обводку с правильным масштабированием и множителем x3.5
+        // Настраиваем обводку с правильным масштабированием и множителем x0.875 (3.5/4) для кружки-комикс
         mainRect.fillColor = null // Без заливки
         mainRect.strokeColor = this.strokeColor
-        mainRect.strokeWidth = this.strokeWidth * scale * 3.5 // Используем правильный масштаб с множителем x3.5
+        mainRect.strokeWidth = this.strokeWidth * scale * 0.875 // Используем правильный масштаб с множителем x0.875 (3.5/4) для кружки-комикс
         mainRect.strokeJoin = 'miter'
         mainRect.strokeCap = 'butt'
         
@@ -1498,10 +1498,10 @@ export default {
         
         console.log('✅ Основной прямоугольник с обводкой добавлен:', {
           strokeColor: this.strokeColor,
-          strokeWidth: this.strokeWidth * scale * 3.5, // Показываем масштабированную толщину с множителем x3.5
+          strokeWidth: this.strokeWidth * scale * 0.875, // Показываем масштабированную толщину с множителем x0.875 для кружки-комикс
           originalStrokeWidth: this.strokeWidth,
           scale: scale,
-          multiplier: 3.5,
+          multiplier: 0.875,
           size: `${this.canvasWidth}x${this.canvasHeight}`
         })
       }

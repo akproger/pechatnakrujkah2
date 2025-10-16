@@ -46,9 +46,239 @@
       <div class="text-panel-content">
         <!-- Содержимое "Разговор" -->
         <div v-if="textDialogActiveTab === 'conversation'" class="tab-content">
-          <div class="content-placeholder">
-            <h6>Содержимое Разговор</h6>
-            <p>Здесь будут настройки для режима "Разговор"</p>
+          <div class="text-input-section">
+            <textarea 
+              id="textInputConversation"
+              v-model="textDialogDataConversation.text"
+              class="form-control"
+              rows="6"
+              placeholder="Введите текст..."
+            ></textarea>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label class="form-label">Шрифт:</label>
+                  <select v-model="textDialogDataConversation.font" class="form-select">
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <div class="range" :style="`--value: ${textDialogDataConversation.fontSize}`">
+                    <label class="range-label" for="fontSizeConversation">Размер:</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="fontSizeConversation" 
+                      type="range" 
+                      v-model="textDialogDataConversation.fontSize" 
+                      min="12" 
+                      max="72" 
+                      step="1" 
+                      aria-valuemin="12" 
+                      aria-valuemax="72" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12 text-style-buttons">
+                <div class="font-weight-buttons">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataConversation.fontWeight === 'normal' }"
+                    @click="textDialogDataConversation.fontWeight = 'normal'"
+                    title="Обычный"
+                  >
+                    <i class="bi bi-type"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataConversation.fontWeight === 'bold' }"
+                    @click="textDialogDataConversation.fontWeight = 'bold'"
+                    title="Жирный"
+                  >
+                    <i class="bi bi-type-bold"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataConversation.fontWeight === 'italic' }"
+                    @click="textDialogDataConversation.fontWeight = 'italic'"
+                    title="Курсив"
+                  >
+                    <i class="bi bi-type-italic"></i>
+                  </button>
+                  <div class="vertical-line"></div>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataConversation.textAlign === 'left' }"
+                    @click="textDialogDataConversation.textAlign = 'left'"
+                    title="По левому краю"
+                  >
+                    <i class="bi bi-text-left"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataConversation.textAlign === 'center' }"
+                    @click="textDialogDataConversation.textAlign = 'center'"
+                    title="По центру"
+                  >
+                    <i class="bi bi-text-center"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataConversation.textAlign === 'right' }"
+                    @click="textDialogDataConversation.textAlign = 'right'"
+                    title="По правому краю"
+                  >
+                    <i class="bi bi-text-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="color-buttons">
+              <div class="color-button-group">
+                <i class="bi bi-type color-icon" title="Цвет текста"></i>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary color-btn" 
+                  title="Цвет текста"
+                >
+                  <div class="color-preview" :style="{ backgroundColor: textDialogDataConversation.textColor }"></div>
+                  <input type="color" v-model="textDialogDataConversation.textColor" class="color-input">
+                </button>
+              </div>
+              
+              <div class="color-button-group">
+                <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary color-btn" 
+                  title="Цвет подложки"
+                >
+                  <div class="color-preview" :style="{ backgroundColor: textDialogDataConversation.backgroundColor }"></div>
+                  <input type="color" v-model="textDialogDataConversation.backgroundColor" class="color-input">
+                </button>
+              </div>
+            </div>
+
+            <!-- Настройки хвоста -->
+            <div class="form-group mb-0">
+              <div class="mb-2">Настройки "Хвоста"</div>
+              <div class="row g-2">
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataConversation.tailSize}`">
+                    <label class="range-label" for="tailSizeConversation">Размер</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailSizeConversation" 
+                      type="range" 
+                      v-model="textDialogDataConversation.tailSize" 
+                      min="100" 
+                      max="750" 
+                      step="1" 
+                      aria-valuemin="100" 
+                      aria-valuemax="750" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataConversation.tailWidth}`">
+                    <label class="range-label" for="tailWidthConversation">Ширина</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailWidthConversation" 
+                      type="range" 
+                      v-model="textDialogDataConversation.tailWidth" 
+                      min="40" 
+                      max="100" 
+                      step="1" 
+                      aria-valuemin="40" 
+                      aria-valuemax="100" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataConversation.tailAngle}`">
+                    <label class="range-label" for="tailAngleConversation">Угол</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailAngleConversation" 
+                      type="range" 
+                      v-model="textDialogDataConversation.tailAngle" 
+                      min="0" 
+                      max="359" 
+                      step="1" 
+                      aria-valuemin="0" 
+                      aria-valuemax="359" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Настройки подложки -->
+            <div class="form-group mb-3">
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label">Ширина подложки: {{ textDialogDataConversation.backgroundWidth }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataConversation.backgroundWidth" 
+                    class="form-range" 
+                    min="100" 
+                    max="400" 
+                    step="10"
+                  >
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Высота подложки: {{ textDialogDataConversation.backgroundHeight }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataConversation.backgroundHeight" 
+                    class="form-range" 
+                    min="50" 
+                    max="200" 
+                    step="10"
+                  >
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Скругление: {{ textDialogDataConversation.backgroundRadius }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataConversation.backgroundRadius" 
+                    class="form-range" 
+                    min="0" 
+                    max="20" 
+                    step="1"
+                  >
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1960,7 +2190,7 @@ export default {
       const tempCtx = tempCanvas.getContext('2d')
       
       // Устанавливаем шрифт
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize || 24}px ${textData.font || 'Arial'}`
+      tempCtx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 24}px ${textData.font || 'Arial'}`
       
       // Измеряем базовый размер текста
       const textLines = textData.text.split('\n')
@@ -1970,7 +2200,7 @@ export default {
       textLines.forEach(line => {
         const metrics = tempCtx.measureText(line)
         maxWidth = Math.max(maxWidth, metrics.width)
-        totalHeight += (textData.fontSize || 24) * (textData.lineHeight || 1.2)
+        totalHeight += (Number(textData.fontSize) || 24) * (textData.lineHeight || 1.2)
       })
       
       // Добавляем отступы для обводки и тени
@@ -2017,7 +2247,7 @@ export default {
     // НОВОЕ: Рисование только текста на канвасе
     drawTextOnlyOnCanvas(ctx, textData, padding, textSize) {
       // Устанавливаем шрифт
-      ctx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize || 24}px ${textData.font || 'Arial'}`
+      ctx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 24}px ${textData.font || 'Arial'}`
       ctx.textAlign = textData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       
@@ -2039,13 +2269,13 @@ export default {
         shadowCtx.shadowOffsetX = textData.shadowOffsetX || 0
         shadowCtx.shadowOffsetY = textData.shadowOffsetY || 0
         shadowCtx.globalAlpha = (textData.shadowOpacity || 100) / 100
-        shadowCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize || 24}px ${textData.font || 'Arial'}`
+        shadowCtx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 24}px ${textData.font || 'Arial'}`
         shadowCtx.textAlign = textData.textAlign || 'center'
         shadowCtx.textBaseline = 'middle'
         shadowCtx.fillStyle = textData.shadowColor
         
         // Рисуем тень текста
-        this.drawMultilineText(shadowCtx, textData.text, textX, textY, textData.fontSize, textData.lineHeight, textData, true)
+        this.drawMultilineText(shadowCtx, textData.text, textX, textY, Number(textData.fontSize), textData.lineHeight, textData, true)
         
         // Рисуем тень на основном канвасе
         ctx.drawImage(shadowCanvas, 0, 0)
@@ -2062,7 +2292,7 @@ export default {
         const img = textData.cachedImage
         
         // Вычисляем размеры текста для правильного позиционирования изображения
-        const textSizeForImage = this.calculateMultilineTextSize(ctx, textData.text, textData.fontSize, textData.lineHeight)
+        const textSizeForImage = this.calculateMultilineTextSize(ctx, textData.text, Number(textData.fontSize), textData.lineHeight)
         const drawWidth = textSizeForImage.width
         const drawHeight = textSizeForImage.height
         const drawX = textX - drawWidth / 2
@@ -2073,11 +2303,11 @@ export default {
         
         // Создаем маску для текста
         textCtx.globalCompositeOperation = 'destination-in'
-        textCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize || 24}px ${textData.font || 'Arial'}`
+        textCtx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 24}px ${textData.font || 'Arial'}`
         textCtx.textAlign = textData.textAlign || 'center'
         textCtx.textBaseline = 'middle'
         textCtx.fillStyle = '#000000'
-        this.drawMultilineText(textCtx, textData.text, textX, textY, textData.fontSize, textData.lineHeight, textData, true)
+        this.drawMultilineText(textCtx, textData.text, textX, textY, Number(textData.fontSize), textData.lineHeight, textData, true)
         
         // Рисуем результат на основном канвасе
         ctx.drawImage(textCanvas, 0, 0)
@@ -2087,14 +2317,14 @@ export default {
       } else {
         // Рисуем обычный текст без изображения
         ctx.fillStyle = textData.textColor || '#000000'
-        this.drawMultilineText(ctx, textData.text, textX, textY, textData.fontSize, textData.lineHeight, textData, true)
+        this.drawMultilineText(ctx, textData.text, textX, textY, Number(textData.fontSize), textData.lineHeight, textData, true)
       }
       
       // Рисуем обводку (если включена) - поверх всего
       if (textData.stroke) {
         ctx.strokeStyle = textData.strokeColor
         ctx.lineWidth = textData.strokeWidth || 2
-        this.drawMultilineTextStroke(ctx, textData.text, textX, textY, textData.fontSize, textData.lineHeight, textData, true)
+        this.drawMultilineTextStroke(ctx, textData.text, textX, textY, Number(textData.fontSize), textData.lineHeight, textData, true)
       }
     },
 
@@ -2185,7 +2415,7 @@ export default {
         text: textToEmit,
         style: {
           fontFamily: textData.font,
-          fontSize: textData.fontSize,
+          fontSize: Number(textData.fontSize),
           color: textData.textColor,
           backgroundColor: textData.backgroundColor,
           fontWeight: textData.fontWeight,
@@ -2538,7 +2768,7 @@ export default {
       ctx.save()
       
       // Настройки шрифта
-      const fontSize = textData.fontSize || 16
+      const fontSize = Number(textData.fontSize) || 16
       const fontFamily = textData.font || 'Arial'
       const fontWeight = textData.fontWeight || 'normal'
       const fontStyle = textData.fontStyle || 'normal'
@@ -2576,7 +2806,7 @@ export default {
       ctx.save()
       
       // Настройки шрифта
-      const fontSize = textData.fontSize || 16
+      const fontSize = Number(textData.fontSize) || 16
       const fontFamily = textData.font || 'Arial'
       const fontWeight = textData.fontWeight || 'normal'
       const fontStyle = textData.fontStyle || 'normal'
@@ -2613,13 +2843,14 @@ export default {
 
     // Отрисовка текста с подложкой на превью канвасе (РАЗГОВОР) - ТОЧНАЯ КОПИЯ из StickerManiaPage
     drawTextPreviewOnCanvas(ctx, canvas) {
-      if (!this.currentTextPosition || !this.textDialogData.text) return
+      const textData = this.getCurrentTextDialogData()
+      if (!this.currentTextPosition || !textData.text) return
       
-      console.log('🎨 Отрисовка текста на превью:', this.textDialogData.text)
+      console.log('🎨 Отрисовка текста на превью:', textData.text)
       console.log('🎯 Параметры хвоста в начале метода:', {
-        tailSize: this.textDialogData.tailSize,
-        tailWidth: this.textDialogData.tailWidth,
-        tailAngle: this.textDialogData.tailAngle
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle
       })
       
       // Координаты клика остаются теми же, так как размеры канвасов одинаковые
@@ -2639,12 +2870,12 @@ export default {
       })
       
       // Настройки текста БЕЗ масштабирования - МЕТОД 1
-      const fontSize = this.textDialogData.fontSize
-      const fontFamily = this.textDialogData.font
-      const fontWeight = this.textDialogData.fontWeight
-      const textColor = this.textDialogData.textColor
-      const backgroundColor = this.textDialogData.backgroundColor
-      const padding = this.textDialogData.padding
+      const fontSize = Number(textData.fontSize) // Принудительно преобразуем в число
+      const fontFamily = textData.font
+      const fontWeight = textData.fontWeight
+      const textColor = textData.textColor
+      const backgroundColor = textData.backgroundColor
+      const padding = Number(textData.padding) // Принудительно преобразуем в число
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -2652,37 +2883,53 @@ export default {
       ctx.textBaseline = 'middle'
       
       // Измеряем размеры многострочного текста
-      const textSize = this.calculateMultilineTextSize(ctx, this.textDialogData.text, fontSize, this.textDialogData.lineHeight)
+      const textSize = this.calculateMultilineTextSize(ctx, textData.text, fontSize, textData.lineHeight)
       const textWidth = textSize.width
       const textHeight = textSize.height
       
+      console.log('🔍 Расчет размеров подложки:', {
+        fontSize: fontSize,
+        lineHeight: textData.lineHeight,
+        text: textData.text,
+        textWidth: textWidth,
+        textHeight: textHeight,
+        backgroundWidth: textData.backgroundWidth,
+        backgroundHeight: textData.backgroundHeight,
+        padding: padding
+      })
+      
       // Размеры подложки (адаптированные под превью)
       const backgroundWidth = Math.max(
-        this.textDialogData.backgroundWidth, 
+        textData.backgroundWidth, 
         textWidth + padding * 2
       )
       const backgroundHeight = Math.max(
-        this.textDialogData.backgroundHeight, 
+        textData.backgroundHeight, 
         textHeight + padding * 2
       )
+      
+      console.log('🔍 Итоговые размеры подложки:', {
+        backgroundWidth: backgroundWidth,
+        backgroundHeight: backgroundHeight
+      })
       
       // Позиция подложки (центрируем относительно точки клика)
       const bgX = previewX - backgroundWidth / 2
       const bgY = previewY - backgroundHeight / 2
       
       // Сначала рисуем тень если включена (применяется к объединенной фигуре)
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = this.textDialogData.shadowBlur
-        ctx.shadowOffsetX = this.textDialogData.shadowOffsetX
-        ctx.shadowOffsetY = this.textDialogData.shadowOffsetY
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = textData.shadowBlur
+        ctx.shadowOffsetX = textData.shadowOffsetX
+        ctx.shadowOffsetY = textData.shadowOffsetY
       }
       
       // Рисуем объединенную фигуру (подложка + хвост) с тенью
       this.drawCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
       
       // Сбрасываем тень
-      if (this.textDialogData.shadow) {
+      if (textData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
@@ -2690,16 +2937,16 @@ export default {
       }
       
       // Добавляем обводку если включена (применяется к объединенной фигуре)
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = this.textDialogData.strokeWidth
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = textData.strokeWidth
         this.strokeCombinedShape(ctx, previewX, previewY, backgroundWidth, backgroundHeight, previewScale)
       }
       
       // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
-      ctx.textAlign = this.textDialogData.textAlign || 'center'
-      this.drawMultilineText(ctx, this.textDialogData.text, previewX, previewY, this.textDialogData.fontSize * previewScale, this.textDialogData.lineHeight)
+      ctx.textAlign = textData.textAlign || 'center'
+      this.drawMultilineText(ctx, textData.text, previewX, previewY, Number(textData.fontSize) * previewScale, textData.lineHeight)
       
       console.log('✅ Текст с подложкой отрисован на превью')
     },
@@ -2713,14 +2960,8 @@ export default {
       // ИСПРАВЛЕНО: НЕ копируем фон с основного канваса, так как это уже сделано в updateSinglePreviewCanvas
       // Фон уже скопирован с учетом скрытия редактируемого слоя
       
-      // Временно заменяем textDialogData на textDialogDataStandard для отрисовки
-      const originalData = this.textDialogData
-      this.textDialogData = this.textDialogDataStandard
-      
-      this.drawTextPreviewOnCanvas(ctx, canvas) // Используем ту же логику
-      
-      // Восстанавливаем оригинальные данные
-      this.textDialogData = originalData
+      // Используем общий метод, который теперь правильно работает с getCurrentTextDialogData()
+      this.drawTextPreviewOnCanvas(ctx, canvas)
     },
 
     // РЕЖИМ "МЫСЛИ" - ТОЧНАЯ КОПИЯ из StickerManiaPage
@@ -2740,12 +2981,12 @@ export default {
       const currentTextData = this.textDialogDataThoughts
       
       // Настройки текста
-      const fontSize = currentTextData.fontSize
+      const fontSize = Number(Number(currentTextData.fontSize)) // Принудительно преобразуем в число
       const fontFamily = currentTextData.font
       const fontWeight = currentTextData.fontWeight
       const textColor = currentTextData.textColor
       const backgroundColor = currentTextData.backgroundColor
-      const padding = currentTextData.padding
+      const padding = Number(currentTextData.padding) // Принудительно преобразуем в число
       
       // Устанавливаем стиль шрифта
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
@@ -2782,7 +3023,7 @@ export default {
       // Рисуем текст с поддержкой переноса строк
       ctx.fillStyle = textColor
       ctx.textAlign = currentTextData.textAlign || 'center'
-      this.drawMultilineText(ctx, currentTextData.text, previewX, previewY, currentTextData.fontSize * previewScale, currentTextData.lineHeight)
+      this.drawMultilineText(ctx, currentTextData.text, previewX, previewY, Number(currentTextData.fontSize) * previewScale, currentTextData.lineHeight)
       
       console.log('✅ Режим "Мысли" отрисован на превью')
     },
@@ -2801,7 +3042,7 @@ export default {
       const previewScale = 1
       
       // Настройки текста (адаптированные под превью)
-      const fontSize = this.textDialogDataImageText.fontSize
+      const fontSize = Number(this.textDialogDataImageText.fontSize)
       const fontFamily = this.textDialogDataImageText.font
       const fontWeight = this.textDialogDataImageText.fontWeight
       const textColor = this.textDialogDataImageText.textColor
@@ -2831,7 +3072,7 @@ export default {
         shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
         
         // Рисуем тень текста
-        this.drawMultilineText(shadowCtx, this.textDialogDataImageText.text, previewX, previewY, this.textDialogDataImageText.fontSize * previewScale, this.textDialogDataImageText.lineHeight, true)
+        this.drawMultilineText(shadowCtx, this.textDialogDataImageText.text, previewX, previewY, Number(this.textDialogDataImageText.fontSize) * previewScale, this.textDialogDataImageText.lineHeight, true)
         
         // Рисуем тень на основном канвасе
         ctx.drawImage(shadowCanvas, 0, 0)
@@ -3002,27 +3243,30 @@ export default {
         ctx.drawImage(this.canvas, 0, 0, canvas.width, canvas.height)
       }
       
+      // Получаем данные для текущего режима
+      const textData = this.getCurrentTextDialogData()
+      
       // Рисуем подложку (как в оригинале)
-      const bgWidth = this.textDialogData.backgroundWidth || 200
-      const bgHeight = this.textDialogData.backgroundHeight || 80
+      const bgWidth = textData.backgroundWidth || 200
+      const bgHeight = textData.backgroundHeight || 80
       
       // Для режима "Разговор" рисуем подложку с хвостом
       if (this.textDialogActiveTab === 'conversation') {
         console.log('🎯 Дефолтная подложка режима "Разговор" с хвостом')
         
         // Сначала рисуем тень если включена (применяется к объединенной фигуре)
-        if (this.textDialogData.shadow) {
-          ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          ctx.shadowBlur = this.textDialogData.shadowBlur
-          ctx.shadowOffsetX = this.textDialogData.shadowOffsetX
-          ctx.shadowOffsetY = this.textDialogData.shadowOffsetY
+        if (textData.shadow) {
+          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = textData.shadowBlur
+          ctx.shadowOffsetX = textData.shadowOffsetX
+          ctx.shadowOffsetY = textData.shadowOffsetY
         }
         
         // Рисуем объединенную фигуру (подложка + хвост) с тенью
-        this.drawCombinedShape(ctx, x, y, bgWidth, bgHeight, 1, this.textDialogData.backgroundColor || '#ffffff', true)
+        this.drawCombinedShape(ctx, x, y, bgWidth, bgHeight, 1, textData.backgroundColor || '#ffffff', true)
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (textData.shadow) {
           ctx.shadowColor = 'transparent'
           ctx.shadowBlur = 0
           ctx.shadowOffsetX = 0
@@ -3030,27 +3274,27 @@ export default {
         }
         
         // Добавляем обводку если включена
-        if (this.textDialogData.stroke) {
-          ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
-          ctx.lineWidth = this.textDialogData.strokeWidth || 2
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor || '#000000'
+          ctx.lineWidth = textData.strokeWidth || 2
           this.strokeCombinedShape(ctx, x, y, bgWidth, bgHeight, 1)
         }
       } else {
         // Для других режимов - простая подложка
-        ctx.fillStyle = this.textDialogData.backgroundColor || '#ffffff'
+        ctx.fillStyle = textData.backgroundColor || '#ffffff'
         ctx.fillRect(x - bgWidth/2, y - bgHeight/2, bgWidth, bgHeight)
         
         // Рисуем обводку если есть
-        if (this.textDialogData.stroke) {
-          ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
-          ctx.lineWidth = this.textDialogData.strokeWidth || 2
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor || '#000000'
+          ctx.lineWidth = textData.strokeWidth || 2
           ctx.strokeRect(x - bgWidth/2, y - bgHeight/2, bgWidth, bgHeight)
         }
       }
       
       // Рисуем дефолтный текст "Текст"
-      ctx.fillStyle = this.textDialogData.textColor || '#000000'
-      ctx.font = `${this.textDialogData.fontWeight || 'normal'} ${this.textDialogData.fontSize || 16}px ${this.textDialogData.font || 'Arial'}`
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 16}px ${textData.font || 'Arial'}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('Текст', x, y)
@@ -3105,28 +3349,27 @@ export default {
       // ИСПРАВЛЕНО: НЕ копируем фон с основного канваса, так как это уже сделано в updateSinglePreviewCanvas
       // Фон уже скопирован с учетом скрытия редактируемого слоя
       
-      // Временно заменяем textDialogData на textDialogDataStandard для отрисовки
-      const originalData = this.textDialogData
-      this.textDialogData = this.textDialogDataStandard
+      // Получаем данные для текущего режима
+      const textData = this.getCurrentTextDialogData()
       
       // Рисуем подложку с использованием настроек из textDialogDataStandard
-      const bgWidth = this.textDialogData.backgroundWidth || 200
-      const bgHeight = this.textDialogData.backgroundHeight || 80
+      const bgWidth = textData.backgroundWidth || 200
+      const bgHeight = textData.backgroundHeight || 80
       
       // Рисуем тень если включена
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur))
-        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX)
-        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY)
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY)
       }
       
       // Рисуем простую прямоугольную подложку
-      ctx.fillStyle = this.textDialogData.backgroundColor || '#ffffff'
+      ctx.fillStyle = textData.backgroundColor || '#ffffff'
       ctx.fillRect(x - bgWidth / 2, y - bgHeight / 2, bgWidth, bgHeight)
       
       // Сбрасываем тень
-      if (this.textDialogData.shadow) {
+      if (textData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
@@ -3134,21 +3377,18 @@ export default {
       }
       
       // Добавляем обводку если включена
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = this.textDialogData.strokeColor || '#000000'
-        ctx.lineWidth = this.textDialogData.strokeWidth || 2
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor || '#000000'
+        ctx.lineWidth = textData.strokeWidth || 2
         ctx.strokeRect(x - bgWidth / 2, y - bgHeight / 2, bgWidth, bgHeight)
       }
       
       // Рисуем дефолтный текст "Текст"
-      ctx.fillStyle = this.textDialogData.textColor || '#000000'
-      ctx.font = `${this.textDialogData.fontWeight || 'normal'} ${this.textDialogData.fontSize || 16}px ${this.textDialogData.font || 'Arial'}`
-      ctx.textAlign = this.textDialogData.textAlign || 'center'
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 16}px ${textData.font || 'Arial'}`
+      ctx.textAlign = textData.textAlign || 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('Текст', x, y)
-      
-      // Восстанавливаем оригинальные данные
-      this.textDialogData = originalData
     },
     
     drawDefaultTextPreviewOnCanvasImageTextMode(ctx, canvas) {
@@ -3176,9 +3416,9 @@ export default {
         const textCtx = textCanvas.getContext('2d')
         
         // Вычисляем размеры дефолтного текста для правильного позиционирования изображения
-        textCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+        textCtx.font = `${this.textDialogDataImageText.fontWeight} ${Number(this.textDialogDataImageText.fontSize)}px ${this.textDialogDataImageText.font}`
         const textWidth = textCtx.measureText('Текст').width
-        const textHeight = this.textDialogDataImageText.fontSize * this.textDialogDataImageText.lineHeight
+        const textHeight = Number(this.textDialogDataImageText.fontSize) * this.textDialogDataImageText.lineHeight
         
         // Используем точные размеры текста для изображения (как в основном канвасе)
         const drawWidth = textWidth
@@ -3213,7 +3453,7 @@ export default {
           shadowCtx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
           shadowCtx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
           shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
-          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${Number(this.textDialogDataImageText.fontSize)}px ${this.textDialogDataImageText.font}`
           shadowCtx.textAlign = this.textDialogDataImageText.textAlign
           shadowCtx.textBaseline = 'middle'
           shadowCtx.fillText('Текст', x, y)
@@ -3230,7 +3470,7 @@ export default {
           // Рисуем обводку поверх текста с изображением (без применения изображения как маски)
           ctx.strokeStyle = this.textDialogDataImageText.strokeColor
           ctx.lineWidth = this.textDialogDataImageText.strokeWidth
-          ctx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+          ctx.font = `${this.textDialogDataImageText.fontWeight} ${Number(this.textDialogDataImageText.fontSize)}px ${this.textDialogDataImageText.font}`
           ctx.textAlign = this.textDialogDataImageText.textAlign
           ctx.textBaseline = 'middle'
           ctx.strokeText('Текст', x, y)
@@ -3253,7 +3493,7 @@ export default {
           shadowCtx.shadowOffsetY = this.textDialogDataImageText.shadowOffsetY
           shadowCtx.globalAlpha = this.textDialogDataImageText.shadowOpacity / 100
           shadowCtx.fillStyle = this.textDialogDataImageText.shadowColor
-          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+          shadowCtx.font = `${this.textDialogDataImageText.fontWeight} ${Number(this.textDialogDataImageText.fontSize)}px ${this.textDialogDataImageText.font}`
           shadowCtx.textAlign = this.textDialogDataImageText.textAlign
           shadowCtx.textBaseline = 'middle'
           shadowCtx.fillText('Текст', x, y)
@@ -3264,7 +3504,7 @@ export default {
         
         // Рисуем основной текст
         ctx.fillStyle = this.textDialogDataImageText.textColor
-        ctx.font = `${this.textDialogDataImageText.fontWeight} ${this.textDialogDataImageText.fontSize}px ${this.textDialogDataImageText.font}`
+        ctx.font = `${this.textDialogDataImageText.fontWeight} ${Number(this.textDialogDataImageText.fontSize)}px ${this.textDialogDataImageText.font}`
         ctx.textAlign = this.textDialogDataImageText.textAlign
         ctx.textBaseline = 'middle'
         ctx.fillText('Текст', x, y)
@@ -3462,9 +3702,10 @@ export default {
     // Построение пути для суперподложки (подложка + хвост как единая фигура)
     buildUnifiedShapePath(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
       // Параметры хвоста
-      const tailSize = Number(this.textDialogData.tailSize) / 100 // От 100% до 300%
-      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // От 40% до 100%
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const textData = this.getCurrentTextDialogData()
+      const tailSize = Number(textData.tailSize) / 100 // От 100% до 300%
+      const tailWidth = Number(textData.tailWidth) / 100 // От 40% до 100%
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
@@ -3549,8 +3790,9 @@ export default {
     buildSuperBackgroundPath(ctx, centerX, centerY, bgX, bgY, bgWidth, bgHeight, 
                            intersectionPoint, tailAngle, tailLength, tailWidth) {
       // Вычисляем параметры хвоста
-      const tailWidthPercent = Number(this.textDialogData.tailWidth) / 100
-      const tailSizePercent = Number(this.textDialogData.tailSize) / 100
+      const textData = this.getCurrentTextDialogData()
+      const tailWidthPercent = Number(textData.tailWidth) / 100
+      const tailSizePercent = Number(textData.tailSize) / 100
       
       // Острая вершина хвоста (tailSize теперь от 100% до 300%)
       const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
@@ -3983,7 +4225,8 @@ export default {
     
     // Кэширование точки пересечения хвоста
     getCachedTailIntersection(centerX, centerY, bgWidth, bgHeight) {
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const textData = this.getCurrentTextDialogData()
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       const bgX = centerX - bgWidth / 2
       const bgY = centerY - bgHeight / 2
       
@@ -3993,9 +4236,10 @@ export default {
     // Построение пути с кэшированной точкой пересечения
     buildUnifiedShapePathWithCache(ctx, centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection) {
       // Параметры хвоста
-      const tailSize = Number(this.textDialogData.tailSize) / 100
-      const tailWidth = Number(this.textDialogData.tailWidth) / 100
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const textData = this.getCurrentTextDialogData()
+      const tailSize = Number(textData.tailSize) / 100
+      const tailWidth = Number(textData.tailWidth) / 100
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
@@ -4061,14 +4305,23 @@ export default {
     calculateMultilineTextSize(ctx, text, fontSize, lineHeight) {
       const lines = text.split('\n')
       let maxWidth = 0
-      let totalHeight = 0
       
       for (const line of lines) {
         const metrics = ctx.measureText(line)
         maxWidth = Math.max(maxWidth, metrics.width)
-        // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
-        totalHeight += lines.length === 1 ? fontSize : fontSize * lineHeight
       }
+      
+      // Правильный расчет высоты: для однострочного текста - fontSize, для многострочного - fontSize * lineHeight * количество строк
+      const totalHeight = lines.length === 1 ? fontSize : fontSize * lineHeight * lines.length
+      
+      console.log('📏 calculateMultilineTextSize:', {
+        text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
+        lines: lines.length,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        maxWidth: maxWidth,
+        totalHeight: totalHeight
+      })
       
       return { width: maxWidth, height: totalHeight }
     },
@@ -4135,20 +4388,21 @@ export default {
     // Построение пути для режима "Мысли"
     buildThoughtsModePath(ctx, centerX, centerY, bgWidth, bgHeight, scale, drawTail = true, backgroundColor) {
       // 1️⃣ Рисуем основной овал (подложка) с тенью если включена
-      if (this.textDialogData.shadow) {
-        ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-        ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
-        ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
-        ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+      const textData = this.getCurrentTextDialogData()
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+        ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale)
+        ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
       }
       
       ctx.beginPath()
       this.drawOval(ctx, centerX, centerY, bgWidth, bgHeight)
-      ctx.fillStyle = this.textDialogData.backgroundColor
+      ctx.fillStyle = textData.backgroundColor
       ctx.fill()
       
       // Сбрасываем тень
-      if (this.textDialogData.shadow) {
+      if (textData.shadow) {
         ctx.shadowColor = 'transparent'
         ctx.shadowBlur = 0
         ctx.shadowOffsetX = 0
@@ -4156,9 +4410,9 @@ export default {
       }
       
       // Добавляем обводку если включена
-      if (this.textDialogData.stroke) {
-        ctx.strokeStyle = this.textDialogData.strokeColor
-        ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = Math.max(1, Math.round(textData.strokeWidth * scale))
         ctx.stroke()
       }
       
@@ -4169,9 +4423,9 @@ export default {
       }
       
       // Параметры хвоста из настроек
-      const tailSize = Number(this.textDialogData.tailSize) / 100 // Длина хвоста (от 100% до 300%)
-      const tailWidth = Number(this.textDialogData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
-      const tailAngle = Number(this.textDialogData.tailAngle) * Math.PI / 180
+      const tailSize = Number(textData.tailSize) / 100 // Длина хвоста (от 100% до 300%)
+      const tailWidth = Number(textData.tailWidth) / 100 // Ширина хвоста (от 40% до 100%)
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
       // Размеры хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
@@ -4179,9 +4433,9 @@ export default {
       const maxTailWidth = minDimension * tailWidth // Максимальная ширина хвоста
       
       console.log('🧠 Параметры хвоста:', {
-        tailSize: this.textDialogData.tailSize,
-        tailWidth: this.textDialogData.tailWidth,
-        tailAngle: this.textDialogData.tailAngle,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
         tailSizePercent: tailSize,
         tailWidthPercent: tailWidth,
         tailAngleDeg: (tailAngle * 180 / Math.PI).toFixed(1),
@@ -4250,20 +4504,20 @@ export default {
         })
         
         // Рисуем овал с тенью если включена
-        if (this.textDialogData.shadow) {
-          ctx.shadowColor = this.textDialogData.shadowColor + Math.round(this.textDialogData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
-          ctx.shadowBlur = Math.max(1, Math.round(this.textDialogData.shadowBlur * scale))
-          ctx.shadowOffsetX = Math.round(this.textDialogData.shadowOffsetX * scale)
-          ctx.shadowOffsetY = Math.round(this.textDialogData.shadowOffsetY * scale)
+        if (textData.shadow) {
+          ctx.shadowColor = textData.shadowColor + Math.round(textData.shadowOpacity * 2.55).toString(16).padStart(2, '0')
+          ctx.shadowBlur = Math.max(1, Math.round(textData.shadowBlur * scale))
+          ctx.shadowOffsetX = Math.round(textData.shadowOffsetX * scale)
+          ctx.shadowOffsetY = Math.round(textData.shadowOffsetY * scale)
         }
         
         ctx.beginPath()
         this.drawOval(ctx, ovalX, ovalY, ovalWidth, ovalHeight)
-        ctx.fillStyle = this.textDialogData.backgroundColor
+        ctx.fillStyle = textData.backgroundColor
         ctx.fill()
         
         // Сбрасываем тень
-        if (this.textDialogData.shadow) {
+        if (textData.shadow) {
           ctx.shadowColor = 'transparent'
           ctx.shadowBlur = 0
           ctx.shadowOffsetX = 0
@@ -4271,9 +4525,9 @@ export default {
         }
         
         // Добавляем обводку если включена
-        if (this.textDialogData.stroke) {
-          ctx.strokeStyle = this.textDialogData.strokeColor
-          ctx.lineWidth = Math.max(1, Math.round(this.textDialogData.strokeWidth * scale))
+        if (textData.stroke) {
+          ctx.strokeStyle = textData.strokeColor
+          ctx.lineWidth = Math.max(1, Math.round(textData.strokeWidth * scale))
           ctx.stroke()
         }
       }
@@ -4422,7 +4676,7 @@ export default {
       const textData = this.getCurrentTextDialogData()
       
       // Вычисляем размеры текста точно так же, как в отрисовке
-      const fontSize = textData.fontSize
+      const fontSize = Number(textData.fontSize)
       const text = textData.text || 'Текст'
       
       // Создаем временный контекст для измерения текста
@@ -4976,6 +5230,91 @@ export default {
   margin-bottom: 0;
   color: #666;
   font-size: 0.9rem;
+}
+
+/* Стили для text-input-section в правой панели */
+.text-panel .text-input-section {
+  width: 100%;
+  margin-right: 0;
+  max-width: 100%;
+}
+
+.text-panel .text-input-section textarea {
+  height: auto;
+  min-height: 80px;
+  margin-bottom: 15px;
+}
+
+.text-panel .text-input-section .row {
+  margin-bottom: 15px;
+}
+
+.text-panel .text-input-section .form-group {
+  margin-bottom: 15px;
+}
+
+.text-panel .text-input-section .col-md-6,
+.text-panel .text-input-section .col-md-12,
+.text-panel .text-input-section .col-4 {
+  padding: 0 5px;
+  margin-bottom: 10px;
+}
+
+.text-panel .text-input-section .font-weight-buttons,
+.text-panel .text-input-section .text-align-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.text-panel .text-input-section .font-weight-btn,
+.text-panel .text-input-section .text-align-btn {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+.text-panel .text-input-section .color-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.text-panel .text-input-section .color-button-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-panel .text-input-section .color-btn {
+  padding: 8px 12px;
+}
+
+.text-panel .text-input-section .color-preview {
+  width: 16px;
+  height: 16px;
+}
+
+.text-panel .text-input-section .range {
+  margin-bottom: 15px;
+}
+
+.text-panel .text-input-section .range-label {
+  font-size: 0.8rem;
+  margin-bottom: 5px;
+}
+
+.text-panel .text-input-section .form-label {
+  font-size: 0.8rem;
+  margin-bottom: 5px;
+}
+
+.text-panel .text-input-section .vertical-line {
+  width: 1px;
+  height: 24px;
+  background: #eee;
+  margin: 0 5px;
 }
 
 .tab-btn {

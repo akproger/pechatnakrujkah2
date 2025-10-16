@@ -5,14 +5,14 @@
         <div class="container">
       <!-- Заголовок страницы -->
       <div class="row">
-        <div class="col">
-          <h2 class="page-title">Сетки</h2>
-          <p class="text-muted">Инструмент для создания массива масок</p>
+        <div class="col top-header">
+          <h2 class="page-title mt-3 mb-0">Сетки</h2>
+          <p class="text-muted mb-2 mt-1">Инструмент для создания массива масок</p>
         </div>
       </div>
       
       <!-- Вкладки и ползунки управления -->
-      <div class="row mb-4">
+      <div class="row mb-4 main-part">
         <div class="col-12">
           <div class="card">
             <div class="card-body">
@@ -7113,6 +7113,10 @@ export default {
   padding-bottom: 100%;
   position: relative;
   background: #181818;
+  background-image: url('@/assets/images/cup-bg.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
   overflow: hidden;
   display: flex;
   /* align-items: center; */
@@ -7983,5 +7987,21 @@ export default {
   margin-top: 10px;
   color: #000;
   font-size: 18px;
+}
+.top-header{
+  position: fixed;
+  width: 100%;
+  background: #fff;
+  left: 0;
+  top: 0;
+  text-align: center;
+  box-shadow: 0 0 10px 0 rgba(0,0,0,.1);
+}
+.main-part{
+  position: relative;
+  padding-top: 110px;
+}
+body .card{
+  border-radius: 0;
 }
 </style>

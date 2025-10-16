@@ -1,5 +1,82 @@
 <template>
   <div class="text-manager">
+    <!-- Правая панель для переключения режимов -->
+    <div v-if="showTextDialog" class="text-panel">
+      <!-- Заголовок панели -->
+      <div class="text-panel-header">
+        <h5 class="text-panel-title">
+          {{ isEditingText ? 'Редактировать текст' : 'Добавить текст' }}
+        </h5>
+        <button @click="closeTextDialog" class="btn-close" aria-label="Закрыть"></button>
+      </div>
+
+      <!-- Табы режимов текста -->
+      <div class="text-panel-tabs">
+        <button 
+          class="tab-btn" 
+          :class="{ active: textDialogActiveTab === 'conversation' }"
+          @click="switchTextDialogTab('conversation')"
+        >
+          Разговор
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: textDialogActiveTab === 'thoughts' }"
+          @click="switchTextDialogTab('thoughts')"
+        >
+          Мысли
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: textDialogActiveTab === 'standard' }"
+          @click="switchTextDialogTab('standard')"
+        >
+          Стандарт
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: textDialogActiveTab === 'image-text' }"
+          @click="switchTextDialogTab('image-text')"
+        >
+          Текст с изображением
+        </button>
+      </div>
+
+      <!-- Содержимое табов -->
+      <div class="text-panel-content">
+        <!-- Содержимое "Разговор" -->
+        <div v-if="textDialogActiveTab === 'conversation'" class="tab-content">
+          <div class="content-placeholder">
+            <h6>Содержимое Разговор</h6>
+            <p>Здесь будут настройки для режима "Разговор"</p>
+          </div>
+        </div>
+
+        <!-- Содержимое "Мысли" -->
+        <div v-if="textDialogActiveTab === 'thoughts'" class="tab-content">
+          <div class="content-placeholder">
+            <h6>Содержимое Мысли</h6>
+            <p>Здесь будут настройки для режима "Мысли"</p>
+          </div>
+        </div>
+
+        <!-- Содержимое "Стандарт" -->
+        <div v-if="textDialogActiveTab === 'standard'" class="tab-content">
+          <div class="content-placeholder">
+            <h6>Содержимое Стандарт</h6>
+            <p>Здесь будут настройки для режима "Стандарт"</p>
+          </div>
+        </div>
+
+        <!-- Содержимое "Текст с изображением" -->
+        <div v-if="textDialogActiveTab === 'image-text'" class="tab-content">
+          <div class="content-placeholder">
+            <h6>Содержимое Текст с изображением</h6>
+            <p>Здесь будут настройки для режима "Текст с изображением"</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Диалог добавления/редактирования текста -->
     <div v-if="showTextDialog" class="text-dialog-overlay" @click="closeTextDialog">
@@ -4443,11 +4520,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1050;
+  z-index: 10500;
 }
 
 .text-dialog {
-  background: #fff;
+  background: rgba(255,255,255,0.5);
   width: 100%;
   height: 100vh;
   overflow-y: auto;
@@ -4814,5 +4891,122 @@ export default {
 }
 
 /* Стили для кнопки "Текст 2" перенесены в GridsPage.vue */
+
+/* Стили для правой панели */
+.text-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 350px;
+  height: 100vh;
+  background: #fff;
+  padding: 20px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 10600;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.text-panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.text-panel .btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-panel .btn-close:hover {
+  color: #666;
+}
+
+.text-panel-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 20px;
+}
+
+.text-panel-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.text-panel .tab-content {
+  height: 100%;
+}
+
+.content-placeholder {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.content-placeholder h6 {
+  margin-bottom: 10px;
+  color: #333;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.content-placeholder p {
+  margin-bottom: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.tab-btn {
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  background: #f8f9fa;
+  color: #495057;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.tab-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+/* Адаптивность для правой панели */
+@media (max-width: 768px) {
+  .text-panel {
+    width: 100%;
+    right: 0;
+  }
+}
 
 </style>

@@ -637,13 +637,27 @@ export default {
 
 .preview-container {
   width: 100%;
-  height: 0;
-  padding-bottom: 100%; /* Квадратное соотношение для 3D превью */
+  height: 300px;
+  padding-bottom: 100%;
   position: relative;
-  background: transparent;
+  background: url('@/assets/images/cup-bg.png') #fff;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
   overflow: hidden;
   display: flex;
+  /* align-items: center; */
   justify-content: center;
+  
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border-radius: 8px;
+  }
 }
 
 .three-canvas {

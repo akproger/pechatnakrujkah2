@@ -10,14 +10,14 @@
     <div class="container">
       <!-- Заголовок страницы -->
       <div class="row">
-        <div class="col">
-          <h2 class="page-title">Стикермания</h2>
-          <p class="text-muted">Инструмент для создания стикеров с случайным размещением</p>
+        <div class="col top-header">
+          <h2 class="page-title mt-3 mb-0">Стикермания</h2>
+          <p class="text-muted mb-2 mt-1">Инструмент для создания стикеров с случайным размещением</p>
         </div>
       </div>
       
       <!-- Кнопки управления -->
-      <div class="row mb-2">
+      <div class="row mb-2 main-part">
         <div class="col-12" style="width: 66.66666667%;">
           <div class="card">
             <div class="card-body" style="padding-left: 10px;">
@@ -11122,7 +11122,7 @@ export default {
 <style scoped>
 .sticker-mania-page {
   min-height: 100vh;
-  padding: 20px 0;
+  padding: 0;
 }
 
 /* Горизонтальная шкала выбора значений (как на странице Сетки) */
@@ -11760,7 +11760,7 @@ export default {
 }
 
 .page-title {
-  color: #016527;
+  color: #495057;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
@@ -12744,5 +12744,17 @@ export default {
   color: #000;
   font-size: 18px;
 }
-
+.top-header{
+  position: fixed;
+  width: 100%;
+  background: #fff;
+  left: 0;
+  top: 0;
+  text-align: center;
+  box-shadow: 0 0 10px 0 rgba(0,0,0,.1);
+}
+.main-part{
+  position: relative;
+  padding-top: 95px;
+}
 </style>

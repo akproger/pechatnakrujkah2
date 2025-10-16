@@ -12621,7 +12621,7 @@ export default {
 <style scoped>
 .sticker-mania-page {
   min-height: 100vh;
-  padding: 20px 0;
+  padding: 0;
 }
 
 /* Стили для элементов управления текстом */
@@ -12717,7 +12717,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10500;
   padding: 20px;
   box-sizing: border-box;
 }

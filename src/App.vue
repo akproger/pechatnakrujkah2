@@ -69,10 +69,7 @@ export default {
   flex: 1;
   padding: 20px;
   background-color: #f6f6f6;
-  /* background-image: url('@/assets/images/bg-01.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat; */
+  background-size: 5%;
   
   @media (max-width: 767.98px) {
     padding: 15px;

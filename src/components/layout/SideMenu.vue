@@ -4,7 +4,7 @@
       <!-- Лого наверху панели -->
       <div class="side-menu-logo">
         <router-link to="/" class="logo-link">
-          <img src="@/assets/images/logo.png" alt="Печать на кружках" class="logo-image" />
+          <img src="@/assets/images/logo-light.svg" alt="Печать на кружках" class="logo-image" />
         </router-link>
         <button 
           class="btn-toggle" 

@@ -1250,56 +1250,8 @@
     <!-- Диалог добавления/редактирования текста -->
     <div v-if="showTextDialog" class="text-dialog-overlay" @click="closeTextDialog">
       <div class="text-dialog" @click.stop>
-        <div class="text-dialog-header">
-          <h5 class="text-dialog-title">
-            {{ isEditingText ? 'Редактировать текст' : 'Добавить текст' }}
-          </h5>
-        </div>
 
         <div class="text-dialog-body">
-          <!-- Вкладки режимов текста -->
-          <ul class="nav nav-tabs mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ active: textDialogActiveTab === 'conversation' }"
-                @click="switchTextDialogTab('conversation')"
-                type="button"
-              >
-                Разговор
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ active: textDialogActiveTab === 'thoughts' }"
-                @click="switchTextDialogTab('thoughts')"
-                type="button"
-              >
-                Мысли
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ active: textDialogActiveTab === 'standard' }"
-                @click="switchTextDialogTab('standard')"
-                type="button"
-              >
-                Стандарт
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button 
-                class="nav-link" 
-                :class="{ active: textDialogActiveTab === 'image-text' }"
-                @click="switchTextDialogTab('image-text')"
-                type="button"
-              >
-                Текст с изображением
-              </button>
-            </li>
-          </ul>
 
           <!-- Содержимое вкладок -->
           <div class="tab-content">
@@ -5085,6 +5037,13 @@ export default {
   background: #007bff;
   border-color: #007bff;
   color: white;
+}
+.text-dialog-body .tab-pane.active{
+  width: 856px;
+}
+.text-dialog-body{
+  position: relative;
+  top: 202px;
 }
 
 /* Адаптивность для правой панели */

@@ -3457,6 +3457,10 @@ export default {
       
       const lines = text.split('\n')
       
+      // Принудительно преобразуем fontSize и lineHeight в числа
+      const numericFontSize = Number(fontSize)
+      const numericLineHeight = Number(lineHeight)
+      
       let maxWidth = 0
       lines.forEach(line => {
         const metrics = ctx.measureText(line)
@@ -3465,7 +3469,7 @@ export default {
       
       return {
         width: maxWidth,
-        height: lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
+        height: lines.length === 1 ? numericFontSize : lines.length * numericFontSize * numericLineHeight
       }
     },
     

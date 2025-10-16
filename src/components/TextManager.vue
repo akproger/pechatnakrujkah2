@@ -284,9 +284,330 @@
 
         <!-- Содержимое "Мысли" -->
         <div v-if="textDialogActiveTab === 'thoughts'" class="tab-content">
-          <div class="content-placeholder">
-            <h6>Содержимое Мысли</h6>
-            <p>Здесь будут настройки для режима "Мысли"</p>
+          <div class="text-input-section">
+            <textarea 
+              id="textInputThoughts"
+              v-model="textDialogDataThoughts.text"
+              class="form-control"
+              rows="6"
+              placeholder="Введите текст..."
+            ></textarea>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label class="form-label">Шрифт:</label>
+                  <select v-model="textDialogDataThoughts.font" class="form-select">
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <div class="range" :style="`--value: ${textDialogDataThoughts.fontSize}`">
+                    <label class="range-label" for="fontSizeThoughts">Размер:</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="fontSizeThoughts" 
+                      type="range" 
+                      v-model="textDialogDataThoughts.fontSize" 
+                      min="12" 
+                      max="72" 
+                      step="1" 
+                      aria-valuemin="12" 
+                      aria-valuemax="72" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12 text-style-buttons">
+                <div class="font-weight-buttons">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'normal' }"
+                    @click="textDialogDataThoughts.fontWeight = 'normal'"
+                    title="Обычный"
+                  >
+                    <i class="bi bi-type"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'bold' }"
+                    @click="textDialogDataThoughts.fontWeight = 'bold'"
+                    title="Жирный"
+                  >
+                    <i class="bi bi-type-bold"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary font-weight-btn" 
+                    :class="{ 'active': textDialogDataThoughts.fontWeight === 'italic' }"
+                    @click="textDialogDataThoughts.fontWeight = 'italic'"
+                    title="Курсив"
+                  >
+                    <i class="bi bi-type-italic"></i>
+                  </button>
+                  <div class="vertical-line"></div>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataThoughts.textAlign === 'left' }"
+                    @click="textDialogDataThoughts.textAlign = 'left'"
+                    title="По левому краю"
+                  >
+                    <i class="bi bi-text-left"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataThoughts.textAlign === 'center' }"
+                    @click="textDialogDataThoughts.textAlign = 'center'"
+                    title="По центру"
+                  >
+                    <i class="bi bi-text-center"></i>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary text-align-btn" 
+                    :class="{ 'active': textDialogDataThoughts.textAlign === 'right' }"
+                    @click="textDialogDataThoughts.textAlign = 'right'"
+                    title="По правому краю"
+                  >
+                    <i class="bi bi-text-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="color-buttons">
+              <div class="color-button-group">
+                <i class="bi bi-type color-icon" title="Цвет текста"></i>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary color-btn" 
+                  title="Цвет текста"
+                >
+                  <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.textColor }"></div>
+                  <input type="color" v-model="textDialogDataThoughts.textColor" class="color-input">
+                </button>
+              </div>
+              
+              <div class="color-button-group">
+                <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary color-btn" 
+                  title="Цвет подложки"
+                >
+                  <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.backgroundColor }"></div>
+                  <input type="color" v-model="textDialogDataThoughts.backgroundColor" class="color-input">
+                </button>
+              </div>
+            </div>
+
+            <!-- Настройки хвоста -->
+            <div class="form-group mb-0">
+              <div class="mb-2">Настройки "Хвоста"</div>
+              <div class="row g-2">
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailSize}`">
+                    <label class="range-label" for="tailSizeThoughts">Размер</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailSizeThoughts" 
+                      type="range" 
+                      v-model="textDialogDataThoughts.tailSize" 
+                      min="100" 
+                      max="750" 
+                      step="1" 
+                      aria-valuemin="100" 
+                      aria-valuemax="750" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailWidth}`">
+                    <label class="range-label" for="tailWidthThoughts">Ширина</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailWidthThoughts" 
+                      type="range" 
+                      v-model="textDialogDataThoughts.tailWidth" 
+                      min="40" 
+                      max="100" 
+                      step="1" 
+                      aria-valuemin="40" 
+                      aria-valuemax="100" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailAngle}`">
+                    <label class="range-label" for="tailAngleThoughts">Угол</label>
+                    <div class="track"></div>
+                    <input 
+                      class="range-input" 
+                      id="tailAngleThoughts" 
+                      type="range" 
+                      v-model="textDialogDataThoughts.tailAngle" 
+                      min="0" 
+                      max="359" 
+                      step="1" 
+                      aria-valuemin="0" 
+                      aria-valuemax="359" 
+                      aria-orientation="horizontal"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Настройки подложки -->
+            <div class="form-group mb-3">
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label">Ширина подложки: {{ textDialogDataThoughts.backgroundWidth }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.backgroundWidth" 
+                    class="form-range" 
+                    min="100" 
+                    max="400" 
+                    step="10"
+                  >
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Высота подложки: {{ textDialogDataThoughts.backgroundHeight }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.backgroundHeight" 
+                    class="form-range" 
+                    min="50" 
+                    max="200" 
+                    step="10"
+                  >
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Скругление: {{ textDialogDataThoughts.backgroundRadius }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.backgroundRadius" 
+                    class="form-range" 
+                    min="0" 
+                    max="20" 
+                    step="1"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Обводка -->
+            <div class="form-group mb-3">
+              <div class="form-check mb-2">
+                <input type="checkbox" v-model="textDialogDataThoughts.stroke" class="form-check-input">
+                <label class="form-check-label">Обводка</label>
+              </div>
+              
+              <div v-if="textDialogDataThoughts.stroke" class="ms-4">
+                <div class="form-group mb-3">
+                  <label class="form-label">Толщина обводки: {{ textDialogDataThoughts.strokeWidth }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.strokeWidth" 
+                    class="form-range" 
+                    min="1" 
+                    max="10" 
+                    step="1"
+                  >
+                </div>
+                
+                <div class="form-group mb-3">
+                  <label class="form-label">Цвет обводки:</label>
+                  <input type="color" v-model="textDialogDataThoughts.strokeColor" class="form-control form-control-color">
+                </div>
+              </div>
+            </div>
+
+            <!-- Тень -->
+            <div class="form-group mb-3">
+              <div class="form-check mb-2">
+                <input type="checkbox" v-model="textDialogDataThoughts.shadow" class="form-check-input">
+                <label class="form-check-label">Тень</label>
+              </div>
+              
+              <div v-if="textDialogDataThoughts.shadow" class="ms-4">
+                <div class="form-group mb-3">
+                  <label class="form-label">Цвет тени:</label>
+                  <input type="color" v-model="textDialogDataThoughts.shadowColor" class="form-control form-control-color">
+                </div>
+                
+                <div class="form-group mb-3">
+                  <label class="form-label">Прозрачность тени: {{ textDialogDataThoughts.shadowOpacity }}%</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.shadowOpacity" 
+                    class="form-range" 
+                    min="0" 
+                    max="100" 
+                    step="5"
+                  >
+                </div>
+                
+                <div class="form-group mb-3">
+                  <label class="form-label">Размытие тени: {{ textDialogDataThoughts.shadowBlur }}px</label>
+                  <input 
+                    type="range" 
+                    v-model="textDialogDataThoughts.shadowBlur" 
+                    class="form-range" 
+                    min="0" 
+                    max="20" 
+                    step="1"
+                  >
+                </div>
+                
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label">Смещение по X: {{ textDialogDataThoughts.shadowOffsetX }}px</label>
+                    <input 
+                      type="range" 
+                      v-model="textDialogDataThoughts.shadowOffsetX" 
+                      class="form-range" 
+                      min="-20" 
+                      max="20" 
+                      step="1"
+                    >
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Смещение по Y: {{ textDialogDataThoughts.shadowOffsetY }}px</label>
+                    <input 
+                      type="range" 
+                      v-model="textDialogDataThoughts.shadowOffsetY" 
+                      class="form-range" 
+                      min="-20" 
+                      max="20" 
+                      step="1"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

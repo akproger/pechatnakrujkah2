@@ -6662,9 +6662,13 @@ export default {
       
       const lines = text.split('\n')
       
+      // Принудительно преобразуем fontSize в число
+      const numericFontSize = Number(fontSize)
+      const numericLineHeight = Number(lineHeight)
+      
       // Создаем временный контекст для измерения
       const tempCtx = document.createElement('canvas').getContext('2d')
-      tempCtx.font = `${textData.fontWeight || 'normal'} ${fontSize}px ${textData.font || 'Arial'}`
+      tempCtx.font = `${textData.fontWeight || 'normal'} ${numericFontSize}px ${textData.font || 'Arial'}`
       
       // Вычисляем максимальную ширину текста
       let maxTextWidth = 0
@@ -6675,7 +6679,7 @@ export default {
       
       // Вычисляем общую высоту текста
       // Для однострочного текста используем только fontSize, для многострочного - с lineHeight
-      const totalTextHeight = lines.length === 1 ? fontSize : lines.length * fontSize * lineHeight
+      const totalTextHeight = lines.length === 1 ? numericFontSize : lines.length * numericFontSize * numericLineHeight
       
       return {
         width: maxTextWidth,

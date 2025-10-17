@@ -189,7 +189,7 @@
                     >
                     <button 
                       @click="$refs.settingsImageInput.click()" 
-                      class="btn btn-primary w-100"
+                      class=" img-upload-btn"
                       :disabled="uploadedImages.length >= 10"
                     >
                       <i class="bi bi-cloud-upload me-2"></i>

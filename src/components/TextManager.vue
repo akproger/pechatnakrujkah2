@@ -1,6 +1,6 @@
 <template>
   <div class="text-manager">
-    <!-- Правая панель для переключения режимов -->
+    <!-- Правая панель с настройками -->
     <div v-if="showTextDialog" class="text-panel">
       <!-- Заголовок панели -->
       <div class="text-panel-header">
@@ -10,39 +10,7 @@
         <button @click="closeTextDialog" class="btn-close" aria-label="Закрыть">×</button>
       </div>
 
-      <!-- Табы режимов текста -->
-      <div class="text-panel-tabs">
-        <button 
-          class="tab-btn" 
-          :class="{ active: textDialogActiveTab === 'conversation' }"
-          @click="switchTextDialogTab('conversation')"
-        >
-          Разговор
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: textDialogActiveTab === 'thoughts' }"
-          @click="switchTextDialogTab('thoughts')"
-        >
-          Мысли
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: textDialogActiveTab === 'standard' }"
-          @click="switchTextDialogTab('standard')"
-        >
-          Стандарт
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: textDialogActiveTab === 'image-text' }"
-          @click="switchTextDialogTab('image-text')"
-        >
-          Текст с изображением
-        </button>
-      </div>
-
-      <!-- Содержимое табов -->
+      <!-- Содержимое панели настроек (без вкладок) -->
       <div class="text-panel-content">
         <!-- Содержимое "Разговор" -->
         <div v-if="textDialogActiveTab === 'conversation'" class="tab-content">
@@ -371,9 +339,7 @@
               </div>
             </div>
             
-            <button @click="applyText" class="btn btn-primary w-100">
-              {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-            </button>
+
           </div>
         </div>
 
@@ -974,9 +940,7 @@
               </div>
             </div>
             
-            <button @click="applyText" class="btn btn-primary w-100">
-              {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-            </button>
+
           </div>
         </div>
 
@@ -1239,9 +1203,7 @@
               </div>
             </div>
             
-            <button @click="applyText" class="btn btn-primary w-100">
-              {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-            </button>
+
           </div>
         </div>
       </div>
@@ -1252,6 +1214,26 @@
       <div class="text-dialog" @click.stop>
 
         <div class="text-dialog-body">
+          <div class="text-add-tools-tabs">
+          <!-- Вкладки режимов текста (перемещены над канвасом) -->
+            <ul class="nav nav-tabs mb-4 ul-text-tabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" :class="{ active: textDialogActiveTab === 'conversation' }" @click="switchTextDialogTab('conversation')" type="button"><i class="talk"></i></button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" :class="{ active: textDialogActiveTab === 'thoughts' }" @click="switchTextDialogTab('thoughts')" type="button"><i class="think"></i></button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" :class="{ active: textDialogActiveTab === 'standard' }" @click="switchTextDialogTab('standard')" type="button"><i class="rect"></i></button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" :class="{ active: textDialogActiveTab === 'image-text' }" @click="switchTextDialogTab('image-text')" type="button"><i class="text-img"></i></button>
+              </li>
+            </ul>
+            <button @click="applyText" class="btn btn-primary mb-4 save-text-button">
+              {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
+            </button>
+          </div>
 
           <!-- Содержимое вкладок -->
           <div class="tab-content">
@@ -1272,9 +1254,7 @@
               </div>
               
               <!-- Кнопка сохранения -->
-              <button @click="applyText" class="btn btn-primary w-100">
-                {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-              </button>
+
 
             </div>
 
@@ -1295,9 +1275,7 @@
               </div>
               
               <!-- Кнопка сохранения -->
-              <button @click="applyText" class="btn btn-primary w-100">
-                {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-              </button>
+
             </div>
 
             <!-- Вкладка "Стандарт" -->
@@ -1317,9 +1295,7 @@
               </div>
               
               <!-- Кнопка сохранения -->
-              <button @click="applyText" class="btn btn-primary w-100">
-                {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-              </button>
+
 
             </div>
 
@@ -1340,9 +1316,7 @@
               </div>
               
               <!-- Кнопка сохранения -->
-              <button @click="applyText" class="btn btn-primary w-100">
-                {{ isEditingText ? 'Сохранить изменения' : 'Сохранить' }}
-              </button>
+
 
             </div>
           </div>
@@ -4836,9 +4810,19 @@ export default {
   margin-bottom: 10px;
 }
 
-.nav.nav-tabs {
-  width: 1200px;
-  margin: 0 auto;
+.nav.nav-tabs {    
+  width: fit-content;
+  border-bottom: 0;
+  height: 48px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+.text-add-tools-tabs{
+    width: 856px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
 }
 
 /* Стили для кнопки "Текст 2" перенесены в GridsPage.vue */
@@ -5043,8 +5027,55 @@ export default {
 }
 .text-dialog-body{
   position: relative;
-  top: 202px;
+  top: 130px;
 }
+.ul-text-tabs button{
+  border-radius: 6px;
+  border: none;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  margin: 1px 1px;
+  transition: all .2s 
+  ease-in-out;
+}
+.ul-text-tabs button.nav-link.active, .ul-text-tabs button.nav-link:hover{
+  background: rgb(219, 233, 255) !important;
+}
+.save-text-button{
+  padding: 9px 16px;
+  font-size: 16px;
+}
+.talk{
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url(/src/assets/images/talk-icon.svg) no-repeat center;
+  background-size: contain;
+}
+.think{
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url(/src/assets/images/think-icon.svg) no-repeat center;
+  background-size: contain;
+}
+.rect{
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url(/src/assets/images/rect-icon.svg) no-repeat center;
+  background-size: contain;
+}
+.text-img{
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url(/src/assets/images/text-icon.svg) no-repeat center;
+  background-size: contain;
+}
+
 
 /* Адаптивность для правой панели */
 @media (max-width: 768px) {

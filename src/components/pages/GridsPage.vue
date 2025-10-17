@@ -240,7 +240,7 @@
                     >
                     <button 
                       @click="$refs.imageInput.click()" 
-                      class="btn btn-primary w-100"
+                      class="btn btn-primary w-100 img-upload-btn"
                     >
                       <i class="bi bi-cloud-upload me-2"></i>
                       <span>Загрузить изображения</span>
@@ -8007,5 +8007,13 @@ export default {
 }
 body .card{
   border-radius: 0;
+}
+body .img-upload-btn{
+  padding: 8px 16px;
+}
+.btn-group .btn{
+  padding: 9.8px 16px;
+  height: 48px;
+  background: #fff;
 }
 </style>

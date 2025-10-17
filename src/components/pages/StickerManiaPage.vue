@@ -198,7 +198,7 @@
                   >
                   <button 
                       @click="$refs.settingsImageInput.click()" 
-                      class="btn btn-primary w-100"
+                      class="btn btn-primary w-100 img-upload-btn"
                     :disabled="uploadedImages.length >= 5"
                   >
                     <i class="bi bi-cloud-upload me-2"></i>
@@ -12646,10 +12646,10 @@ export default {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 12px 16px !important;
+  padding: 7px 16px !important;
   font-weight: 500 !important;
   font-size: 14px !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   transition: all 0.2s ease !important;
 }
 

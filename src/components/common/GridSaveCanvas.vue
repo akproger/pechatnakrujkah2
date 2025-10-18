@@ -2187,14 +2187,11 @@ export default {
       if (!textData.cachedImage || textData.cachedImage === false) {
         console.log('🖼️ Режим "Текст с изображением" без изображения - создаем текст с цветной заливкой в высоком разрешении')
         
-        // Применяем тень, если она задана
+        // ИСПРАВЛЕНИЕ: НЕ применяем тень через paperScope.project.currentStyle
+        // Тень будет рисоваться в нашем исправленном коде
         if (textData.shadow) {
-          this.paperScope.project.currentStyle.shadowColor = textData.shadowColor || '#000000'
-          this.paperScope.project.currentStyle.shadowBlur = (textData.shadowBlur || 10) * scale
-          this.paperScope.project.currentStyle.shadowOffset = new this.paperScope.Point(
-            (textData.shadowOffsetX || 5) * scale,
-            (textData.shadowOffsetY || 5) * scale
-          )
+          console.log('🎨 ИСПРАВЛЕНИЕ: НЕ применяем тень через paperScope.project.currentStyle')
+          console.log('🎨 Тень будет рисоваться в нашем исправленном коде')
         }
         
         // Создаем временный канвас в высоком разрешении
@@ -2249,19 +2246,47 @@ export default {
         const totalTextHeight = lines.length === 1 ? scaledFontSize : lines.length * scaledFontSize * textData.lineHeight
         const startY = y - totalTextHeight / 2
         
-        // Рисуем каждую строку
+        // ИСПРАВЛЕНИЕ: Сначала рисуем ТОЛЬКО тень, потом ТОЛЬКО основной текст
+        if (textData.shadow) {
+          console.log('🎨 Рисуем ТОЛЬКО тень для каждой строки:')
+          lines.forEach((line, index) => {
+            // ИСПРАВЛЕНИЕ: Позиция строки БЕЗ масштабирования размера шрифта
+            const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+            
+            console.log(`🎨 Рисуем ТЕНЬ строки ${index + 1}:`, {
+              text: line,
+              position: `${x}, ${lineY}`,
+              shadowColor: tempCtx.shadowColor,
+              note: 'Рисуем ТОЛЬКО тень'
+            })
+            
+            tempCtx.fillText(line, x, lineY)
+          })
+          
+          // Сбрасываем настройки тени ПЕРЕД рисованием основного текста
+          tempCtx.shadowColor = 'transparent'
+          tempCtx.shadowBlur = 0
+          tempCtx.shadowOffsetX = 0
+          tempCtx.shadowOffsetY = 0
+          
+          console.log('✅ Тень нарисована, сбрасываем настройки тени')
+        }
+        
+        // Теперь рисуем ОСНОВНОЙ текст БЕЗ тени
+        console.log('🎨 Рисуем ОСНОВНОЙ текст БЕЗ тени:')
         lines.forEach((line, index) => {
-          // Для однострочного текста позиция строки просто y, для многострочного - с учетом lineHeight
+          // ИСПРАВЛЕНИЕ: Позиция строки БЕЗ масштабирования размера шрифта
           const lineY = lines.length === 1 ? y : startY + (index * scaledFontSize * textData.lineHeight) + scaledFontSize / 2
+          
+          console.log(`🎨 Рисуем ОСНОВНОЙ текст строки ${index + 1}:`, {
+            text: line,
+            position: `${x}, ${lineY}`,
+            color: textData.textColor,
+            note: 'Рисуем ОСНОВНОЙ текст БЕЗ тени'
+          })
           
           tempCtx.fillText(line, x, lineY)
         })
-        
-        // Сбрасываем настройки тени
-        tempCtx.shadowColor = 'transparent'
-        tempCtx.shadowBlur = 0
-        tempCtx.shadowOffsetX = 0
-        tempCtx.shadowOffsetY = 0
         
         // Рисуем обводку (если включена) - поверх всего
         if (textData.stroke) {
@@ -3214,27 +3239,14 @@ export default {
 
     // Рисуем режим "Текст с изображением" на отдельном канвасе
     async drawImageTextModeOnCanvas(ctx, x, y, textData, scale) {
-      console.log('🖼️ Рисуем режим "Текст с изображением" на отдельном канвасе')
+      console.log('🖼️ ИСПРАВЛЕНИЕ: НЕ рисуем режим "Текст с изображением" на отдельном канвасе')
+      console.log('🖼️ Режим "Текст с изображением" уже обработан в createImageTextPaperLayer, пропускаем дублирование')
       
-      // Для режима "Текст с изображением" используем готовый растр если есть
-      if (textData.savedCanvas) {
-        const imageDataURL = textData.savedCanvas.toDataURL('image/png', 1.0)
-        const img = new Image()
-        img.src = imageDataURL
-        
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            // Масштабируем изображение
-            const scaledWidth = img.width * scale
-            const scaledHeight = img.height * scale
-            ctx.drawImage(img, x - scaledWidth/2, y - scaledHeight/2, scaledWidth, scaledHeight)
-            resolve()
-          }
-          img.onerror = reject
-        })
-      } else {
-        console.warn('⚠️ Нет savedCanvas для режима "Текст с изображением"')
-      }
+      // ИСПРАВЛЕНИЕ: Для режима "Текст с изображением" ничего не рисуем здесь,
+      // так как весь рендеринг уже выполнен в createImageTextPaperLayer
+      // и результат добавлен в Paper.js слой
+      
+      console.log('✅ Пропущен дублирующий рендеринг для режима "Текст с изображением"')
     },
 
     // Вспомогательные функции для рисования подложек

@@ -5048,9 +5048,9 @@ export default {
             point: [0, 0],
             size: [canvasWidth, canvasHeight],
             strokeColor: this.strokeColor,
-            strokeWidth: this.strokeWidthPx * scale
+            strokeWidth: Math.round(this.strokeWidthPx * scale)
           })
-          rect.strokeCap = 'square'
+          rect.strokeCap = 'butt'
           rect.strokeJoin = 'miter'
           tempPaperScope.project.activeLayer.addChild(rect)
           console.log('✅ Базовый прямоугольник добавлен:', rect.bounds)

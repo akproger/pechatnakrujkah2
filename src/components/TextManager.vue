@@ -2199,10 +2199,13 @@ export default {
         let lineX = x
         if (textData.textAlign === 'left') {
           lineX = x - maxTextWidth / 2
+          ctx.textAlign = 'left'
         } else if (textData.textAlign === 'right') {
           lineX = x + maxTextWidth / 2
+          ctx.textAlign = 'right'
+        } else {
+          ctx.textAlign = 'center'
         }
-        // Для 'center' lineX остается x
         
         ctx.strokeText(line, lineX, lineY)
       })
@@ -4030,15 +4033,16 @@ export default {
           // Для выравнивания влево находим самую широкую строку
           const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width))
           lineX = x - maxWidth / 2
+          ctx.textAlign = 'left'
         } else if (currentAlign === 'right') {
           // Для выравнивания вправо находим самую широкую строку
           const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width))
           lineX = x + maxWidth / 2
+          ctx.textAlign = 'right'
+        } else {
+          // Для center оставляем x как есть
+          ctx.textAlign = 'center'
         }
-        // Для center оставляем x как есть
-        
-        // Устанавливаем выравнивание для текущей строки
-        ctx.textAlign = currentAlign
         
         ctx.fillText(lines[i], lineX, lineY)
       }

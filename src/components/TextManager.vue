@@ -229,7 +229,7 @@
                     type="range" 
                     v-model="textDialogDataConversation.backgroundHeight" 
                     class="form-range" 
-                    min="50" 
+                    min="30" 
                     max="200" 
                     step="10"
                   >
@@ -560,7 +560,7 @@
                     type="range" 
                     v-model="textDialogDataThoughts.backgroundHeight" 
                     class="form-range" 
-                    min="50" 
+                    min="30" 
                     max="200" 
                     step="10"
                   >
@@ -830,7 +830,7 @@
                     type="range" 
                     v-model="textDialogDataStandard.backgroundHeight" 
                     class="form-range" 
-                    min="50" 
+                    min="30" 
                     max="200" 
                     step="10"
                   >
@@ -2300,7 +2300,15 @@ export default {
         'image-text': this.textDialogDataImageText
       }
       
-      return dataMap[this.textDialogActiveTab]
+      const result = dataMap[this.textDialogActiveTab]
+      
+      console.log('🔍 getCurrentTextDialogData:', {
+        activeTab: this.textDialogActiveTab,
+        backgroundHeight: result.backgroundHeight,
+        note: 'Проверяем, какие данные возвращает метод'
+      })
+      
+      return result
     },
 
     // Рисование превью в зависимости от режима
@@ -2589,15 +2597,22 @@ export default {
         padding: padding
       })
       
-      // Размеры подложки (адаптированные под превью)
-      const backgroundWidth = Math.max(
-        textData.backgroundWidth, 
-        textWidth + padding * 2
-      )
-      const backgroundHeight = Math.max(
-        textData.backgroundHeight, 
-        textHeight + padding * 2
-      )
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      // Вычисляем минимальные размеры на основе текста + отступы
+      const minWidth = textWidth + padding * 2
+      const minHeight = textHeight + padding * 2
+      
+      console.log('🔍 ДЕТАЛЬНЫЙ РАСЧЕТ РАЗМЕРОВ ПОДЛОЖКИ:', {
+        'textData.backgroundHeight': textData.backgroundHeight,
+        'minHeight (текст + отступы)': minHeight,
+        'padding': padding,
+        'textHeight': textHeight,
+        'итоговая высота будет': Math.max(textData.backgroundHeight || 80, minHeight)
+      })
+      
+      // Используем пользовательские размеры, но не меньше минимальных
+      const backgroundWidth = Math.max(textData.backgroundWidth || 200, minWidth)
+      const backgroundHeight = Math.max(textData.backgroundHeight || minHeight, minHeight)
       
       console.log('🔍 Итоговые размеры подложки:', {
         backgroundWidth: backgroundWidth,
@@ -3387,11 +3402,10 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
-      // Стабилизация размеров - обеспечиваем минимальные размеры для корректного отображения хвоста
-      const minWidth = 150
-      const minHeight = 80
-      const stableWidth = Math.max(bgWidth, minWidth)
-      const stableHeight = Math.max(bgHeight, minHeight)
+      // ИСПРАВЛЕНИЕ: Используем переданные размеры без принудительных минимумов
+      // Минимальные размеры уже учтены в логике расчета размеров подложки
+      const stableWidth = bgWidth
+      const stableHeight = bgHeight
       
       // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
       const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
@@ -3970,11 +3984,10 @@ export default {
     
     // Обводка объединенной фигуры
     strokeCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale) {
-      // Стабилизация размеров - используем те же минимальные размеры
-      const minWidth = 150
-      const minHeight = 80
-      const stableWidth = Math.max(bgWidth, minWidth)
-      const stableHeight = Math.max(bgHeight, minHeight)
+      // ИСПРАВЛЕНИЕ: Используем переданные размеры без принудительных минимумов
+      // Минимальные размеры уже учтены в логике расчета размеров подложки
+      const stableWidth = bgWidth
+      const stableHeight = bgHeight
       
       const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
       
@@ -4447,20 +4460,6 @@ export default {
     },
 
     // Получение текущих данных для активной вкладки
-    getCurrentTextDialogData() {
-      switch (this.textDialogActiveTab) {
-        case 'conversation':
-          return this.textDialogDataConversation
-        case 'thoughts':
-          return this.textDialogDataThoughts
-        case 'standard':
-          return this.textDialogDataStandard
-        case 'image-text':
-          return this.textDialogDataImageText
-        default:
-          return this.textDialogDataConversation
-      }
-    }
   }
 }
 </script>

@@ -2428,9 +2428,14 @@ export default {
         const textWidthWithPadding = textSize.width + textPadding * 2
         const textHeightWithPadding = textSize.height + textPadding * 2
         
-        // Используем максимальный размер из переданных размеров подложки и реальных размеров текста с отступами
-        const actualBackgroundWidth = Math.max(backgroundWidth, textWidthWithPadding)
-        const actualBackgroundHeight = Math.max(backgroundHeight, textHeightWithPadding)
+        // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+        // Вычисляем минимальные размеры на основе текста + отступы
+        const minWidth = textWidthWithPadding
+        const minHeight = textHeightWithPadding
+        
+        // Используем пользовательские размеры, но не меньше минимальных
+        const actualBackgroundWidth = Math.max(Number(textData.backgroundWidth) || 200, minWidth)
+        const actualBackgroundHeight = Math.max(Number(textData.backgroundHeight) || minHeight, minHeight)
         
         console.log('📏 Расчет размеров подложки с учетом текста:', {
           originalBackground: `${backgroundWidth}x${backgroundHeight}`,

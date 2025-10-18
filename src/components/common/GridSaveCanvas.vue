@@ -1648,8 +1648,14 @@ export default {
       // Используем пользовательские настройки размеров подложки или размеры на основе текста
       const userBackgroundWidth = textData.backgroundWidth || 200
       const userBackgroundHeight = textData.backgroundHeight || 80
-      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
-      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      // Вычисляем минимальные размеры на основе текста + отступы
+      const minWidth = textWidthWithPadding
+      const minHeight = textHeightWithPadding
+      
+      // Используем пользовательские размеры, но не меньше минимальных
+      const backgroundWidth = Math.max(textData.backgroundWidth || 200, minWidth)
+      const backgroundHeight = Math.max(textData.backgroundHeight || minHeight, minHeight)
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -1915,8 +1921,14 @@ export default {
       // Используем пользовательские настройки размеров подложки или размеры на основе текста
       const userBackgroundWidth = textData.backgroundWidth || 200
       const userBackgroundHeight = textData.backgroundHeight || 80
-      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
-      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      // Вычисляем минимальные размеры на основе текста + отступы
+      const minWidth = textWidthWithPadding
+      const minHeight = textHeightWithPadding
+      
+      // Используем пользовательские размеры, но не меньше минимальных
+      const backgroundWidth = Math.max(textData.backgroundWidth || 200, minWidth)
+      const backgroundHeight = Math.max(textData.backgroundHeight || minHeight, minHeight)
       
       // Масштабируем размеры (точно как в режиме "Разговор")
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -2108,8 +2120,14 @@ export default {
       // Используем пользовательские настройки размеров подложки или размеры на основе текста
       const userBackgroundWidth = textData.backgroundWidth || 200
       const userBackgroundHeight = textData.backgroundHeight || 80
-      const backgroundWidth = Math.max(userBackgroundWidth, textWidthWithPadding)
-      const backgroundHeight = Math.max(userBackgroundHeight, textHeightWithPadding)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      // Вычисляем минимальные размеры на основе текста + отступы
+      const minWidth = textWidthWithPadding
+      const minHeight = textHeightWithPadding
+      
+      // Используем пользовательские размеры, но не меньше минимальных
+      const backgroundWidth = Math.max(textData.backgroundWidth || 200, minWidth)
+      const backgroundHeight = Math.max(textData.backgroundHeight || minHeight, minHeight)
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -3054,8 +3072,13 @@ export default {
       measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
       const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      const backgroundWidth = textData.backgroundWidth && textData.backgroundWidth > 0 
+        ? textData.backgroundWidth 
+        : textSize.width + textPadding * 2
+      const backgroundHeight = textData.backgroundHeight && textData.backgroundHeight > 0 
+        ? textData.backgroundHeight 
+        : textSize.height + textPadding * 2
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -3121,8 +3144,13 @@ export default {
       measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
       const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      const backgroundWidth = textData.backgroundWidth && textData.backgroundWidth > 0 
+        ? textData.backgroundWidth 
+        : textSize.width + textPadding * 2
+      const backgroundHeight = textData.backgroundHeight && textData.backgroundHeight > 0 
+        ? textData.backgroundHeight 
+        : textSize.height + textPadding * 2
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale
@@ -3188,8 +3216,13 @@ export default {
       measureCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize}px ${textData.font || 'Arial'}`
       const textSize = this.calculateMultilineTextSize(measureCtx, textData.text, textData.fontSize, textData.lineHeight)
       const textPadding = textData.padding || 15
-      const backgroundWidth = Math.max(textSize.width + textPadding * 2, 200)
-      const backgroundHeight = Math.max(textSize.height + textPadding * 2, 80)
+      // ИСПРАВЛЕНИЕ: Размеры подложки должны адаптироваться к размеру текста
+      const backgroundWidth = textData.backgroundWidth && textData.backgroundWidth > 0 
+        ? textData.backgroundWidth 
+        : textSize.width + textPadding * 2
+      const backgroundHeight = textData.backgroundHeight && textData.backgroundHeight > 0 
+        ? textData.backgroundHeight 
+        : textSize.height + textPadding * 2
       
       // Масштабируем размеры
       const scaledBackgroundWidth = backgroundWidth * scale

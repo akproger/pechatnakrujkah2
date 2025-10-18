@@ -1964,10 +1964,27 @@ export default {
         
         // Вычисляем размеры текста для правильного позиционирования изображения
         const textSizeForImage = this.calculateMultilineTextSize(ctx, textData.text, Number(textData.fontSize), textData.lineHeight)
-        const drawWidth = textSizeForImage.width
-        const drawHeight = textSizeForImage.height
+        
+        // ИСПРАВЛЕНИЕ: Используем cover mode для сохранения пропорций изображения
+        const imageScaleX = textSizeForImage.width / img.width
+        const imageScaleY = textSizeForImage.height / img.height
+        const imageScale = Math.max(imageScaleX, imageScaleY)
+        
+        // Вычисляем размеры изображения с сохранением пропорций
+        const drawWidth = img.width * imageScale
+        const drawHeight = img.height * imageScale
         const drawX = textX - drawWidth / 2
         const drawY = textY - drawHeight / 2
+        
+        console.log('🖼️ ОСНОВНОЙ КАНВАС: Cover mode для сохранения пропорций:', {
+          textSize: `${textSizeForImage.width.toFixed(1)}x${textSizeForImage.height.toFixed(1)}`,
+          imageSize: `${img.width}x${img.height}`,
+          scaleX: imageScaleX.toFixed(3),
+          scaleY: imageScaleY.toFixed(3),
+          finalScale: imageScale.toFixed(3),
+          finalSize: `${drawWidth.toFixed(1)}x${drawHeight.toFixed(1)}`,
+          note: 'ИСПРАВЛЕНИЕ: Пропорции изображения сохранены, полное покрытие текста'
+        })
         
         // Рисуем изображение на временном канвасе
         textCtx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
@@ -2768,9 +2785,27 @@ export default {
         const textWidth = textSize.width
         const textHeight = textSize.height
         
-        // Используем точные размеры текста для изображения (как в основном канвасе)
-        const drawWidth = textWidth
-        const drawHeight = textHeight
+        // ИСПРАВЛЕНИЕ: Используем cover mode для сохранения пропорций изображения
+        // Масштабируем изображение так, чтобы оно полностью покрывало текст
+        const imageScaleX = textWidth / img.width
+        const imageScaleY = textHeight / img.height
+        
+        // Используем больший масштаб для полного покрытия (cover mode)
+        const imageScale = Math.max(imageScaleX, imageScaleY)
+        
+        // Вычисляем размеры изображения с сохранением пропорций
+        const drawWidth = img.width * imageScale
+        const drawHeight = img.height * imageScale
+        
+        console.log('🖼️ ПРЕВЬЮ: Cover mode для сохранения пропорций:', {
+          textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+          imageSize: `${img.width}x${img.height}`,
+          scaleX: imageScaleX.toFixed(3),
+          scaleY: imageScaleY.toFixed(3),
+          finalScale: imageScale.toFixed(3),
+          finalSize: `${drawWidth.toFixed(1)}x${drawHeight.toFixed(1)}`,
+          note: 'ИСПРАВЛЕНИЕ: Пропорции изображения сохранены, полное покрытие текста'
+        })
         
         // ИСПРАВЛЕНО: Используем позицию текста, которую установил пользователь
         // Изображение должно рисоваться в той же позиции, что и маска

@@ -2367,77 +2367,81 @@ export default {
         note: `Текст "${textData.text}" (${textData.text.length} символов) имеет размер ${textWidth.toFixed(1)}x${textHeight.toFixed(1)}px`
       })
       
-      // Простое и точное решение: делаем изображение точно по ширине текста
-      // Используем базовые размеры текста и применяем масштаб для высокого разрешения
-      const targetImageWidth = baseTextWidth * scale
-      const targetImageHeight = (img.height * targetImageWidth) / img.width
+      // ИСПРАВЛЕНИЕ: Используем cover mode для сохранения пропорций изображения
+      // Масштабируем изображение так, чтобы оно полностью покрывало текст
+      const textWidthScaled = baseTextWidth * scale
+      const textHeightScaled = baseTextHeight * scale
       
-      // Вычисляем масштаб для достижения целевой ширины
-      const widthScale = targetImageWidth / img.width
-      const heightScale = targetImageHeight / img.height
+      // Вычисляем масштабы по ширине и высоте
+      const imageScaleX = textWidthScaled / img.width
+      const imageScaleY = textHeightScaled / img.height
       
-      // Используем масштаб по ширине (они должны быть одинаковыми)
-      let imageScale = widthScale
+      // Используем больший масштаб для полного покрытия (cover mode)
+      const imageScale = Math.max(imageScaleX, imageScaleY)
       
-      // Добавляем небольшой запас (20%) чтобы гарантировать покрытие
-      imageScale *= 1.2
+      console.log('🖼️ ИСПРАВЛЕНИЕ: Cover mode для сохранения пропорций:', {
+        textSize: `${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)}`,
+        imageSize: `${img.width}x${img.height}`,
+        scaleX: imageScaleX.toFixed(3),
+        scaleY: imageScaleY.toFixed(3),
+        finalScale: imageScale.toFixed(3),
+        note: 'Используем больший масштаб для полного покрытия без деформации'
+      })
 
-      console.log('🖼️ ДЕТАЛЬНЫЙ АНАЛИЗ масштабирования изображения:', {
+      console.log('🖼️ ДЕТАЛЬНЫЙ АНАЛИЗ масштабирования изображения (ИСПРАВЛЕНИЕ):', {
         // Размеры текста
         baseTextSize: `${baseTextWidth.toFixed(1)}x${baseTextHeight.toFixed(1)}`,
-        scaledTextSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+        scaledTextSize: `${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)}`,
         
         // Размеры изображения
         originalImageSize: `${img.width}x${img.height}`,
         
-        // Масштабы
+        // Масштабы (cover mode)
         scale: scale.toFixed(3),
-        widthScale: widthScale.toFixed(3),
-        heightScale: heightScale.toFixed(3),
+        imageScaleX: imageScaleX.toFixed(3),
+        imageScaleY: imageScaleY.toFixed(3),
         finalScale: imageScale.toFixed(3),
-        
-        // Целевые размеры
-        targetImageWidth: targetImageWidth.toFixed(1),
-        targetImageHeight: targetImageHeight.toFixed(1),
         
         // Финальные размеры изображения
         finalImageWidth: (img.width * imageScale).toFixed(1),
         finalImageHeight: (img.height * imageScale).toFixed(1),
         
-        // Анализ
-        textToImageRatio: (baseTextWidth / img.width).toFixed(3),
-        scaledTextToImageRatio: (textWidth / img.width).toFixed(3),
+        // Анализ покрытия
+        coverageX: (textWidthScaled / (img.width * imageScale)).toFixed(3),
+        coverageY: (textHeightScaled / (img.height * imageScale)).toFixed(3),
         
-        note: `АНАЛИЗ: Текст ${baseTextWidth.toFixed(1)}px → ${textWidth.toFixed(1)}px, изображение ${img.width}x${img.height} → ${(img.width * imageScale).toFixed(1)}x${(img.height * imageScale).toFixed(1)}px (×1.2 запас)`
+        note: `COVER MODE: Текст ${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)}px, изображение ${img.width}x${img.height} → ${(img.width * imageScale).toFixed(1)}x${(img.height * imageScale).toFixed(1)}px (пропорции сохранены)`
       })
 
       // Вычисляем размеры изображения с сохранением пропорций
       const scaledImageWidth = img.width * imageScale
       const scaledImageHeight = img.height * imageScale
 
-      console.log('🖼️ ФИНАЛЬНЫЕ РАЗМЕРЫ изображения для маски:', {
-        textSize: `${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`,
+      console.log('🖼️ ФИНАЛЬНЫЕ РАЗМЕРЫ изображения для маски (ИСПРАВЛЕНИЕ):', {
+        textSize: `${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)}`,
         originalImageSize: `${img.width}x${img.height}`,
         finalImageSize: `${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`,
         imageScale: imageScale.toFixed(3),
-        coverageRatio: (scaledImageWidth / textWidth).toFixed(3),
-        note: `Изображение ${img.width}x${img.height} масштабируется до ${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)} для текста ${textWidth.toFixed(1)}x${textHeight.toFixed(1)}`
+        coverageRatioX: (scaledImageWidth / textWidthScaled).toFixed(3),
+        coverageRatioY: (scaledImageHeight / textHeightScaled).toFixed(3),
+        note: `COVER MODE: Изображение ${img.width}x${img.height} масштабируется до ${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)} для текста ${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)} (пропорции сохранены)`
       })
       
       // Центрируем изображение относительно позиции текста
       const drawX = x - scaledImageWidth / 2
       const drawY = y - scaledImageHeight / 2
       
-      console.log('🖼️ Высокое разрешение - масштабирование изображения:', {
+      console.log('🖼️ Высокое разрешение - масштабирование изображения (ИСПРАВЛЕНИЕ):', {
         originalImageSize: `${img.width}x${img.height}`,
-        textSize: `${textWidth}x${textHeight}`,
-        widthScale: widthScale.toFixed(3),
-        heightScale: heightScale.toFixed(3),
-        imageScale: imageScale.toFixed(3),
+        textSize: `${textWidthScaled.toFixed(1)}x${textHeightScaled.toFixed(1)}`,
+        imageScaleX: imageScaleX.toFixed(3),
+        imageScaleY: imageScaleY.toFixed(3),
+        finalImageScale: imageScale.toFixed(3),
         scaledImageSize: `${scaledImageWidth.toFixed(1)}x${scaledImageHeight.toFixed(1)}`,
         drawPosition: `${drawX.toFixed(1)}, ${drawY.toFixed(1)}`,
         textPosition: `${x}, ${y}`,
-        scale: scale.toFixed(3)
+        scale: scale.toFixed(3),
+        note: 'COVER MODE: Пропорции изображения сохранены, полное покрытие текста'
       })
       
       // Подготовка метрик текста (используются и для тени, и для маски)

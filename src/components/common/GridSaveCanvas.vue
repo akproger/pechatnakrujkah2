@@ -2292,6 +2292,9 @@ export default {
         if (textData.stroke) {
           tempCtx.strokeStyle = textData.strokeColor
           tempCtx.lineWidth = (textData.strokeWidth || 2) * scale
+          tempCtx.lineJoin = 'miter'
+          tempCtx.lineCap = 'butt'
+          tempCtx.miterLimit = 10
           
           // Рисуем обводку для каждой строки
           lines.forEach((line, index) => {
@@ -2520,8 +2523,9 @@ export default {
         tempCtx.textBaseline = 'middle'
         tempCtx.strokeStyle = textData.strokeColor
         tempCtx.lineWidth = (textData.strokeWidth || 2) * scale
-        tempCtx.lineJoin = 'round'
-        tempCtx.miterLimit = 2
+        tempCtx.lineJoin = 'miter'
+        tempCtx.lineCap = 'butt'
+        tempCtx.miterLimit = 10
         
         // Рисуем обводку для каждой строки
         lines.forEach((line, index) => {

@@ -1686,9 +1686,10 @@ export default {
       
       this.$emit('text-dialog-opened')
       
-      // Обновляем превью после открытия диалога
+      // Обновляем превью после открытия диалога и устанавливаем фокус
       this.$nextTick(() => {
         this.updatePreviewCanvas()
+        this.focusTextInput()
       })
     },
 
@@ -1766,9 +1767,10 @@ export default {
       
       this.$emit('text-dialog-opened')
       
-      // Обновляем превью после открытия диалога
+      // Обновляем превью после открытия диалога и устанавливаем фокус
       this.$nextTick(() => {
         this.updatePreviewCanvas()
+        this.focusTextInput()
       })
     },
 
@@ -2271,6 +2273,37 @@ export default {
       this.$nextTick(() => {
         this.updatePreviewCanvas()
         console.log('🔄 Превью канвасы обновлены после переключения вкладки')
+        // Устанавливаем фокус на поле ввода текста
+        this.focusTextInput()
+      })
+    },
+
+    // Метод для установки фокуса на поле ввода текста в зависимости от активной вкладки
+    focusTextInput() {
+      this.$nextTick(() => {
+        let inputId = ''
+        switch (this.textDialogActiveTab) {
+          case 'conversation':
+            inputId = 'textInputConversation'
+            break
+          case 'thoughts':
+            inputId = 'textInputThoughts'
+            break
+          case 'standard':
+            inputId = 'textInputStandard'
+            break
+          case 'image-text':
+            inputId = 'textInputImageText'
+            break
+        }
+        
+        if (inputId) {
+          const textInput = document.getElementById(inputId)
+          if (textInput) {
+            textInput.focus()
+            console.log('🎯 Фокус установлен на поле ввода:', inputId)
+          }
+        }
       })
     },
 

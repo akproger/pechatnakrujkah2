@@ -550,8 +550,8 @@
               <div class="col-12">
                 <div class="form-group mb-0">
                   <h3 class="settings-subheader">Настройки подложки</h3>
-                  <div class="row g-2">
-                    <div class="col-1 p-0 mt-3">
+                  <div class="row g-2 mb-2">
+                    <div class="col-12 p-0 mt-3">
                       <div class="color-button-group">
                         <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
                         <button 
@@ -570,7 +570,7 @@
               <div class="col-12">
                 <div class="form-group mb-2">
                   <div class="row g-2 mb-0">
-                    <div class="col-12 mt-0">
+                    <div class="col-12 mt-3">
                       <div class="range" :style="`--value: ${textDialogDataThoughts.backgroundWidth}`">
                         <label class="range-label" for="textBgWidth-2">Ширина: {{ textDialogDataThoughts.backgroundWidth }}</label>
                         <div class="track"></div>
@@ -636,7 +636,7 @@
                   <div class="row g-2">
                     <div class="col-12">
                       <div class="range" :style="`--value: ${textDialogDataThoughts.tailSize}`">
-                        <label class="range-label" for="tailSizeThoughts">Размер</label>
+                        <label class="range-label" for="tailSizeThoughts">Размер: {{ textDialogDataThoughts.tailSize }}</label>
                         <div class="track"></div>
                         <input 
                           class="range-input" 
@@ -654,7 +654,7 @@
                     </div>
                     <div class="col-12">
                       <div class="range" :style="`--value: ${textDialogDataThoughts.tailWidth}`">
-                        <label class="range-label" for="tailWidthThoughts">Ширина</label>
+                        <label class="range-label" for="tailWidthThoughts">Ширина: {{ textDialogDataThoughts.tailWidth }}</label>
                         <div class="track"></div>
                         <input 
                           class="range-input" 
@@ -672,7 +672,7 @@
                     </div>
                     <div class="col-12">
                       <div class="range" :style="`--value: ${textDialogDataThoughts.tailAngle}`">
-                        <label class="range-label" for="tailAngleThoughts">Угол</label>
+                        <label class="range-label" for="tailAngleThoughts">Угол: {{ textDialogDataThoughts.tailAngle }}</label>
                         <div class="track"></div>
                         <input 
                           class="range-input" 
@@ -705,86 +705,141 @@
                   </div>
                   
                   <div v-if="textDialogDataThoughts.stroke">
-                    <div class="form-group mb-3">
-                      <label class="form-label">Толщина обводки: {{ textDialogDataThoughts.strokeWidth }}px</label>
-                      <input 
-                        type="range" 
-                        v-model="textDialogDataThoughts.strokeWidth" 
-                        class="form-range" 
-                        min="1" 
-                        max="10" 
-                        step="1"
+                    <div class="color-button-group">
+                      <i class="bi bi-paint-bucket color-icon" title="Цвет обводки"></i>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary color-btn" 
+                        title="Цвет обводки"
                       >
+                        <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.strokeColor }"></div>
+                        <input type="color" v-model="textDialogDataThoughts.strokeColor" class="color-input">
+                      </button>
                     </div>
-                    
-                    <div class="form-group mb-3">
-                      <label class="form-label">Цвет обводки:</label>
-                      <input type="color" v-model="textDialogDataThoughts.strokeColor" class="form-control form-control-color">
+                    <div class="form-group mb-3 mt-3">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.strokeWidth}`">
+                        <label class="range-label" for="textDialogDataThoughts-2">Толщина: {{ textDialogDataThoughts.strokeWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textDialogDataThoughts-2" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.strokeWidth" 
+                          min="1" 
+                          max="10" 
+                          step="1" 
+                          aria-valuemin="1" 
+                          aria-valuemax="10" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Тень -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataThoughts.shadow" class="form-check-input">
-                <label class="form-check-label">Тень</label>
-              </div>
-              
-              <div v-if="textDialogDataThoughts.shadow">
+            <div class="row">
+              <div class="col-12">
+                <!-- Тень -->
                 <div class="form-group mb-3">
-                  <label class="form-label">Цвет тени:</label>
-                  <input type="color" v-model="textDialogDataThoughts.shadowColor" class="form-control form-control-color">
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Прозрачность тени: {{ textDialogDataThoughts.shadowOpacity }}%</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.shadowOpacity" 
-                    class="form-range" 
-                    min="0" 
-                    max="100" 
-                    step="5"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Размытие тени: {{ textDialogDataThoughts.shadowBlur }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.shadowBlur" 
-                    class="form-range" 
-                    min="0" 
-                    max="20" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="row g-2">
-                  <div class="col-6">
-                    <label class="form-label">Смещение по X: {{ textDialogDataThoughts.shadowOffsetX }}px</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.shadowOffsetX" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
-                    >
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mb-3 mt-0">
+                      <input type="checkbox" v-model="textDialogDataThoughts.shadow" class="form-check-input">
+                      <label class="form-check-label">Тень</label>
+                    </h3>
                   </div>
-                  <div class="col-6">
-                    <label class="form-label">Смещение по Y: {{ textDialogDataThoughts.shadowOffsetY }}px</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataThoughts.shadowOffsetY" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
-                    >
+                  
+                  <div v-if="textDialogDataThoughts.shadow" class="row g-2">
+                    <div class="col-12">
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет тени"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет тени"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.shadowColor }"></div>
+                          <input type="color" v-model="textDialogDataThoughts.shadowColor" class="color-input">
+                        </button>
+                      </div>
+                      
+                      <div class="form-group mb-3 mt-3">
+                        <div class="range" :style="`--value: ${textDialogDataThoughts.shadowOpacity}`">
+                          <label class="range-label" for="textBgShadowOpacity-2">Прозрачность: {{ textDialogDataThoughts.shadowOpacity }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowOpacity-2" 
+                            type="range" 
+                            v-model="textDialogDataThoughts.shadowOpacity" 
+                            min="0" 
+                            max="100" 
+                            step="5" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataThoughts.shadowBlur}`">
+                          <label class="range-label" for="textBgShadowBlur-2">Размытие: {{ textDialogDataThoughts.shadowBlur }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowBlur-2" 
+                            type="range" 
+                            v-model="textDialogDataThoughts.shadowBlur" 
+                            min="0" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="0" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      
+                      <div class="row g-2">
+                        <div class="col-12">
+                          <div class="range" :style="`--value: ${textDialogDataThoughts.shadowOffsetX}`">
+                            <label class="range-label" for="textBgShadowX-2">Смещение по X: {{ textDialogDataThoughts.shadowOffsetX }}</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="textBgShadowX-2" 
+                              type="range" 
+                              v-model="textDialogDataThoughts.shadowOffsetX" 
+                              min="-20" 
+                              max="20" 
+                              step="1" 
+                              aria-valuemin="-20" 
+                              aria-valuemax="20" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="range" :style="`--value: ${textDialogDataThoughts.shadowOffsetY}`">
+                            <label class="range-label" for="textBgShadowY-2">Смещение по Y: {{ textDialogDataThoughts.shadowOffsetY }}</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="textBgShadowY-2" 
+                              type="range" 
+                              v-model="textDialogDataThoughts.shadowOffsetY" 
+                              min="-20" 
+                              max="20" 
+                              step="1" 
+                              aria-valuemin="-20" 
+                              aria-valuemax="20" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

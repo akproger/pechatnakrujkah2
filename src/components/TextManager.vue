@@ -582,8 +582,8 @@
                           min="100" 
                           max="400" 
                           step="10" 
-                          aria-valuemin="30" 
-                          aria-valuemax="200" 
+                          aria-valuemin="100" 
+                          aria-valuemax="400" 
                           aria-orientation="horizontal"
                         >
                       </div>
@@ -857,265 +857,372 @@
               rows="6"
               placeholder="Введите текст..."
             ></textarea>
-            <!-- Простые настройки для стандартного текста -->
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group mb-3">
-                  <label class="form-label">Шрифт:</label>
-                  <select v-model="textDialogDataStandard.font" class="form-select">
-                    <option value="Arial">Arial</option>
-                    <option value="Helvetica">Helvetica</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Verdana">Verdana</option>
-                  </select>
+                  <h3 class="settings-subheader">Настройки текста</h3>  
                 </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <div class="range" :style="`--value: ${textDialogDataStandard.fontSize}`">
-                    <label class="range-label" for="fontSizeStandard">Размер:</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="fontSizeStandard" 
-                      type="range" 
-                      v-model="textDialogDataStandard.fontSize" 
-                      min="12" 
-                      max="72" 
-                      step="1" 
-                      aria-valuemin="12" 
-                      aria-valuemax="72" 
-                      aria-orientation="horizontal"
-                    >
+                <!-- Простые настройки для стандартного текста -->
+                <div class="row">
+                  <div class="col-md-8 p-0">
+                    <div class="form-group pe-3">
+                      <select v-model="textDialogDataStandard.font" class="form-select">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Verdana">Verdana</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4 p-0">
+                      <div class="color-button-group">
+                        <i data-v-4a23b838="" class="bi bi-paint-bucket color-icon" title="Цвет текста"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет текста"
+                        >
+                        <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.textColor }"></div>
+                        <input type="color" v-model="textDialogDataStandard.textColor" class="color-input">
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <!-- Настройки шрифта -->
-            <div class="form-group mb-3">
-              <div class="font-weight-buttons">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataStandard.fontWeight === 'normal' }"
-                  @click="textDialogDataStandard.fontWeight = 'normal'"
-                  title="Обычный"
-                >
-                  <i class="bi bi-type"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataStandard.fontWeight === 'bold' }"
-                  @click="textDialogDataStandard.fontWeight = 'bold'"
-                  title="Жирный"
-                >
-                  <i class="bi bi-type-bold"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataStandard.fontWeight === 'italic' }"
-                  @click="textDialogDataStandard.fontWeight = 'italic'"
-                  title="Курсив"
-                >
-                  <i class="bi bi-type-italic"></i>
-                </button>
-                <div class="vertical-line"></div>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary text-align-btn" 
-                  :class="{ 'active': textDialogDataStandard.textAlign === 'left' }"
-                  @click="textDialogDataStandard.textAlign = 'left'"
-                  title="По левому краю"
-                >
-                  <i class="bi bi-text-left"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary text-align-btn" 
-                  :class="{ 'active': textDialogDataStandard.textAlign === 'center' }"
-                  @click="textDialogDataStandard.textAlign = 'center'"
-                  title="По центру"
-                >
-                  <i class="bi bi-text-center"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary text-align-btn" 
-                  :class="{ 'active': textDialogDataStandard.textAlign === 'right' }"
-                  @click="textDialogDataStandard.textAlign = 'right'"
-                  title="По правому краю"
-                >
-                  <i class="bi bi-text-right"></i>
-                </button>
-              </div>
-            </div>
-            <!-- Цвета -->
-            <div class="form-group mb-3">
-              <div class="color-buttons">
-                <div class="color-button-group">
-                  <i class="bi bi-type color-icon" title="Цвет текста"></i>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary color-btn" 
-                    title="Цвет текста"
-                  >
-                    <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.textColor }"></div>
-                    <input type="color" v-model="textDialogDataStandard.textColor" class="color-input">
-                  </button>
-                </div>
-                
-                <div class="color-button-group">
-                  <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary color-btn" 
-                    title="Цвет подложки"
-                  >
-                    <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.backgroundColor }"></div>
-                    <input type="color" v-model="textDialogDataStandard.backgroundColor" class="color-input">
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Настройки подложки -->
-            <div class="form-group mb-3">
-              <div class="row g-2">
-                <div class="col-4">
-                  <label class="form-label">Ширина подложки: {{ textDialogDataStandard.backgroundWidth }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.backgroundWidth" 
-                    class="form-range" 
-                    min="100" 
-                    max="400" 
-                    step="10"
-                  >
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Высота подложки: {{ textDialogDataStandard.backgroundHeight }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.backgroundHeight" 
-                    class="form-range" 
-                    min="30" 
-                    max="200" 
-                    step="10"
-                  >
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Отступ в подложке: {{ textDialogDataStandard.padding }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.padding" 
-                    class="form-range" 
-                    min="5" 
-                    max="30" 
-                    step="1"
-                  >
-                </div>
-              </div>
-            </div>
-
-            <!-- Обводка -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataStandard.stroke" class="form-check-input">
-                <label class="form-check-label">Обводка</label>
-              </div>
-              
-              <div v-if="textDialogDataStandard.stroke">
-                <div class="form-group mb-3">
-                  <label class="form-label">Толщина обводки: {{ textDialogDataStandard.strokeWidth }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.strokeWidth" 
-                    class="form-range" 
-                    min="1" 
-                    max="10" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Цвет обводки:</label>
-                  <input type="color" v-model="textDialogDataStandard.strokeColor" class="form-control form-control-color">
-                </div>
-              </div>
-            </div>
-
-            <!-- Тень -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataStandard.shadow" class="form-check-input">
-                <label class="form-check-label">Тень</label>
-              </div>
-              
-              <div v-if="textDialogDataStandard.shadow">
-                <div class="form-group mb-3">
-                  <label class="form-label">Цвет тени:</label>
-                  <input type="color" v-model="textDialogDataStandard.shadowColor" class="form-control form-control-color">
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Прозрачность тени: {{ textDialogDataStandard.shadowOpacity }}%</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.shadowOpacity" 
-                    class="form-range" 
-                    min="0" 
-                    max="100" 
-                    step="5"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Размытие тени: {{ textDialogDataStandard.shadowBlur }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataStandard.shadowBlur" 
-                    class="form-range" 
-                    min="0" 
-                    max="20" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="row g-2">
-                  <div class="col-6">
-                    <label class="form-label">Смещение по X: {{ textDialogDataStandard.shadowOffsetX }}px</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataStandard.shadowOffsetX" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
-                    >
+                <div class="col-12">
+                  <!-- Настройки шрифта -->
+                  <div class="form-group mb-3">
+                    <div class="font-weight-buttons">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'normal' }"
+                        @click="textDialogDataStandard.fontWeight = 'normal'"
+                        title="Обычный"
+                      >
+                        <i class="bi bi-type"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'bold' }"
+                        @click="textDialogDataStandard.fontWeight = 'bold'"
+                        title="Жирный"
+                      >
+                        <i class="bi bi-type-bold"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary font-weight-btn" 
+                        :class="{ 'active': textDialogDataStandard.fontWeight === 'italic' }"
+                        @click="textDialogDataStandard.fontWeight = 'italic'"
+                        title="Курсив"
+                      >
+                        <i class="bi bi-type-italic"></i>
+                      </button>
+                      <div class="vertical-line"></div>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'left' }"
+                        @click="textDialogDataStandard.textAlign = 'left'"
+                        title="По левому краю"
+                      >
+                        <i class="bi bi-text-left"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'center' }"
+                        @click="textDialogDataStandard.textAlign = 'center'"
+                        title="По центру"
+                      >
+                        <i class="bi bi-text-center"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary text-align-btn" 
+                        :class="{ 'active': textDialogDataStandard.textAlign === 'right' }"
+                        @click="textDialogDataStandard.textAlign = 'right'"
+                        title="По правому краю"
+                      >
+                        <i class="bi bi-text-right"></i>
+                      </button>
+                    </div>
                   </div>
-                  <div class="col-6">
-                    <label class="form-label">Смещение по Y: {{ textDialogDataStandard.shadowOffsetY }}px</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataStandard.shadowOffsetY" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
-                    >
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <div class="range" :style="`--value: ${textDialogDataStandard.fontSize}`">
+                      <label class="range-label" for="fontSizeStandard">Размер: {{ textDialogDataStandard.fontSize }}</label>
+                      <div class="track"></div>
+                      <input 
+                        class="range-input" 
+                        id="fontSizeStandard" 
+                        type="range" 
+                        v-model="textDialogDataStandard.fontSize" 
+                        min="12" 
+                        max="72" 
+                        step="1" 
+                        aria-valuemin="12" 
+                        aria-valuemax="72" 
+                        aria-orientation="horizontal"
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
+            <div class="row">
+              <div class="col-md-12">
+                <h3 class="settings-subheader">Настройки подложки</h3>
+              </div>
+              <div class="col-md-12 mt-2">
+                <!-- Цвета -->
+                <div class="form-group mb-3">
+                  <div class="color-buttons">
+                    <div class="color-button-group">
+                      <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary color-btn" 
+                        title="Цвет подложки"
+                      >
+                        <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.backgroundColor }"></div>
+                        <input type="color" v-model="textDialogDataStandard.backgroundColor" class="color-input">
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <!-- Настройки подложки -->
+                <div class="form-group mb-2">
+                  <div class="row g-2 mb-0">
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataStandard.backgroundWidth}`">
+                        <label class="range-label" for="textBgWidth-3">Ширина: {{ textDialogDataStandard.backgroundWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgWidth-3" 
+                          type="range" 
+                          v-model="textDialogDataStandard.backgroundWidth" 
+                          min="100" 
+                          max="400" 
+                          step="10" 
+                          aria-valuemin="100" 
+                          aria-valuemax="400" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataStandard.backgroundHeight}`">
+                        <label class="range-label" for="textBgHeight-3">Высота: {{ textDialogDataStandard.backgroundHeight }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgHeight-3" 
+                          type="range" 
+                          v-model="textDialogDataStandard.backgroundHeight" 
+                          min="30" 
+                          max="200" 
+                          step="10" 
+                          aria-valuemin="30" 
+                          aria-valuemax="200" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataStandard.padding}`">
+                        <label class="range-label" for="textBgPadding-3">Отступ: {{ textDialogDataStandard.padding }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgPadding-3" 
+                          type="range" 
+                          v-model="textDialogDataStandard.padding" 
+                          min="15" 
+                          max="50" 
+                          step="5" 
+                          aria-valuemin="15" 
+                          aria-valuemax="50" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <!-- Обводка -->
+                <div class="form-group mb-3">
+                  <div class="col-md-12">
+                    <h3 class="settings-subheader mt-0">
+                      <div class="form-check mb-0">
+                        <input type="checkbox" v-model="textDialogDataStandard.stroke" class="form-check-input">
+                        <label class="form-check-label">Обводка</label>
+                      </div>
+                    </h3>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <div v-if="textDialogDataStandard.stroke">
+                      <div class="form-group mb-3">
+                        <div class="color-button-group">
+                          <i class="bi bi-paint-bucket color-icon" title="Цвет обводки"></i>
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary color-btn" 
+                            title="Цвет обводки"
+                          >
+                            <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.strokeColor }"></div>
+                            <input type="color" v-model="textDialogDataStandard.strokeColor" class="color-input">
+                          </button>
+                        </div>
+                      </div>
+                      <div class="form-group mb-3">
+                        <div class="range" :style="`--value: ${textDialogDataStandard.strokeWidth}`">
+                          <label class="range-label" for="textBgStrokeWidth-3">Отступ: {{ textDialogDataStandard.strokeWidth }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgStrokeWidth-3" 
+                            type="range" 
+                            v-model="textDialogDataStandard.strokeWidth" 
+                            min="1" 
+                            max="10" 
+                            step="1" 
+                            aria-valuemin="1" 
+                            aria-valuemax="10" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <!-- Тень -->
+                <div class="form-group mb-3">
+                  <div class="col-md-12">
+                    <h3 class="settings-subheader mt-0">
+                      <div class="form-check mb-0">
+                        <input type="checkbox" v-model="textDialogDataStandard.shadow" class="form-check-input">
+                        <label class="form-check-label">Тень</label>
+                      </div>
+                    </h3>
+                  </div>
 
+                    <div v-if="textDialogDataStandard.shadow" class="row">
+                      <div class="col-md-12">
+                        <div class="form-group mb-3 mt-2">
+                          <div class="color-button-group">
+                            <i class="bi bi-paint-bucket color-icon" title="Цвет тени"></i>
+                            <button 
+                              type="button" 
+                              class="btn btn-outline-secondary color-btn" 
+                              title="Цвет тени"
+                            >
+                              <div class="color-preview" :style="{ backgroundColor: textDialogDataStandard.shadowColor }"></div>
+                              <input type="color" v-model="textDialogDataStandard.shadowColor" class="color-input">
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-12 mb-2">
+
+                          <div class="range" :style="`--value: ${textDialogDataStandard.shadowOpacity}`">
+                            <label class="range-label" for="textBgShadowOpacity-3">Прозрачность: {{ textDialogDataStandard.shadowOpacity }}</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="textBgShadowOpacity-3" 
+                              type="range" 
+                              v-model="textDialogDataStandard.shadowOpacity" 
+                              min="0" 
+                              max="100" 
+                              step="5" 
+                              aria-valuemin="0" 
+                              aria-valuemax="100" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+
+                      </div>
+                      <div class="col-md-12 mb-2">
+
+                          <div class="range" :style="`--value: ${textDialogDataStandard.shadowBlur}`">
+                            <label class="range-label" for="textBgShadowBlure-3">Размытие: {{ textDialogDataStandard.shadowBlur }}</label>
+                            <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="textBgShadowBlure-3" 
+                              type="range" 
+                              v-model="textDialogDataStandard.shadowBlur" 
+                              min="0" 
+                              max="20" 
+                              step="1" 
+                              aria-valuemin="0" 
+                              aria-valuemax="20" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+
+                      </div>
+                      
+
+                      <div class="col-md-12 mb-2">
+                        <div class="range" :style="`--value: ${textDialogDataStandard.shadowOffsetX}`">
+                          <label class="range-label" for="textBgShadowOffsetX-3">Смещение по X: {{ textDialogDataStandard.shadowOffsetX }}</label>
+                          <div class="track"></div>
+                            <input 
+                              class="range-input" 
+                              id="textBgShadowOffsetX-3" 
+                              type="range" 
+                              v-model="textDialogDataStandard.shadowOffsetX" 
+                              min="-20" 
+                              max="20" 
+                              step="1" 
+                              aria-valuemin="-20" 
+                              aria-valuemax="20" 
+                              aria-orientation="horizontal"
+                            >
+                          </div>
+                        </div>
+                      <div class="col-md-12">
+                        <div class="range" :style="`--value: ${textDialogDataStandard.shadowOffsetY}`">
+                          <label class="range-label" for="textBgShadowOffsetY-3">Смещение по X: {{ textDialogDataStandard.shadowOffsetY }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowOffsetY-3" 
+                            type="range" 
+                            v-model="textDialogDataStandard.shadowOffsetY" 
+                            min="-20" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="-20" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1130,9 +1237,13 @@
               placeholder="Введите текст..."
             ></textarea>
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group mb-3">
-                  <label class="form-label">Шрифт:</label>
+                  <h3 class="settings-subheader">Настройки текста</h3>
+                </div>
+              </div>
+              <div class="col-md-8">
+                <div class="form-group mb-3 pe-3">
                   <select v-model="textDialogDataImageText.font" class="form-select">
                     <option value="Arial">Arial</option>
                     <option value="Helvetica">Helvetica</option>
@@ -1142,10 +1253,62 @@
                   </select>
                 </div>
               </div>
-              <div class="col-md-6">
+              <!-- Цвет текста (для обводки) -->
+              <div class="col-md-4">
+                <div class="color-buttons">
+                  <div class="color-button-group">
+                    <i class="bi bi-paint-bucket color-icon" title="Цвет текста"></i>
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary color-btn" 
+                      title="Цвет текста (обводка)"
+                    >
+                      <div class="color-preview" :style="{ backgroundColor: textDialogDataImageText.textColor }"></div>
+                      <input type="color" v-model="textDialogDataImageText.textColor" class="color-input">
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <!-- Настройки шрифта -->
+                <div class="form-group mb-3">
+                  <div class="font-weight-buttons">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary font-weight-btn" 
+                      :class="{ 'active': textDialogDataImageText.fontWeight === 'normal' }"
+                      @click="textDialogDataImageText.fontWeight = 'normal'"
+                      title="Обычный"
+                    >
+                      <i class="bi bi-type"></i>
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary font-weight-btn" 
+                      :class="{ 'active': textDialogDataImageText.fontWeight === 'bold' }"
+                      @click="textDialogDataImageText.fontWeight = 'bold'"
+                      title="Жирный"
+                    >
+                      <i class="bi bi-type-bold"></i>
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary font-weight-btn" 
+                      :class="{ 'active': textDialogDataImageText.fontWeight === 'italic' }"
+                      @click="textDialogDataImageText.fontWeight = 'italic'"
+                      title="Курсив"
+                    >
+                      <i class="bi bi-type-italic"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-12">
                 <div class="form-group">
                   <div class="range" :style="`--value: ${textDialogDataImageText.fontSize}`">
-                    <label class="range-label" for="fontSizeImageText">Размер:</label>
+                    <label class="range-label" for="fontSizeImageText">Размер: {{ textDialogDataImageText.fontSize }}</label>
                     <div class="track"></div>
                     <input 
                       class="range-input" 
@@ -1162,193 +1325,188 @@
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Настройки шрифта -->
-            <div class="form-group mb-3">
-              <div class="font-weight-buttons">
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataImageText.fontWeight === 'normal' }"
-                  @click="textDialogDataImageText.fontWeight = 'normal'"
-                  title="Обычный"
-                >
-                  <i class="bi bi-type"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataImageText.fontWeight === 'bold' }"
-                  @click="textDialogDataImageText.fontWeight = 'bold'"
-                  title="Жирный"
-                >
-                  <i class="bi bi-type-bold"></i>
-                </button>
-                
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary font-weight-btn" 
-                  :class="{ 'active': textDialogDataImageText.fontWeight === 'italic' }"
-                  @click="textDialogDataImageText.fontWeight = 'italic'"
-                  title="Курсив"
-                >
-                  <i class="bi bi-type-italic"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Цвет текста (для обводки) -->
-            <div class="form-group mb-3">
-              <div class="color-buttons">
-                <div class="color-button-group">
-                  <i class="bi bi-type color-icon" title="Цвет текста (обводка)"></i>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary color-btn" 
-                    title="Цвет текста (обводка)"
-                  >
-                    <div class="color-preview" :style="{ backgroundColor: textDialogDataImageText.textColor }"></div>
-                    <input type="color" v-model="textDialogDataImageText.textColor" class="color-input">
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Загрузка изображения -->
-            <div class="form-group mb-3">
-              <div class="d-flex align-items-center gap-3">
-                <input 
-                  type="file" 
-                  ref="imageInput"
-                  @change="handleImageSelect"
-                  accept="image/*"
-                  class="form-control"
-                  style="display: none;"
-                >
-                <button 
-                  @click="triggerImageInput" 
-                  class="btn btn-outline-primary w-100"
-                  type="button"
-                >
-                  <i class="bi bi-upload me-2"></i>
-                  Выбрать изображение
-                </button>
-              </div>
-              
-              <!-- Предпросмотр изображения -->
-              <div v-if="textDialogDataImageText.cachedImage" class="mt-3 text-img-preview">
-                <img 
-                  :src="textDialogDataImageText.cachedImage.src" 
-                  alt="Предпросмотр" 
-                  class="img-thumbnail"
-                  style="max-width: 100px; max-height: 44px;"
-                >
-                <button 
-                  v-if="textDialogDataImageText.textImage"
-                  @click="removeMaskImage" 
-                  class="btn btn-outline-danger"
-                  type="button"
-                >
-                  <i class="bi bi-trash me-2"></i>
-                  Удалить
-                </button>
-              </div>
-            </div>
-
-            <!-- Обводка -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataImageText.stroke" class="form-check-input">
-                <label class="form-check-label">Обводка</label>
-              </div>
-              
-              <div v-if="textDialogDataImageText.stroke">
-                <div class="form-group mb-3">
-                  <label class="form-label">Толщина обводки: {{ textDialogDataImageText.strokeWidth }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataImageText.strokeWidth" 
-                    class="form-range" 
-                    min="1" 
-                    max="10" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Цвет обводки:</label>
-                  <input type="color" v-model="textDialogDataImageText.strokeColor" class="form-control form-control-color">
-                </div>
-              </div>
-            </div>
-
-            <!-- Тень -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataImageText.shadow" class="form-check-input">
-                <label class="form-check-label">Тень</label>
-              </div>
-              
-              <div v-if="textDialogDataImageText.shadow">
-                <div class="form-group mb-3">
-                  <label class="form-label">Цвет тени:</label>
-                  <input type="color" v-model="textDialogDataImageText.shadowColor" class="form-control form-control-color">
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Прозрачность тени: {{ textDialogDataImageText.shadowOpacity }}%</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataImageText.shadowOpacity" 
-                    class="form-range" 
-                    min="0" 
-                    max="100" 
-                    step="5"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Размытие тени: {{ textDialogDataImageText.shadowBlur }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataImageText.shadowBlur" 
-                    class="form-range" 
-                    min="0" 
-                    max="20" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="row g-2">
-                  <div class="col-6">
-                    <label class="form-label">Смещение по X: {{ textDialogDataImageText.shadowOffsetX }}px</label>
+              <div class="col-md-12 mt-3">
+                <!-- Загрузка изображения -->
+                <div class="form-group mb-2">
+                  <div class="d-flex align-items-center gap-3">
                     <input 
-                      type="range" 
-                      v-model="textDialogDataImageText.shadowOffsetX" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
+                      type="file" 
+                      ref="imageInput"
+                      @change="handleImageSelect"
+                      accept="image/*"
+                      class="form-control"
+                      style="display: none;"
                     >
+                    <button 
+                      @click="triggerImageInput" 
+                      class="btn btn-outline-primary w-100"
+                      type="button"
+                    >
+                      <i class="bi bi-upload me-2"></i>
+                      Выбрать изображение
+                    </button>
                   </div>
-                  <div class="col-6">
-                    <label class="form-label">Смещение по Y: {{ textDialogDataImageText.shadowOffsetY }}px</label>
-                    <input 
-                      type="range" 
-                      v-model="textDialogDataImageText.shadowOffsetY" 
-                      class="form-range" 
-                      min="-20" 
-                      max="20" 
-                      step="1"
+                  
+                  <!-- Предпросмотр изображения -->
+                  <div v-if="textDialogDataImageText.cachedImage" class="mt-3 text-img-preview">
+                    <img 
+                      :src="textDialogDataImageText.cachedImage.src" 
+                      alt="Предпросмотр" 
+                      class="img-thumbnail"
+                      style="max-width: 100px; max-height: 44px;"
                     >
+                    <button 
+                      v-if="textDialogDataImageText.textImage"
+                      @click="removeMaskImage" 
+                      class="btn btn-outline-danger"
+                      type="button"
+                    >
+                      <i class="bi bi-trash me-2"></i>
+                      Удалить
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            
-
+            <div class="row">
+              <div class="col-md-12">
+                <!-- Обводка -->
+                <div class="form-group mb-2">
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mt-0">
+                      <input type="checkbox" v-model="textDialogDataImageText.stroke" class="form-check-input">
+                      <label class="form-check-label">Обводка</label>
+                    </h3>
+                  </div>
+                  
+                  <div v-if="textDialogDataImageText.stroke">
+                    <div class="form-group mb-3 mt-3">
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет обводки"></i>
+                        <input type="color" v-model="textDialogDataImageText.strokeColor" class="form-control form-control-color">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <div class="range" :style="`--value: ${textDialogDataImageText.strokeWidth}`">
+                        <label class="range-label" for="fontStrokeWidth">Толщина: {{ textDialogDataImageText.strokeWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="fontStrokeWidth" 
+                          type="range" 
+                          v-model="textDialogDataImageText.strokeWidth" 
+                          min="1" 
+                          max="10" 
+                          step="1" 
+                          aria-valuemin="1" 
+                          aria-valuemax="10" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <!-- Тень -->
+                <div class="form-group mb-3">
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mt-0">
+                      <input type="checkbox" v-model="textDialogDataImageText.shadow" class="form-check-input">
+                      <label class="form-check-label">Тень</label>
+                    </h3>
+                  </div>
+                  
+                  <div v-if="textDialogDataImageText.shadow">
+                    <div class="form-group mb-3 mt-3">
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет тени"></i>
+                        <input type="color" v-model="textDialogDataImageText.shadowColor" class="form-control form-control-color">
+                      </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                      <div class="range" :style="`--value: ${textDialogDataImageText.shadowOpacity}`">
+                        <label class="range-label" for="imageTextShadowOpacity">Прозрачность: {{ textDialogDataImageText.shadowOpacity }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="imageTextShadowOpacity" 
+                          type="range" 
+                          v-model="textDialogDataImageText.shadowOpacity" 
+                          min="0" 
+                          max="100" 
+                          step="5" 
+                          aria-valuemin="0" 
+                          aria-valuemax="100" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                      <div class="range" :style="`--value: ${textDialogDataImageText.shadowBlur}`">
+                        <label class="range-label" for="imageTextShadowBlure">Размытие: {{ textDialogDataImageText.shadowBlur }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="imageTextShadowBlure" 
+                          type="range" 
+                          v-model="textDialogDataImageText.shadowBlur" 
+                          min="0" 
+                          max="20" 
+                          step="1" 
+                          aria-valuemin="0" 
+                          aria-valuemax="20" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    
+                    <div class="row g-2">
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataImageText.shadowOffsetX}`">
+                          <label class="range-label" for="imageTextShadowOffsetX">Смещение по X: {{ textDialogDataImageText.shadowOffsetX }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="imageTextShadowOffsetX" 
+                            type="range" 
+                            v-model="textDialogDataImageText.shadowOffsetX" 
+                            min="-20" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="-20" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataImageText.shadowOffsetY}`">
+                          <label class="range-label" for="imageTextShadowOffsetY">Смещение по X: {{ textDialogDataImageText.shadowOffsetY }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="imageTextShadowOffsetY" 
+                            type="range" 
+                            v-model="textDialogDataImageText.shadowOffsetY" 
+                            min="-20" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="-20" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4998,6 +5156,7 @@ export default {
 }
 .form-check{
   padding-left: 0;
+  min-height: initial;
 }
 
 .form-check {

@@ -25,7 +25,7 @@
             <div class="row">
               <div class="col-md-12">
                 <div class="form-group mb-3">
-                  <h3 class="settings-subheader">Шрифт</h3>
+                  <h3 class="settings-subheader">Настройки текста</h3>
                 </div>
               </div>
               <div class="row text-main-row">
@@ -119,9 +119,8 @@
                   </button>
                 </div>
               </div>
-            </div>
-            <div class="row g-2">
-              <div class="col-12">
+
+              <div class="col-12 mt-3">
                 <div class="range" :style="`--value: ${textDialogDataConversation.fontSize}`">
                   <label class="range-label" for="fontSizeConversation">Размер:  {{ textDialogDataConversation.fontSize }}</label>
                   <div class="track"></div>
@@ -141,269 +140,282 @@
               </div>
             </div>
 
-            <!-- Настройки подложки -->
-            <div class="form-group mb-0">
-              <h3 class="settings-subheader mb-3 mt-4">Настройки подложки</h3>
-              <div class="row g-2">
-                <div class="col-12">
-                  <div class="color-button-group">
-                    <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
-                    <button 
-                      type="button" 
-                      class="btn btn-outline-secondary color-btn" 
-                      title="Цвет подложки"
-                    >
-                      <div class="color-preview" :style="{ backgroundColor: textDialogDataConversation.backgroundColor }"></div>
-                      <input type="color" v-model="textDialogDataConversation.backgroundColor" class="color-input">
-                    </button>
+            <div class="row">
+              <div class="col-12 p-0">
+              <!-- Настройки подложки -->
+                <div class="form-group mb-0">
+                  <h3 class="settings-subheader">Настройки подложки</h3>
+                  <div class="row g-2 mb-2">
+                    <div class="col-12 p-0 mt-3">
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет подложки"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataConversation.backgroundColor }"></div>
+                          <input type="color" v-model="textDialogDataConversation.backgroundColor" class="color-input">
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-12 mt-3">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.backgroundWidth}`">
+                        <label class="range-label" for="textBgWidth-1">Ширина: {{ textDialogDataConversation.backgroundWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgWidth-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.backgroundWidth" 
+                          min="100" 
+                          max="400" 
+                          step="10" 
+                          aria-valuemin="100" 
+                          aria-valuemax="400" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.backgroundHeight}`">
+                        <label class="range-label" for="textBgHeight-1">Высота: {{ textDialogDataConversation.backgroundHeight }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgHeight-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.backgroundHeight" 
+                          min="30" 
+                          max="200" 
+                          step="10" 
+                          aria-valuemin="30" 
+                          aria-valuemax="200" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.padding}`">
+                        <label class="range-label" for="textBgPadding-1">Внутренний отступ: {{ textDialogDataConversation.padding }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgPadding-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.padding" 
+                          min="15" 
+                          max="50" 
+                          step="5" 
+                          aria-valuemin="15" 
+                          aria-valuemax="50" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.backgroundWidth}`">
-                    <label class="range-label" for="textBgWidth-1">Ширина: {{ textDialogDataConversation.backgroundWidth }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="textBgWidth-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.backgroundWidth" 
-                      min="100" 
-                      max="400" 
-                      step="10" 
-                      aria-valuemin="100" 
-                      aria-valuemax="400" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.backgroundHeight}`">
-                    <label class="range-label" for="textBgHeight-1">Высота: {{ textDialogDataConversation.backgroundHeight }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="textBgHeight-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.backgroundHeight" 
-                      min="30" 
-                      max="200" 
-                      step="10" 
-                      aria-valuemin="30" 
-                      aria-valuemax="200" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.padding}`">
-                    <label class="range-label" for="textBgPadding-1">Внутренний отступ: {{ textDialogDataConversation.padding }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="textBgPadding-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.padding" 
-                      min="15" 
-                      max="50" 
-                      step="5" 
-                      aria-valuemin="15" 
-                      aria-valuemax="50" 
-                      aria-orientation="horizontal"
-                    >
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <!-- Настройки хвоста -->
+                <div class="form-group mb-0">
+                  <h3 class="settings-subheader mb-3 mt-0">Настройки "Хвоста"</h3>
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.tailSize}`">
+                        <label class="range-label" for="tailSizeConversation-1">Размер: {{ textDialogDataConversation.tailSize }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailSizeConversation-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.tailSize" 
+                          min="100" 
+                          max="750" 
+                          step="1" 
+                          aria-valuemin="100" 
+                          aria-valuemax="750" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.tailWidth}`">
+                        <label class="range-label" for="tailWidthConversation-1">Ширина: {{ textDialogDataConversation.tailWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailWidthConversation-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.tailWidth" 
+                          min="40" 
+                          max="100" 
+                          step="1" 
+                          aria-valuemin="40" 
+                          aria-valuemax="100" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.tailAngle}`">
+                        <label class="range-label" for="tailAngleConversation-1">Угол: {{ textDialogDataConversation.tailAngle }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailAngleConversation-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.tailAngle" 
+                          min="0" 
+                          max="359" 
+                          step="1" 
+                          aria-valuemin="0" 
+                          aria-valuemax="359" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Настройки хвоста -->
-            <div class="form-group mb-0">
-              <h3 class="settings-subheader mb-3 mt-4">Настройки "Хвоста"</h3>
-              <div class="row g-2">
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.tailSize}`">
-                    <label class="range-label" for="tailSizeConversation-1">Размер: {{ textDialogDataConversation.tailSize }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="tailSizeConversation-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailSize" 
-                      min="100" 
-                      max="750" 
-                      step="1" 
-                      aria-valuemin="100" 
-                      aria-valuemax="750" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.tailWidth}`">
-                    <label class="range-label" for="tailWidthConversation-1">Ширина: {{ textDialogDataConversation.tailWidth }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="tailWidthConversation-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailWidth" 
-                      min="40" 
-                      max="100" 
-                      step="1" 
-                      aria-valuemin="40" 
-                      aria-valuemax="100" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.tailAngle}`">
-                    <label class="range-label" for="tailAngleConversation-1">Угол: {{ textDialogDataConversation.tailAngle }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="tailAngleConversation-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.tailAngle" 
-                      min="0" 
-                      max="359" 
-                      step="1" 
-                      aria-valuemin="0" 
-                      aria-valuemax="359" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Обводка -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <h3 class="settings-subheader mb-3 mt-4">
-                  <input type="checkbox" v-model="textDialogDataConversation.stroke" class="form-check-input">
-                  <label class="form-check-label">Обводка</label>
-                </h3>
-              </div>
-              
-              <div v-if="textDialogDataConversation.stroke">
+            <div class="row">
+              <div class="col-12">
+                <!-- Обводка -->
                 <div class="form-group mb-3">
-                  <div class="range" :style="`--value: ${textDialogDataConversation.strokeWidth}`">
-                    <label class="range-label" for="textBgStrokeWidth-1">Толщина: {{ textDialogDataConversation.strokeWidth }}</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="textBgStrokeWidth-1" 
-                      type="range" 
-                      v-model="textDialogDataConversation.strokeWidth" 
-                      min="1" 
-                      max="10" 
-                      step="1" 
-                      aria-valuemin="1" 
-                      aria-valuemax="10" 
-                      aria-orientation="horizontal"
-                    >
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mb-3 mt-0">
+                      <input type="checkbox" v-model="textDialogDataConversation.stroke" class="form-check-input">
+                      <label class="form-check-label">Обводка подложки</label>
+                    </h3>
                   </div>
-                </div>
-                <div class="color-button-group">
-                    <i class="bi bi-paint-bucket color-icon" title="Цвет обводки"></i>
-                    <input type="color" v-model="textDialogDataConversation.strokeColor" class="form-control form-control-color">
-                  </div>
-              </div>
-            </div>
-
-            <!-- Тень -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <h3 class="settings-subheader mb-3 mt-4">
-                  <input type="checkbox" v-model="textDialogDataConversation.shadow" class="form-check-input">
-                  <label class="form-check-label">Тень</label>
-                </h3>
-              </div>
-              
-              <div v-if="textDialogDataConversation.shadow">
-                <div class="color-button-group mb-2">
-                  <i class="bi bi-paint-bucket color-icon" title="Цвет тени"></i>
-                  <input type="color" v-model="textDialogDataConversation.shadowColor" class="form-control form-control-color">
-                </div>
-                <div class="row g-2">
-                
-                  <div class="col-12">
-                    <div class="range" :style="`--value: ${textDialogDataConversation.shadowOpacity}`">
-                      <label class="range-label" for="textBgShadowOpacity-1">Прозрачность тени: {{ textDialogDataConversation.shadowOpacity }}</label>
-                      <div class="track"></div>
-                      <input 
-                        class="range-input" 
-                        id="textBgShadowOpacity-1" 
-                        type="range" 
-                        v-model="textDialogDataConversation.shadowOpacity" 
-                        min="0" 
-                        max="100" 
-                        step="5" 
-                        aria-valuemin="0" 
-                        aria-valuemax="100" 
-                        aria-orientation="horizontal"
-                      >
+                  
+                  <div v-if="textDialogDataConversation.stroke">
+                    <div class="color-button-group">
+                      <i class="bi bi-paint-bucket color-icon" title="Цвет обводки"></i>
+                      <input type="color" v-model="textDialogDataConversation.strokeColor" class="form-control form-control-color">
                     </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="range" :style="`--value: ${textDialogDataConversation.shadowBlur}`">
-                      <label class="range-label" for="textBgShadowBlure-1">Размытие тени: {{ textDialogDataConversation.shadowBlur }}</label>
-                      <div class="track"></div>
-                      <input 
-                        class="range-input" 
-                        id="textBgShadowBlure-1" 
-                        type="range" 
-                        v-model="textDialogDataConversation.shadowBlur" 
-                        min="0" 
-                        max="20" 
-                        step="1" 
-                        aria-valuemin="0" 
-                        aria-valuemax="20" 
-                        aria-orientation="horizontal"
-                      >
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="range" :style="`--value: ${textDialogDataConversation.shadowOffsetX}`">
-                      <label class="range-label" for="textBgShadowOffsetX-1">Смещение по X: {{ textDialogDataConversation.shadowOffsetX }}</label>
-                      <div class="track"></div>
-                      <input 
-                        class="range-input" 
-                        id="textBgShadowOffsetX-1" 
-                        type="range" 
-                        v-model="textDialogDataConversation.shadowOffsetX" 
-                        min="-20" 
-                        max="20" 
-                        step="1" 
-                        aria-valuemin="-20" 
-                        aria-valuemax="20" 
-                        aria-orientation="horizontal"
-                      >
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="range" :style="`--value: ${textDialogDataConversation.shadowOffsetY}`">
-                      <label class="range-label" for="textBgShadowOffsetY-1">Смещение по Y: {{ textDialogDataConversation.shadowOffsetY }}</label>
-                      <div class="track"></div>
-                      <input 
-                        class="range-input" 
-                        id="textBgShadowOffsetY-1" 
-                        type="range" 
-                        v-model="textDialogDataConversation.shadowOffsetY" 
-                        min="-20" 
-                        max="20" 
-                        step="1" 
-                        aria-valuemin="-20" 
-                        aria-valuemax="20" 
-                        aria-orientation="horizontal"
-                      >
+                    <div class="form-group mb-3 mt-3">
+                      <div class="range" :style="`--value: ${textDialogDataConversation.strokeWidth}`">
+                        <label class="range-label" for="textBgStrokeWidth-1">Толщина: {{ textDialogDataConversation.strokeWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgStrokeWidth-1" 
+                          type="range" 
+                          v-model="textDialogDataConversation.strokeWidth" 
+                          min="1" 
+                          max="10" 
+                          step="1" 
+                          aria-valuemin="1" 
+                          aria-valuemax="10" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
 
+            <div class="row">
+              <div class="col-12">
+                <!-- Тень -->
+                <div class="form-group mb-3">
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mb-3 mt-0">
+                      <input type="checkbox" v-model="textDialogDataConversation.shadow" class="form-check-input">
+                      <label class="form-check-label">Тень от подложки</label>
+                    </h3>
+                  </div>
+                  
+                  <div v-if="textDialogDataConversation.shadow">
+                    <div class="color-button-group mb-2">
+                      <i class="bi bi-paint-bucket color-icon" title="Цвет тени"></i>
+                      <input type="color" v-model="textDialogDataConversation.shadowColor" class="form-control form-control-color">
+                    </div>
+                    <div class="row g-2">
+                    
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataConversation.shadowOpacity}`">
+                          <label class="range-label" for="textBgShadowOpacity-1">Прозрачность тени: {{ textDialogDataConversation.shadowOpacity }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowOpacity-1" 
+                            type="range" 
+                            v-model="textDialogDataConversation.shadowOpacity" 
+                            min="0" 
+                            max="100" 
+                            step="5" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataConversation.shadowBlur}`">
+                          <label class="range-label" for="textBgShadowBlure-1">Размытие тени: {{ textDialogDataConversation.shadowBlur }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowBlure-1" 
+                            type="range" 
+                            v-model="textDialogDataConversation.shadowBlur" 
+                            min="0" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="0" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataConversation.shadowOffsetX}`">
+                          <label class="range-label" for="textBgShadowOffsetX-1">Смещение по X: {{ textDialogDataConversation.shadowOffsetX }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowOffsetX-1" 
+                            type="range" 
+                            v-model="textDialogDataConversation.shadowOffsetX" 
+                            min="-20" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="-20" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="range" :style="`--value: ${textDialogDataConversation.shadowOffsetY}`">
+                          <label class="range-label" for="textBgShadowOffsetY-1">Смещение по Y: {{ textDialogDataConversation.shadowOffsetY }}</label>
+                          <div class="track"></div>
+                          <input 
+                            class="range-input" 
+                            id="textBgShadowOffsetY-1" 
+                            type="range" 
+                            v-model="textDialogDataConversation.shadowOffsetY" 
+                            min="-20" 
+                            max="20" 
+                            step="1" 
+                            aria-valuemin="-20" 
+                            aria-valuemax="20" 
+                            aria-orientation="horizontal"
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -418,9 +430,13 @@
               placeholder="Введите текст..."
             ></textarea>
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group mb-3">
-                  <label class="form-label">Шрифт:</label>
+                  <h3 class="settings-subheader">Настройки текста</h3>
+                </div>
+              </div>
+              <div class="col-md-8">
+                <div class="form-group pe-3">
                   <select v-model="textDialogDataThoughts.font" class="form-select">
                     <option value="Arial">Arial</option>
                     <option value="Helvetica">Helvetica</option>
@@ -430,28 +446,21 @@
                   </select>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <div class="range" :style="`--value: ${textDialogDataThoughts.fontSize}`">
-                    <label class="range-label" for="fontSizeThoughts">Размер:</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="fontSizeThoughts" 
-                      type="range" 
-                      v-model="textDialogDataThoughts.fontSize" 
-                      min="12" 
-                      max="72" 
-                      step="1" 
-                      aria-valuemin="12" 
-                      aria-valuemax="72" 
-                      aria-orientation="horizontal"
+              <div class="col-md-4">
+                <div class="color-buttons">
+                  <div class="color-button-group">
+                    <i class="bi bi-paint-bucket color-icon" title="Цвет текста"></i>
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-secondary color-btn" 
+                      title="Цвет текста"
                     >
+                      <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.textColor }"></div>
+                      <input type="color" v-model="textDialogDataThoughts.textColor" class="color-input">
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="row">
               <div class="col-md-12 text-style-buttons">
                 <div class="font-weight-buttons">
                   <button 
@@ -515,88 +524,21 @@
                   </button>
                 </div>
               </div>
-            </div>
-
-            <div class="color-buttons">
-              <div class="color-button-group">
-                <i class="bi bi-paint-bucket color-icon" title="Цвет текста"></i>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary color-btn" 
-                  title="Цвет текста"
-                >
-                  <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.textColor }"></div>
-                  <input type="color" v-model="textDialogDataThoughts.textColor" class="color-input">
-                </button>
-              </div>
-              
-              <div class="color-button-group">
-                <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary color-btn" 
-                  title="Цвет подложки"
-                >
-                  <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.backgroundColor }"></div>
-                  <input type="color" v-model="textDialogDataThoughts.backgroundColor" class="color-input">
-                </button>
-              </div>
-            </div>
-
-            <!-- Настройки хвоста -->
-            <div class="form-group mb-0">
-              <h3 class="settings-subheader mb-3 mt-4">Настройки "Хвоста"</h3>
-              <div class="row g-2">
-                <div class="col-4">
-                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailSize}`">
-                    <label class="range-label" for="tailSizeThoughts">Размер</label>
+              <div class="col-12 mt-3">
+                <div class="form-group">
+                  <div class="range" :style="`--value: ${textDialogDataThoughts.fontSize}`">
+                    <label class="range-label" for="fontSizeThoughts">Размер: {{ textDialogDataThoughts.fontSize }}</label>
                     <div class="track"></div>
                     <input 
                       class="range-input" 
-                      id="tailSizeThoughts" 
+                      id="fontSizeThoughts" 
                       type="range" 
-                      v-model="textDialogDataThoughts.tailSize" 
-                      min="100" 
-                      max="750" 
+                      v-model="textDialogDataThoughts.fontSize" 
+                      min="12" 
+                      max="72" 
                       step="1" 
-                      aria-valuemin="100" 
-                      aria-valuemax="750" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailWidth}`">
-                    <label class="range-label" for="tailWidthThoughts">Ширина</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="tailWidthThoughts" 
-                      type="range" 
-                      v-model="textDialogDataThoughts.tailWidth" 
-                      min="40" 
-                      max="100" 
-                      step="1" 
-                      aria-valuemin="40" 
-                      aria-valuemax="100" 
-                      aria-orientation="horizontal"
-                    >
-                  </div>
-                </div>
-                <div class="col-4">
-                  <div class="range" :style="`--value: ${textDialogDataThoughts.tailAngle}`">
-                    <label class="range-label" for="tailAngleThoughts">Угол</label>
-                    <div class="track"></div>
-                    <input 
-                      class="range-input" 
-                      id="tailAngleThoughts" 
-                      type="range" 
-                      v-model="textDialogDataThoughts.tailAngle" 
-                      min="0" 
-                      max="359" 
-                      step="1" 
-                      aria-valuemin="0" 
-                      aria-valuemax="359" 
+                      aria-valuemin="12" 
+                      aria-valuemax="72" 
                       aria-orientation="horizontal"
                     >
                   </div>
@@ -604,68 +546,182 @@
               </div>
             </div>
 
-            <!-- Настройки подложки -->
-            <div class="form-group mb-3">
-              <div class="row g-2">
-                <div class="col-4">
-                  <label class="form-label">Ширина подложки: {{ textDialogDataThoughts.backgroundWidth }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.backgroundWidth" 
-                    class="form-range" 
-                    min="100" 
-                    max="400" 
-                    step="10"
-                  >
+            <div class="row">
+              <div class="col-12">
+                <div class="form-group mb-0">
+                  <h3 class="settings-subheader">Настройки подложки</h3>
+                  <div class="row g-2">
+                    <div class="col-1 p-0 mt-3">
+                      <div class="color-button-group">
+                        <i class="bi bi-paint-bucket color-icon" title="Цвет подложки"></i>
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary color-btn" 
+                          title="Цвет подложки"
+                        >
+                          <div class="color-preview" :style="{ backgroundColor: textDialogDataThoughts.backgroundColor }"></div>
+                          <input type="color" v-model="textDialogDataThoughts.backgroundColor" class="color-input">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="col-4">
-                  <label class="form-label">Высота подложки: {{ textDialogDataThoughts.backgroundHeight }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.backgroundHeight" 
-                    class="form-range" 
-                    min="30" 
-                    max="200" 
-                    step="10"
-                  >
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Скругление: {{ textDialogDataThoughts.backgroundRadius }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.backgroundRadius" 
-                    class="form-range" 
-                    min="0" 
-                    max="20" 
-                    step="1"
-                  >
+              </div>
+              <div class="col-12">
+                <div class="form-group mb-2">
+                  <div class="row g-2 mb-0">
+                    <div class="col-12 mt-0">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.backgroundWidth}`">
+                        <label class="range-label" for="textBgWidth-2">Ширина: {{ textDialogDataThoughts.backgroundWidth }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgWidth-2" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.backgroundWidth" 
+                          min="100" 
+                          max="400" 
+                          step="10" 
+                          aria-valuemin="30" 
+                          aria-valuemax="200" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.backgroundHeight}`">
+                        <label class="range-label" for="textBgHeight-2">Высота: {{ textDialogDataThoughts.backgroundHeight }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgHeight-2" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.backgroundHeight" 
+                          min="30" 
+                          max="200" 
+                          step="10" 
+                          aria-valuemin="30" 
+                          aria-valuemax="200" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.padding}`">
+                        <label class="range-label" for="textBgPadding-2">Внутренний отступ: {{ textDialogDataThoughts.padding }}</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="textBgPadding-2" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.padding" 
+                          min="15" 
+                          max="50" 
+                          step="5" 
+                          aria-valuemin="15" 
+                          aria-valuemax="50" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <!-- Обводка -->
-            <div class="form-group mb-3">
-              <div class="form-check mb-2">
-                <input type="checkbox" v-model="textDialogDataThoughts.stroke" class="form-check-input">
-                <label class="form-check-label">Обводка</label>
+            <div class="row">
+              <div class="col-12">
+                <!-- Настройки хвоста -->
+                <div class="form-group mb-0">
+                  <h3 class="settings-subheader mb-3 mt-0">Настройки "Хвоста"</h3>
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.tailSize}`">
+                        <label class="range-label" for="tailSizeThoughts">Размер</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailSizeThoughts" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.tailSize" 
+                          min="100" 
+                          max="750" 
+                          step="1" 
+                          aria-valuemin="100" 
+                          aria-valuemax="750" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.tailWidth}`">
+                        <label class="range-label" for="tailWidthThoughts">Ширина</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailWidthThoughts" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.tailWidth" 
+                          min="40" 
+                          max="100" 
+                          step="1" 
+                          aria-valuemin="40" 
+                          aria-valuemax="100" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="range" :style="`--value: ${textDialogDataThoughts.tailAngle}`">
+                        <label class="range-label" for="tailAngleThoughts">Угол</label>
+                        <div class="track"></div>
+                        <input 
+                          class="range-input" 
+                          id="tailAngleThoughts" 
+                          type="range" 
+                          v-model="textDialogDataThoughts.tailAngle" 
+                          min="0" 
+                          max="359" 
+                          step="1" 
+                          aria-valuemin="0" 
+                          aria-valuemax="359" 
+                          aria-orientation="horizontal"
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div v-if="textDialogDataThoughts.stroke">
+            </div>
+            
+            <div class="row">
+              <div class="col-12">
+                <!-- Обводка -->
                 <div class="form-group mb-3">
-                  <label class="form-label">Толщина обводки: {{ textDialogDataThoughts.strokeWidth }}px</label>
-                  <input 
-                    type="range" 
-                    v-model="textDialogDataThoughts.strokeWidth" 
-                    class="form-range" 
-                    min="1" 
-                    max="10" 
-                    step="1"
-                  >
-                </div>
-                
-                <div class="form-group mb-3">
-                  <label class="form-label">Цвет обводки:</label>
-                  <input type="color" v-model="textDialogDataThoughts.strokeColor" class="form-control form-control-color">
+                  <div class="form-check mb-2">
+                    <h3 class="settings-subheader mb-3 mt-0">
+                      <input type="checkbox" v-model="textDialogDataThoughts.stroke" class="form-check-input">
+                      <label class="form-check-label">Обводка</label>
+                    </h3>
+                  </div>
+                  
+                  <div v-if="textDialogDataThoughts.stroke">
+                    <div class="form-group mb-3">
+                      <label class="form-label">Толщина обводки: {{ textDialogDataThoughts.strokeWidth }}px</label>
+                      <input 
+                        type="range" 
+                        v-model="textDialogDataThoughts.strokeWidth" 
+                        class="form-range" 
+                        min="1" 
+                        max="10" 
+                        step="1"
+                      >
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                      <label class="form-label">Цвет обводки:</label>
+                      <input type="color" v-model="textDialogDataThoughts.strokeColor" class="form-control form-control-color">
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4589,6 +4645,9 @@ export default {
   margin-right: 25px;
   max-width: 100%;
 }
+.text-input-section > div > div{
+  padding: 0;
+}
 
 .text-dialog-body .tab-pane.active {
   width: 1280px;
@@ -4732,9 +4791,9 @@ export default {
 }
 
 .color-preview {
-  width: 20px;
-  height: 20px;
-  border-radius: 0.25rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   border: 1px solid #ced4da;
 }
 
@@ -4761,11 +4820,22 @@ export default {
   font-size: 0.875rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
+.form-select{
+  height: 34px;
+}
+.color-button-group .form-control{
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: none !important;
+  box-shadow: 4px 4px 6px 0 rgba(0, 0, 0, .15) !important;
+}
 
 .form-control:focus, .form-select:focus {
-  border-color: #80bdff;
+  border: 1px solid #80bdff;
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  box-shadow: none;
 }
 
 /* Стили для ползунков */
@@ -4861,15 +4931,15 @@ export default {
   position: absolute;
   top: 25px;
   width: 100%;
-  height: 16px;
+  height: 15px;
   border-radius: 10px;
-  background-color: #cad0da;
+  background-color: #fff;
   z-index: 1;
   box-shadow: inset 1px 1px 5px rgba(0, 0, 0, .15);
   transition: all .1s ease-in-out;
 }
 .range:hover .track{
-  background-color: #e3eeff !important;
+  background-color: #d5fefa !important;
 }
 .form-check{
   padding-left: 0;
@@ -4935,7 +5005,7 @@ h3 .form-check-input{
   height: 48px;
   background: #fff;
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+
 }
 .text-add-tools-tabs{
     width: 856px;
@@ -4953,7 +5023,7 @@ h3 .form-check-input{
   right: 0;
   width: 280px;
   height: 100vh;
-  background: #fff;
+  background: #f7f7f7;
   padding: 20px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   z-index: 10600;
@@ -5007,7 +5077,6 @@ h3 .form-check-input{
 
 .text-panel-content {
   flex: 1;
-  overflow-y: auto;
 }
 
 .text-panel .tab-content {
@@ -5075,6 +5144,15 @@ h3 .form-check-input{
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none !important;
+  box-shadow: 4px 4px 6px 0 rgba(0, 0, 0, .15) !important;
+}
+.text-panel .text-input-section .font-weight-btn:hover,
+.text-panel .text-input-section .text-align-btn:hover{
+  color: #222;
+}
+.font-weight-btn.active:hover, .text-align-btn.active:hover{
+  color: #fff !important;
 }
 
 .text-panel .text-input-section .color-buttons {
@@ -5088,20 +5166,25 @@ h3 .form-check-input{
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 34px;
 }
 
 .text-panel .text-input-section .color-btn {
-  padding: 8px 12px;
+  padding: 0;
+  border: none;
 }
 
 .text-panel .text-input-section .color-preview {
-  width: 16px;
-  height: 16px;
+  width: 34px;
+  height: 34px;
+  border: none !important;
+  box-shadow: 4px 4px 6px 0 rgba(0, 0, 0, .15) !important;
 }
 
 .text-panel .text-input-section .range-label {
   font-size: 0.8rem;
-  margin-bottom: 5px;
+  padding-bottom: 5px;
+  margin-bottom: 0;
 }
 
 .text-panel .text-input-section .form-label {
@@ -5148,16 +5231,21 @@ h3 .form-check-input{
 .ul-text-tabs button{
   border-radius: 6px;
   border: none;
-  padding: 10px 16px;
+  padding: 0;
   display: flex;
   align-items: center;
   background: #fff;
-  margin: 1px 1px;
-  transition: all .2s 
-  ease-in-out;
+  margin: 4px 4px;
+  transition: all .2s ease-in-out;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 4px 4px 12px 0 rgba(0, 0, 0, .15);
 }
 .ul-text-tabs button.nav-link.active, .ul-text-tabs button.nav-link:hover{
-  background: rgb(219, 233, 255) !important;
+  background: #d5fefa !important;
 }
 .save-text-button{
   padding: 9px 16px;
@@ -5193,7 +5281,7 @@ h3 .form-check-input{
 }
 .settings-subheader{
   padding: 6px;
-  background: #d5f2d2;
+  background: #fff;
   width: 100%;
   text-align: center;
   color: #fff;
@@ -5202,9 +5290,14 @@ h3 .form-check-input{
   margin-top: 10px;
   color: #000;
   font-size: 18px;
+  box-shadow: 1px 1px 3px 0 rgba(0, 0, 0, .15);
+}
+.text-panel-content .row:hover .settings-subheader{
+    background: #d5fefa;
 }
 .text-style-buttons{
   display: flex;
+  height: 34px;
 }
 .text-main-row{
   padding: 0;

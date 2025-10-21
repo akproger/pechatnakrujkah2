@@ -9012,14 +9012,27 @@ export default {
       // Создаем подложку в зависимости от режима
       let backgroundItem = null
       
+      // ИСПРАВЛЕНИЕ: Используем переданные размеры подложки или значения по умолчанию
+      // Преобразуем строки в числа для корректной работы
+      const backgroundWidth = Number(textData.backgroundWidth) || 200
+      const backgroundHeight = Number(textData.backgroundHeight) || (mode === 'image-text' ? 100 : 80)
+      
+      console.log('🎨 Размеры подложки для создания (StickerMania):', {
+        mode,
+        backgroundWidth,
+        backgroundHeight,
+        textDataWidth: textData.backgroundWidth,
+        textDataHeight: textData.backgroundHeight
+      })
+      
       if (mode === 'conversation') {
-        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+        backgroundItem = this.createBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, textData.backgroundColor, textData)
       } else if (mode === 'standard') {
-        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+        backgroundItem = this.createStandardBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, textData.backgroundColor, textData)
       } else if (mode === 'thoughts') {
-        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 80, textData.backgroundColor, textData)
+        backgroundItem = this.createThoughtsBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, textData.backgroundColor, textData)
       } else if (mode === 'image-text') {
-        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, textData.backgroundWidth || 200, textData.backgroundHeight || 100, textData.backgroundColor, textData)
+        backgroundItem = this.createImageTextBackgroundFromPreviewLogic(x, y, backgroundWidth, backgroundHeight, textData.backgroundColor, textData)
       }
       
       // Добавляем подложку на слой если она создана

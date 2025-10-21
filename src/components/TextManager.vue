@@ -1983,6 +1983,15 @@ export default {
 
     // Открытие диалога для редактирования текста
     editTextLayer(textData, position, mode, layerIndex) {
+      console.log('🔧 Редактирование текста - входящие данные:', {
+        textData,
+        mode,
+        layerIndex,
+        backgroundWidth: textData.backgroundWidth,
+        backgroundHeight: textData.backgroundHeight,
+        backgroundColor: textData.backgroundColor
+      })
+      
       this.showTextDialog = true
       this.isEditingText = true
       this.editingLayerIndex = layerIndex
@@ -1995,12 +2004,28 @@ export default {
       // Копируем данные текста в соответствующий объект
       if (mode === 'conversation') {
         Object.assign(this.textDialogDataConversation, textData)
+        console.log('🔧 Данные скопированы в textDialogDataConversation:', {
+          backgroundWidth: this.textDialogDataConversation.backgroundWidth,
+          backgroundHeight: this.textDialogDataConversation.backgroundHeight
+        })
       } else if (mode === 'thoughts') {
         Object.assign(this.textDialogDataThoughts, textData)
+        console.log('🔧 Данные скопированы в textDialogDataThoughts:', {
+          backgroundWidth: this.textDialogDataThoughts.backgroundWidth,
+          backgroundHeight: this.textDialogDataThoughts.backgroundHeight
+        })
       } else if (mode === 'standard') {
         Object.assign(this.textDialogDataStandard, textData)
+        console.log('🔧 Данные скопированы в textDialogDataStandard:', {
+          backgroundWidth: this.textDialogDataStandard.backgroundWidth,
+          backgroundHeight: this.textDialogDataStandard.backgroundHeight
+        })
       } else if (mode === 'image-text') {
         Object.assign(this.textDialogDataImageText, textData)
+        console.log('🔧 Данные скопированы в textDialogDataImageText:', {
+          backgroundWidth: this.textDialogDataImageText.backgroundWidth,
+          backgroundHeight: this.textDialogDataImageText.backgroundHeight
+        })
       }
       
       // Устанавливаем позицию с масштабированием из основного канваса в превью канвас
@@ -2394,7 +2419,12 @@ export default {
         position: this.currentTextPosition,
         tailAngle: textData.tailAngle,
         tailSize: textData.tailSize,
-        tailWidth: textData.tailWidth
+        tailWidth: textData.tailWidth,
+        backgroundWidth: textData.backgroundWidth,
+        backgroundHeight: textData.backgroundHeight,
+        backgroundColor: textData.backgroundColor,
+        backgroundWidthType: typeof textData.backgroundWidth,
+        backgroundHeightType: typeof textData.backgroundHeight
       })
       
       // Эмитим событие text-apply для совместимости с StickerManiaPage

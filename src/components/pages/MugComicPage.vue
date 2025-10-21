@@ -3939,6 +3939,22 @@ export default {
       // Вычисляем параметры хвоста
       const tailWidthPixels = tailWidthPercent * 50 * scale * 2
       
+      // ЛОГИРОВАНИЕ ПОСЛЕ СОХРАНЕНИЯ - расчет ширины хвоста в высоком разрешении
+      console.log('📏 ПОСЛЕ СОХРАНЕНИЯ - Расчет ширины хвоста в высоком разрешении:', {
+        tailWidthPercent: tailWidthPercent,
+        scale: scale,
+        tailWidthPixels: tailWidthPixels,
+        bgWidth: bgWidth,
+        bgHeight: bgHeight,
+        centerX: centerX,
+        centerY: centerY,
+        intersectionPoint: intersectionPoint,
+        tailAngle: tailAngle,
+        tailLength: tailLength,
+        sharpPointX: centerX + tailLength * Number(currentTextData.tailSize) / 100 * Math.cos(tailAngle),
+        sharpPointY: centerY + tailLength * Number(currentTextData.tailSize) / 100 * Math.sin(tailAngle)
+      })
+      
       // Острая вершина хвоста (используем переданный tailLength с учетом tailSize)
       const sharpPointX = centerX + tailLength * Number(currentTextData.tailSize) / 100 * Math.cos(tailAngle)
       const sharpPointY = centerY + tailLength * Number(currentTextData.tailSize) / 100 * Math.sin(tailAngle)
@@ -4898,6 +4914,15 @@ export default {
             print: `${printWidth}x${printHeight}`,
             scale: scale.toFixed(2)
           })
+          
+          // ЛОГИРОВАНИЕ МНОЖИТЕЛЯ МАСШТАБИРОВАНИЯ
+          console.log('🔢 МНОЖИТЕЛЬ МАСШТАБИРОВАНИЯ ДЛЯ 300 DPI:', {
+            printDPI: printDPI,
+            screenDPI: screenDPI,
+            scale: scale,
+            scaleFormula: `${printDPI} / ${screenDPI} = ${scale.toFixed(3)}`,
+            explanation: `Все размеры умножаются на ${scale.toFixed(3)} для перехода от 96 DPI к 300 DPI`
+          })
 
           // Создаем временный холст в высоком разрешении
           const printCanvas = document.createElement('canvas')
@@ -5049,6 +5074,14 @@ export default {
       console.log('📊 Статистика элементов:')
       console.log('- textLayers:', this.textLayers.length)
       console.log('- userMasks:', this.userMasks.length)
+      
+      // ЛОГИРОВАНИЕ МАСШТАБИРОВАНИЯ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ
+      console.log('🔢 МАСШТАБИРОВАНИЕ ДЛЯ ВСЕХ ЭЛЕМЕНТОВ:', {
+        scale: scale,
+        canvasWidth: canvasWidth,
+        canvasHeight: canvasHeight,
+        scaleExplanation: `Все размеры умножаются на ${scale.toFixed(3)}`
+      })
       
       try {
         // 1. Рисуем базовый прямоугольник (обводку) в высоком разрешении

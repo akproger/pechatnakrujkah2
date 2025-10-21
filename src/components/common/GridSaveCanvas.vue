@@ -1689,6 +1689,19 @@ export default {
         bgY: bgY
       })
       
+      // ЛОГИРОВАНИЕ ДО СОХРАНЕНИЯ - расчет ширины хвоста
+      const tailWidthPixels = tailLength * tailWidth
+      console.log('📏 ДО СОХРАНЕНИЯ - Расчет ширины хвоста:', {
+        tailLength: tailLength,
+        tailWidthPercent: tailWidth,
+        tailWidthPixels: tailWidthPixels,
+        scale: scale,
+        originalBackgroundWidth: backgroundWidth,
+        originalBackgroundHeight: backgroundHeight,
+        scaledBackgroundWidth: scaledBackgroundWidth,
+        scaledBackgroundHeight: scaledBackgroundHeight
+      })
+      
       // Вычисляем точку пересечения хвоста с границей подложки
       const intersectionPoint = this.getTailIntersectionWithBackgroundPaperJS(
         x, y, tailAngle, bgX, bgY, scaledBackgroundWidth, scaledBackgroundHeight
@@ -2869,8 +2882,23 @@ export default {
       // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
       const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      // ИСПРАВЛЕНИЕ: Используем minDimension вместо tailLength для избежания двойного масштабирования
-      const tailWidthPixels = minDimension * tailWidthPercent
+      // ИСПРАВЛЕНИЕ: Уменьшаем ширину хвоста на коэффициент 1.25 для компенсации
+      const tailWidthPixels = (tailLength * tailWidthPercent) / 1.25
+      
+      // ЛОГИРОВАНИЕ В buildCornerTailSuperPathPaperJS
+      console.log('🔧 buildCornerTailSuperPathPaperJS - Расчет ширины хвоста:', {
+        bgWidth: bgWidth,
+        bgHeight: bgHeight,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        tailWidthPercent: tailWidthPercent,
+        tailWidthPixels: tailWidthPixels,
+        scale: scale,
+        intersectionPoint: intersectionPoint,
+        sharpPointX: sharpPointX,
+        sharpPointY: sharpPointY,
+        tailSide: tailSide
+      })
       
       if (isTopLeft) {
         // Левый верхний угол - строим путь с хвостом
@@ -2941,8 +2969,23 @@ export default {
       // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
       const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      // ИСПРАВЛЕНИЕ: Используем minDimension вместо tailLength для избежания двойного масштабирования
-      const tailWidthPixels = minDimension * tailWidthPercent
+      // ИСПРАВЛЕНИЕ: Уменьшаем ширину хвоста на коэффициент 1.25 для компенсации
+      const tailWidthPixels = (tailLength * tailWidthPercent) / 1.25
+      
+      // ЛОГИРОВАНИЕ В buildSideTailSuperPathPaperJS
+      console.log('🔧 buildSideTailSuperPathPaperJS - Расчет ширины хвоста:', {
+        bgWidth: bgWidth,
+        bgHeight: bgHeight,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        tailWidthPercent: tailWidthPercent,
+        tailWidthPixels: tailWidthPixels,
+        scale: scale,
+        intersectionPoint: intersectionPoint,
+        sharpPointX: sharpPointX,
+        sharpPointY: sharpPointY,
+        tailSide: tailSide
+      })
       
       if (tailSide === 'top') {
         // Хвост сверху - строим единую фигуру (точно как в GridsPage.vue)

@@ -2879,18 +2879,14 @@ export default {
         isBottomLeft = true
       }
       
-      // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
-      const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      // ИСПРАВЛЕНИЕ: Уменьшаем ширину хвоста на коэффициент 1.25 для компенсации
-      const tailWidthPixels = (tailLength * tailWidthPercent) / 1.25
+      // ИСПРАВЛЕНИЕ: Ширина хвоста должна быть независимой от размеров подложки
+      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale
+      const tailWidthPixels = tailWidthPercent * 50 * scale
       
       // ЛОГИРОВАНИЕ В buildCornerTailSuperPathPaperJS
       console.log('🔧 buildCornerTailSuperPathPaperJS - Расчет ширины хвоста:', {
         bgWidth: bgWidth,
         bgHeight: bgHeight,
-        minDimension: minDimension,
-        tailLength: tailLength,
         tailWidthPercent: tailWidthPercent,
         tailWidthPixels: tailWidthPixels,
         scale: scale,
@@ -2966,18 +2962,14 @@ export default {
     // Построение пути суперподложки с хвостом со стороны (не из угла) (Paper.js версия)
     buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
                                 intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
-      // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
-      const minDimension = Math.min(bgWidth, bgHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      // ИСПРАВЛЕНИЕ: Уменьшаем ширину хвоста на коэффициент 1.25 для компенсации
-      const tailWidthPixels = (tailLength * tailWidthPercent) / 1.25
+      // ИСПРАВЛЕНИЕ: Ширина хвоста должна быть независимой от размеров подложки
+      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale
+      const tailWidthPixels = tailWidthPercent * 50 * scale
       
       // ЛОГИРОВАНИЕ В buildSideTailSuperPathPaperJS
       console.log('🔧 buildSideTailSuperPathPaperJS - Расчет ширины хвоста:', {
         bgWidth: bgWidth,
         bgHeight: bgHeight,
-        minDimension: minDimension,
-        tailLength: tailLength,
         tailWidthPercent: tailWidthPercent,
         tailWidthPixels: tailWidthPixels,
         scale: scale,

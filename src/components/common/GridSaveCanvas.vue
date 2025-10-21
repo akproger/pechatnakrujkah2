@@ -1668,9 +1668,10 @@ export default {
       const tailWidth = Number(textData.tailWidth) / 100 // От 40% до 100%
       const tailAngle = Number(textData.tailAngle) * Math.PI / 180
       
-      // Размеры хвоста (точно как в buildUnifiedShapePathWithCache)
+      // ИСПРАВЛЕНИЕ: Длина хвоста должна зависеть от размеров подложки (как было раньше)
+      // Только ширина хвоста должна быть независимой
       const minDimension = Math.min(scaledBackgroundWidth, scaledBackgroundHeight)
-      const tailLength = minDimension * 1.25 // Базовая длина хвоста
+      const tailLength = minDimension * 1.25 // Базовая длина хвоста (как было раньше)
       
       // Позиция подложки
       const bgX = x - scaledBackgroundWidth / 2
@@ -2880,8 +2881,8 @@ export default {
       }
       
       // ИСПРАВЛЕНИЕ: Ширина хвоста должна быть независимой от размеров подложки
-      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale
-      const tailWidthPixels = tailWidthPercent * 50 * scale
+      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale * 2 (увеличиваем в 2 раза)
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
       
       // ЛОГИРОВАНИЕ В buildCornerTailSuperPathPaperJS
       console.log('🔧 buildCornerTailSuperPathPaperJS - Расчет ширины хвоста:', {
@@ -2963,8 +2964,8 @@ export default {
     buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
                                 intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
       // ИСПРАВЛЕНИЕ: Ширина хвоста должна быть независимой от размеров подложки
-      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale
-      const tailWidthPixels = tailWidthPercent * 50 * scale
+      // Используем ту же формулу, что и в основном канвасе: tailWidthPercent * 50 * scale * 2 (увеличиваем в 2 раза)
+      const tailWidthPixels = tailWidthPercent * 50 * scale * 2
       
       // ЛОГИРОВАНИЕ В buildSideTailSuperPathPaperJS
       console.log('🔧 buildSideTailSuperPathPaperJS - Расчет ширины хвоста:', {

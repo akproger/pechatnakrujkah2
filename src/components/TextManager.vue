@@ -3328,17 +3328,64 @@ export default {
       const x = this.currentTextPosition ? this.currentTextPosition.x : this.previewCanvasWidth / 2
       const y = this.currentTextPosition ? this.currentTextPosition.y : this.previewCanvasHeight / 2
       
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - позиция:', { x, y, hasPosition: !!this.currentTextPosition })
+      
       // Копируем фон с основного канваса если доступен
       if (this.canvas && this.canvas.width > 0) {
         ctx.drawImage(this.canvas, 0, 0, canvas.width, canvas.height)
+        console.log('🖼️ Фон скопирован с основного канваса')
       }
       
       // Получаем данные для текущего режима
       const textData = this.getCurrentTextDialogData()
       
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - данные подложки:', {
+        backgroundWidth: textData.backgroundWidth,
+        backgroundWidthType: typeof textData.backgroundWidth,
+        backgroundHeight: textData.backgroundHeight,
+        backgroundHeightType: typeof textData.backgroundHeight,
+        padding: textData.padding,
+        paddingType: typeof textData.padding,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle
+      })
+      
       // Рисуем подложку (как в оригинале)
-      const bgWidth = textData.backgroundWidth || 200
-      const bgHeight = textData.backgroundHeight || 80
+      // ИСПРАВЛЕНИЕ: Принудительно конвертируем в числа для корректной работы хвоста
+      let bgWidth = Number(textData.backgroundWidth) || 200
+      let bgHeight = Number(textData.backgroundHeight) || 80
+      
+      // ИСПРАВЛЕНИЕ: Пересчитываем размеры подложки с учетом внутреннего отступа
+      const padding = Number(textData.padding) || 15
+      
+      // Создаем временный контекст для измерения текста
+      const tempCanvas = document.createElement('canvas')
+      const tempCtx = tempCanvas.getContext('2d')
+      tempCtx.font = `${textData.fontWeight || 'normal'} ${textData.fontSize || 16}px ${textData.font || 'Arial'}`
+      
+      const textSize = this.calculateMultilineTextSize(tempCtx, 'Текст', textData.fontSize || 16, textData.lineHeight || 1.2)
+      
+      // Минимальные размеры с учетом отступа
+      const minWidth = textSize.width + (padding * 2)
+      const minHeight = textSize.height + (padding * 2)
+      
+      // Используем максимальное значение между заданным размером и минимальным
+      bgWidth = Math.max(bgWidth, minWidth)
+      bgHeight = Math.max(bgHeight, minHeight)
+      
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - пересчет размеров с отступом:', {
+        originalWidth: Number(textData.backgroundWidth) || 200,
+        originalHeight: Number(textData.backgroundHeight) || 80,
+        padding: padding,
+        textSize: textSize,
+        minWidth: minWidth,
+        minHeight: minHeight,
+        finalWidth: bgWidth,
+        finalHeight: bgHeight
+      })
+      
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - размеры подложки:', { bgWidth, bgHeight })
       
       // Для режима "Разговор" рисуем подложку с хвостом
       if (this.textDialogActiveTab === 'conversation') {
@@ -3383,11 +3430,29 @@ export default {
       }
       
       // Рисуем дефолтный текст "Текст"
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - настройки текста:', {
+        textColor: textData.textColor,
+        fontWeight: textData.fontWeight,
+        fontSize: textData.fontSize,
+        font: textData.font,
+        padding: textData.padding
+      })
+      
       ctx.fillStyle = textData.textColor || '#000000'
       ctx.font = `${textData.fontWeight || 'normal'} ${Number(textData.fontSize) || 16}px ${textData.font || 'Arial'}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('Текст', x, y)
+      
+      // ИСПРАВЛЕНИЕ: Центрируем текст по вертикали внутри подложки
+      const textX = x
+      const textY = y // Оставляем текст по центру подложки
+      
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - позиция текста (центрирован):', { 
+        x: textX, 
+        y: textY,
+        padding: padding
+      })
+      ctx.fillText('Текст', textX, textY)
     },
     
     drawDefaultTextPreviewOnCanvasThoughtsMode(ctx, canvas) {
@@ -3768,13 +3833,22 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - drawCombinedShape:', {
+        centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow,
+        bgWidthType: typeof bgWidth, bgHeightType: typeof bgHeight
+      })
+      
       // ИСПРАВЛЕНИЕ: Используем переданные размеры без принудительных минимумов
       // Минимальные размеры уже учтены в логике расчета размеров подложки
       const stableWidth = bgWidth
       const stableHeight = bgHeight
       
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - стабильные размеры:', { stableWidth, stableHeight })
+      
       // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
       const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
+      
+      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - точка пересечения хвоста:', cachedIntersection)
       
       // Создаем путь для объединенной фигуры по внешним границам
       ctx.beginPath()

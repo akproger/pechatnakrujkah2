@@ -11773,7 +11773,7 @@ export default {
 }
 
 .page-title {
-  color: #495057;
+  color: #222;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }

@@ -13191,7 +13191,7 @@ export default {
 }
 
 .page-title {
-  color: #016527;
+  color: #222;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }

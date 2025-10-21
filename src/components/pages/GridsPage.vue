@@ -1454,12 +1454,7 @@ export default {
           console.log('🎨 Обновляем 3D модель после сохранения')
           
           // ИСПРАВЛЕНИЕ: НЕ перерисовываем сетку, так как она не изменилась
-          // Просто обновляем 3D модель
-          if (this.$refs.threeRenderer) {
-            this.$refs.threeRenderer.forceUpdate()
-          }
-          
-          // Обновляем 3D модель в боковой панели
+          // Просто обновляем 3D модель в боковой панели
           this.updateSideMenu3D()
           
           console.log('✅ Основной канвас восстановлен (только 3D модель)')
@@ -4552,9 +4547,7 @@ export default {
       this.animate()
       
       // Обновляем текстуру при изменении сетки
-      if (this.$refs.threeRenderer) {
-        this.$refs.threeRenderer.forceUpdate()
-      }
+      this.updateSideMenu3D()
       
       // Скрываем прелоадер после полной инициализации
       this.isLoading = false
@@ -4589,9 +4582,7 @@ export default {
       if (paperCanvas.width === 0 || paperCanvas.height === 0) {
         console.log('🔸 Canvas еще не готов, откладываем обновление')
         setTimeout(() => {
-          if (this.$refs.threeRenderer) {
-          this.$refs.threeRenderer.forceUpdate()
-        }
+          this.updateSideMenu3D()
         }, 100)
         return
       }
@@ -6911,12 +6902,9 @@ export default {
     // Получение названия режима для отображения
     // Обновление 3D модели
     update3DModel() {
-      if (this.$refs.threeRenderer && this.$refs.threeRenderer.forceUpdate) {
-        this.$refs.threeRenderer.forceUpdate()
-        console.log('🔄 3D модель обновлена')
-      } else {
-        console.log('⚠️ ThreeDRenderer не готов для обновления')
-      }
+      // В GridsPage 3D модель находится в боковой панели, обновляем её
+      this.updateSideMenu3D()
+      console.log('🔄 3D модель обновлена через SideMenu')
     },
 
     getModeDisplayName(mode) {

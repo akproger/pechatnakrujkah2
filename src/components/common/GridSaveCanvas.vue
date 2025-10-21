@@ -1768,6 +1768,9 @@ export default {
         if (textData.stroke) {
           combinedPath.strokeColor = textData.strokeColor
           combinedPath.strokeWidth = textData.strokeWidth * scale
+          // ИСПРАВЛЕНИЕ: Делаем концы обводки плоскими для острого хвоста
+          combinedPath.strokeCap = 'butt'
+          combinedPath.strokeJoin = 'miter'
         }
         
         // Добавляем на слой
@@ -1806,6 +1809,9 @@ export default {
         if (textData.stroke) {
           backgroundPath.strokeColor = textData.strokeColor
           backgroundPath.strokeWidth = textData.strokeWidth * scale
+          // ИСПРАВЛЕНИЕ: Делаем концы обводки плоскими для острого хвоста
+          backgroundPath.strokeCap = 'butt'
+          backgroundPath.strokeJoin = 'miter'
         }
         
         this.paperScope.project.activeLayer.addChild(backgroundPath)

@@ -2866,10 +2866,11 @@ export default {
         isBottomLeft = true
       }
       
-      // Вычисляем ширину хвоста точно как в createTailPathPaperJS
+      // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
       const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      const tailWidthPixels = tailLength * tailWidthPercent // Используем ту же формулу что и в createTailPathPaperJS
+      // ИСПРАВЛЕНИЕ: Используем minDimension вместо tailLength для избежания двойного масштабирования
+      const tailWidthPixels = minDimension * tailWidthPercent
       
       if (isTopLeft) {
         // Левый верхний угол - строим путь с хвостом
@@ -2937,10 +2938,11 @@ export default {
     // Построение пути суперподложки с хвостом со стороны (не из угла) (Paper.js версия)
     buildSideTailSuperPathPaperJS(path, bgX, bgY, bgWidth, bgHeight, 
                                 intersectionPoint, sharpPointX, sharpPointY, tailSide, tailWidthPercent, scale) {
-      // Вычисляем ширину хвоста точно как в createTailPathPaperJS
+      // ИСПРАВЛЕНИЕ: Убираем двойное масштабирование ширины хвоста
       const minDimension = Math.min(bgWidth, bgHeight)
       const tailLength = minDimension * 1.25 // Базовая длина хвоста (как в createConversationPaperLayer)
-      const tailWidthPixels = tailLength * tailWidthPercent // Используем ту же формулу что и в createTailPathPaperJS
+      // ИСПРАВЛЕНИЕ: Используем minDimension вместо tailLength для избежания двойного масштабирования
+      const tailWidthPixels = minDimension * tailWidthPercent
       
       if (tailSide === 'top') {
         // Хвост сверху - строим единую фигуру (точно как в GridsPage.vue)

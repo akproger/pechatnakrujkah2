@@ -3833,7 +3833,7 @@ export default {
     
     // Отрисовка объединенной фигуры (подложка + хвост) как единое целое
     drawCombinedShape(ctx, centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow = false) {
-      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - drawCombinedShape:', {
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - drawCombinedShape:', {
         centerX, centerY, bgWidth, bgHeight, scale, backgroundColor, withShadow,
         bgWidthType: typeof bgWidth, bgHeightType: typeof bgHeight
       })
@@ -3843,7 +3843,30 @@ export default {
       const stableWidth = bgWidth
       const stableHeight = bgHeight
       
-      console.log('🔍 ДЕФОЛТНЫЙ ТЕКСТ - стабильные размеры:', { stableWidth, stableHeight })
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - стабильные размеры:', { stableWidth, stableHeight })
+      
+      // ДЕТАЛЬНЫЙ АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА
+      const textData = this.getCurrentTextDialogData()
+      const tailSize = Number(textData.tailSize) / 100
+      const tailWidth = Number(textData.tailWidth) / 100
+      const tailAngle = Number(textData.tailAngle) * Math.PI / 180
+      
+      const minDimension = Math.min(stableWidth, stableHeight)
+      const tailLength = minDimension * 1.25
+      
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - параметры хвоста:', {
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailAngleRad: tailAngle,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        bgWidth: stableWidth,
+        bgHeight: stableHeight,
+        scale: scale
+      })
       
       // КЭШИРУЕМ точку пересечения для использования в strokeCombinedShape
       const cachedIntersection = this.getCachedTailIntersection(centerX, centerY, stableWidth, stableHeight)
@@ -3960,6 +3983,16 @@ export default {
       // Острая вершина хвоста (tailSize теперь от 100% до 300%)
       const sharpPointX = centerX + tailLength * tailSizePercent * Math.cos(tailAngle)
       const sharpPointY = centerY + tailLength * tailSizePercent * Math.sin(tailAngle)
+      
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - buildSuperBackgroundPath:', {
+        centerX, centerY, bgX, bgY, bgWidth, bgHeight,
+        intersectionPoint, tailAngle, tailLength, tailWidth,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailSizePercent: tailSizePercent,
+        tailWidthPercent: tailWidthPercent,
+        sharpPointX, sharpPointY
+      })
       
       // Определяем, с какой стороны подложки выходит хвост
       const tailSide = this.getTailSideFromIntersection(intersectionPoint, bgX, bgY, bgWidth, bgHeight)
@@ -4393,7 +4426,18 @@ export default {
       const bgX = centerX - bgWidth / 2
       const bgY = centerY - bgHeight / 2
       
-      return this.getTailIntersectionWithBackground(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight)
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - getCachedTailIntersection:', {
+        centerX, centerY, bgWidth, bgHeight,
+        tailAngle: textData.tailAngle,
+        tailAngleRad: tailAngle,
+        bgX, bgY
+      })
+      
+      const intersection = this.getTailIntersectionWithBackground(centerX, centerY, tailAngle, bgX, bgY, bgWidth, bgHeight)
+      
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - результат пересечения:', intersection)
+      
+      return intersection
     },
     
     // Построение пути с кэшированной точкой пересечения
@@ -4411,6 +4455,19 @@ export default {
       // Позиция подложки
       const bgX = centerX - bgWidth / 2
       const bgY = centerY - bgHeight / 2
+      
+      console.log('🔍 АНАЛИЗ МАСШТАБИРОВАНИЯ ХВОСТА - buildUnifiedShapePathWithCache:', {
+        centerX, centerY, bgWidth, bgHeight, scale, cachedIntersection,
+        tailSize: textData.tailSize,
+        tailWidth: textData.tailWidth,
+        tailAngle: textData.tailAngle,
+        tailSizePercent: tailSize,
+        tailWidthPercent: tailWidth,
+        tailAngleRad: tailAngle,
+        minDimension: minDimension,
+        tailLength: tailLength,
+        bgX, bgY
+      })
       
       if (cachedIntersection) {
         // Создаем суперподложку с хвостом

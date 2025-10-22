@@ -2700,11 +2700,52 @@ export default {
       const centerX = canvas.width / 2
       const centerY = canvas.height / 2
       
-      // Рисуем хвост
-      this.drawTailBackground(ctx, centerX, centerY, textData)
+      // Приводим значения к числам
+      const fontSize = Number(textData.fontSize) || 24
+      const lineHeight = textData.lineHeight || 1.2
+      const padding = Number(textData.padding) || 15
+      const backgroundColor = textData.backgroundColor || '#ffffff'
       
-      // Рисуем текст
-      this.drawText(ctx, centerX, centerY, textData)
+      // Вычисляем минимальные размеры подложки от текста
+      const textSize = this.calculateMultilineTextSize(ctx, textData.text || '', fontSize, lineHeight)
+      const minWidth = textSize.width + padding * 2
+      const minHeight = textSize.height + padding * 2
+      
+      // Итоговые размеры подложки (не меньше минимальных)
+      const backgroundWidth = Math.max(Number(textData.backgroundWidth) || 200, minWidth)
+      const backgroundHeight = Math.max(Number(textData.backgroundHeight) || minHeight, minHeight)
+      
+      // Тень для объединенной фигуры
+      if (textData.shadow) {
+        ctx.shadowColor = textData.shadowColor + Math.round((Number(textData.shadowOpacity) || 0) * 2.55).toString(16).padStart(2, '0')
+        ctx.shadowBlur = Number(textData.shadowBlur) || 0
+        ctx.shadowOffsetX = Number(textData.shadowOffsetX) || 0
+        ctx.shadowOffsetY = Number(textData.shadowOffsetY) || 0
+      }
+      
+      // Рисуем объединенную фигуру (подложка + хвост) как в основном канвасе
+      const previewScale = 1
+      this.drawCombinedShape(ctx, centerX, centerY, backgroundWidth, backgroundHeight, previewScale, backgroundColor, true)
+      
+      // Сбрасываем тень
+      if (textData.shadow) {
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+      }
+      
+      // Обводка при необходимости
+      if (textData.stroke) {
+        ctx.strokeStyle = textData.strokeColor
+        ctx.lineWidth = Number(textData.strokeWidth) || 2
+        this.strokeCombinedShape(ctx, centerX, centerY, backgroundWidth, backgroundHeight, previewScale)
+      }
+      
+      // Рисуем текст по центру
+      ctx.fillStyle = textData.textColor || '#000000'
+      ctx.textAlign = textData.textAlign || 'center'
+      this.drawMultilineText(ctx, textData.text || '', centerX, centerY, fontSize * previewScale, lineHeight)
     },
 
     // Рисование превью мыслей

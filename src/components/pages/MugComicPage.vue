@@ -127,6 +127,10 @@
                   @mousemove="onCanvasMouseMove"
                   @dragover="onCanvasDragOver"
                   @drop="onCanvasDrop"
+                  @touchstart="onCanvasTouchStart"
+                  @touchmove="onCanvasTouchMove"
+                  @touchend="onCanvasTouchEnd"
+                  @touchcancel="onCanvasTouchCancel"
                 ></canvas>
                 
                 <!-- Прелоадер -->
@@ -227,6 +231,10 @@
                           draggable="true"
                           @dragstart="onImageDragStart($event, image)"
                           @dragend="onImageDragEnd"
+                          @touchstart="onImageTouchStart($event, image)"
+                          @touchmove="onImageTouchMove($event, image)"
+                          @touchend="onImageTouchEnd($event, image)"
+                          @touchcancel="onImageTouchCancel($event, image)"
                         >
                           <img 
                             :src="image.url" 
@@ -554,6 +562,27 @@ export default {
       highlightLines: {
         vertical: null, // Вертикальная линия подсветки
         horizontal: null // Горизонтальная линия подсветки
+      },
+      
+      // Touch-перетаскивание для мобильных устройств
+      touchDrag: {
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        draggedImage: null,
+        dragStartTime: 0
+      },
+      
+      // Touch-перетаскивание изображений
+      imageTouchDrag: {
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        draggedImage: null,
+        dragStartTime: 0,
+        dragElement: null
       }
     }
   },
@@ -6696,6 +6725,107 @@ export default {
       // console.log('🖼️ Завершено перетаскивание изображения')
     },
     
+    // Touch-события для изображений
+    onImageTouchStart(event, image) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (event.touches.length === 1) {
+        const touch = event.touches[0]
+        const rect = event.target.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        // Сохраняем начальную позицию
+        this.imageTouchDrag.startX = touch.clientX
+        this.imageTouchDrag.startY = touch.clientY
+        this.imageTouchDrag.currentX = touch.clientX
+        this.imageTouchDrag.currentY = touch.clientY
+        this.imageTouchDrag.draggedImage = image
+        this.imageTouchDrag.dragStartTime = Date.now()
+        this.imageTouchDrag.isDragging = false
+        this.imageTouchDrag.dragElement = event.target
+        
+        console.log('📱 Touch start на изображении:', image.name, { x, y })
+      }
+    },
+    
+    onImageTouchMove(event, image) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (event.touches.length === 1 && this.imageTouchDrag.draggedImage) {
+        const touch = event.touches[0]
+        this.imageTouchDrag.currentX = touch.clientX
+        this.imageTouchDrag.currentY = touch.clientY
+        
+        // Проверяем, началось ли перетаскивание (движение больше 10px)
+        const deltaX = Math.abs(touch.clientX - this.imageTouchDrag.startX)
+        const deltaY = Math.abs(touch.clientY - this.imageTouchDrag.startY)
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        
+        if (distance > 10 && !this.imageTouchDrag.isDragging) {
+          this.imageTouchDrag.isDragging = true
+          console.log('📱 Touch drag started для изображения:', image.name)
+          
+          // Создаем визуальную обратную связь
+          this.createDragPreview(touch.clientX, touch.clientY, image)
+        }
+        
+        if (this.imageTouchDrag.isDragging) {
+          // Обновляем позицию превью
+          this.updateDragPreview(touch.clientX, touch.clientY)
+          console.log('📱 Touch drag move для изображения:', image.name, { x: touch.clientX, y: touch.clientY })
+        }
+      }
+    },
+    
+    onImageTouchEnd(event, image) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (this.imageTouchDrag.isDragging) {
+        const touch = event.changedTouches[0]
+        const rect = this.$refs.comicCanvas.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        console.log('📱 Touch drag end для изображения:', image.name, { x, y })
+        
+        // Проверяем, попал ли touch на canvas
+        if (this.isPointInCanvas(touch.clientX, touch.clientY)) {
+          // Находим маску под точкой
+          const mask = this.findMaskAtPoint(x, y)
+          
+          if (mask) {
+            this.attachImageToMask(mask.id, image)
+            console.log('🖼️ Изображение привязано к маске через touch:', mask.id)
+          } else {
+            // Если маска не найдена, применяем изображение как фон
+            this.setBackgroundFromImage(image)
+            this.backgroundColor = 'rgba(0,0,0,0)'
+            this.updateBaseRectangle()
+            console.log('🖼️ Изображение применено как фон через touch:', image.name)
+          }
+        }
+        
+        // Очищаем превью и сбрасываем состояние
+        this.removeDragPreview()
+        this.resetImageTouchDrag()
+      }
+    },
+    
+    onImageTouchCancel(event, image) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      console.log('📱 Touch cancel для изображения:', image.name)
+      
+      // Очищаем превью и сбрасываем состояние
+      this.removeDragPreview()
+      this.resetImageTouchDrag()
+    },
+    
     onCanvasDragOver(event) {
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
@@ -6741,6 +6871,149 @@ export default {
         }
       }
       return null
+    },
+    
+    // Touch-события для мобильных устройств
+    onCanvasTouchStart(event) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (event.touches.length === 1) {
+        const touch = event.touches[0]
+        const rect = this.$refs.comicCanvas.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        // Сохраняем начальную позицию для определения перетаскивания
+        this.touchDrag.startX = x
+        this.touchDrag.startY = y
+        this.touchDrag.dragStartTime = Date.now()
+        this.touchDrag.isDragging = false
+        this.touchDrag.draggedImage = null
+        
+        console.log('📱 Touch start:', { x, y })
+      }
+    },
+    
+    onCanvasTouchMove(event) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (event.touches.length === 1 && this.touchDrag.startX !== 0) {
+        const touch = event.touches[0]
+        const rect = this.$refs.comicCanvas.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        // Проверяем, началось ли перетаскивание (движение больше 10px)
+        const deltaX = Math.abs(x - this.touchDrag.startX)
+        const deltaY = Math.abs(y - this.touchDrag.startY)
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        
+        if (distance > 10 && !this.touchDrag.isDragging) {
+          this.touchDrag.isDragging = true
+          console.log('📱 Touch drag started')
+        }
+        
+        if (this.touchDrag.isDragging) {
+          console.log('📱 Touch drag move:', { x, y })
+        }
+      }
+    },
+    
+    onCanvasTouchEnd(event) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      if (this.touchDrag.isDragging) {
+        const touch = event.changedTouches[0]
+        const rect = this.$refs.comicCanvas.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        
+        console.log('📱 Touch drag end:', { x, y })
+        
+        // Здесь можно добавить логику для обработки перетаскивания
+        // Например, найти маску под точкой и применить изображение
+        
+        // Сбрасываем состояние перетаскивания
+        this.touchDrag.isDragging = false
+        this.touchDrag.startX = 0
+        this.touchDrag.startY = 0
+        this.touchDrag.draggedImage = null
+      }
+    },
+    
+    onCanvasTouchCancel(event) {
+      // Предотвращаем скролл страницы
+      event.preventDefault()
+      
+      // Сбрасываем состояние перетаскивания
+      this.touchDrag.isDragging = false
+      this.touchDrag.startX = 0
+      this.touchDrag.startY = 0
+      this.touchDrag.draggedImage = null
+      
+      console.log('📱 Touch cancel')
+    },
+    
+    // Вспомогательные методы для touch-перетаскивания изображений
+    isPointInCanvas(clientX, clientY) {
+      if (!this.$refs.comicCanvas) return false
+      const rect = this.$refs.comicCanvas.getBoundingClientRect()
+      return clientX >= rect.left && clientX <= rect.right && 
+             clientY >= rect.top && clientY <= rect.bottom
+    },
+    
+    createDragPreview(clientX, clientY, image) {
+      // Создаем превью изображения для перетаскивания
+      const preview = document.createElement('div')
+      preview.id = 'drag-preview'
+      preview.style.position = 'fixed'
+      preview.style.left = clientX - 40 + 'px'
+      preview.style.top = clientY - 40 + 'px'
+      preview.style.width = '80px'
+      preview.style.height = '80px'
+      preview.style.borderRadius = '8px'
+      preview.style.border = '2px solid #007bff'
+      preview.style.backgroundColor = 'rgba(0, 123, 255, 0.1)'
+      preview.style.zIndex = '9999'
+      preview.style.pointerEvents = 'none'
+      preview.style.display = 'flex'
+      preview.style.alignItems = 'center'
+      preview.style.justifyContent = 'center'
+      preview.style.fontSize = '12px'
+      preview.style.color = '#007bff'
+      preview.style.fontWeight = 'bold'
+      preview.textContent = image.name
+      
+      document.body.appendChild(preview)
+    },
+    
+    updateDragPreview(clientX, clientY) {
+      const preview = document.getElementById('drag-preview')
+      if (preview) {
+        preview.style.left = clientX - 40 + 'px'
+        preview.style.top = clientY - 40 + 'px'
+      }
+    },
+    
+    removeDragPreview() {
+      const preview = document.getElementById('drag-preview')
+      if (preview) {
+        preview.remove()
+      }
+    },
+    
+    resetImageTouchDrag() {
+      this.imageTouchDrag.isDragging = false
+      this.imageTouchDrag.startX = 0
+      this.imageTouchDrag.startY = 0
+      this.imageTouchDrag.currentX = 0
+      this.imageTouchDrag.currentY = 0
+      this.imageTouchDrag.draggedImage = null
+      this.imageTouchDrag.dragStartTime = 0
+      this.imageTouchDrag.dragElement = null
     },
     
     attachImageToMask(maskId, image) {
@@ -7742,8 +8015,22 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
+  touch-action: none; /* Предотвращаем скролл и зум на мобильных */
   display: block;
   box-shadow: 4px 4px 12px 0 rgba(255,255,255,.15);
+}
+
+/* Стили для touch-перетаскивания изображений */
+.position-relative {
+  touch-action: none; /* Предотвращаем скролл при touch на изображениях */
+}
+
+/* Стили для превью перетаскивания */
+#drag-preview {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .canvas-overlay {

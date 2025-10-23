@@ -544,7 +544,17 @@ export default {
       // Сетка
       showGrid: false, // Отображение сетки
       gridSize: 10, // Размер ячейки сетки в пикселях
-      gridLines: null // Ссылка на линии сетки в Paper.js
+      gridLines: null, // Ссылка на линии сетки в Paper.js
+      
+      // Точки для рисования масок
+      previewPoint: null, // Зеленая точка-предпросмотр до начала рисования
+      currentPoint: null, // Зеленая точка во время рисования
+      
+      // Подсветка линий сетки
+      highlightLines: {
+        vertical: null, // Вертикальная линия подсветки
+        horizontal: null // Горизонтальная линия подсветки
+      }
     }
   },
   computed: {
@@ -724,6 +734,152 @@ export default {
       const snappedY = Math.round(point.y / this.gridSize) * this.gridSize
       
       return { x: snappedX, y: snappedY }
+    },
+    
+    // ====== Точки для рисования масок ======
+    createPreviewPoint(point) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      this.removePreviewPoint() // Удаляем предыдущую точку
+      
+      const circle = new this.paperScope.Path.Circle({
+        center: [point.x, point.y],
+        radius: 4,
+        fillColor: '#00ff00', // Зеленый цвет
+        strokeColor: '#ffffff',
+        strokeWidth: 1
+      })
+      
+      this.previewPoint = circle
+      this.paperScope.project.activeLayer.addChild(circle)
+    },
+    
+    updatePreviewPoint(point) {
+      if (!this.previewPoint) return
+      
+      this.previewPoint.position = new this.paperScope.Point(point.x, point.y)
+    },
+    
+    removePreviewPoint() {
+      if (this.previewPoint && this.paperScope) {
+        this.previewPoint.remove()
+        this.previewPoint = null
+      }
+    },
+    
+    createCurrentPoint(point) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      this.removeCurrentPoint() // Удаляем предыдущую точку
+      
+      const circle = new this.paperScope.Path.Circle({
+        center: [point.x, point.y],
+        radius: 4,
+        fillColor: '#00ff00', // Зеленый цвет
+        strokeColor: '#ffffff',
+        strokeWidth: 1
+      })
+      
+      this.currentPoint = circle
+      this.paperScope.project.activeLayer.addChild(circle)
+    },
+    
+    updateCurrentPoint(point) {
+      if (!this.currentPoint) return
+      
+      this.currentPoint.position = new this.paperScope.Point(point.x, point.y)
+    },
+    
+    removeCurrentPoint() {
+      if (this.currentPoint && this.paperScope) {
+        this.currentPoint.remove()
+        this.currentPoint = null
+      }
+    },
+    
+    // Создание подсветки вертикальной линии
+    createVerticalHighlight(x) {
+      if (!this.paperScope || !this.paperScope.project) return
+      this.removeVerticalHighlight()
+      
+      const canvasHeight = this.paperScope.view.viewSize.height
+      const line = new this.paperScope.Path.Line({
+        from: [x, 0],
+        to: [x, canvasHeight],
+        strokeColor: '#00ff00',
+        strokeWidth: 2,
+        opacity: 0.5
+      })
+      
+      this.highlightLines.vertical = line
+      this.paperScope.project.activeLayer.addChild(line)
+    },
+    
+    // Создание подсветки горизонтальной линии
+    createHorizontalHighlight(y) {
+      if (!this.paperScope || !this.paperScope.project) return
+      this.removeHorizontalHighlight()
+      
+      const canvasWidth = this.paperScope.view.viewSize.width
+      const line = new this.paperScope.Path.Line({
+        from: [0, y],
+        to: [canvasWidth, y],
+        strokeColor: '#00ff00',
+        strokeWidth: 2,
+        opacity: 0.5
+      })
+      
+      this.highlightLines.horizontal = line
+      this.paperScope.project.activeLayer.addChild(line)
+    },
+    
+    // Удаление подсветки вертикальной линии
+    removeVerticalHighlight() {
+      if (this.highlightLines.vertical && this.paperScope) {
+        this.highlightLines.vertical.remove()
+        this.highlightLines.vertical = null
+      }
+    },
+    
+    // Удаление подсветки горизонтальной линии
+    removeHorizontalHighlight() {
+      if (this.highlightLines.horizontal && this.paperScope) {
+        this.highlightLines.horizontal.remove()
+        this.highlightLines.horizontal = null
+      }
+    },
+    
+    // Удаление всех подсветок
+    removeAllHighlights() {
+      this.removeVerticalHighlight()
+      this.removeHorizontalHighlight()
+    },
+    
+    // Проверка совпадения с установленными точками
+    checkPointAlignment(point) {
+      if (!this.maskPoints || this.maskPoints.length === 0) return
+      
+      const tolerance = 5 // Пикселей для совпадения
+      let hasVerticalMatch = false
+      let hasHorizontalMatch = false
+      
+      // Проверяем совпадение по X (вертикальная линия)
+      for (const maskPoint of this.maskPoints) {
+        if (Math.abs(point.x - maskPoint.x) <= tolerance) {
+          hasVerticalMatch = true
+          break
+        }
+      }
+      
+      // Проверяем совпадение по Y (горизонтальная линия)
+      for (const maskPoint of this.maskPoints) {
+        if (Math.abs(point.y - maskPoint.y) <= tolerance) {
+          hasHorizontalMatch = true
+          break
+        }
+      }
+      
+      return { hasVerticalMatch, hasHorizontalMatch }
     },
     
     // ====== Применение стилей маски на канвасе и обновление 3D ======
@@ -1656,11 +1812,24 @@ export default {
       // Добавляем точку
       this.maskPoints.push({ x: point.x, y: point.y })
       
+      // Очищаем предварительную точку после первого клика
+      if (this.maskPoints.length === 1) {
+        console.log('🔧 Очищаем предварительную точку после первого клика')
+        this.removePreviewPoint()
+      }
+      
+      console.log('🔧 ДО создания визуальной точки - maskPoints.length:', this.maskPoints.length)
+      console.log('🔧 ДО создания визуальной точки - point:', point.toString())
+      
       // Создаем визуальную точку
       this.createMaskPoint(point)
       
-      // Обновляем линию
-      this.updateMaskLine()
+      console.log('🔧 ПОСЛЕ создания визуальной точки')
+      
+        // Обновляем линию
+        console.log('🔧 ДО обновления линии')
+        this.updateMaskLine()
+        console.log('🔧 ПОСЛЕ обновления линии')
       
       console.log('📍 Добавлена точка маски:', point.toString())
     },
@@ -1824,6 +1993,12 @@ export default {
       this.maskPoints = []
       this.maskLine = null
       this.activeTool = 'mask'
+      
+      // Очищаем точки при активации
+      this.removePreviewPoint()
+      this.removeCurrentPoint()
+      this.removeAllHighlights()
+      
       console.log('🎭 Режим рисования масок активирован')
     },
     
@@ -1870,6 +2045,11 @@ export default {
       this.activeTool = null
       this.maskPoints = []
       this.clearMaskLine()
+      
+      // Очищаем точки
+      this.removePreviewPoint()
+      this.removeCurrentPoint()
+      this.removeAllHighlights()
     },
     
     performScalpelCut() {
@@ -6315,7 +6495,11 @@ export default {
       this.hideRedClickPoint()
       this.hideIntersectionWarning()
       
-      if (!this.maskMode || this.maskPoints.length === 0) return
+      if (!this.maskMode) {
+        // Очищаем подсветку при выходе из режима масок
+        this.removeAllHighlights()
+        return
+      }
       
       const rect = this.$refs.comicCanvas.getBoundingClientRect()
       const x = event.clientX - rect.left
@@ -6324,6 +6508,37 @@ export default {
       // Применяем магнитизацию к сетке если она включена
       const snappedPoint = this.snapToGrid({ x, y })
       const point = new this.paperScope.Point(snappedPoint.x, snappedPoint.y)
+      
+      // Показываем предварительную точку если еще не начали рисовать
+      if (this.maskPoints.length === 0) {
+        this.createPreviewPoint(snappedPoint)
+        return
+      }
+      
+      // Показываем текущую точку на линии (следует за курсором)
+      if (!this.currentPoint) {
+        this.createCurrentPoint(snappedPoint)
+      } else {
+        this.updateCurrentPoint(snappedPoint)
+      }
+      
+      // Проверяем совпадение с установленными точками и подсвечиваем линии
+      const alignment = this.checkPointAlignment(snappedPoint)
+      
+      if (alignment.hasVerticalMatch) {
+        this.createVerticalHighlight(snappedPoint.x)
+      } else {
+        this.removeVerticalHighlight()
+      }
+      
+      if (alignment.hasHorizontalMatch) {
+        this.createHorizontalHighlight(snappedPoint.y)
+      } else {
+        this.removeHorizontalHighlight()
+      }
+      
+      // НЕ обновляем линию при движении мыши - только зеленая точка
+      // Линия обновляется только при клике
       
       // Проверяем примагничивание к первой точке
       if (this.maskPoints.length >= 3) {
@@ -6344,6 +6559,7 @@ export default {
     },
     
     updateMaskLine(hoverPoint) {
+      // Синхронное обновление для мгновенной фиксации при клике
       // Удаляем предыдущую временную линию, если есть
       if (this.maskLine) {
         this.maskLine.remove()
@@ -6375,20 +6591,29 @@ export default {
     },
     
     createMaskPoint(point) {
-      if (!this.paperScope || !this.paperScope.project) return
+      console.log('🔧 createMaskPoint вызван с точкой:', point.toString())
       
+      if (!this.paperScope || !this.paperScope.project) {
+        console.log('🔧 createMaskPoint: paperScope или project отсутствует')
+        return
+      }
+      
+      console.log('🔧 createMaskPoint: создаем круг')
       // Создаем синюю точку
       const circle = new this.paperScope.Path.Circle(point, 4)
       circle.fillColor = '#0066cc'
       circle.strokeColor = '#004499'
       circle.strokeWidth = 1
       
+      console.log('🔧 createMaskPoint: добавляем на canvas')
       // Добавляем на canvas
       this.paperScope.project.activeLayer.addChild(circle)
       
+      console.log('🔧 createMaskPoint: сохраняем ссылку')
       // Сохраняем ссылку для удаления
       this.maskPointElements.push(circle)
       
+      console.log('🔧 createMaskPoint: завершено')
       console.log('📍 Создана точка маски:', point.toString())
     },
     
@@ -6957,6 +7182,21 @@ export default {
     checkLineIntersection(newPoint) {
       // Проверяем пересечение нового отрезка с уже нарисованными
       if (this.maskPoints.length < 2) return false
+      
+      // Исключаем проверку пересечения если курсор рядом с первой точкой (замыкание контура)
+      if (this.maskPoints.length >= 3) {
+        const firstPoint = this.maskPoints[0]
+        const distanceToFirst = Math.sqrt(
+          Math.pow(newPoint.x - firstPoint.x, 2) + 
+          Math.pow(newPoint.y - firstPoint.y, 2)
+        )
+        
+        // Если курсор рядом с первой точкой (в радиусе 15px), не проверяем пересечения
+        if (distanceToFirst <= 15) {
+          console.log('🎯 [checkLineIntersection] Курсор рядом с первой точкой - замыкание контура, пропускаем проверку пересечений')
+          return false
+        }
+      }
       
       console.log('🔍 [checkLineIntersection] Проверяем пересечение для точки:', newPoint)
       console.log('🔍 [checkLineIntersection] Текущие точки маски:', this.maskPoints)

@@ -51,6 +51,14 @@
                     </button>
                     <button 
                       class="tool-button"
+                      :class="{ 'active': showGrid }"
+                      @click="toggleGrid"
+                      title="Сетка"
+                    >
+                      <i class="bi bi-grid-3x3"></i>
+                    </button>
+                    <button 
+                      class="tool-button"
                       @click="triggerSave"
                       title="Сохранить"
                     >
@@ -531,7 +539,12 @@ export default {
       
       
       // Настройки скальпеля
-      scalpelWidth: 2 // Ширина разреза в пикселях
+      scalpelWidth: 2, // Ширина разреза в пикселях
+      
+      // Сетка
+      showGrid: false, // Отображение сетки
+      gridSize: 10, // Размер ячейки сетки в пикселях
+      gridLines: null // Ссылка на линии сетки в Paper.js
     }
   },
   computed: {
@@ -583,6 +596,136 @@ export default {
     }
   },
   methods: {
+    // ====== Сетка ======
+    toggleGrid() {
+      console.log('🔧 toggleGrid вызван, текущее состояние showGrid:', this.showGrid)
+      this.showGrid = !this.showGrid
+      console.log('🔧 Новое состояние showGrid:', this.showGrid)
+      
+      if (this.showGrid) {
+        console.log('🔧 Включаем сетку...')
+        console.log('🔧 paperScope существует:', !!this.paperScope)
+        console.log('🔧 baseRectangle существует:', !!this.baseRectangle)
+        
+        // Убеждаемся, что базовый прямоугольник существует
+        if (!this.baseRectangle) {
+          console.warn('⚠️ Базовый прямоугольник не найден, создаем сетку позже')
+          // Отложенное создание сетки через $nextTick
+          this.$nextTick(() => {
+            console.log('🔧 $nextTick: baseRectangle существует:', !!this.baseRectangle)
+            console.log('🔧 $nextTick: showGrid активна:', this.showGrid)
+            if (this.baseRectangle && this.showGrid) {
+              console.log('🔧 $nextTick: создаем сетку')
+              this.createGrid()
+            }
+          })
+          return
+        }
+        console.log('🔧 Создаем сетку немедленно')
+        this.createGrid()
+      } else {
+        console.log('🔧 Отключаем сетку')
+        this.removeGrid()
+      }
+    },
+    
+    createGrid() {
+      console.log('🔧 createGrid вызван')
+      console.log('🔧 paperScope существует:', !!this.paperScope)
+      console.log('🔧 baseRectangle существует:', !!this.baseRectangle)
+      
+      if (!this.paperScope || !this.baseRectangle) {
+        console.warn('⚠️ createGrid: paperScope или baseRectangle отсутствует')
+        return
+      }
+      
+      console.log('🔧 Удаляем существующую сетку')
+      this.removeGrid() // Удаляем существующую сетку
+      
+      const bounds = this.baseRectangle.bounds
+      console.log('🔧 Границы базового прямоугольника:', {
+        left: bounds.left,
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        width: bounds.width,
+        height: bounds.height
+      })
+      
+      const gridGroup = new this.paperScope.Group()
+      console.log('🔧 Создана группа сетки')
+      
+      let verticalLinesCount = 0
+      let horizontalLinesCount = 0
+      
+      // Вертикальные линии
+      for (let x = bounds.left; x <= bounds.right; x += this.gridSize) {
+        const line = new this.paperScope.Path.Line({
+          from: [x, bounds.top],
+          to: [x, bounds.bottom],
+          strokeColor: '#000000', // Черный цвет
+          strokeWidth: 0.5, // Тонкие линии
+          opacity: 0.1 // 10% прозрачности
+        })
+        gridGroup.addChild(line)
+        verticalLinesCount++
+      }
+      
+      // Горизонтальные линии
+      for (let y = bounds.top; y <= bounds.bottom; y += this.gridSize) {
+        const line = new this.paperScope.Path.Line({
+          from: [bounds.left, y],
+          to: [bounds.right, y],
+          strokeColor: '#000000', // Черный цвет
+          strokeWidth: 0.5, // Тонкие линии
+          opacity: 0.1 // 10% прозрачности
+        })
+        gridGroup.addChild(line)
+        horizontalLinesCount++
+      }
+      
+      console.log('🔧 Создано линий:', { vertical: verticalLinesCount, horizontal: horizontalLinesCount })
+      
+      this.gridLines = gridGroup
+      this.paperScope.project.activeLayer.addChild(gridGroup)
+      console.log('🔧 Сетка добавлена в activeLayer')
+      
+      // НЕ отправляем сетку на задний план, чтобы она была видна
+      // gridGroup.sendToBack() // Отправляем сетку на задний план
+      console.log('🔧 Сетка НЕ отправлена на задний план для видимости')
+      
+      // Принудительно обновляем view для отображения сетки
+      this.paperScope.view.update()
+      console.log('🔧 View обновлен')
+      
+      console.log('🔧 createGrid завершен, gridLines:', !!this.gridLines)
+    },
+    
+    removeGrid() {
+      console.log('🔧 removeGrid вызван')
+      console.log('🔧 gridLines существует:', !!this.gridLines)
+      console.log('🔧 paperScope существует:', !!this.paperScope)
+      
+      if (this.gridLines && this.paperScope) {
+        console.log('🔧 Удаляем сетку')
+        this.gridLines.remove()
+        this.gridLines = null
+        console.log('🔧 Сетка удалена')
+      } else {
+        console.log('🔧 Сетка уже удалена или paperScope отсутствует')
+      }
+    },
+    
+    // Магнитизация к ближайшей точке сетки
+    snapToGrid(point) {
+      if (!this.showGrid) return point
+      
+      const snappedX = Math.round(point.x / this.gridSize) * this.gridSize
+      const snappedY = Math.round(point.y / this.gridSize) * this.gridSize
+      
+      return { x: snappedX, y: snappedY }
+    },
+    
     // ====== Применение стилей маски на канвасе и обновление 3D ======
     getStrokeWidthPxForMask(pct) {
       if (!this.baseRectangle || !this.paperScope) return 0
@@ -796,6 +939,11 @@ export default {
         
         // Обновляем размер view в Paper.js (логические размеры, не физические)
         this.paperScope.view.viewSize = new this.paperScope.Size(containerWidth, containerHeight)
+        
+        // Обновляем сетку если она включена
+        if (this.showGrid) {
+          this.createGrid()
+        }
         
         console.log('📐 Канвас MugComicPage изменен:', containerWidth, 'x', containerHeight)
       },
@@ -1057,6 +1205,13 @@ export default {
       // Настраиваем инструменты Paper.js для перетаскивания
       this.setupPaperTools()
       
+      // Создаем сетку если она включена
+      console.log('🔧 initPaperCanvas: showGrid активна:', this.showGrid)
+      if (this.showGrid) {
+        console.log('🔧 initPaperCanvas: создаем сетку')
+        this.createGrid()
+      }
+      
       console.log('Paper.js canvas инициализирован:', width, 'x', height)
       
       // Обновляем 3D модель в боковой панели
@@ -1102,6 +1257,13 @@ export default {
 
       // После создания базового прямоугольника — зафиксируем порядок слоев
       this.enforceLayerOrder()
+      
+      // Создаем сетку если она включена
+      console.log('🔧 createBaseRectangle: showGrid активна:', this.showGrid)
+      if (this.showGrid) {
+        console.log('🔧 createBaseRectangle: создаем сетку')
+        this.createGrid()
+      }
     },
 
     // Создание фонового изображения
@@ -1413,6 +1575,12 @@ export default {
         return
       }
       
+      // Обработка кликов в режиме масок
+      if (this.maskMode) {
+        this.handleMaskClick(event)
+        return
+      }
+      
       // Здесь можно добавить логику для одинарного клика
       console.log('🖱️ Одинарный клик в точке:', event.point)
     },
@@ -1431,6 +1599,70 @@ export default {
       
       // Обновляем линию
       this.updateScalpelLine()
+    },
+    
+    // Обработка клика в режиме масок
+    handleMaskClick(event) {
+      console.log('🎭 Клик маски в точке:', event.point)
+      
+      // Применяем магнитизацию к сетке если включена
+      const snappedPoint = this.snapToGrid({ x: event.point.x, y: event.point.y })
+      
+      // Создаем Paper.js Point из объекта с координатами
+      const point = new this.paperScope.Point(snappedPoint.x, snappedPoint.y)
+      
+      // Добавляем точку маски
+      this.addMaskPoint(point)
+    },
+    
+    // Добавление точки маски
+    addMaskPoint(point) {
+      if (!this.paperScope || !this.paperScope.project) return
+      
+      // Проверяем пересечение перед добавлением точки
+      const intersection = this.checkLineIntersection(point)
+      if (intersection) {
+        console.log('🚫 Пересечение обнаружено, точка не добавлена')
+        this.hasIntersection = true
+        this.intersectionPoint = intersection
+        
+        // Показываем красную точку клика
+        this.showRedClickPoint(point)
+        
+        // Показываем крестик в месте пересечения
+        this.showIntersectionCross(intersection)
+        return
+      }
+      
+      // Сбрасываем состояние пересечения
+      this.hasIntersection = false
+      this.intersectionPoint = null
+      this.hideIntersectionWarning()
+      this.hideRedClickPoint()
+      
+      // Проверяем замыкание контура (магнит к первой точке)
+      if (this.maskPoints.length >= 3) {
+        const firstPoint = this.maskPoints[0]
+        const distance = point.getDistance(firstPoint)
+        
+        if (distance <= 15) { // Магнит 15px
+          console.log('🎯 Примагничивание к первой точке! Расстояние:', distance.toFixed(2))
+          console.log('🎭 Контур замкнут!')
+          this.finishMask()
+          return
+        }
+      }
+      
+      // Добавляем точку
+      this.maskPoints.push({ x: point.x, y: point.y })
+      
+      // Создаем визуальную точку
+      this.createMaskPoint(point)
+      
+      // Обновляем линию
+      this.updateMaskLine()
+      
+      console.log('📍 Добавлена точка маски:', point.toString())
     },
 
     // Обработка двойного клика
@@ -6021,7 +6253,8 @@ export default {
     
     // ========== Обработчики событий canvas ==========
     onCanvasClick(event) {
-      if (!this.maskMode) return
+      // Отключаем старый обработчик, так как теперь используется handleMaskClick
+      return
       
       const rect = this.$refs.comicCanvas.getBoundingClientRect()
       const x = event.clientX - rect.left
@@ -6088,7 +6321,9 @@ export default {
       const x = event.clientX - rect.left
       const y = event.clientY - rect.top
       
-      const point = new this.paperScope.Point(x, y)
+      // Применяем магнитизацию к сетке если она включена
+      const snappedPoint = this.snapToGrid({ x, y })
+      const point = new this.paperScope.Point(snappedPoint.x, snappedPoint.y)
       
       // Проверяем примагничивание к первой точке
       if (this.maskPoints.length >= 3) {

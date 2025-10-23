@@ -2040,16 +2040,37 @@ export default {
       // Применяем начальные стили, чтобы толщина совпала в пикселях с основной рамкой
       this.updateMaskAppearance(mask)
       
+      // Очищаем все временные элементы перед сбросом режима
+      this.clearMaskLine()
+      this.clearAllMaskPoints() // Очищаем все визуальные точки построения
+      this.removePreviewPoint()
+      this.removeCurrentPoint()
+      this.removeAllHighlights()
+      
+      // Очищаем все элементы пересечений и предупреждений
+      this.hideIntersectionWarning()
+      this.hideRedClickPoint()
+      this.hideMagneticSnap()
+      
+      // Сбрасываем состояния пересечений
+      this.hasIntersection = false
+      this.intersectionPoint = null
+      
       // Сбрасываем режим
       this.maskMode = false
       this.activeTool = null
       this.maskPoints = []
-      this.clearMaskLine()
       
-      // Очищаем точки
-      this.removePreviewPoint()
-      this.removeCurrentPoint()
-      this.removeAllHighlights()
+      // Принудительно обновляем canvas перед обновлением 3D модели
+      if (this.paperScope && this.paperScope.view) {
+        this.paperScope.view.update()
+      }
+      
+      // Обновляем 3D модель после создания маски
+      this.$nextTick(() => {
+        this.update3DTexture()
+        this.updateSideMenu3D()
+      })
     },
     
     performScalpelCut() {
